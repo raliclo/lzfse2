@@ -4,14 +4,14 @@
 //  Compile: swiftc -O lzfse-cli.swift -o lzfse
 //
 //  位元相容的 LZFSE 實作
-//  編碼：bvx1（未壓縮頻率表）/ bvx-（raw）/ bvx$；單流（other）或分塊平行（other2）
+//  編碼：bvx2（壓縮標頭）/ bvx-（raw）/ bvx$；單流（other）或分塊平行（other2）
 //  解碼：全部區塊型別 bvx1 / bvx2（壓縮標頭）/ bvxn（LZVN）/ bvx- / bvx$
 //        —— 包含 Apple 編碼器產出的串流
 //
 //  逐段對照 lzfse/lzfse 參考實作：
 //    - 區塊魔數、v1 標頭、L/M/D 常數表  ← lzfse_internal.h
 //    - FSE 位元流與編解碼核心            ← lzfse_fse.h / lzfse_fse.c
-//    - 區塊編碼流程（4 路交錯 literal、D→M→L 反序 LMD） ← lzfse_encode_base.c
+//    - 區塊編碼流程（4 路交錯 literal、D→M→L 反序 LMD、v2 標頭） ← lzfse_encode_base.c
 //    - 區塊解碼流程                       ← lzfse_decode_base.c
 //
 //  本階段輸出 bvx1（未壓縮頻率表）壓縮區塊 + bvx- 原始區塊 + bvx$ 結尾，
@@ -238,11 +238,18 @@ public enum LZFSEv1 {
     // MARK: - FSE 位元流（lzfse_fse.h，64 位元 accumulator）
     // =================================================================
 
-    /// 輸出流：LSB 先入、向前寫出位元組；finish 後 accumNBits ∈ [-7, 0]
+    /// 輸出流：LSB 先入、向前寫出位元組；finish 後 accumNBits ∈ [-7, 0]。
+    ///
+    /// 效能：直接寫入呼叫端預配置的緩衝，flush/finish 以單次 8 位元組
+    /// memcpy 取代逐位元組 append（會多寫入少量暫存位元組到邏輯結尾之後，
+    /// 呼叫端緩衝需預留 ≥8 bytes 的 slack）。
     struct FSEOutStream {
+        var ptr: UnsafeMutablePointer<UInt8>
+        let start: UnsafeMutablePointer<UInt8>
         var accum: UInt64 = 0
         var accumNBits: Int32 = 0
-        var bytes: [UInt8] = []
+
+        init(_ base: UnsafeMutablePointer<UInt8>) { ptr = base; start = base }
 
         @inline(__always)
         mutating func push(_ n: Int32, _ b: UInt64) {
@@ -253,21 +260,24 @@ public enum LZFSEv1 {
         @inline(__always)
         mutating func flush() {
             let nbits = accumNBits & -8
-            var a = accum
-            for _ in 0..<(nbits >> 3) { bytes.append(UInt8(truncatingIfNeeded: a)); a >>= 8 }
+            var v = accum.littleEndian
+            memcpy(ptr, &v, 8)              // 寬寫入；slack 涵蓋多寫的部分
+            ptr += Int(nbits >> 3)
             accum >>= UInt64(nbits)
             accumNBits -= nbits
         }
         /// 寫出殘餘位元（補 0），回傳最終 accumNBits ∈ [-7, 0]（即標頭的 *_bits 欄位）
         mutating func finish() -> Int32 {
             let nbits = (accumNBits + 7) & -8
-            var a = accum
-            for _ in 0..<(nbits >> 3) { bytes.append(UInt8(truncatingIfNeeded: a)); a >>= 8 }
+            var v = accum.littleEndian
+            memcpy(ptr, &v, 8)
+            ptr += Int(nbits >> 3)
             accum = 0
             accumNBits -= nbits
             assert(accumNBits >= -7 && accumNBits <= 0)
             return accumNBits
         }
+        var count: Int { ptr - start }
     }
 
     /// 輸入流：從 payload「尾端」向回讀（LIFO）。
@@ -385,27 +395,53 @@ public enum LZFSEv1 {
             return (triplets, literals)
         }
 
-        var hashTable = [Int32](repeating: -1, count: hashSize)
+        // 雜湊表用 UnsafeMutablePointer（免去每次存取的陣列邊界檢查）
+        let hashTable = UnsafeMutablePointer<Int32>.allocate(capacity: hashSize)
+        hashTable.initialize(repeating: -1, count: hashSize)
+        defer { hashTable.deallocate() }
+
         var litStart = 0
         var i = 0
         input.withUnsafeBufferPointer { buf in
             let p = buf.baseAddress!
-            @inline(__always) func hash4(_ idx: Int) -> Int {
-                let v = UInt32(p[idx]) | UInt32(p[idx+1]) << 8
-                      | UInt32(p[idx+2]) << 16 | UInt32(p[idx+3]) << 24
-                return Int((v &* 2654435761) >> (32 - UInt32(hashBits)))
+
+            @inline(__always) func load32(_ idx: Int) -> UInt32 {
+                var v: UInt32 = 0
+                memcpy(&v, p + idx, 4)
+                return UInt32(littleEndian: v)
             }
+            @inline(__always) func load64(_ idx: Int) -> UInt64 {
+                var v: UInt64 = 0
+                memcpy(&v, p + idx, 8)
+                return UInt64(littleEndian: v)
+            }
+            @inline(__always) func hash4(_ idx: Int) -> Int {
+                Int((load32(idx) &* 2654435761) >> (32 - UInt32(hashBits)))
+            }
+            /// 8 位元組寬比較的最長相同前綴（XOR 後以 trailing zero 定位首個相異位元組）
+            @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
+                var m = 0
+                while m + 8 <= limit {
+                    let x = load64(a + m) ^ load64(b + m)
+                    if x != 0 { return m + (x.trailingZeroBitCount >> 3) }
+                    m += 8
+                }
+                while m < limit && p[a + m] == p[b + m] { m += 1 }
+                return m
+            }
+
             while i + 4 <= n {
                 let h = hash4(i)
                 let cand = Int(hashTable[h])
                 hashTable[h] = Int32(i)
 
                 var mlen = 0
-                if cand >= 0, i - cand <= maxDValue {
-                    while i + mlen < n && p[cand + mlen] == p[i + mlen] { mlen += 1 }
+                if cand >= 0, i - cand <= maxDValue, load32(cand) == load32(i) {
+                    mlen = 4 + matchLength(cand + 4, i + 4, limit: n - i - 4)
                 }
                 if mlen >= 4 {
-                    literals.append(contentsOf: input[litStart..<i])
+                    literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                    count: i - litStart))
                     pushRun(l: i - litStart, m: mlen, d: i - cand)
                     let end = i + mlen
                     i += 1
@@ -416,9 +452,149 @@ public enum LZFSEv1 {
                     i += 1
                 }
             }
+            if litStart < n {
+                literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                count: n - litStart))
+            }
         }
         if litStart < n {
-            literals.append(contentsOf: input[litStart..<n])
+            pushRun(l: n - litStart, m: 0, d: 1)
+        }
+        return (triplets, literals)
+    }
+
+    // =================================================================
+    // MARK: - 強化 LZ 比對（other3；採 zstd 高壓縮級距的搜尋策略）
+    // =================================================================
+    //
+    // 借鏡 zstd -9：高壓縮級距的增益主要來自
+    //   (a) 更強的比對搜尋（多候選雜湊歷史 + lazy matching）
+    //   (b) 更大的視窗（zstd ≥2MB）
+    //   (c) 更彈性的熵編碼（多 Huffman 表、repeat-offset 碼）
+    // (b)(c) 受 LZFSE 格式固定（D ≤ 262139、FSE 表結構），無從採用；
+    // (a) 完全可以：這裡實作每桶 4 候選 + lazy matching。
+    // 輸出仍是標準 bvx2 區塊 —— 刻意不發明 bvx3 魔數，
+    // 因此 Apple 解碼器與所有標準工具照樣可解 other3 的輸出。
+    // =================================================================
+
+    static let strongHashBits = 15                    // 32768 桶
+    static let strongHashSize = 1 << strongHashBits
+    static let strongHashWidth = 4                    // 每桶保留最近 4 個位置
+
+    static func lzParseStrong(_ input: [UInt8]) -> (triplets: [Triplet], literals: [UInt8]) {
+        var triplets: [Triplet] = []
+        var literals: [UInt8] = []
+        let n = input.count
+        triplets.reserveCapacity(n >> 5 + 8)
+        literals.reserveCapacity(n >> 1 + 8)
+
+        // 把 L 切成 ≤315 的塊；純 literal 塊用 (L, 0, 1)（與 lzParse 相同規則）
+        func pushRun(l: Int, m: Int, d: Int) {
+            var L = l
+            while L > maxLValue {
+                triplets.append(Triplet(l: Int32(maxLValue), m: 0, d: 1))
+                L -= maxLValue
+            }
+            var M = m
+            if M > 0 {
+                while M > maxMValue {
+                    triplets.append(Triplet(l: Int32(L), m: Int32(maxMValue), d: Int32(d)))
+                    L = 0; M -= maxMValue
+                }
+                triplets.append(Triplet(l: Int32(L), m: Int32(M), d: Int32(d)))
+            } else if L > 0 {
+                triplets.append(Triplet(l: Int32(L), m: 0, d: 1))
+            }
+        }
+
+        guard n > 8 else {
+            literals = input
+            pushRun(l: n, m: 0, d: 1)
+            return (triplets, literals)
+        }
+
+        let W = strongHashWidth
+        let ht = UnsafeMutablePointer<Int32>.allocate(capacity: strongHashSize * W)
+        ht.initialize(repeating: -1, count: strongHashSize * W)
+        defer { ht.deallocate() }
+
+        var litStart = 0
+        input.withUnsafeBufferPointer { buf in
+            let p = buf.baseAddress!
+
+            @inline(__always) func load32(_ idx: Int) -> UInt32 {
+                var v: UInt32 = 0; memcpy(&v, p + idx, 4); return UInt32(littleEndian: v)
+            }
+            @inline(__always) func load64(_ idx: Int) -> UInt64 {
+                var v: UInt64 = 0; memcpy(&v, p + idx, 8); return UInt64(littleEndian: v)
+            }
+            @inline(__always) func hash4(_ idx: Int) -> Int {
+                Int((load32(idx) &* 2654435761) >> (32 - UInt32(strongHashBits)))
+            }
+            @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
+                var m = 0
+                while m + 8 <= limit {
+                    let x = load64(a + m) ^ load64(b + m)
+                    if x != 0 { return m + (x.trailingZeroBitCount >> 3) }
+                    m += 8
+                }
+                while m < limit && p[a + m] == p[b + m] { m += 1 }
+                return m
+            }
+            /// shift-insert：保留最近 4 個位置（對應參考實作的 history set）
+            @inline(__always) func insert(_ idx: Int) {
+                let b = hash4(idx) * W
+                ht[b + 3] = ht[b + 2]; ht[b + 2] = ht[b + 1]
+                ht[b + 1] = ht[b + 0]; ht[b + 0] = Int32(idx)
+            }
+            /// 4 候選中挑最長 match（同長取較近距離，extra bits 較省）
+            @inline(__always) func bestMatch(_ idx: Int) -> (len: Int, dist: Int) {
+                let b = hash4(idx) * W
+                let v = load32(idx)
+                var bl = 0, bd = 1
+                for s in 0..<W {
+                    let c = Int(ht[b + s])
+                    if c < 0 { break }
+                    let d = idx - c
+                    if d > maxDValue || load32(c) != v { continue }
+                    let l = 4 + matchLength(c + 4, idx + 4, limit: n - idx - 4)
+                    if l > bl || (l == bl && d < bd) { bl = l; bd = d }
+                }
+                return (bl, bd)
+            }
+
+            var i = 0
+            while i + 4 <= n {
+                var (m0, d0) = bestMatch(i)
+                insert(i)
+                if m0 < 4 { i += 1; continue }
+
+                // lazy matching：若下一位置能找到更長的 match，
+                // 把目前位元組降級為 literal、視窗右移一格，重複到不再改善
+                while i + 5 <= n {
+                    let (m1, d1) = bestMatch(i + 1)
+                    if m1 > m0 {
+                        insert(i + 1)
+                        i += 1
+                        m0 = m1; d0 = d1
+                    } else { break }
+                }
+
+                literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                count: i - litStart))
+                pushRun(l: i - litStart, m: m0, d: d0)
+                let end = i + m0
+                i += 1
+                while i < min(end, n - 4) { insert(i); i += 1 }
+                i = end
+                litStart = end
+            }
+            if litStart < n {
+                literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                count: n - litStart))
+            }
+        }
+        if litStart < n {
             pushRun(l: n - litStart, m: 0, d: 1)
         }
         return (triplets, literals)
@@ -446,23 +622,40 @@ public enum LZFSEv1 {
     // MARK: - 區塊編碼（lzfse_encode_base.c: lzfse_encode_matches）
     // =================================================================
 
-    /// 將一個區塊（≤10000 matches、≤40000 literals）編成 bvx1 區塊位元組
+    /// 頻率值的固定 Huffman 編碼（lzfse_encode_v1_freq_value 的等價實作；
+    /// 與 decodeFreqValue 互逆，已全值域 0..1047 驗證）
+    @inline(__always)
+    static func encodeFreqValue(_ v: Int) -> (bits: UInt32, nbits: Int32) {
+        switch v {
+        case 0:      return (0, 2)                              //    0.0
+        case 1:      return (2, 2)                              //    1.0
+        case 2:      return (1, 3)                              //   0.01
+        case 3:      return (5, 3)                              //   1.01
+        case 4...7:  return (UInt32((v - 4) << 3) | 3, 5)       //  xx.011
+        case 8...23: return (UInt32((v - 8) << 4) | 7, 8)       // xxxx.0111
+        default:     return (UInt32((v - 24) << 4) | 15, 14)    // 10bit.1111
+        }
+    }
+
+    /// 將一個區塊（≤10000 matches、≤40000 literals）編成 bvx2 區塊位元組
+    /// （壓縮標頭：32-byte 固定部分 + 固定 Huffman 頻率位元流，
+    ///  比 772-byte 的 v1 標頭每區塊省下約 550–650 bytes）
     static func encodeBlock(triplets: ArraySlice<Triplet>,
                             literals: ArraySlice<UInt8>,
                             rawBytes: Int) -> [UInt8] {
         // --- 準備工作緩衝 ---
         var lits = Array(literals)
-        let nLiteralsUnpadded = lits.count
         // 補 0x00 到 4 的倍數（4 路交錯流的需要；標頭 n_literals 含補齊）
         while lits.count & 3 != 0 { lits.append(0) }
 
         var lVals = [Int32](), mVals = [Int32](), dVals = [Int32]()
         lVals.reserveCapacity(triplets.count)
         for t in triplets { lVals.append(t.l); mVals.append(t.m); dVals.append(t.d) }
+        let nMatches = lVals.count
 
         // D 的「重複距離 → 0」轉換（解碼器 d==0 時沿用前一距離；d_prev 每區塊歸零）
         var dPrev: Int32 = 0
-        for i in 0..<dVals.count {
+        for i in 0..<nMatches {
             let d = dVals[i]
             if d == dPrev { dVals[i] = 0 } else { dPrev = d }
         }
@@ -472,10 +665,10 @@ public enum LZFSEv1 {
         var mOcc = [UInt32](repeating: 0, count: mSymbols)
         var dOcc = [UInt32](repeating: 0, count: dSymbols)
         var litOcc = [UInt32](repeating: 0, count: literalSymbols)
-        var lSyms = [UInt8](repeating: 0, count: lVals.count)
-        var mSyms = [UInt8](repeating: 0, count: mVals.count)
-        var dSyms = [UInt8](repeating: 0, count: dVals.count)
-        for i in 0..<lVals.count {
+        var lSyms = [UInt8](repeating: 0, count: nMatches)
+        var mSyms = [UInt8](repeating: 0, count: nMatches)
+        var dSyms = [UInt8](repeating: 0, count: nMatches)
+        for i in 0..<nMatches {
             let ls = symbol(forValue: lVals[i], base: lBaseValue)
             let ms = symbol(forValue: mVals[i], base: mBaseValue)
             let ds = symbol(forValue: dVals[i], base: dBaseValue)
@@ -494,29 +687,36 @@ public enum LZFSEv1 {
         let dEnc = initEncoderTable(nstates: dStates, freq: dFreq)
         let litEnc = initEncoderTable(nstates: literalStates, freq: litFreq)
 
+        // --- 工作區：兩條輸出流直寫預配置緩衝（含 8B 寬寫入 slack）---
+        let litCap = lits.count * 2 + 16          // literal ≤10 bits/個 = 1.25B，2x 保守
+        let lmdCap = nMatches * 8 + 32            // 每 match ≤54 bits = 6.75B + 8B 前置填充
+        let scratch = UnsafeMutablePointer<UInt8>.allocate(capacity: litCap + lmdCap)
+        defer { scratch.deallocate() }
+
         // --- ① 編碼 literal：4 路交錯、由最後一個 literal 往前 ---
-        var litOut = FSEOutStream()
-        litOut.bytes.reserveCapacity(lits.count + 32)
+        var litOut = FSEOutStream(scratch)
         var s0: Int32 = 0, s1: Int32 = 0, s2: Int32 = 0, s3: Int32 = 0
-        var i = lits.count
-        while i > 0 {
-            i -= 4
-            fseEncode(state: &s3, litEnc[Int(lits[i + 3])], &litOut) // 各 ≤10 bits
-            fseEncode(state: &s2, litEnc[Int(lits[i + 2])], &litOut)
-            fseEncode(state: &s1, litEnc[Int(lits[i + 1])], &litOut)
-            fseEncode(state: &s0, litEnc[Int(lits[i + 0])], &litOut)
-            litOut.flush() // 4×10=40 ≤ 64，每組沖一次
+        lits.withUnsafeBufferPointer { lp in
+            var i = lits.count
+            while i > 0 {
+                i -= 4
+                fseEncode(state: &s3, litEnc[Int(lp[i + 3])], &litOut) // 各 ≤10 bits
+                fseEncode(state: &s2, litEnc[Int(lp[i + 2])], &litOut)
+                fseEncode(state: &s1, litEnc[Int(lp[i + 1])], &litOut)
+                fseEncode(state: &s0, litEnc[Int(lp[i + 0])], &litOut)
+                litOut.flush() // 4×10=40 ≤ 64，每組沖一次
+            }
         }
         let literalBits = litOut.finish()
-        let literalPayload = litOut.bytes
+        let litLen = litOut.count
 
         // --- ② 編碼 L,M,D：match 反序；每個 match 依 D→M→L 推入 ---
-        var lmdOut = FSEOutStream()
-        lmdOut.bytes.reserveCapacity(lVals.count * 7 + 32)
+        var lmdOut = FSEOutStream(scratch + litCap)
         // 參考實作在 LMD payload 開頭放 8 個 0 填充位元組（解碼快路徑的安全邊界）
-        lmdOut.bytes.append(contentsOf: [0, 0, 0, 0, 0, 0, 0, 0])
+        memset(scratch + litCap, 0, 8)
+        lmdOut.ptr += 8
         var lState: Int32 = 0, mState: Int32 = 0, dState: Int32 = 0
-        var mi = lVals.count
+        var mi = nMatches
         while mi > 0 {
             mi -= 1
             // D（≤ 8+15 = 23 bits）：先推 extra bits，再推符號狀態位元
@@ -534,33 +734,49 @@ public enum LZFSEv1 {
             lmdOut.flush()
         }
         let lmdBits = lmdOut.finish()
-        let lmdPayload = lmdOut.bytes
+        let lmdLen = lmdOut.count
 
-        // --- ③ 組裝 v1 標頭（772 bytes，欄位順序 = C struct）---
+        // --- ③ 頻率表：固定 Huffman、LSB 先入位元流 ---
+        var freqBytes: [UInt8] = []
+        freqBytes.reserveCapacity(384)
+        var fAccum: UInt32 = 0
+        var fNBits: Int32 = 0
+        for table in [lFreq, mFreq, dFreq, litFreq] {
+            for f in table {
+                let (bits, n) = encodeFreqValue(Int(f))
+                fAccum |= bits << UInt32(fNBits)
+                fNBits += n
+                while fNBits >= 8 {
+                    freqBytes.append(UInt8(fAccum & 0xFF))
+                    fAccum >>= 8
+                    fNBits -= 8
+                }
+            }
+        }
+        if fNBits > 0 { freqBytes.append(UInt8(fAccum & 0xFF)) }   // 殘餘 <8 位元
+
+        // --- ④ 組裝 bvx2 標頭（packed_fields 配置照 lzfse_internal.h）---
+        let headerSize = 32 + freqBytes.count
+        @inline(__always) func sf(_ v: Int, _ off: Int) -> UInt64 { UInt64(v) << UInt64(off) }
+        let v0 = sf(lits.count, 0) | sf(litLen, 20) | sf(nMatches, 40)
+               | sf(Int(7 + literalBits), 60)
+        let v1f = sf(Int(s0), 0) | sf(Int(s1), 10) | sf(Int(s2), 20) | sf(Int(s3), 30)
+                | sf(lmdLen, 40) | sf(Int(7 + lmdBits), 60)
+        let v2f = sf(headerSize, 0) | sf(Int(lState), 32) | sf(Int(mState), 42)
+                | sf(Int(dState), 52)
+
         var out: [UInt8] = []
-        out.reserveCapacity(v1HeaderSize + literalPayload.count + lmdPayload.count)
-        put32(magicCompressedV1, &out)
-        put32(UInt32(rawBytes), &out)                                   // n_raw_bytes
-        put32(UInt32(literalPayload.count + lmdPayload.count), &out)    // n_payload_bytes
-        put32(UInt32(lits.count), &out)                                 // n_literals（含補齊）
-        put32(UInt32(lVals.count), &out)                                // n_matches
-        put32(UInt32(literalPayload.count), &out)                       // n_literal_payload_bytes
-        put32(UInt32(lmdPayload.count), &out)                           // n_lmd_payload_bytes
-        put32(UInt32(bitPattern: literalBits), &out)                    // literal_bits ∈ [-7,0]
-        put16(UInt16(s0), &out); put16(UInt16(s1), &out)                // literal_state[4]
-        put16(UInt16(s2), &out); put16(UInt16(s3), &out)
-        put32(UInt32(bitPattern: lmdBits), &out)                        // lmd_bits ∈ [-7,0]
-        put16(UInt16(lState), &out); put16(UInt16(mState), &out); put16(UInt16(dState), &out)
-        for f in lFreq { put16(f, &out) }
-        for f in mFreq { put16(f, &out) }
-        for f in dFreq { put16(f, &out) }
-        for f in litFreq { put16(f, &out) }
-        out.append(0); out.append(0) // struct 尾端 2 bytes 對齊填充 → 772
-        assert(out.count == v1HeaderSize)
-
-        _ = nLiteralsUnpadded // (補齊的 literal 不會被解碼端取用)
-        out.append(contentsOf: literalPayload)
-        out.append(contentsOf: lmdPayload)
+        out.reserveCapacity(headerSize + litLen + lmdLen)
+        put32(magicCompressedV2, &out)
+        put32(UInt32(rawBytes), &out)
+        for v in [v0, v1f, v2f] {
+            var x = v
+            for _ in 0..<8 { out.append(UInt8(x & 0xFF)); x >>= 8 }
+        }
+        out.append(contentsOf: freqBytes)
+        assert(out.count == headerSize)
+        out.append(contentsOf: UnsafeBufferPointer(start: scratch, count: litLen))
+        out.append(contentsOf: UnsafeBufferPointer(start: scratch + litCap, count: lmdLen))
         return out
     }
 
@@ -571,7 +787,7 @@ public enum LZFSEv1 {
     /// 壓縮為「區塊串」但不含結尾 bvx$ ——供平行分塊壓縮串接使用。
     /// 多個 compressBody 輸出串接後補上一個 bvx$，仍是合法的標準 LZFSE 串流
     /// （每個分塊獨立壓縮，match 距離不跨分塊，解碼器的輸出歷史是連續的所以相容）。
-    public static func compressBody(_ input: Data) -> Data {
+    public static func compressBody(_ input: Data, strong: Bool = false) -> Data {
         let bytes = [UInt8](input)
         var out: [UInt8] = []
         guard !bytes.isEmpty else { return Data() }
@@ -584,7 +800,7 @@ public enum LZFSEv1 {
             return Data(out)
         }
 
-        let (triplets, literals) = lzParse(bytes)
+        let (triplets, literals) = strong ? lzParseStrong(bytes) : lzParse(bytes)
 
         // 依每區塊上限切分（留 5 個 match、最大 L 的安全邊界）
         var tStart = 0
@@ -620,8 +836,8 @@ public enum LZFSEv1 {
     /// 相容別名（other2 平行壓縮分支使用的名稱）
     public static func compressBlockOnly(_ input: Data) -> Data { compressBody(input) }
 
-    public static func compress(_ input: Data) -> Data {
-        var out = [UInt8](compressBody(input))
+    public static func compress(_ input: Data, strong: Bool = false) -> Data {
+        var out = [UInt8](compressBody(input, strong: strong))
         put32(magicEndOfStream, &out)
         return Data(out)
     }
@@ -1234,13 +1450,13 @@ func runLZFSEv1Tests() {
     }
     #endif
 
-    /// 模擬 -algo other2 的輸出：分塊獨立壓縮（compressBody）串接 + 單一 bvx$
-    func chunkedCompress(_ data: Data, chunkSize: Int) -> Data {
+    /// 模擬 -algo other2/other3 的輸出：分塊獨立壓縮（compressBody）串接 + 單一 bvx$
+    func chunkedCompress(_ data: Data, chunkSize: Int, strong: Bool = false) -> Data {
         var out = Data()
         var p = 0
         while p < data.count {
             let end = min(p + chunkSize, data.count)
-            out.append(LZFSEv1.compressBody(data.subdata(in: p..<end)))
+            out.append(LZFSEv1.compressBody(data.subdata(in: p..<end), strong: strong))
             p = end
         }
         out.append(Data([0x62, 0x76, 0x78, 0x24])) // bvx$
@@ -1253,23 +1469,35 @@ func runLZFSEv1Tests() {
     }
 
     func runCase(_ name: String, _ data: Data) {
-        print("[\(name)] \(data.count) bytes")
+        print("[\(name)] 原始 \(data.count) bytes")
+        func pct(_ c: Int) -> String {
+            data.isEmpty ? "-" : String(format: "%.1f%%", Double(c) / Double(data.count) * 100)
+        }
 
-        // ---- -algo other：單流壓縮 ----
+        // ---- -algo other：單流壓縮（bvx2 標頭）----
         let packed = LZFSEv1.compress(data)
-        let ratio = data.isEmpty ? 0 : Double(packed.count) / Double(data.count) * 100
-        print("       other 壓縮: → \(packed.count) bytes (\(String(format: "%.1f", ratio))%)")
-        check("other 自我往返 (bvx1)", LZFSEv1.decompress(packed) == data)
+        print("       other  壓縮: \(packed.count) bytes (\(pct(packed.count)))")
+        check("other 自我往返 (bvx2)", LZFSEv1.decompress(packed) == data)
 
         // ---- -algo other2：分塊平行格式（兩種切塊大小）----
         for cs in [1 << 20, 4096] where data.count > 0 {
             let chunked = chunkedCompress(data, chunkSize: cs)
-            check("other2 自我往返 (chunk=\(cs))", LZFSEv1.decompress(chunked) == data)
-            check("other2 平行解碼 (chunk=\(cs))",
-                  LZFSEv1.parallelDecompress(chunked, chunkRaw: cs) == data)
+            print("       other2 壓縮 (chunk=\(cs)): \(chunked.count) bytes (\(pct(chunked.count)))")
+            check("other2 自我往返", LZFSEv1.decompress(chunked) == data)
+            check("other2 平行解碼", LZFSEv1.parallelDecompress(chunked, chunkRaw: cs) == data)
             #if canImport(Compression)
-            check("other2 → Apple 解碼 (chunk=\(cs))",
-                  appleDecompress(chunked, expected: data.count) == data)
+            check("other2 → Apple 解碼", appleDecompress(chunked, expected: data.count) == data)
+            #endif
+        }
+        // ---- -algo other3：強化比對（lazy + 4 候選），輸出仍為標準 bvx2 ----
+        if data.count > 0 {
+            let cs3 = 1 << 20
+            let strong = chunkedCompress(data, chunkSize: cs3, strong: true)
+            print("       other3 壓縮 (chunk=\(cs3)): \(strong.count) bytes (\(pct(strong.count)))")
+            check("other3 自我往返", LZFSEv1.decompress(strong) == data)
+            check("other3 平行解碼", LZFSEv1.parallelDecompress(strong, chunkRaw: cs3) == data)
+            #if canImport(Compression)
+            check("other3 → Apple 解碼", appleDecompress(strong, expected: data.count) == data)
             #endif
         }
         // 平行解碼對「非分塊」串流的安全後援（必須退回循序且結果正確）
@@ -1281,9 +1509,15 @@ func runLZFSEv1Tests() {
         if !data.isEmpty {
             // ---- 我們的輸出 → Apple 解碼器（位元相容性）----
             check("other → Apple 解碼", appleDecompress(packed, expected: data.count) == data)
-            // ---- Apple 編碼器輸出 → 我們的解碼器（第二階段：bvx2 / bvxn）----
+            // ---- Apple 編碼器輸出 → 我們的兩條解碼路徑（bvx2 / bvxn）----
             if let applePacked = appleCompress(data) {
+                print("       apple  壓縮: \(applePacked.count) bytes (\(pct(applePacked.count)))")
                 check("Apple → other 解碼 (bvx2/bvxn)", LZFSEv1.decompress(applePacked) == data)
+                check("Apple → other2 解碼 (平行路徑+後援)",
+                      LZFSEv1.parallelDecompress(applePacked) == data)
+                // other3 的解碼路徑與 other2 共用（皆 parallelDecompress + 後援）
+                check("Apple → other3 解碼 (同平行路徑+後援)",
+                      LZFSEv1.parallelDecompress(applePacked) == data)
             }
         }
         #endif
@@ -1309,6 +1543,7 @@ func runLZFSEv1Tests() {
 // -algo apple  : 使用 Apple Compression framework（OutputFilter 串流）
 // -algo other  : 我們自製的位元相容 LZFSE 實作（預設）
 // -algo other2 : 同 other 引擎，但壓縮採「分塊多核心平行」
+// -algo other3 : other2 + 強化比對（zstd lazy 策略），輸出仍為標準 bvx2
 //
 // 互通性說明：
 //   - "other"/"other2" 編碼的輸出是合法 LZFSE 串流，可用 "apple" 或
@@ -1329,7 +1564,7 @@ func eprint(_ message: String) {
 
 func printUsage() {
     print("""
-    Usage: lzfse -encode|-decode [-algo apple|other|other2] [-si|-i input] [-so|-o output] [-test] [-h]
+    Usage: lzfse -encode|-decode [-algo apple|other|other2|other3] [-si|-i input] [-so|-o output] [-test] [-h]
 
     Commands:
       -encode       : Compress the input / 壓縮輸入內容
@@ -1342,6 +1577,9 @@ func printUsage() {
                                  我們自製的位元相容 LZFSE 實作
                         other2 : Same engine, multi-core chunked compression
                                  同上引擎，壓縮與解壓皆多核心平行
+                        other3 : other2 + stronger matching (lazy, 4-way history)
+                                 = other2 + 強化比對（lazy+4候選），更小但較慢；
+                                 輸出仍為標準 bvx2，Apple 可解
       -i <path>     : Input file path / 指定輸入檔案路徑
       -si           : Read from stdin / 從標準輸入讀取
       -o <path>     : Output file path / 指定輸出檔案路徑
@@ -1360,7 +1598,7 @@ func printUsage() {
     """)
 }
 
-enum Algo: String { case apple, other, other2 }
+enum Algo: String { case apple, other, other2, other3 }
 
 // ---------------------------------------------------------------------
 // 1. 解析參數 / Parse arguments
@@ -1476,7 +1714,8 @@ func runSequentialDecode(input: FileHandle, output: FileHandle) {
 ///   5. 結果在鎖內按 writeIndex 順序排水寫出，保證輸出順序正確；
 ///      所有分塊寫完後才補上唯一一個 bvx$。
 func runParallelEncode(input: FileHandle, output: FileHandle,
-                       chunkSize: Int = LZFSEv1.other2ChunkSize) {
+                       chunkSize: Int = LZFSEv1.other2ChunkSize,
+                       strong: Bool = false) {
     let maxTasks = max(2, ProcessInfo.processInfo.activeProcessorCount)
     let sem = DispatchSemaphore(value: maxTasks)
     let lock = NSLock()
@@ -1502,7 +1741,7 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
         readIndex += 1
         group.enter()
         queue.async {
-            let body = LZFSEv1.compressBody(data)   // 合法區塊串，不含 bvx$
+            let body = LZFSEv1.compressBody(data, strong: strong)   // 合法區塊串，不含 bvx$
             lock.lock()
             results[idx] = body
             // 任一執行緒都可在鎖內依序排水，保證輸出順序
@@ -1562,12 +1801,15 @@ case .other:
         runSequentialDecode(input: inputHandle, output: outputHandle)
     }
 
-case .other2:
+case .other2, .other3:
     // ---- 同 other 引擎；壓縮與解壓都走多核心 ----
-    // 解碼：先嘗試以分塊邊界平行解碼（other2 串流必中），
+    // other3 = other2 + 強化比對（4 候選雜湊歷史 + lazy matching），
+    // 輸出仍為標準 bvx2，壓縮率較佳、壓縮較慢。
+    // 解碼：先嘗試以分塊邊界平行解碼（other2/other3 串流必中），
     // 非分塊串流會自動退回循序，結果保證正確。
     if isEncoding {
-        runParallelEncode(input: inputHandle, output: outputHandle)
+        runParallelEncode(input: inputHandle, output: outputHandle,
+                          strong: algo == .other3)
     } else {
         let data: Data
         do {
