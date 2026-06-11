@@ -357,6 +357,8 @@ public enum LZFSEv1 {
         var triplets: [Triplet] = []
         var literals: [UInt8] = []
         let n = input.count
+        triplets.reserveCapacity(n >> 5 + 8)   // 啟發式：平均 match 間距
+        literals.reserveCapacity(n >> 1 + 8)
 
         // 把 L 切成 ≤315 的塊；純 literal 塊用 (L, 0, 1)
         func pushRun(l: Int, m: Int, d: Int) {
@@ -906,6 +908,140 @@ public enum LZFSEv1 {
         return nil // 缺少 bvx$ 結尾
     }
 
+    // =================================================================
+    // MARK: - 平行解碼（other2 分塊串流專用，含安全後援）
+    // =================================================================
+    //
+    // 原理：other2 的每個分塊（預設 4MiB 原始大小）獨立壓縮，match 永不
+    // 跨分塊。解碼端只掃描區塊標頭（不碰 payload）累計 n_raw_bytes，在
+    // 分塊大小的倍數處切組，各組平行解碼。
+    //
+    // 正確性保證：組內 match 的相對距離與絕對位置一一對應（組緩衝的
+    // 索引 x ≡ 串流絕對位置 groupStart+x），引用若越過組起點，必然觸發
+    // 既有的 d ≤ 已解碼位置 檢查而失敗 → 整體退回循序解碼。
+    // 因此對「非分塊」串流（apple/other 產生）最壞情況只是退回循序，
+    // 不可能產生錯誤輸出。
+    // =================================================================
+
+    /// other2 編碼器與平行解碼器共用的分塊原始大小
+    public static let other2ChunkSize = 1 << 22   // 4MiB
+
+    struct BlockInfo { let start: Int; let size: Int; let rawBytes: Int; let magic: UInt32 }
+
+    /// 只讀標頭、不解 payload 的快速區塊掃描
+    static func scanBlocks(_ src: [UInt8]) -> [BlockInfo]? {
+        var p = 0
+        var blocks: [BlockInfo] = []
+        while p + 4 <= src.count {
+            let magic = get32(src, p)
+            switch magic {
+            case magicEndOfStream:
+                return blocks
+            case magicUncompressed:
+                guard p + 8 <= src.count else { return nil }
+                let n = Int(get32(src, p + 4))
+                guard p + 8 + n <= src.count else { return nil }
+                blocks.append(BlockInfo(start: p, size: 8 + n, rawBytes: n, magic: magic))
+                p += 8 + n
+            case magicCompressedV1:
+                guard p + 28 <= src.count else { return nil }
+                let nRaw = Int(get32(src, p + 4))
+                let nPayload = Int(get32(src, p + 8))
+                let size = v1HeaderSize + nPayload
+                guard p + size <= src.count else { return nil }
+                blocks.append(BlockInfo(start: p, size: size, rawBytes: nRaw, magic: magic))
+                p += size
+            case magicCompressedV2:
+                guard p + 32 <= src.count else { return nil }
+                let nRaw = Int(get32(src, p + 4))
+                let v0 = get64(src, p + 8), v1f = get64(src, p + 16), v2f = get64(src, p + 24)
+                let nLitPayload = Int((v0 >> 20) & 0xFFFFF)
+                let nLmdPayload = Int((v1f >> 40) & 0xFFFFF)
+                let headerSize = Int(v2f & 0xFFFF_FFFF)
+                let size = headerSize + nLitPayload + nLmdPayload
+                guard headerSize >= 32, p + size <= src.count else { return nil }
+                blocks.append(BlockInfo(start: p, size: size, rawBytes: nRaw, magic: magic))
+                p += size
+            case magicLZVN:
+                guard p + 12 <= src.count else { return nil }
+                let nRaw = Int(get32(src, p + 4))
+                let nPayload = Int(get32(src, p + 8))
+                let size = 12 + nPayload
+                guard p + size <= src.count else { return nil }
+                blocks.append(BlockInfo(start: p, size: size, rawBytes: nRaw, magic: magic))
+                p += size
+            default:
+                return nil
+            }
+        }
+        return nil // 沒有 bvx$
+    }
+
+    /// 平行解碼。chunkRaw 須與編碼端分塊大小一致（other2 預設 4MiB）。
+    /// 串流不符合分塊假設時自動退回循序 decompress()，結果永遠正確。
+    public static func parallelDecompress(_ input: Data,
+                                          chunkRaw: Int = other2ChunkSize) -> Data? {
+        let src = [UInt8](input)
+        guard chunkRaw > 0, let blocks = scanBlocks(src), !blocks.isEmpty else {
+            return decompress(input)
+        }
+
+        // 依累計原始大小在 chunkRaw 倍數處切組。
+        // other2 串流：每分塊原始大小恰為 chunkRaw（最後一塊除外），
+        // 分塊內的中途累計值嚴格落在倍數之間，不會誤切。
+        var groups: [[BlockInfo]] = []
+        var current: [BlockInfo] = []
+        var cum = 0
+        for b in blocks {
+            current.append(b)
+            cum += b.rawBytes
+            if cum % chunkRaw == 0 && b.rawBytes > 0 {
+                groups.append(current); current = []
+            }
+        }
+        if !current.isEmpty { groups.append(current) }
+        guard groups.count > 1 else { return decompress(input) } // 切不出組就循序
+
+        var results = [Data?](repeating: nil, count: groups.count)
+        let lock = NSLock()
+        var anyFailed = false
+
+        DispatchQueue.concurrentPerform(iterations: groups.count) { gi in
+            var dst: [UInt8] = []
+            dst.reserveCapacity(groups[gi].reduce(0) { $0 + $1.rawBytes })
+            for b in groups[gi] {
+                let ok: Bool
+                switch b.magic {
+                case magicUncompressed:
+                    dst.append(contentsOf: src[(b.start + 8)..<(b.start + b.size)])
+                    ok = true
+                case magicCompressedV1:
+                    ok = decodeV1Block(src: src, at: b.start, into: &dst) != nil
+                case magicCompressedV2:
+                    ok = decodeV2Block(src: src, at: b.start, into: &dst) != nil
+                case magicLZVN:
+                    ok = decodeLZVNBlock(src: src, at: b.start, into: &dst) != nil
+                default:
+                    ok = false
+                }
+                if !ok {   // 例如 match 跨組（非分塊串流）→ 全體退回循序
+                    lock.lock(); anyFailed = true; lock.unlock()
+                    return
+                }
+            }
+            let d = Data(dst)
+            lock.lock(); results[gi] = d; lock.unlock()
+        }
+
+        if anyFailed { return decompress(input) }
+        var out = Data(capacity: blocks.reduce(0) { $0 + $1.rawBytes })
+        for r in results {
+            guard let r = r else { return decompress(input) }
+            out.append(r)
+        }
+        return out
+    }
+
     static func decodeV1Block(src: [UInt8], at p: Int, into dst: inout [UInt8]) -> Int? {
         guard p + v1HeaderSize <= src.count else { return nil }
         var o = p + 4
@@ -1129,10 +1265,16 @@ func runLZFSEv1Tests() {
         for cs in [1 << 20, 4096] where data.count > 0 {
             let chunked = chunkedCompress(data, chunkSize: cs)
             check("other2 自我往返 (chunk=\(cs))", LZFSEv1.decompress(chunked) == data)
+            check("other2 平行解碼 (chunk=\(cs))",
+                  LZFSEv1.parallelDecompress(chunked, chunkRaw: cs) == data)
             #if canImport(Compression)
             check("other2 → Apple 解碼 (chunk=\(cs))",
                   appleDecompress(chunked, expected: data.count) == data)
             #endif
+        }
+        // 平行解碼對「非分塊」串流的安全後援（必須退回循序且結果正確）
+        if !data.isEmpty {
+            check("平行解碼後援 (單流輸入)", LZFSEv1.parallelDecompress(packed) == data)
         }
 
         #if canImport(Compression)
@@ -1174,8 +1316,8 @@ func runLZFSEv1Tests() {
 //     仍是標準格式，僅壓縮率略低）。
 //   - "other" 解碼器已支援全部區塊型別（bvx1/bvx2/bvxn/bvx-/bvx$），
 //     因此 Apple 編碼器的輸出也可以用 other/other2 解碼。
-//   - 標準 LZFSE 串流的 match 可跨區塊引用先前輸出，無法安全地平行
-//     解碼，所以 other2 的「解碼」與 other 相同（循序）。
+//   - other2 解碼會先嘗試「分塊邊界平行解碼」（other2 自家串流必定
+//     命中，速度隨核心數擴展）；非分塊串流自動退回循序，結果保證正確。
 // =====================================================================
 
 import Foundation
@@ -1199,7 +1341,7 @@ func printUsage() {
                         other  : Our own bit-compatible LZFSE implementation
                                  我們自製的位元相容 LZFSE 實作
                         other2 : Same engine, multi-core chunked compression
-                                 同上引擎，分塊多核心平行壓縮（解碼同 other）
+                                 同上引擎，壓縮與解壓皆多核心平行
       -i <path>     : Input file path / 指定輸入檔案路徑
       -si           : Read from stdin / 從標準輸入讀取
       -o <path>     : Output file path / 指定輸出檔案路徑
@@ -1334,7 +1476,7 @@ func runSequentialDecode(input: FileHandle, output: FileHandle) {
 ///   5. 結果在鎖內按 writeIndex 順序排水寫出，保證輸出順序正確；
 ///      所有分塊寫完後才補上唯一一個 bvx$。
 func runParallelEncode(input: FileHandle, output: FileHandle,
-                       chunkSize: Int = 1 << 22) {
+                       chunkSize: Int = LZFSEv1.other2ChunkSize) {
     let maxTasks = max(2, ProcessInfo.processInfo.activeProcessorCount)
     let sem = DispatchSemaphore(value: maxTasks)
     let lock = NSLock()
@@ -1421,12 +1563,24 @@ case .other:
     }
 
 case .other2:
-    // ---- 同 other 引擎；壓縮走多核心分塊平行，解碼走循序 ----
-    // （標準 LZFSE 串流的 match 可跨區塊引用先前輸出，無法安全平行解碼）
+    // ---- 同 other 引擎；壓縮與解壓都走多核心 ----
+    // 解碼：先嘗試以分塊邊界平行解碼（other2 串流必中），
+    // 非分塊串流會自動退回循序，結果保證正確。
     if isEncoding {
         runParallelEncode(input: inputHandle, output: outputHandle)
     } else {
-        runSequentialDecode(input: inputHandle, output: outputHandle)
+        let data: Data
+        do {
+            data = try inputHandle.readToEnd() ?? Data()
+        } catch {
+            eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
+            exit(1)
+        }
+        guard let result = LZFSEv1.parallelDecompress(data) else {
+            eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
+            exit(1)
+        }
+        outputHandle.write(result)
     }
 }
 
