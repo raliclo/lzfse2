@@ -926,26 +926,24 @@ public enum LZFSEv1 {
         }
         // headerSize == 32 → 頻率表省略（全 0，僅見於空區塊）
 
-        // 合成等價 v1 區塊（772-byte 標頭 + 原 payload），重用既有驗證過的解碼器；
-        // 合成標頭同時提供反向位元流回讀所需的前置位元組
-        var block: [UInt8] = []
-        block.reserveCapacity(v1HeaderSize + nPayload)
-        put32(magicCompressedV1, &block)
-        put32(nRaw, &block)
-        put32(UInt32(nPayload), &block)
-        put32(UInt32(nLiterals), &block)
-        put32(UInt32(nMatches), &block)
-        put32(UInt32(nLitPayload), &block)
-        put32(UInt32(nLmdPayload), &block)
-        put32(UInt32(bitPattern: literalBits), &block)
-        for s in litStates { put16(UInt16(s), &block) }
-        put32(UInt32(bitPattern: lmdBits), &block)
-        put16(UInt16(lState), &block); put16(UInt16(mState), &block); put16(UInt16(dState), &block)
-        for f in freqs { put16(f, &block) }
-        block.append(0); block.append(0)   // struct 尾端對齊填充 → 772
-        block.append(contentsOf: src[(p + headerSize)..<(p + headerSize + nPayload)])
-
-        guard decodeV1Block(src: block, at: 0, into: &dst) != nil else { return nil }
+        // 直接在原始緩衝上解碼（零 payload 複製）。
+        // 反向位元流回讀所需的前置位元組由 v2 標頭本身提供（≥32+freq bytes > 7）。
+        let nFreqL = lSymbols, nFreqM = mSymbols, nFreqD = dSymbols
+        let lFreq = Array(freqs[0..<nFreqL])
+        let mFreq = Array(freqs[nFreqL..<(nFreqL + nFreqM)])
+        let dFreq = Array(freqs[(nFreqL + nFreqM)..<(nFreqL + nFreqM + nFreqD)])
+        let litFreq = Array(freqs[(nFreqL + nFreqM + nFreqD)...])
+        guard decodeBlockBody(src: src, payloadStart: p + headerSize,
+                              nRawBytes: Int(nRaw), nLiterals: nLiterals, nMatches: nMatches,
+                              nLitPayload: nLitPayload, nLmdPayload: nLmdPayload,
+                              literalBits: literalBits,
+                              litState0: Int32(litStates[0]), litState1: Int32(litStates[1]),
+                              litState2: Int32(litStates[2]), litState3: Int32(litStates[3]),
+                              lmdBits: lmdBits,
+                              lState0: Int32(lState), mState0: Int32(mState), dState0: Int32(dState),
+                              lFreq: lFreq, mFreq: mFreq, dFreq: dFreq, litFreq: litFreq,
+                              into: &dst)
+        else { return nil }
         return headerSize + nPayload
     }
 
@@ -1218,7 +1216,7 @@ public enum LZFSEv1 {
         if !current.isEmpty { groups.append(current) }
         guard groups.count > 1 else { return decompress(input) } // 切不出組就循序
 
-        var results = [Data?](repeating: nil, count: groups.count)
+        var results = [[UInt8]?](repeating: nil, count: groups.count)
         let lock = NSLock()
         var anyFailed = false
 
@@ -1245,15 +1243,14 @@ public enum LZFSEv1 {
                     return
                 }
             }
-            let d = Data(dst)
-            lock.lock(); results[gi] = d; lock.unlock()
+            lock.lock(); results[gi] = dst; lock.unlock()
         }
 
         if anyFailed { return decompress(input) }
         var out = Data(capacity: blocks.reduce(0) { $0 + $1.rawBytes })
         for r in results {
             guard let r = r else { return decompress(input) }
-            out.append(r)
+            r.withUnsafeBufferPointer { out.append($0.baseAddress!, count: $0.count) }
         }
         return out
     }
@@ -1274,7 +1271,7 @@ public enum LZFSEv1 {
         let litState0 = Int32(r16()), litState1 = Int32(r16())
         let litState2 = Int32(r16()), litState3 = Int32(r16())
         let lmdBits = Int32(bitPattern: r32())
-        var lState = Int32(r16()), mState = Int32(r16()), dState = Int32(r16())
+        let lState = Int32(r16()), mState = Int32(r16()), dState = Int32(r16())
 
         var lFreq = [UInt16](repeating: 0, count: lSymbols)
         var mFreq = [UInt16](repeating: 0, count: mSymbols)
@@ -1285,23 +1282,57 @@ public enum LZFSEv1 {
         for i in 0..<dSymbols { dFreq[i] = r16() }
         for i in 0..<literalSymbols { litFreq[i] = r16() }
 
-        // 標頭健全性檢查（lzfse_check_block_header_v1 + n_raw_bytes 上界）
-        guard nLiterals <= literalsPerBlock, nMatches <= matchesPerBlock,
+        guard nPayload == nLitPayload + nLmdPayload else { return nil }
+        guard decodeBlockBody(src: src, payloadStart: p + v1HeaderSize,
+                              nRawBytes: nRawBytes, nLiterals: nLiterals, nMatches: nMatches,
+                              nLitPayload: nLitPayload, nLmdPayload: nLmdPayload,
+                              literalBits: literalBits,
+                              litState0: litState0, litState1: litState1,
+                              litState2: litState2, litState3: litState3,
+                              lmdBits: lmdBits,
+                              lState0: lState, mState0: mState, dState0: dState,
+                              lFreq: lFreq, mFreq: mFreq, dFreq: dFreq, litFreq: litFreq,
+                              into: &dst)
+        else { return nil }
+        return v1HeaderSize + nPayload
+    }
+
+    /// 壓縮區塊的共用解碼核心（v1/v2 標頭解析後皆呼叫此處；
+    /// 直接在原始緩衝上解碼，零 payload 複製）
+    static func decodeBlockBody(src: [UInt8], payloadStart: Int,
+                                nRawBytes: Int, nLiterals: Int, nMatches: Int,
+                                nLitPayload: Int, nLmdPayload: Int,
+                                literalBits: Int32,
+                                litState0: Int32, litState1: Int32,
+                                litState2: Int32, litState3: Int32,
+                                lmdBits: Int32,
+                                lState0: Int32, mState0: Int32, dState0: Int32,
+                                lFreq: [UInt16], mFreq: [UInt16],
+                                dFreq: [UInt16], litFreq: [UInt16],
+                                into dst: inout [UInt8]) -> Bool {
+        var lState = lState0, mState = mState0, dState = dState0
+
+        // 健全性檢查（lzfse_check_block_header_v1 等價 + n_raw_bytes 上界）
+        // nLiterals 必須是 4 的倍數：4 路交錯解碼一次寫 4 個（編碼端有補齊）
+        guard nLiterals >= 0, nMatches >= 0, nRawBytes >= 0,
+              nLitPayload >= 0, nLmdPayload >= 0,
+              nLiterals <= literalsPerBlock, nLiterals & 3 == 0,
+              nMatches <= matchesPerBlock,
               nRawBytes <= literalsPerBlock + matchesPerBlock * maxMValue,
               litState0 < Int32(literalStates), litState1 < Int32(literalStates),
               litState2 < Int32(literalStates), litState3 < Int32(literalStates),
               lState < Int32(lStates), mState < Int32(mStates), dState < Int32(dStates),
-              nPayload == nLitPayload + nLmdPayload,
-              p + v1HeaderSize + nPayload <= src.count
-        else { return nil }
+              payloadStart >= 8,
+              payloadStart + nLitPayload + nLmdPayload <= src.count
+        else { return false }
 
-        guard let litDec = initDecoderTable(nstates: literalStates, freq: litFreq) else { return nil }
+        guard let litDec = initDecoderTable(nstates: literalStates, freq: litFreq) else { return false }
         let lDec = initValueDecoderTable(nstates: lStates, freq: lFreq, vbits: lExtraBits, vbase: lBaseValue)
         let mDec = initValueDecoderTable(nstates: mStates, freq: mFreq, vbits: mExtraBits, vbase: mBaseValue)
         let dDec = initValueDecoderTable(nstates: dStates, freq: dFreq, vbits: dExtraBits, vbase: dBaseValue)
 
         // --- 預先配置本區塊的輸出區（大小 = n_raw_bytes），之後以索引直接寫入 ---
-        let litPayloadEnd = p + v1HeaderSize + nLitPayload
+        let litPayloadEnd = payloadStart + nLitPayload
         let lmdPayloadEnd = litPayloadEnd + nLmdPayload
         let outBase = dst.count
         dst.append(contentsOf: repeatElement(0, count: nRawBytes))
@@ -1338,7 +1369,7 @@ public enum LZFSEv1 {
                 }
             }
         }
-        guard ok else { dst.removeLast(nRawBytes); return nil }
+        guard ok else { dst.removeLast(nRawBytes); return false }
 
         // --- 解碼 L,M,D 並重建輸出（指標寬複製）---
         src.withUnsafeBufferPointer { sbuf in
@@ -1411,8 +1442,8 @@ public enum LZFSEv1 {
                 }
             }
         }
-        guard ok else { dst.removeLast(nRawBytes); return nil }
-        return v1HeaderSize + nPayload
+        guard ok else { dst.removeLast(nRawBytes); return false }
+        return true
     }
 }
 
