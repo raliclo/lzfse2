@@ -3,4 +3,5 @@
 swiftc -O lzfse-cli.swift -o lzfse
 # swiftc -g lzfse-cli.swift -o lzfse
 cp ./lzfse /opt/homebrew/bin
+./lzfse -test > lzfse-test.txt
 # lldb -- ./lzfse -encode -i ../sample_wix.tar -o sample_wix.lzfse -algo other2

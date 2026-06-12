@@ -144,7 +144,7 @@ source ~/.zshrc
 
 ## 基準測試
 
-`BenchMarkResult.csv` 包含 `llama.cpp` 與 `claw-code` 兩組資料集的基準測試摘要。`benchmark.log` 則是同一組測試的原始執行紀錄，包含計時輸出與內容一致性檢查。log 中使用的 `claw-code` 原始資料夾大小為 `938M`（壓縮前）。測試機器為 Mac mini，配備 Apple M4 10 核心 CPU、16 GB 記憶體與 128 GB 儲存空間。
+`BenchMarkResult.csv` 包含 `llama.cpp` 與 `claw-code` 兩組資料集的基準測試摘要。`benchmark.log` 則是同一組測試的原始執行紀錄，包含計時輸出與內容一致性檢查。log 中使用的 `claw-code` 原始資料夾大小為 `938M`（壓縮前）。測試機器為 Mac mini，配備 Apple M4 10 核心 CPU、16 GB 記憶體與 256 GB 儲存空間。
 
 | 資料集 | 格式 | 原始檔案大小 (MB) | 壓縮後大小 (MB) | 壓縮耗時 (秒) | 解壓耗時 (秒) | 相對 TGZ 壓縮比 | 相對 TGZ 壓縮時間比 | 相對 TGZ 解壓時間比 |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |

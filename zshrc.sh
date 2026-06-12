@@ -366,9 +366,10 @@ trash () {
 extract () {
     if [ -f "$1" ] ; then
         case "$1" in
-            *.lzfse.bvx3)      echo "lzfse -decode -i $1 -so -algo bvx3   | tar -xf - " ; lzfse -decode -i $1 -so -algo bvx3   | tar -xf -  ;;   
-            *.lzfse.other3)    echo "lzfse -decode -i $1 -so -algo other3 | tar -xf - " ; lzfse -decode -i $1 -so -algo other3 | tar -xf -  ;;  
-            *.lzfse.apple)     echo "lzfse -decode -i $1 -so -algo apple  | tar -xf - " ; lzfse -decode -i $1 -so -algo apple  | tar -xf -  ;;
+            *.lzfse.bvx3)       echo "lzfse -decode -i $1 -so -algo bvx3   | tar -xf - " ; lzfse -decode -i $1 -so -algo bvx3   | tar -xf -  ;;   
+            *.lzfse.bvx3.lazy2) echo "lzfse -decode -i $1 -so -algo bvx3   | tar -xf - " ; lzfse -decode -i $1 -so -algo bvx3   | tar -xf -  ;;   
+            *.lzfse.other3)     echo "lzfse -decode -i $1 -so -algo other3 | tar -xf - " ; lzfse -decode -i $1 -so -algo other3 | tar -xf -  ;;  
+            *.lzfse.apple)      echo "lzfse -decode -i $1 -so -algo apple  | tar -xf - " ; lzfse -decode -i $1 -so -algo apple  | tar -xf -  ;;
             *.tar.lz4)   lz4 -T0 -d -q -c $1 | tar -xf - ;;
             *.zst)       zstd -d -c "$1" | tar -xf - ;;
             *.tar.xz)    tar xf "$1"      ;;
@@ -436,7 +437,6 @@ function getar() {
     du -sh $1
     du -sh $1.tgz
 }
-
 function lzfseX() {
     # 如果參數 $1 為空則提示並退出
     if [[ -z "$1" ]]; then
@@ -444,17 +444,20 @@ function lzfseX() {
         return 1
     fi
 
-    # 設置預設值為 'other' (若 $2 為空)
+    # 設置預設值為 'other3' (若 $2 為空)
     local algo="${2:-other3}"
     
-    # 若演算法為 apple，副檔名為 lzfse.apple，否則為 lzfse
+    # 根據演算法設定副檔名
     local extension="lzfse.other3"
-    [[ "$algo" == "apple" ]] && extension="lzfse.apple"
-    [[ "$algo" == "bvx3" ]] && extension="lzfse.bvx3"
-    [[ "$algo" == "other3" ]] && extension="lzfse.other3" 
+    case "$algo" in
+        apple)    extension="lzfse.apple" ;;
+        bvx3)     extension="lzfse.bvx3" ;;
+        lazy2)    extension="lzfse.bvx3.lazy2"; algo="bvx3" ;; # 處理 lazy2，同時修正 algo 為 bvx3
+        other3)   extension="lzfse.other3" ;;
+    esac
 
     # 執行壓縮
-    echo tar -cf - $1 "|" lzfse -encode -si -o $1.$extension -algo $algo
+    echo "執行中: tar -cf - $1 | lzfse -encode -si -o $1.$extension -algo $algo"
     tar -cf - "$1" | lzfse -encode -si -o "$1.$extension" -algo "$algo"
     
     # 顯示檔案大小
@@ -503,8 +506,11 @@ function lz4bench() {
     echo $'\n[Info] 測試 lzfseX other3 壓縮 / Testing lzfseX other3 compression:'
     nanoTimeElapsed lzfseX $1 other3
     
+    echo $'\n[Info] 測試 lzfseX bvx3_lazy2 壓縮 / Testing lzfseX bvx3_lazy2 compression:'
+    nanoTimeElapsed lzfseX $1 lazy2
+
     echo $'\n[Info] 測試 lzfseX bvx3 壓縮 / Testing lzfseX bvx3 compression:'
-    nanoTimeElapsed lzfseX $1 bvx3
+    nanoTimeElapsed lzfseX $1 bvx3 
 
     echo $'\n[Info] 測試 lzfseX apple 壓縮 / Testing lzfseX apple compression:'
     nanoTimeElapsed lzfseX $1 apple
@@ -524,7 +530,7 @@ function lz4bench() {
     # --------------------------------------------------------------------------
     
     # 定義解壓測試的目標清單
-    local extract_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
+    local extract_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.bvx3.lazy2" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
     
     for target in "${extract_targets[@]}"; do
         local test_dir="./xbenchTest/${target##*.}"

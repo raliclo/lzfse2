@@ -144,7 +144,7 @@ source ~/.zshrc
 
 ## Benchmark
 
-`BenchMarkResult.csv` contains benchmark summaries for two datasets, `llama.cpp` and `claw-code`. `benchmark.log` is the raw run log for the same test set, including timing output and content-integrity checks. The raw `claw-code` source tree used in the log was `938M` before compression. The test machine was a Mac mini with an Apple M4 10-core CPU, 16 GB memory, and 128 GB storage.
+`BenchMarkResult.csv` contains benchmark summaries for two datasets, `llama.cpp` and `claw-code`. `benchmark.log` is the raw run log for the same test set, including timing output and content-integrity checks. The raw `claw-code` source tree used in the log was `938M` before compression. The test machine was a Mac mini with an Apple M4 10-core CPU, 16 GB memory, and 256 GB storage.
 
 | Dataset | Format | Original size (MB) | Compressed size (MB) | Compress time (s) | Decompress time (s) | Compression ratio vs TGZ | Compress time ratio vs TGZ | Decompress time ratio vs TGZ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |

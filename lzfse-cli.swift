@@ -709,6 +709,8 @@ public enum LZFSEv1 {
     static let chainHashBits = 16                 // 65536 桶
     static let chainHashSize = 1 << chainHashBits
     static let chainSearchDepth = 32              // btlazy2 級候選嘗試數
+    static let chainGoodEnough = 512              // 找到 ≥ 此長度即停止搜尋（zstd sufficient_len）
+    static let chainSearchStrength = 6            // 無 match 跳躍加速（zstd kSearchStrength）
 
     static func lzParseChain(_ input: [UInt8],
                              maxL: Int, maxM: Int,
@@ -793,20 +795,27 @@ public enum LZFSEv1 {
                     let l = repLen(idx, r)
                     if l > bl { bl = l; bd = r }
                 }
-                // ② 雜湊鏈走訪（深度上限 + bl 快速排除）
-                let v = load32(idx)
-                var c = Int(head[hash4(idx)])
-                var depth = chainSearchDepth
-                while c >= 0 && depth > 0 {
-                    let d = idx - c
-                    if d > maxDist { break }   // 鏈愈走愈舊，超距即停
-                    if (bl == 0 || (idx + bl < n && p[c + bl] == p[idx + bl])),
-                       load32(c) == v {
-                        let l = 4 + matchLength(c + 4, idx + 4, limit: n - idx - 4)
-                        if l > bl || (l == bl && d < bd) { bl = l; bd = d }
+                // ② 雜湊鏈走訪（深度上限 + bl 快速排除 + good-enough 提前退出）
+                //    rep 已達 good-enough 時整段跳過 —— 零填充等長 run 區段
+                //    （所有位置同雜湊、鏈最稠密）正是靠這個避開病態成本
+                if bl < chainGoodEnough {
+                    let v = load32(idx)
+                    var c = Int(head[hash4(idx)])
+                    var depth = chainSearchDepth
+                    while c >= 0 && depth > 0 {
+                        let d = idx - c
+                        if d > maxDist { break }   // 鏈愈走愈舊，超距即停
+                        if (bl == 0 || (idx + bl < n && p[c + bl] == p[idx + bl])),
+                           load32(c) == v {
+                            let l = 4 + matchLength(c + 4, idx + 4, limit: n - idx - 4)
+                            if l > bl || (l == bl && d < bd) {
+                                bl = l; bd = d
+                                if bl >= chainGoodEnough { break }   // 夠長即收
+                            }
+                        }
+                        c = Int(chain[c])
+                        depth -= 1
                     }
-                    c = Int(chain[c])
-                    depth -= 1
                 }
                 // ③ rep 長度接近最佳（差 ≤2）時改選 rep
                 if bd != rep0p && bd != rep1p && bd != rep2p {
@@ -822,10 +831,16 @@ public enum LZFSEv1 {
             while i + 4 <= n {
                 var (m0, d0) = bestMatch(i)
                 insert(i)
-                if m0 < 4 { i += 1; continue }
+                if m0 < 4 {
+                    // 跳躍加速（zstd lazy 的關鍵快路徑）：離上個 match 愈久跳愈大步。
+                    // 難匹配區段（二進位、已壓縮資產）從「每 byte 全深度搜尋」
+                    // 降為步進搜尋 —— 這是先前慢 30 倍的最大根因。
+                    i += 1 + ((i - litStart) >> chainSearchStrength)
+                    continue
+                }
 
-                // lazy matching：下一位置更長就右移一格，重複到不再改善
-                while i + 5 <= n {
+                // lazy matching：僅在目前 match 尚短時才付第二次搜尋成本
+                while i + 5 <= n && m0 < chainGoodEnough {
                     let (m1, d1) = bestMatch(i + 1)
                     if m1 > m0 {
                         insert(i + 1)
@@ -1385,7 +1400,8 @@ public enum LZFSEv1 {
     /// 壓縮為「區塊串」但不含結尾 bvx$ ——供平行分塊壓縮串接使用。
     /// 多個 compressBody 輸出串接後補上一個 bvx$，仍是合法的標準 LZFSE 串流
     /// （每個分塊獨立壓縮，match 距離不跨分塊，解碼器的輸出歷史是連續的所以相容）。
-    public static func compressBody(_ input: Data, strong: Bool = false, bvx3: Bool = false) -> Data {
+    public static func compressBody(_ input: Data, strong: Bool = false,
+                                    bvx3: Bool = false, lazy2: Bool = false) -> Data {
         let bytes = [UInt8](input)
         var out: [UInt8] = []
         guard !bytes.isEmpty else { return Data() }
@@ -1399,8 +1415,11 @@ public enum LZFSEv1 {
             return Data(out)
         }
 
+        // bvx3 預設走 4 槽 lazy 解析器（速度優先）；-lazy2 才開雜湊鏈深搜
         let (triplets, literals) = bvx3
-            ? lzParseChain(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2)
+            ? (lazy2
+                ? lzParseChain(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2)
+                : lzParseStrong(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2))
             : (strong ? lzParseStrong(bytes) : lzParse(bytes))
 
         // 依每區塊上限切分（留 5 個 match、最大 L 的安全邊界）
@@ -2284,13 +2303,13 @@ func runLZFSEv1Tests() {
 
     /// 模擬 other3/bvx3 的輸出：分塊獨立壓縮（compressBody）串接 + 單一 bvx$
     func chunkedCompress(_ data: Data, chunkSize: Int,
-                         strong: Bool = true, bvx3: Bool = false) -> Data {
+                         strong: Bool = true, bvx3: Bool = false, lazy2: Bool = false) -> Data {
         var out = Data()
         var p = 0
         while p < data.count {
             let end = min(p + chunkSize, data.count)
             out.append(LZFSEv1.compressBody(data.subdata(in: p..<end),
-                                            strong: strong, bvx3: bvx3))
+                                            strong: strong, bvx3: bvx3, lazy2: lazy2))
             p = end
         }
         out.append(Data([0x62, 0x76, 0x78, 0x24])) // bvx$
@@ -2323,10 +2342,13 @@ func runLZFSEv1Tests() {
             #endif
         }
 
-        // ---- -algo bvx3：私有大字母表區塊 ----
+        // ---- -algo bvx3：私有大字母表區塊（預設 + -lazy2 深搜）----
         if data.count > 0 {
             let b3 = chunkedCompress(data, chunkSize: cs, bvx3: true)
-            print("       bvx3   壓縮: \(b3.count) bytes (\(pct(b3.count)))")
+            let b3z = chunkedCompress(data, chunkSize: cs, bvx3: true, lazy2: true)
+            print("       bvx3   壓縮: \(b3.count) bytes (\(pct(b3.count)))；-lazy2: \(b3z.count) bytes (\(pct(b3z.count)))")
+            check("bvx3 -lazy2 自我往返", LZFSEv1.decompress(b3z) == data)
+            check("bvx3 -lazy2 平行解碼", LZFSEv1.parallelDecompress(b3z, chunkRaw: cs) == data)
             check("bvx3 自我往返 (循序)", LZFSEv1.decompress(b3) == data)
             check("bvx3 平行解碼", LZFSEv1.parallelDecompress(b3, chunkRaw: cs) == data)
             #if canImport(Compression)
@@ -2417,7 +2439,7 @@ func eprint(_ message: String) {
 
 func printUsage() {
     print("""
-    Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-si|-i input] [-so|-o output] [-test] [-h]
+    Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2] [-si|-i input] [-so|-o output] [-test] [-h]
 
     Commands:
       -encode       : Compress the input / 壓縮輸入內容
@@ -2436,6 +2458,9 @@ func printUsage() {
       -si           : Read from stdin / 從標準輸入讀取
       -o <path>     : Output file path / 指定輸出檔案路徑
       -so           : Write to stdout / 輸出至標準輸出
+      -lazy2        : (bvx3 only) Deep hash-chain search; better ratio, slower
+                      （僅 bvx3）雜湊鏈深搜（深度32+lazy+rep感知），壓縮率更高
+                      但較慢；預設關閉，bvx3 走快速 4 槽解析器
       -test         : Run built-in round-trip & compatibility tests / 執行內建測試
       -h            : Show this help / 顯示說明
 
@@ -2482,6 +2507,12 @@ if let index = args.firstIndex(of: "-algo") {
         exit(1)
     }
     algo = parsed
+}
+
+// -lazy2：bvx3 的雜湊鏈深搜開關（預設關閉）
+let useLazy2 = args.contains("-lazy2")
+if useLazy2 && algo != .bvx3 {
+    eprint("Note: -lazy2 only affects -algo bvx3; ignored. / 提示：-lazy2 僅對 bvx3 生效，已忽略。")
 }
 
 #if !canImport(Compression)
@@ -2550,7 +2581,7 @@ if args.contains("-so") {
 ///      所有分塊寫完後才補上唯一一個 bvx$。
 func runParallelEncode(input: FileHandle, output: FileHandle,
                        chunkSize: Int = LZFSEv1.parallelChunkSize,
-                       strong: Bool = false, bvx3: Bool = false) {
+                       strong: Bool = false, bvx3: Bool = false, lazy2: Bool = false) {
     let maxTasks = max(2, ProcessInfo.processInfo.activeProcessorCount)
     let sem = DispatchSemaphore(value: maxTasks)
     let lock = NSLock()
@@ -2576,7 +2607,7 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
         readIndex += 1
         group.enter()
         queue.async {
-            let body = LZFSEv1.compressBody(data, strong: strong, bvx3: bvx3)   // 區塊串，不含 bvx$
+            let body = LZFSEv1.compressBody(data, strong: strong, bvx3: bvx3, lazy2: lazy2)   // 區塊串，不含 bvx$
             lock.lock()
             results[idx] = body
             // 任一執行緒都可在鎖內依序排水，保證輸出順序
@@ -2630,7 +2661,8 @@ case .other3, .bvx3:
     // 非分塊串流自動退回循序，結果保證正確。
     if isEncoding {
         runParallelEncode(input: inputHandle, output: outputHandle,
-                          strong: true, bvx3: algo == .bvx3)
+                          strong: true, bvx3: algo == .bvx3,
+                          lazy2: algo == .bvx3 && useLazy2)
     } else {
         let data: Data
         do {
