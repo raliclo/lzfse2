@@ -491,18 +491,15 @@ function lz4bench() {
         echo "錯誤: 請指定要測試的目錄 / Error: Please specify a directory to benchmark" >&2
         return 1
     fi
-    echo $'[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試 / Starting benchmark for tgz, lzfse, tlz4, zstd...\n'
+
+    echo $'[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試...\n'
 
     # --------------------------------------------------------------------------
-    # 1.測試 getar 壓縮速度 / Test lz4a compression speed
+    # 1. 壓縮測試
     # --------------------------------------------------------------------------
     echo $'\n[Info] 測試 getar 壓縮 / Testing getar compression:'
     nanoTimeElapsed getar $1
 
-    # --------------------------------------------------------------------------
-    # 1. 測試 lzfse 壓縮速度 / Test lzfseX compression speed
-    # --------------------------------------------------------------------------
-    
     echo $'\n[Info] 測試 lzfseX other3 壓縮 / Testing lzfseX other3 compression:'
     nanoTimeElapsed lzfseX $1 other3
     
@@ -512,15 +509,10 @@ function lz4bench() {
     echo $'\n[Info] 測試 lzfseX apple 壓縮 / Testing lzfseX apple compression:'
     nanoTimeElapsed lzfseX $1 apple
 
-    # --------------------------------------------------------------------------
-    # 1. 測試 tlz4 壓縮速度 / Test lz4a compression speed
-    # --------------------------------------------------------------------------
     echo $'\n[Info] 測試 tlz4  壓縮 / Testing tlz4 compression:'
     nanoTimeElapsed tlz4 $1
+    measure_res tlz4 $1
 
-    # --------------------------------------------------------------------------
-    # 1. 測試 zstd 壓縮速度 / Test lz4a compression speed
-    # --------------------------------------------------------------------------
     echo $'\n[Info] 測試 zstd  壓縮 / Testing zstd compression:'
     nanoTimeElapsed getzstd $1
 
@@ -529,89 +521,36 @@ function lz4bench() {
     echo $'=================================================='
 
     # --------------------------------------------------------------------------
-    # 2. 測試 tgz 解壓速度 / Test tgz decompression speed
+    # 2. 解壓縮測試 (整合記憶體監測)
     # --------------------------------------------------------------------------
-    mkdir -p ./xbenchTest/tgz  > /dev/null 2>&1
-    cp "$1.tgz" ./xbenchTest/tgz > /dev/null 2>&1
-    cd ./xbenchTest/tgz > /dev/null 2>&1
-    rm -rf $1 > /dev/null 2>&1
-
-    echo $'\n[Info] 測試 tgz 解壓 / Testing tgz extraction:'
-    echo nanoTimeElapsed extract $1.tgz
-    nanoTimeElapsed extract $1.tgz 
-    cd ../.. > /dev/null 2>&1
-
-    # --------------------------------------------------------------------------
-    # 2. 測試 lzfseX 解壓速度 / Test lzfseX decompression speed
-    # --------------------------------------------------------------------------
-
-    mkdir -p ./xbenchTest/lzfse_other3 > /dev/null 2>&1
-    cp $1.lzfse.other3 ./xbenchTest/lzfse_other3 > /dev/null 2>&1
-    cd ./xbenchTest/lzfse_other3 > /dev/null 2>&1
-    rm -rf $1 > /dev/null 2>&1
- 
-    echo $'\n[Info] 測試 lzfse.other3 解壓 / Testing lzfse.other3 extraction:'
-    echo nanoTimeElapsed extract $1.lzfse.other3
-    nanoTimeElapsed extract $1.lzfse.other3
-    cd ../.. > /dev/null 2>&1
-
-
-    mkdir -p ./xbenchTest/lzfse_bvx3 > /dev/null 2>&1
-    cp $1.lzfse.bvx3 ./xbenchTest/lzfse_bvx3 > /dev/null 2>&1
-    cd ./xbenchTest/lzfse_bvx3 > /dev/null 2>&1
-    rm -rf $1 > /dev/null 2>&1
- 
-    echo $'\n[Info] 測試 lzfse.bvx3 解壓 / Testing lzfse.bvx3 extraction:'
-    echo nanoTimeElapsed extract $1.lzfse.bvx3
-    nanoTimeElapsed extract $1.lzfse.bvx3
-    cd ../.. > /dev/null 2>&1
-
-    mkdir -p ./xbenchTest/lzfse_apple > /dev/null 2>&1
-    cp $1.lzfse.apple ./xbenchTest/lzfse_apple > /dev/null 2>&1
-    cd ./xbenchTest/lzfse_apple > /dev/null 2>&1
-    rm -rf $1 > /dev/null 2>&1
     
-    echo $'\n[Info] 測試 lzfse.apple 解壓 / Testing lzfse.apple extraction:' 
-    echo nanoTimeElapsed extract $1.lzfse.apple
-    nanoTimeElapsed extract $1.lzfse.apple
-    cd ../.. > /dev/null 2>&1
-
-    # --------------------------------------------------------------------------
-    # 2. 測試 tlz4 解壓速度 / Test tlz4 decompression speed
-    # --------------------------------------------------------------------------
-    mkdir -p ./xbenchTest/tlz4 > /dev/null 2>&1
-    cp $1.tar.lz4 ./xbenchTest/tlz4 > /dev/null 2>&1
-    cd ./xbenchTest/tlz4 > /dev/null 2>&1
-    rm -rf $1 > /dev/null 2>&1
+    # 定義解壓測試的目標清單
+    local extract_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
     
-    echo $'\n[Info] 測試 tlz4 解壓 / Testing tlz4 extraction:' 
-    echo nanoTimeElapsed extract $1.tar.lz4
-    nanoTimeElapsed extract $1.tar.lz4
-    cd ../.. > /dev/null 2>&1
+    for target in "${extract_targets[@]}"; do
+        local test_dir="./xbenchTest/${target##*.}"
+        mkdir -p "$test_dir" > /dev/null 2>&1
+        cp "$target" "$test_dir" > /dev/null 2>&1
+        
+        echo $'\n[Info] 測試 '$target' 解壓:'
+        (
+            cd "$test_dir" > /dev/null 2>&1
+            rm -rf $1 > /dev/null 2>&1
+            nanoTimeElapsed extract "$target"        )
+    done
 
     # --------------------------------------------------------------------------
-    # 2. 測試 zstd 解壓速度 / Test zstd decompression speed
+    # 3. 環境清理與驗證
     # --------------------------------------------------------------------------
-    mkdir -p ./xbenchTest/zstd > /dev/null 2>&1
-    cp $1.zst ./xbenchTest/zstd > /dev/null 2>&1
-    cd ./xbenchTest/zstd > /dev/null 2>&1
-    rm -rf $1 > /dev/null 2>&1
-    
-    echo $'\n[Info] 測試 zstd 解壓 / Testing zstd extraction:' 
-    echo nanoTimeElapsed extract $1.zst
-    nanoTimeElapsed extract $1.zst
-    cd ../.. > /dev/null 2>&1
-
-    # --------------------------------------------------------------------------
-    # 3. 環境環境清理 / Sandbox cleanup
-    # --------------------------------------------------------------------------
-    diff -rq ./xbenchTest/tgz/$1 ./xbenchTest/tlz4/$1 > /dev/null 2>&1 && echo $'\n[Success] tgz,tlz4 解壓後的內容完全一致！ / Decompressed contents are identical!' || echo $'\n[Warning] tgz,tlz4  解壓後的內容不一致！ / tgz,tlz4 Decompressed contents differ!'
-    diff -rq ./xbenchTest/tgz/$1 ./xbenchTest/lzfse_other3/$1 > /dev/null 2>&1 && echo $'\n[Success] tgz,lzfse_other3 解壓後的內容完全一致！ / Decompressed contents are identical!' || echo $'\n[Warning] tgz,lzfse_other3  解壓後的內容不一致！ / tgz,lzfse_other3 Decompressed contents differ!'
-    diff -rq ./xbenchTest/tgz/$1 ./xbenchTest/lzfse_bvx3/$1 > /dev/null 2>&1 && echo $'\n[Success] tgz,lzfse_bvx3 解壓後的內容完全一致！ / Decompressed contents are identical!' || echo $'\n[Warning] tgz,lzfse_bvx3  解壓後的內容不一致！ / tgz,lzfse_bvx3 Decompressed contents differ!'
-    diff -rq ./xbenchTest/tgz/$1 ./xbenchTest/lzfse_apple/$1 > /dev/null 2>&1 && echo $'\n[Success] tgz,lzfse_apple 解壓後的內容完全一致！ / Decompressed contents are identical!' || echo $'\n[Warning] tgz,lzfse  解壓後的內容不一致！ / tgz,lzfse Decompressed contents differ!'
-    diff -rq ./xbenchTest/tgz/$1 ./xbenchTest/zstd/$1 > /dev/null 2>&1 && echo $'\n[Success] tgz,zstd 解壓後的內容完全一致！ / Decompressed contents are identical!' || echo $'\n[Warning] tgz,zstd  解壓後的內容不一致！ / tgz,zstd Decompressed contents differ!'
-
-    # rm -rf xbenchTest
+    echo $'\n[Info] 驗證解壓內容一致性...'
+    local base_dir="./xbenchTest/tgz/$1"
+    for dir in ./xbenchTest/*; do
+        if [[ "$dir" != *"tgz"* ]]; then
+            diff -rq "$base_dir" "$dir/$1" > /dev/null 2>&1 && \
+            echo "[Success] $dir 解壓內容與 tgz 一致！" || \
+            echo "[Warning] $dir 解壓內容與 tgz 不一致！"
+        fi
+    done
     
     echo $'\n[Info] 基準測試完成！ / Benchmark finished!'
 }
