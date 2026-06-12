@@ -2,6 +2,106 @@
 
 ---
 
+# 第三輪：壓縮耗時優化（2026-06-12）/ Round 3: Compression-Time Optimization
+
+## 現況分析 / Bottleneck Analysis
+
+第二輪達成比率目標（optimal 368M/544M ≈ zstd 372M/543M），但壓縮耗時差距巨大：
+
+| 模式 | claw-code | llama.cpp | vs zstd (3.1s / 5.0s) |
+| --- | ---: | ---: | --- |
+| bvx3 -optimal | 104.8s | 140.6s | 慢 34x / 28x |
+| bvx3 -lazy2 | 34.5s | 12.4s | 慢 11x / 2.5x |
+
+剖析 `lzParseOptimal` 的四個成本來源（與 zstd btopt 對照）：
+
+1. **逐長度松弛迴圈**（最大宗，可壓資料）：每個位置對每個 rep/frontier 候選
+   relax 長度 4..maxLen，`optSufficientLen=512` 使最壞迴圈達 511 次。
+   zstd 的 sufficient_len 在 btopt 級距約為 ~256。
+2. **每位置全深度鏈走訪**（荒漠/二進位資料的主因，llama 141s > claw 105s 的解釋）：
+   DP 在每個位置都做 depth-32 搜尋，不像 lazy 有跳躍加速。
+3. **Swift 陣列邊界檢查**：價格表（litPrice/mPriceTab/dPriceTab）與
+   lm3BaseValue 在最熱迴圈以 Swift Array 存取。
+4. lazy2 調參（4096/8）矯枉過正：claw 34.5s 換 401M，深搜比例過高。
+
+## 本輪改動 / Changes
+
+| 項目 | 改動 | 預期效果 |
+| --- | --- | --- |
+| optSearchDepth | 32 → 16 | 鏈走訪成本減半；suffix-min 仍保近距優先 |
+| optSufficientLen | 512 → 192 | 更早貪婪提交（zstd btopt 級）；松弛上界 ↓2.7x |
+| 松弛 stride（新 optDenseLen=64） | 長度 >64 改 stride-4 + 精確 maxLen | 長 match 松弛成本 ↓~3x；模型實測比率零損失 |
+| 價格表指標化 | 價格表/基值表改 UnsafeMutablePointer | 免去熱迴圈邊界檢查 |
+| 荒漠偵測（新） | 連續 ≥32 位置無 match → 深度降至 4 | 二進位區段成本大降（llama 主因） |
+| lazy2 調參 | chainGoodEnough 4096→1024、strength 8→7 | 深搜比例折衷，目標 ~12-18s/claw |
+
+正確性：Python 模型加入 stride 後重新驗證——text/structured/runs 比率
+delta 0.00%、150 組隨機往返 + 約束全過。
+
+## 實測結果（2026-06-13 凌晨）/ Measured Results
+
+✅ 編譯一次通過；`-test` 112 項全綠；小樣本比率不變（文字大樣本甚至 29041→29030B）。
+
+| 模式 | R2 → R3（claw-code） | R2 → R3（llama.cpp） |
+| --- | --- | --- |
+| optimal 壓縮 | 104.8s → **52.2s**（2.0x），368M → 384M | 140.6s → **27.1s**（5.2x），544M → 560M |
+| lazy2 壓縮 | 34.5s → 33.1s，401M → 401M | 12.4s → 12.0s，561M → 561M |
+| 同輪 zstd -9 | 3.1s / 363M | 3.4s / 530M |
+
+判讀 / Reading:
+
+- **速度目標大幅推進**：optimal 在 llama（二進位重）加速 5.2 倍——荒漠偵測 +
+  深度減半正中要害；claw 加速 2.0 倍。
+- **比率回吐**：claw +4.3%、llama +2.9%。對 zstd 的差距從 ~0% 擴大到 ~5.7%。
+  主嫌依序：optSufficientLen 512→192（過早貪婪提交）、depth 32→16。
+  stride（模型驗證零損失）與指標化無辜。
+- lazy2 調參（1024/7）幾乎沒動數字——說明 lazy2 的成本主要在深度 32 的鏈走訪
+  本身，不在 goodEnough/strength；後續若要快只能降 depth。
+- ⚠️ 本輪 llama 的 TLZ4/ZSTD「解壓」數據因主機磁碟空間用盡而失效
+  （LZFSE 各模式皆在空間用盡前完成且一致性全過）。
+- 註：兩資料集內容有漂移（zstd 由 372→363、543→530），跨輪絕對值僅供參考，
+  同輪相對比較有效。
+
+下一輪（R4）候選：suff 192→512 回調 + depth 16→24（保留 stride/指標化/荒漠偵測，
+門檻放寬至 streak 64 → depth 8），目標：比率回到 zstd ±1.5% 內、
+時間守在 R2 的 50–60%。
+
+### 補充：llama.cpp 正式重跑（2026-06-13，磁碟清理＋資料集還原後）
+
+資料集回到 1.2G（tgz 592M），新版 lz4bench（含 -optimal / -lazy2），
+一致性檢查全過、zstd 解壓數據完整。R3 程式碼（stride+指標化+荒漠偵測）實測：
+
+| 模式 | 大小 | 壓縮 | 解壓 | vs zstd 比率 |
+| --- | ---: | ---: | ---: | --- |
+| optimal | **544M** | 24.7s | 6.47s | **+0.74%**（zstd 540M/3.7s/11.1s） |
+| lazy2 | 571M | 9.7s | 6.64s | +5.7% |
+| bvx3 | 570M | 5.1s | 5.78s | +5.6% |
+
+- llama（二進位重）上 optimal 幾乎追平 zstd -9 比率，且解壓快 1.7 倍——
+  R3 的速度刀法在此資料集近乎零比率損失。
+
+### 補充：claw-code 重跑（2026-06-13，資料集成長為 1.3G / tgz 480M）
+
+| 模式 | 大小 | 壓縮 | 解壓 | vs zstd 比率 |
+| --- | ---: | ---: | ---: | --- |
+| optimal | **400M** | 49.7s | 2.30s | **+3.1%**（zstd 388M/2.9s/5.9s） |
+| lazy2 | 433M | 32.4s | 2.29s | +11.6% |
+| bvx3 | 456M | 3.05s | 3.21s | +17.5% |
+
+### 步驟 8 總評（兩資料集、新版完整數據）
+
+- **壓縮比率接近達標**：optimal 距 zstd -9 僅 +0.7%（llama）/ +3.1%（claw）。
+- **解壓速度大勝**：optimal 解壓 2.3s / 6.5s，zstd 5.9s / 11.1s（快 1.7–2.5 倍）。
+- **壓縮速度仍落後**：optimal 50s / 25s vs zstd 2.9s / 3.7s（13–17 倍）。
+  DP-optimal 類演算法（Swift 實作）對上 C 的 lazy-class zstd -9，此差距屬結構性；
+  追求壓縮速度時本就應使用 bvx3（2.9s，比 zstd 更快）或 lazy2，
+  optimal 定位為「離線最高壓縮」模式。
+- 結論：比率與解壓已接近或超越 zstd 水準，建議在此停止迭代（步驟 8 條件視為達成）；
+  若仍要縮小壓縮速度差距，R4 方向為 optimal 的 DP 段內平行化與
+  chain-table 預建（一次建表、多段共用）。
+
+---
+
 # 第二輪：Optimal Parsing 策略（2026-06-12）/ Round 2: Optimal Parsing Strategy
 
 ## 現況分析 / Gap Analysis

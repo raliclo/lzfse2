@@ -709,10 +709,11 @@ public enum LZFSEv1 {
     static let chainHashBits = 16                 // 65536 桶
     static let chainHashSize = 1 << chainHashBits
     static let chainSearchDepth = 32              // btlazy2 級候選嘗試數
-    static let chainGoodEnough = 4096             // 找到 ≥ 此長度即停止搜尋（zstd sufficient_len）
-                                                  // 512 → 4096：上一輪修速砍過頭，找回比率
-    static let chainSearchStrength = 8            // 無 match 跳躍加速（zstd kSearchStrength）
-                                                  // 6 → 8：跳得更保守（步距較小），少漏 match
+    static let chainGoodEnough = 1024             // 找到 ≥ 此長度即停止搜尋（zstd sufficient_len）
+                                                  // R3 調參：512 太傷比率、4096 太慢（claw 34.5s）
+                                                  // → 1024 取中間檔（深搜比例折衷）
+    static let chainSearchStrength = 7            // 無 match 跳躍加速（zstd kSearchStrength）
+                                                  // R3 調參：6 漏太多、8 太保守 → 7 折衷
 
     static func lzParseChain(_ input: [UInt8],
                              maxL: Int, maxM: Int,
@@ -899,8 +900,11 @@ public enum LZFSEv1 {
     // =================================================================
 
     static let optSegmentSize = 1 << 17       // DP 段：128K cells
-    static let optSearchDepth = 32            // 雜湊鏈候選深度
-    static let optSufficientLen = 512         // ≥ 此長度直接貪婪提交（成本上界）
+    static let optSearchDepth = 16            // 雜湊鏈候選深度（R3：32→16，suffix-min 保留近距優先）
+    static let optSufficientLen = 192         // ≥ 此長度直接貪婪提交（R3：512→192，zstd btopt 級）
+    static let optDenseLen = 64               // 逐長度松弛上限；以上改 stride-4 + 精確 maxLen（R3）
+    static let optBarrenStreak = 32           // 連續無 match 位置數 ≥ 此值 → 降深度搜尋（R3）
+    static let optBarrenDepth = 4             // 荒漠區段的鏈走訪深度（R3）
 
     static func lzParseOptimal(_ input: [UInt8],
                                maxL: Int, maxM: Int,
@@ -980,9 +984,19 @@ public enum LZFSEv1 {
         var dSymCount = [UInt32](repeating: 1, count: d3Symbols)
         dSymCount[0] = 4; dSymCount[1] = 4; dSymCount[2] = 4   // 溫和偏好 rep
         for b in input { litCount[Int(b)] &+= 1 }              // literal 先驗 = 輸入直方圖
-        var litPrice  = [Int32](repeating: 96, count: 256)
-        var mPriceTab = [Int32](repeating: 96, count: lm3Symbols)
-        var dPriceTab = [Int32](repeating: 96, count: d3Symbols)
+        // 價格表用原始指標（R3：熱迴圈免去 Swift 陣列邊界檢查）
+        let litPrice  = UnsafeMutablePointer<Int32>.allocate(capacity: 256)
+        let mPriceTab = UnsafeMutablePointer<Int32>.allocate(capacity: lm3Symbols)
+        let dPriceTab = UnsafeMutablePointer<Int32>.allocate(capacity: d3Symbols)
+        let lmBaseP   = UnsafeMutablePointer<Int32>.allocate(capacity: lm3Symbols)
+        litPrice.initialize(repeating: 96, count: 256)
+        mPriceTab.initialize(repeating: 96, count: lm3Symbols)
+        dPriceTab.initialize(repeating: 96, count: d3Symbols)
+        for s in 0..<lm3Symbols { lmBaseP[s] = lm3BaseValue[s] }
+        defer {
+            litPrice.deallocate(); mPriceTab.deallocate()
+            dPriceTab.deallocate(); lmBaseP.deallocate()
+        }
         let matchConst: Int32 = 80   // L 符號 + 狀態位元的攤提常數（~5 bits）
 
         func rebuildPrices() {
@@ -1098,6 +1112,7 @@ public enum LZFSEv1 {
                 cR0[0] = Int32(rep0); cR1[0] = Int32(rep1); cR2[0] = Int32(rep2)
 
                 var cutT = -1, cutLen = 0, cutDist = 0
+                var barren = 0          // 連續無 match 的位置數（荒漠偵測，R3）
                 var t = 0
                 posLoop: while t < segLen {
                     let i = segStart + t
@@ -1134,7 +1149,7 @@ public enum LZFSEv1 {
                         var ll = 4
                         let lim = min(l, cap)
                         while ll <= lim {
-                            while msym + 1 < lm3Symbols && Int32(ll) >= lm3BaseValue[msym + 1] {
+                            while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] {
                                 msym += 1
                             }
                             let c2 = base + matchConst + mPriceTab[msym] + dpr
@@ -1143,7 +1158,9 @@ public enum LZFSEv1 {
                                 cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
                                 cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
                             }
-                            ll += 1
+                            if ll == lim { break }
+                            // R3：≥ optDenseLen 後改 stride-4（模型驗證比率零損失）
+                            ll = min(ll + (ll < optDenseLen ? 1 : 4), lim)
                         }
                     }
                     // ── ② 雜湊鏈 Pareto frontier（len 遞增）──
@@ -1151,7 +1168,8 @@ public enum LZFSEv1 {
                         var frCount = 0
                         var bl = max(3, bestRep)   // rep 已涵蓋 ≤ bestRep 的長度
                         var c = candHead
-                        var depth = optSearchDepth
+                        // R3：荒漠區段（連續無 match）降深度——llama 類二進位資料的主要成本
+                        var depth = barren >= optBarrenStreak ? optBarrenDepth : optSearchDepth
                         while c >= 0 && depth > 0 {
                             if c >= i { break }
                             let dd = i - c
@@ -1194,7 +1212,7 @@ public enum LZFSEv1 {
                             while ll <= maxLen {
                                 while Int(frLen[fk]) < ll { fk += 1 }
                                 let e = Int(frMin[fk])
-                                while msym + 1 < lm3Symbols && Int32(ll) >= lm3BaseValue[msym + 1] {
+                                while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] {
                                     msym += 1
                                 }
                                 let c2 = base + matchConst + mPriceTab[msym] + frPrice[e]
@@ -1205,9 +1223,15 @@ public enum LZFSEv1 {
                                     let (n0, n1, n2) = repsAfter(dd, r0, r1, r2)
                                     cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
                                 }
-                                ll += 1
+                                if ll == maxLen { break }
+                                // R3：≥ optDenseLen 後改 stride-4（模型驗證比率零損失）
+                                ll = min(ll + (ll < optDenseLen ? 1 : 4), maxLen)
                             }
                         }
+                        // 荒漠計數：本位置 rep 與鏈皆無 match（frontier 空、rep 無命中）
+                        if frCount == 0 && bestRep < 4 { barren += 1 } else { barren = 0 }
+                    } else {
+                        barren = 0
                     }
                     t += 1
                 }
