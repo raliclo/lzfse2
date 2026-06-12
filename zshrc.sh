@@ -631,6 +631,8 @@ function START_UP@END() {
     # makeram
     diskutil list | grep "RAMDisk" -B4 | grep "/dev" | awk '{print $1}' | tail -n +2 | xargs -I {} diskutil eject {}
     # claudeCodeEnv 2>&1 > /dev/null
+    # antigravity support
+    export PATH="/Users/raliclo/.local/bin:$PATH"
 }
 
 START_UP@END

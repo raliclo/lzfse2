@@ -881,16 +881,20 @@ public enum LZFSEv1 {
     // MARK: - 小端序讀寫工具
     // =================================================================
 
+    @inline(__always)
     static func put32(_ v: UInt32, _ out: inout [UInt8]) {
         out.append(UInt8(v & 0xFF)); out.append(UInt8((v >> 8) & 0xFF))
         out.append(UInt8((v >> 16) & 0xFF)); out.append(UInt8((v >> 24) & 0xFF))
     }
+    @inline(__always)
     static func put16(_ v: UInt16, _ out: inout [UInt8]) {
         out.append(UInt8(v & 0xFF)); out.append(UInt8((v >> 8) & 0xFF))
     }
+    @inline(__always)
     static func get32(_ d: [UInt8], _ p: Int) -> UInt32 {
         UInt32(d[p]) | UInt32(d[p+1]) << 8 | UInt32(d[p+2]) << 16 | UInt32(d[p+3]) << 24
     }
+    @inline(__always)
     static func get16(_ d: [UInt8], _ p: Int) -> UInt16 {
         UInt16(d[p]) | UInt16(d[p+1]) << 8
     }
@@ -1494,6 +1498,7 @@ public enum LZFSEv1 {
         return (UInt16(freqValueTable[b]), n)   // n==8/14 已處理，查表值必非 -1
     }
 
+    @inline(__always)
     static func get64(_ d: [UInt8], _ p: Int) -> UInt64 {
         var v: UInt64 = 0
         for i in 0..<8 { v |= UInt64(d[p + i]) << (UInt64(i) * 8) }
