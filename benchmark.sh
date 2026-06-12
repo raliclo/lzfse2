@@ -1,5 +1,6 @@
 #!/bin/zsh
 source ./zshrc.sh
+source ./compile.sh
 lz4bench claw-code > lz4bench-claw-code.txt 2>&1
 rm -rf claw-code.*
 rm -rf xbenchTest

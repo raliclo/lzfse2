@@ -2,6 +2,85 @@
 
 ---
 
+# 第四輪：記憶體開銷 + 多核效率（2026-06-13）/ Round 4: Memory & Multi-core
+
+目標（user 指定）：重新審視 zstd / LZ4 演算法，減少記憶體開銷、善用多核心，
+縮短 bvx3 / lazy2 / optimal 壓縮時間。
+
+## 審查結論 / Code-Review Findings
+
+多核架構本身已健全：4MiB 分塊 × `DispatchQueue.concurrentPerform` 式
+worker（semaphore 限流 = 核心數），lazy2/optimal 也已具備 zstd 的
+bl 探測、good-enough 截斷、跳躍加速、荒漠偵測。剩餘可動的大項：
+
+1. **每塊 16MiB chain 表 memset + malloc/free churn**（記憶體大宗）：
+   `lzParseChain` / `lzParseOptimal` 每個 4MiB chunk 都
+   `allocate + initialize(repeating:-1)` 一張 n×4B 的 chain 表。
+   1.3GB 輸入 = 325 chunks ≈ 5.2GB 的無效 memset 流量 + 同量 malloc churn。
+   zstd 的答案是 **CCtx 重用**：context 配一次、跨 block 重用。
+   且 chain 表其實**根本不需要初始化**——可達性論證：搜尋只走
+   `head[h] → chain[c] → …`，head 每塊清為 -1，任何可達的 chain 項
+   都在 insert 時（`chain[idx] = head[h]; head[h] = idx`）先寫後讀。
+2. **熱迴圈陣列配置**：`bestMatch` 內 `for r in [rep0p, rep1p, rep2p]`
+   （每位置至少 1–2 次）會產生暫時陣列。LZ4/zstd 熱路徑零配置。
+3. **4-byte hash 鏈過長**（文字資料 lazy2 32s 的主因）：
+   "the "、" of " 等高頻 4-gram 使鏈深度暴漲、深度配額浪費在重複候選。
+   zstd 高等級（lazy2/btopt）用 **5–6 byte hash**：鏈短、碰撞少，
+   配額花在真正可能更長的候選上；len-4 非 rep match 的犧牲極小
+   （rep 候選仍涵蓋最常見的 len-4）。
+4. **管線短讀**：`FileHandle.read(upToCount:)` 對 pipe 可能回傳不足 4MiB
+   的短塊（tar | lzfse 正是 pipe），使分塊變碎——比率變差、
+   每塊固定開銷變多、平行解碼分組失效。應累積讀滿。
+
+## 本輪改動 / Changes
+
+| 項目 | 改動 | 對應技巧 |
+| --- | --- | --- |
+| ParseScratch pool | head/chain/DP/frontier 緩衝跨 chunk 重用（鎖保護池，上限=核心數） | zstd CCtx 重用 |
+| chain 表零初始化 | 移除兩處 `initialize(repeating:-1, count:n)` | 可達性論證（如上） |
+| rep 迴圈去配置 | bestMatch 兩處改手動展開 | LZ4 熱路徑零配置 |
+| chain finder 改 hash5 | lazy2/optimal 的 hash4 → 5-byte 乘法 hash；chainHashBits 16→17 | zstd 高等級 h5 |
+| 滿塊讀取 | runParallelEncode 累積讀滿 4MiB 再派工 | 平行粒度修復 |
+
+記憶體效果：穩態峰值 ≈ 核心數 × (chain 16MiB + DP ~4MiB)（與現行同階），
+但 **每塊 ~21MB 的 memset/malloc 流量歸零**；
+速度效果主要在 lazy2/optimal 的鏈走訪品質（hash5）與配置開銷。
+
+## 實測結果（2026-06-13）/ Measured Results
+
+✅ 112 項自我測試全綠；兩資料集解壓一致性全過；小樣本比率持平（29030→29029B）。
+
+| 模式 | claw-code R3 → R4 | llama.cpp R3 → R4 |
+| --- | --- | --- |
+| lazy2 | 32.4s → **22.4s**（↓31%），433M → 433M | 9.7s → **8.3s**（↓15%），571 → 572M |
+| optimal | 50.0s → **44.6s**（↓11%），400 → 401M | 24.7s → 25.6s（持平），544 → 544M |
+| bvx3 | 3.05s → 3.00s，456 → 458M | 5.1s → 5.1s，570 → 573M |
+| 同輪 zstd -9 | 2.93s / 396M | 3.7s / 538M |
+
+判讀 / Reading:
+
+- **hash5 對 lazy2 效果最大**（claw ↓31%、零比率損失）：高頻 4-gram 不再共桶，
+  深度 32 的配額真正花在可能更長的候選上。
+- optimal 受益較小（claw ↓11%）：其成本重心在 DP 松弛而非鏈走訪，
+  且荒漠偵測已先吃掉一部分搜尋成本。
+- scratch pool 把每塊 ~21MB malloc/memset 流量歸零；
+  滿塊讀取保證 pipe 輸入下的 4MiB 分塊粒度。
+- 比率對 zstd 差距：optimal +1.3%（claw）/ +1.1%（llama）；
+  解壓 optimal 5.2s/8.0s vs zstd 10.3s/14.6s（快 1.8–2.0 倍）。
+
+## 下一輪候選策略 / Next-Round Candidates (R5)
+
+1. **lazy2 換 BT（binary tree）match finder**（zstd btlazy2 真身）：
+   雜湊鏈在高重複文字上仍是 O(depth×len) 比對；BT 插入即排序、
+   每候選攤銷 O(log)。預估 claw lazy2 可再 -30–40%，但實作複雜度高。
+2. **optimal 的 DP 松弛向量化**：cPrice/cLen 等六陣列改 SoA 後以
+   SIMD（simd_int4）一次松弛 4 個長度；或把 stride-4 提到 stride-8。
+3. **optimal 段間管線**：DP 段（128K）內回溯與下一段搜尋重疊
+   （目前同一 chunk 內循序）；chunk 級平行已飽和時收益有限，優先級最低。
+4. bvx3/other3 已快於 zstd -9（433/432 MB/s vs 444 MB/s 同級），不再動。
+
+---
+
 # 第三輪：壓縮耗時優化（2026-06-12）/ Round 3: Compression-Time Optimization
 
 ## 現況分析 / Bottleneck Analysis

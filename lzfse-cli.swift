@@ -706,7 +706,7 @@ public enum LZFSEv1 {
     //   - 沿用 1-step 反覆 lazy matching
     // =================================================================
 
-    static let chainHashBits = 16                 // 65536 桶
+    static let chainHashBits = 17                 // R4：hash5 搭配 17 bits（131072 桶）
     static let chainHashSize = 1 << chainHashBits
     static let chainSearchDepth = 32              // btlazy2 級候選嘗試數
     static let chainGoodEnough = 1024             // 找到 ≥ 此長度即停止搜尋（zstd sufficient_len）
@@ -714,6 +714,51 @@ public enum LZFSEv1 {
                                                   // → 1024 取中間檔（深搜比例折衷）
     static let chainSearchStrength = 7            // 無 match 跳躍加速（zstd kSearchStrength）
                                                   // R3 調參：6 漏太多、8 太保守 → 7 折衷
+
+    // =================================================================
+    // MARK: - 解析器暫存池（R4）/ Parser scratch pool（zstd CCtx 重用風格）
+    // =================================================================
+    // head/chain 跨 chunk 重用：免去每塊 ~16MiB 的 malloc + memset 流量。
+    // chain 不需初始化——可達性論證：搜尋只走 head[h] → chain[c] → …，
+    // head 每塊清為 -1，任何可達的 chain 項都在 insert 時先寫後讀。
+    // Reuse head/chain across chunks (zstd CCtx style); chain needs no init:
+    // entries are only reachable after being written by insert().
+    final class ParseScratch {
+        var head: UnsafeMutablePointer<Int32>
+        var chain: UnsafeMutablePointer<Int32>
+        var chainCap: Int
+        init(minChain: Int) {
+            head = .allocate(capacity: chainHashSize)
+            chainCap = max(minChain, 1 << 16)
+            chain = .allocate(capacity: chainCap)
+        }
+        func ensure(_ n: Int) {
+            if n > chainCap {
+                chain.deallocate()
+                chainCap = n
+                chain = .allocate(capacity: chainCap)
+            }
+        }
+        deinit { head.deallocate(); chain.deallocate() }
+    }
+    static var scratchPool: [ParseScratch] = []
+    static let scratchLock = NSLock()
+    static func acquireScratch(_ n: Int) -> ParseScratch {
+        scratchLock.lock()
+        let s = scratchPool.popLast()
+        scratchLock.unlock()
+        let sc = s ?? ParseScratch(minChain: n)
+        sc.ensure(n)
+        sc.head.update(repeating: -1, count: chainHashSize)   // 唯一必要的清表
+        return sc
+    }
+    static func releaseScratch(_ s: ParseScratch) {
+        scratchLock.lock()
+        if scratchPool.count < ProcessInfo.processInfo.activeProcessorCount {
+            scratchPool.append(s)
+        }
+        scratchLock.unlock()
+    }
 
     static func lzParseChain(_ input: [UInt8],
                              maxL: Int, maxM: Int,
@@ -748,11 +793,11 @@ public enum LZFSEv1 {
             return (triplets, literals)
         }
 
-        let head = UnsafeMutablePointer<Int32>.allocate(capacity: chainHashSize)
-        head.initialize(repeating: -1, count: chainHashSize)
-        let chain = UnsafeMutablePointer<Int32>.allocate(capacity: n)
-        chain.initialize(repeating: -1, count: n)
-        defer { head.deallocate(); chain.deallocate() }
+        // R4：scratch pool 重用——免每塊 malloc/memset（chain 零初始化安全）
+        let scratch = acquireScratch(n)
+        let head = scratch.head
+        let chain = scratch.chain
+        defer { releaseScratch(scratch) }
 
         // 解析器側 rep 歷史（近似編碼端 transform 的歷史；
         // 不一致只影響選擇品質，不影響正確性——transform 會重算實際發射值）
@@ -769,7 +814,11 @@ public enum LZFSEv1 {
                 var v: UInt64 = 0; memcpy(&v, p + idx, 8); return UInt64(littleEndian: v)
             }
             @inline(__always) func hash4(_ idx: Int) -> Int {
-                Int((load32(idx) &* 2654435761) >> (32 - UInt32(chainHashBits)))
+                // R4：5-byte 乘法 hash（zstd 高等級 h5）——高頻 4-gram 不再共桶，
+                // 鏈更短、深度配額花在真正可能更長的候選上。呼叫端保證 idx ≤ n-5。
+                // 5-byte multiplicative hash (zstd h5); callers ensure idx ≤ n-5.
+                let v = UInt64(load32(idx)) | (UInt64(p[idx + 4]) << 32)
+                return Int((v &* 0x9E3779B185EBCA87) >> (64 - chainHashBits))
             }
             @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
                 var m = 0
@@ -794,9 +843,16 @@ public enum LZFSEv1 {
             @inline(__always) func bestMatch(_ idx: Int) -> (len: Int, dist: Int) {
                 var bl = 0, bd = 1
                 // ① rep 距離先試（命中時編碼成本近零）
-                for r in [rep0p, rep1p, rep2p] {
-                    let l = repLen(idx, r)
-                    if l > bl { bl = l; bd = r }
+                // R4：手動展開 + 去重——熱路徑零配置（原 [r0,r1,r2] 每呼叫建陣列）
+                let l0 = repLen(idx, rep0p)
+                if l0 > bl { bl = l0; bd = rep0p }
+                if rep1p != rep0p {
+                    let l1 = repLen(idx, rep1p)
+                    if l1 > bl { bl = l1; bd = rep1p }
+                }
+                if rep2p != rep0p && rep2p != rep1p {
+                    let l2 = repLen(idx, rep2p)
+                    if l2 > bl { bl = l2; bd = rep2p }
                 }
                 // ② 雜湊鏈走訪（深度上限 + bl 快速排除 + good-enough 提前退出）
                 //    rep 已達 good-enough 時整段跳過 —— 零填充等長 run 區段
@@ -820,18 +876,24 @@ public enum LZFSEv1 {
                         depth -= 1
                     }
                 }
-                // ③ rep 長度接近最佳（差 ≤2）時改選 rep
+                // ③ rep 長度接近最佳（差 ≤2）時改選 rep（R4：展開，零配置）
                 if bd != rep0p && bd != rep1p && bd != rep2p {
-                    for r in [rep0p, rep1p, rep2p] where r != bd {
-                        let l = repLen(idx, r)
-                        if l >= bl - 2 && l >= 4 { bl = l; bd = r; break }
+                    let r0l = repLen(idx, rep0p)
+                    if r0l >= bl - 2 && r0l >= 4 { bl = r0l; bd = rep0p }
+                    else {
+                        let r1l = repLen(idx, rep1p)
+                        if r1l >= bl - 2 && r1l >= 4 { bl = r1l; bd = rep1p }
+                        else {
+                            let r2l = repLen(idx, rep2p)
+                            if r2l >= bl - 2 && r2l >= 4 { bl = r2l; bd = rep2p }
+                        }
                     }
                 }
                 return (bl, bd)
             }
 
             var i = 0
-            while i + 4 <= n {
+            while i + 5 <= n {        // R4：hash5 需 idx ≤ n-5
                 var (m0, d0) = bestMatch(i)
                 insert(i)
                 if m0 < 4 {
@@ -843,7 +905,7 @@ public enum LZFSEv1 {
                 }
 
                 // lazy matching：僅在目前 match 尚短時才付第二次搜尋成本
-                while i + 5 <= n && m0 < chainGoodEnough {
+                while i + 6 <= n && m0 < chainGoodEnough {   // R4：bestMatch(i+1) 需 i+1 ≤ n-5
                     let (m1, d1) = bestMatch(i + 1)
                     if m1 > m0 {
                         insert(i + 1)
@@ -940,11 +1002,11 @@ public enum LZFSEv1 {
         }
 
         // ---- 雜湊鏈（head/chain 結構同 lzParseChain）----
-        let head = UnsafeMutablePointer<Int32>.allocate(capacity: chainHashSize)
-        head.initialize(repeating: -1, count: chainHashSize)
-        let chain = UnsafeMutablePointer<Int32>.allocate(capacity: n)
-        chain.initialize(repeating: -1, count: n)
-        defer { head.deallocate(); chain.deallocate() }
+        // R4：scratch pool 重用——免每塊 malloc/memset（chain 零初始化安全）
+        let scratch = acquireScratch(n)
+        let head = scratch.head
+        let chain = scratch.chain
+        defer { releaseScratch(scratch) }
 
         // ---- DP cell 陣列（一次配置、各段重用；約 3MB）----
         let segCap = optSegmentSize
@@ -1036,7 +1098,11 @@ public enum LZFSEv1 {
                 var v: UInt64 = 0; memcpy(&v, p + idx, 8); return UInt64(littleEndian: v)
             }
             @inline(__always) func hash4(_ idx: Int) -> Int {
-                Int((load32(idx) &* 2654435761) >> (32 - UInt32(chainHashBits)))
+                // R4：5-byte 乘法 hash（zstd 高等級 h5）——高頻 4-gram 不再共桶，
+                // 鏈更短、深度配額花在真正可能更長的候選上。呼叫端保證 idx ≤ n-5。
+                // 5-byte multiplicative hash (zstd h5); callers ensure idx ≤ n-5.
+                let v = UInt64(load32(idx)) | (UInt64(p[idx + 4]) << 32)
+                return Int((v &* 0x9E3779B185EBCA87) >> (64 - chainHashBits))
             }
             @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
                 var m = 0
@@ -1124,7 +1190,7 @@ public enum LZFSEv1 {
                         cPrice[t + 1] = litStep; cLen[t + 1] = 0; cDist[t + 1] = 0
                         cR0[t + 1] = r0; cR1[t + 1] = r1; cR2[t + 1] = r2
                     }
-                    if i + 4 > n { t += 1; continue }
+                    if i + 5 > n { t += 1; continue }   // R4：hash5 需 idx ≤ n-5
                     let candHead = Int(head[hash4(i)])  // 先取候選再插入（避免自我參照）
                     insert(i)
                     let v = load32(i)
@@ -1253,7 +1319,7 @@ public enum LZFSEv1 {
                     i = emitSteps(1, from: i)
                     // 補插入被跳過的位置（cutT 位置本身已於 DP 中插入）
                     var j = segStart + cutT + 1
-                    let jEnd = min(i, n - 3)
+                    let jEnd = min(i, n - 4)            // R4：hash5 需 idx ≤ n-5
                     while j < jEnd { insert(j); j += 1 }
                     segStart = i
                 } else {
@@ -3018,13 +3084,21 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
     let group = DispatchGroup()
 
     while true {
-        let chunk: Data?
-        do { chunk = try input.read(upToCount: chunkSize) }
-        catch {
+        // R4：pipe（tar | lzfse）可能短讀——累積讀滿 chunkSize 再派工。
+        // 滿塊保證：比率（視窗滿 4MiB）、每塊固定開銷、平行解碼分組都依賴它。
+        // Pipes may return short reads; accumulate a full chunk before dispatch.
+        var data = Data(capacity: chunkSize)
+        do {
+            while data.count < chunkSize,
+                  let part = try input.read(upToCount: chunkSize - data.count),
+                  !part.isEmpty {
+                data.append(part)
+            }
+        } catch {
             eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
             exit(1)
         }
-        guard let data = chunk, !data.isEmpty else { break }
+        if data.isEmpty { break }
 
         sem.wait()                    // 流量控制：限制在途分塊數
         let idx = readIndex           // 以值捕獲
