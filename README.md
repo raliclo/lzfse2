@@ -20,6 +20,8 @@ Build directly with Swift:
 swiftc -O lzfse-cli.swift -o lzfse
 ```
 
+The `-O` flag enables optimizations including `@inline(__always)` directives that improve performance on hot paths (FSE encoding, byte serialization, and decoding).
+
 Or run the helper script:
 
 ```sh
@@ -144,22 +146,38 @@ source ~/.zshrc
 
 ## Benchmark
 
-`BenchMarkResult.csv` contains benchmark summaries for two datasets, `llama.cpp` and `claw-code`. `benchmark.log` is the raw run log for the same test set, including timing output and content-integrity checks. The raw `claw-code` source tree used in the log was `938M` before compression. The test machine was a Mac mini with an Apple M4 10-core CPU, 16 GB memory, and 256 GB storage.
+`BenchMarkResult.csv` contains benchmark results for two datasets: `llama.cpp` (1200M) and `claw-code` (1200M source). The test machine was a Mac mini with an Apple M4 10-core CPU, 16 GB memory, and 256 GB storage.
 
-| Dataset | Format | Original size (MB) | Compressed size (MB) | Compress time (s) | Decompress time (s) | Compression ratio vs TGZ | Compress time ratio vs TGZ | Decompress time ratio vs TGZ |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| llama.cpp | TGZ | 1100 | 544 | 21.65 | 3.95 | 1.0000 | 1.00 | 1.00 |
-| llama.cpp | LZFSE (Other3) | 1100 | 539 | 7.00 | 5.09 | 0.9908 | 0.32 | 1.29 |
-| llama.cpp | LZFSE (BVX3) | 1100 | 531 | 6.85 | 4.12 | 0.9761 | 0.32 | 1.04 |
-| llama.cpp | LZFSE (Apple) | 1100 | 539 | 10.80 | 4.52 | 0.9908 | 0.50 | 1.14 |
-| llama.cpp | TLZ4 | 1100 | 568 | 4.19 | 4.33 | 1.0441 | 0.19 | 1.10 |
-| llama.cpp | ZSTD | 1100 | 505 | 3.06 | 5.56 | 0.9283 | 0.14 | 1.41 |
-| claw-code | TGZ | 1200 | 433 | 25.59 | 2.21 | 1.0000 | 1.00 | 1.00 |
-| claw-code | LZFSE (Other3) | 1200 | 433 | 1.96 | 1.91 | 1.0000 | 0.08 | 0.86 |
-| claw-code | LZFSE (BVX3) | 1200 | 428 | 1.91 | 1.91 | 0.9885 | 0.07 | 0.86 |
-| claw-code | LZFSE (Apple) | 1200 | 436 | 8.06 | 2.26 | 1.0069 | 0.31 | 1.02 |
-| claw-code | TLZ4 | 1200 | 523 | 2.07 | 1.61 | 1.2079 | 0.08 | 0.73 |
-| claw-code | ZSTD | 1200 | 372 | 2.75 | 2.90 | 0.8591 | 0.11 | 1.31 |
+### Performance Metrics
+
+| Dataset | Format | Original (M) | Compressed (M) | Compress (s) | Decompress (s) | Compress MB/s | Decompress MB/s | Ratio vs TGZ | Time ratio (compress) | Time ratio (decompress) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| llama.cpp | TGZ | 1200 | 593 | 23.84 | 3.96 | 50.34 | 303.03 | 1.0000 | 1.00 | 1.00 |
+| llama.cpp | LZFSE (Other3) | 1200 | 592 | 6.76 | 4.26 | 177.51 | 281.69 | 0.9983 | 0.28 | 1.08 |
+| llama.cpp | LZFSE (Lazy2) | 1200 | 572 | 6.81 | 4.87 | 176.21 | 246.41 | 0.9646 | 0.29 | 1.23 |
+| llama.cpp | LZFSE (BVX3) | 1200 | 572 | 6.77 | 5.99 | 177.25 | 200.33 | 0.9646 | 0.28 | 1.51 |
+| llama.cpp | LZFSE (Apple) | 1200 | 585 | 11.16 | 5.50 | 107.53 | 218.18 | 0.9865 | 0.47 | 1.39 |
+| llama.cpp | TLZ4 | 1200 | 622 | 3.90 | 5.09 | 307.69 | 235.76 | 1.0489 | 0.16 | 1.29 |
+| llama.cpp | ZSTD | 1200 | 537 | 2.79 | 6.16 | 430.11 | 194.81 | 0.9056 | 0.12 | 1.56 |
+| claw-code | TGZ | 1200 | 433 | 25.69 | 2.21 | 46.71 | 542.99 | 1.0000 | 1.00 | 1.00 |
+| claw-code | LZFSE (Other3) | 1200 | 428 | 1.98 | 2.34 | 606.06 | 512.82 | 0.9885 | 0.08 | 1.06 |
+| claw-code | LZFSE (Lazy2) | 1200 | 419 | 2.00 | 3.28 | 600.00 | 365.85 | 0.9677 | 0.08 | 1.48 |
+| claw-code | LZFSE (BVX3) | 1200 | 423 | 1.99 | 3.59 | 603.02 | 334.26 | 0.9769 | 0.08 | 1.62 |
+| claw-code | LZFSE (Apple) | 1200 | 435 | 8.13 | 5.21 | 147.60 | 230.33 | 1.0046 | 0.32 | 2.36 |
+| claw-code | TLZ4 | 1200 | 516 | 2.03 | 4.05 | 591.13 | 296.30 | 1.1917 | 0.08 | 1.83 |
+| claw-code | ZSTD | 1200 | 368 | 2.73 | 5.71 | 439.56 | 210.16 | 0.8499 | 0.11 | 2.58 |
+
+### Test Results
+
+The `lzfse-test.txt` shows round-trip and compatibility tests across various data types:
+- **Highly repetitive data**: Compresses to ~1–2% (222–235 bytes from 19.2 KB)
+- **Low entropy**: Compresses to 0.3–0.4%
+- **Random (incompressible)**: ~100% size (expands slightly)
+- **Structured data**: 8.5–16.5% compression (better with Lazy2)
+- **Alternating patterns**: 0.7–0.8% compression
+- **Text (large samples)**: 25.9–26.7% compression (improved with Lazy2)
+
+All formats maintain compatibility: `other3` and `bvx3` outputs are decodable by the tool, and Apple's Compression framework can decode `other3` streams.
 
 Treat these numbers as sample results only. Re-run benchmarks on representative data and hardware before making performance claims.
 

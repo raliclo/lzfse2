@@ -18,6 +18,10 @@ export LoginDay=$(date +%F)
 
 # Executed immediately at the beginning of setup / 於配置開頭最先執行的基礎設定
 function START_UP@BEGIN() {
+}
+
+function zshCompletions() {
+
     local compl_dir="$HOME/.zsh/completions"
 
     # 1. 確保補全目錄存在
@@ -78,7 +82,6 @@ function START_UP@BEGIN() {
     # 3. 允許大小寫不敏感補全 (輸入小寫 mistralrs 也能補全大寫路徑/參數)
     zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*'
 }
-
 
 # ==============================================================================
 # 💻 1. DYNAMIC PLATFORM DETECTION / 平台動態偵測與核心數配置
@@ -397,19 +400,35 @@ extract () {
 }
 
 function nanoTimeElapsed() {
-    zmodload zsh/datetime
-    local start_time end_time elapsed
-    # 擷取開始時間（秒.微秒浮點數） / Capture start time (Seconds.Microseconds float)
-    start_time=$EPOCHREALTIME
-    # 執行目標命令 / Execute target command
-    "$@"
-    end_time=$EPOCHREALTIME
+    # Only load zsh datetime module if running in Zsh
+    if [[ -n "$ZSH_VERSION" ]]; then
+        zmodload zsh/datetime
+        local start_time end_time elapsed
+        # 擷取開始時間（秒.微秒浮點數） / Capture start time (Seconds.Microseconds float)
+        start_time=$EPOCHREALTIME
+        # 執行目標命令 / Execute target command
+        "$@"
+        end_time=$EPOCHREALTIME
+    else
+        # Fallback for Bash: use date command instead
+        local start_time end_time
+        start_time=$(date +%s%N 2>/dev/null || date +%s)
+        # 執行目標命令 / Execute target command
+        "$@"
+        end_time=$(date +%s%N 2>/dev/null || date +%s)
+    fi
     
     # 計算時間差並轉換為奈秒 (1 秒 = 1,000,000,000 奈秒)
     # 使用 awk 處理浮點數運算以確保跨平台精確度
     # Calculate time difference and convert to nanoseconds (1 sec = 1,000,000,000 ns)
     # Use awk for floating-point math to ensure cross-platform precision
-    elapsed_ns=$(awk -v start="$start_time" -v end="$end_time" 'BEGIN { printf "%010.0f", (end - start) * 1000000000 }')
+    if [[ -n "$ZSH_VERSION" ]]; then
+        # Zsh: use EPOCHREALTIME (floating point seconds)
+        elapsed_ns=$(awk -v start="$start_time" -v end="$end_time" 'BEGIN { printf "%010.0f", (end - start) * 1000000000 }')
+    else
+        # Bash: use nanosecond timestamps directly
+        elapsed_ns=$((end_time - start_time))
+    fi
     echo "==> Process $@ took: ${elapsed_ns} 奈秒/nanoseconds"
 }
 
