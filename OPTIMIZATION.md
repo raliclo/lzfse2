@@ -1,4 +1,95 @@
-# lzfse2 內聯優化報告
+# lzfse2 優化報告 / Optimization Report
+
+---
+
+# 第二輪：Optimal Parsing 策略（2026-06-12）/ Round 2: Optimal Parsing Strategy
+
+## 現況分析 / Gap Analysis
+
+上一輪 benchmark（BenchMarkResult.csv）顯示與 zstd -9 的差距：
+The previous benchmark showed the remaining gap vs zstd -9:
+
+| 資料集 | bvx3 -lazy2 | zstd -9 | 差距 |
+| --- | ---: | ---: | ---: |
+| claw-code | 419M | 368M | ~13.9% |
+| llama.cpp | 572M | 537M | ~6.5% |
+
+兩個根因 / Two root causes:
+
+1. **修速砍過頭**：上一輪為了把 86s/39s 的壓縮時間救回來，`chainGoodEnough=512` 與
+   `chainSearchStrength=6` 讓深搜過早收手、跳躍過大——btlazy2 曾經達到的 384M/545M
+   比率因此回吐。The speed fix (early-exit at 512, aggressive skip) gave back most of
+   the ratio btlazy2 had won (384M/545M).
+2. **貪婪/lazy 解析的結構性上限**：每個位置只做局部最優決策。zstd 高級距
+   （btopt/btultra）真正的比率來源是「價格驅動的全段最優解析」——這是本輪主菜。
+   Greedy/lazy parsing is locally optimal only; zstd's high levels win via
+   price-driven optimal parsing.
+
+另發現並修正一個 benchmark 工具 bug：`zshrc.sh` 的 `lzfseX` 從未把 `-lazy2`
+旗標傳給編碼器，先前 CSV 的 "Lazy2" 行實際上跑的是預設 bvx3。
+Also fixed: `lzfseX` never actually passed `-lazy2`, so previous "Lazy2" rows
+were really default bvx3 runs.
+
+## 本輪改動 / This Round's Changes
+
+### 1. `-optimal`：分段 DP 最優解析（zstd btultra 式）
+
+新增 `lzParseOptimal`（bvx3 專用，旗標 `-optimal` 控制、預設關閉）：
+
+- **分段 DP**：每 128K 位置一段；每個 cell 儲存抵達最小成本（1/16-bit 定點）、
+  抵達步驟（literal 或 (len,dist)）、以及該最佳路徑的 rep-offset 歷史
+  （zstd opt 的 per-cell rep 追蹤，使 rep 命中能在 DP 內以真實近零成本定價）。
+- **候選**：3 個 rep 距離 + 雜湊鏈 Pareto frontier（len 遞增）；
+  suffix-min 讓每個長度都取「夠長候選中最便宜的距離」。
+- **自適應價格**：literal/M/D 符號直方圖每段重建（log2 → 定點），
+  以已發射統計回饋，等價於 zstd 在區塊間更新 price tables。
+- **巨型 match 截斷**（`optSufficientLen=512`）：找到即貪婪提交並重啟 DP 段——
+  既是 zstd 的 sufficient_len 策略，也是病態輸入（等長 run）的成本上界。
+
+正確性驗證：Python 模型 300 組隨機分段/閾值往返 + 格式約束全過；
+模型上 text/structured 資料相對 lazy 解析成本下降 9–10%。
+
+### 2. 調參找回 -lazy2 比率
+
+- `chainGoodEnough` 512 → 4096：深搜不再過早收手
+- `chainSearchStrength` 6 → 8：無 match 跳躍步距更保守
+
+預期 -lazy2 比率向 384M/545M 回收斂，壓縮時間自 2.0s 小幅回升（仍遠快於 apple）。
+
+### 3. 速度/比率檔位總覽 / Speed-ratio ladder
+
+| 檔位 | 解析器 | 定位 |
+| --- | --- | --- |
+| bvx3（預設） | 4 槽 lazy | 速度優先（~2s/1.2GB） |
+| bvx3 -lazy2 | 雜湊鏈深搜 32 | 中間檔 |
+| bvx3 -optimal | 分段 DP 最優解析 | 比率優先，目標逼近 zstd -9 |
+
+## 實測結果（2026-06-12，M-series Mac）/ Measured Results
+
+✅ 編譯一次通過；`-test` 112 項全綠；benchmark 兩資料集解壓一致性全數通過。
+
+| 資料集 | bvx3 -optimal | zstd -9 | 結果 |
+| --- | ---: | ---: | --- |
+| claw-code 壓縮率 | **368M** | 372M | **超越 zstd** |
+| llama.cpp 壓縮率 | 544M | 543M | 持平（+0.18%） |
+| claw-code 解壓 | **2.95s** | 6.02s | 快 2 倍 |
+| llama.cpp 解壓 | **7.72s** | 10.45s | 快 1.35 倍 |
+| claw-code 壓縮耗時 | 104.8s | 3.1s | 慢 34 倍（取捨） |
+| llama.cpp 壓縮耗時 | 140.6s | 5.0s | 慢 28 倍（取捨） |
+
+結論 / Conclusion：**bvx3 -optimal 的壓縮率已達到 zstd -9 水準**（一勝一平），
+且解壓速度顯著快於 zstd——「逼近 zstd」的迴圈目標達成，流程停止。
+壓縮速度是 -optimal 的明確取捨（DP 在每個位置做全深度搜尋與長度松弛）；
+需要速度時用預設 bvx3（2.6s/411M）或 -lazy2（34.5s/401M）。
+若未來要縮小壓縮時間差距，候選方向：降低 optSearchDepth（32→16）、
+價格驅動的鏈走訪剪枝（price-based early termination）、以及 SIMD matchLength。
+
+-lazy2 調參（4096/8）實測：claw 401M/34.5s——比率較舊版假 lazy2（411M 等級）
+有感改善，但時間成本高；中間檔的甜蜜點可再另行調整。
+
+---
+
+# 第一輪：內聯優化報告
 
 ## 概述
 
