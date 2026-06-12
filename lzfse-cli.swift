@@ -123,7 +123,9 @@ public enum LZFSEv1 {
     static let maxL3 = 32768                    // +4 ≤ literalsPerBlock，確保切塊收斂
     static let maxM3 = 69947                    // = lm3 表最大可表示值
     static let maxD3 = 4194299                  // = d3 表最大可表示值（≥ 4MiB-5）
-    static let v3FixedHeaderSize = 52
+    static let v3FixedHeaderSize = 54           // 含 literal_mode u16（格式 r2）
+    static let litCtxCount = 4                  // literal 上下文數（前一位元組 >> 6）
+    static let litCtxThreshold = 16384          // 區塊 literal 數達標才啟用多表
     static let matchesPerBlockV3 = 40000        // bvx3 區塊上限 ×4：攤平頻率表開銷
     static let literalsPerBlockV3 = 160000
 
@@ -936,18 +938,55 @@ public enum LZFSEv1 {
         let scratch = UnsafeMutablePointer<UInt8>.allocate(capacity: litCap + lmdCap)
         defer { scratch.deallocate() }
 
-        // ① literal：與標準格式完全相同（4 路交錯）
+        // ① literal：4 路交錯。literal 數達門檻時啟用「上下文多表」——
+        //    以前一個 literal 的高 2 位元選表（4 張 tANS 表、狀態流共享）；
+        //    解碼端用「已解出的前一 literal」取得同一上下文，逐步表一致即合法。
+        let literalMode = lits.count >= litCtxThreshold ? 1 : 0
+        var litFreqCtx: [[UInt16]] = []
+        var litEncCtx: [[FSEEncoderEntry]] = []
+        if literalMode == 1 {
+            var ctxOcc = [[UInt32]](repeating: [UInt32](repeating: 0, count: literalSymbols),
+                                    count: litCtxCount)
+            var prev = 0
+            for b in lits {
+                ctxOcc[prev >> 6][Int(b)] += 1
+                prev = Int(b)
+            }
+            for c in 0..<litCtxCount {
+                let f = normalizeFreq(nstates: literalStates, counts: ctxOcc[c])
+                litFreqCtx.append(f)
+                litEncCtx.append(initEncoderTable(nstates: literalStates, freq: f))
+            }
+        }
+
         var litOut = FSEOutStream(scratch)
         var s0: Int32 = 0, s1: Int32 = 0, s2: Int32 = 0, s3: Int32 = 0
         lits.withUnsafeBufferPointer { lp in
-            var i = lits.count
-            while i > 0 {
-                i -= 4
-                fseEncode(state: &s3, litEnc[Int(lp[i + 3])], &litOut)
-                fseEncode(state: &s2, litEnc[Int(lp[i + 2])], &litOut)
-                fseEncode(state: &s1, litEnc[Int(lp[i + 1])], &litOut)
-                fseEncode(state: &s0, litEnc[Int(lp[i + 0])], &litOut)
-                litOut.flush()
+            if literalMode == 1 {
+                var st: [Int32] = [0, 0, 0, 0]
+                var i = lits.count
+                while i > 0 {
+                    i -= 4
+                    var j = 3
+                    while j >= 0 {
+                        let p = i + j
+                        let c = p > 0 ? Int(lp[p - 1]) >> 6 : 0
+                        fseEncode(state: &st[j], litEncCtx[c][Int(lp[p])], &litOut)
+                        j -= 1
+                    }
+                    litOut.flush()
+                }
+                s0 = st[0]; s1 = st[1]; s2 = st[2]; s3 = st[3]
+            } else {
+                var i = lits.count
+                while i > 0 {
+                    i -= 4
+                    fseEncode(state: &s3, litEnc[Int(lp[i + 3])], &litOut)
+                    fseEncode(state: &s2, litEnc[Int(lp[i + 2])], &litOut)
+                    fseEncode(state: &s1, litEnc[Int(lp[i + 1])], &litOut)
+                    fseEncode(state: &s0, litEnc[Int(lp[i + 0])], &litOut)
+                    litOut.flush()
+                }
             }
         }
         let literalBits = litOut.finish()
@@ -979,10 +1018,13 @@ public enum LZFSEv1 {
 
         // ③ 頻率表（380 值，固定 Huffman、LSB 先入）
         var freqBytes: [UInt8] = []
-        freqBytes.reserveCapacity(420)
+        freqBytes.reserveCapacity(literalMode == 1 ? 1200 : 420)
         var fAccum: UInt32 = 0
         var fNBits: Int32 = 0
-        for table in [lFreq, mFreq, dFreq, litFreq] {
+        let freqTables: [[UInt16]] = literalMode == 1
+            ? [lFreq, mFreq, dFreq] + litFreqCtx
+            : [lFreq, mFreq, dFreq, litFreq]
+        for table in freqTables {
             for f in table {
                 let (bits, n) = encodeFreqValue(Int(f))
                 fAccum |= bits << UInt32(fNBits)
@@ -1012,6 +1054,7 @@ public enum LZFSEv1 {
         put16(UInt16(s2), &out); put16(UInt16(s3), &out)
         put32(UInt32(bitPattern: lmdBits), &out)
         put16(UInt16(lState), &out); put16(UInt16(mState), &out); put16(UInt16(dState), &out)
+        put16(UInt16(literalMode), &out)
         put16(UInt16(headerSize), &out)
         assert(out.count == v3FixedHeaderSize)
         out.append(contentsOf: freqBytes)
@@ -1339,14 +1382,17 @@ public enum LZFSEv1 {
         let litState2 = Int32(r16()), litState3 = Int32(r16())
         let lmdBits = Int32(bitPattern: r32())
         let lState = Int32(r16()), mState = Int32(r16()), dState = Int32(r16())
+        let literalMode = Int(r16())
         let headerSize = Int(r16())
 
         guard nPayload == nLitPayload + nLmdPayload,
               headerSize >= v3FixedHeaderSize,
+              literalMode == 0 || literalMode == 1,
               p + headerSize + nPayload <= src.count else { return nil }
 
-        // 頻率流：380 值（22+22+80+256），須剛好在標頭尾結束、殘餘 <8 位元
-        let nFreq = lm3Symbols + lm3Symbols + d3Symbols + literalSymbols
+        // 頻率流：22+22+80 + 256×(1 或 4) 值，須剛好在標頭尾結束、殘餘 <8 位元
+        let nLitTables = literalMode == 1 ? litCtxCount : 1
+        let nFreq = lm3Symbols + lm3Symbols + d3Symbols + literalSymbols * nLitTables
         var freqs = [UInt16](repeating: 0, count: nFreq)
         if headerSize > v3FixedHeaderSize {
             var accum: UInt32 = 0
@@ -1371,7 +1417,17 @@ public enum LZFSEv1 {
         let lFreq = Array(freqs[0..<lm3Symbols])
         let mFreq = Array(freqs[lm3Symbols..<(2 * lm3Symbols)])
         let dFreq = Array(freqs[(2 * lm3Symbols)..<(2 * lm3Symbols + d3Symbols)])
-        let litFreq = Array(freqs[(2 * lm3Symbols + d3Symbols)...])
+        let litBase = 2 * lm3Symbols + d3Symbols
+        let litFreq = Array(freqs[litBase..<(litBase + literalSymbols)])
+        var litFreqCtx: [[UInt16]]? = nil
+        if literalMode == 1 {
+            var t: [[UInt16]] = []
+            for c in 0..<litCtxCount {
+                let s0 = litBase + c * literalSymbols
+                t.append(Array(freqs[s0..<(s0 + literalSymbols)]))
+            }
+            litFreqCtx = t
+        }
 
         guard decodeBlockBody(src: src, payloadStart: p + headerSize,
                               nRawBytes: nRawBytes, nLiterals: nLiterals, nMatches: nMatches,
@@ -1382,6 +1438,7 @@ public enum LZFSEv1 {
                               lmdBits: lmdBits,
                               lState0: lState, mState0: mState, dState0: dState,
                               lFreq: lFreq, mFreq: mFreq, dFreq: dFreq, litFreq: litFreq,
+                              litFreqCtx: litFreqCtx,
                               lVbits: lm3ExtraBits, lVbase: lm3BaseValue,
                               mVbits: lm3ExtraBits, mVbase: lm3BaseValue,
                               dVbits: d3ExtraBits, dVbase: d3BaseValue,
@@ -1550,7 +1607,7 @@ public enum LZFSEv1 {
             let n = Int(get32(src, p + 4))
             guard p + 8 + n <= src.count, cursor + n <= regionEnd else { return nil }
             src.withUnsafeBufferPointer { sb in
-                memcpy(dp + cursor, sb.baseAddress! + p + 8, n)
+                _ = memcpy(dp + cursor, sb.baseAddress! + p + 8, n)
             }
             cursor += n
             return 8 + n
@@ -1637,7 +1694,7 @@ public enum LZFSEv1 {
                 guard p + v3FixedHeaderSize <= src.count else { return nil }
                 let nRaw = Int(get32(src, p + 4))
                 let nPayload = Int(get32(src, p + 8))
-                let headerSize = Int(get16(src, p + 50))
+                let headerSize = Int(get16(src, p + 52))   // 50 = literal_mode、52 = header_size
                 let size = headerSize + nPayload
                 guard headerSize >= v3FixedHeaderSize, p + size <= src.count else { return nil }
                 blocks.append(BlockInfo(start: p, size: size, rawBytes: nRaw, magic: magic))
@@ -1802,6 +1859,7 @@ public enum LZFSEv1 {
                                 lState0: Int32, mState0: Int32, dState0: Int32,
                                 lFreq: [UInt16], mFreq: [UInt16],
                                 dFreq: [UInt16], litFreq: [UInt16],
+                                litFreqCtx: [[UInt16]]? = nil,
                                 lVbits: [UInt8] = lExtraBits, lVbase: [Int32] = lBaseValue,
                                 mVbits: [UInt8] = mExtraBits, mVbase: [Int32] = mBaseValue,
                                 dVbits: [UInt8] = dExtraBits, dVbase: [Int32] = dBaseValue,
@@ -1830,7 +1888,17 @@ public enum LZFSEv1 {
               payloadStart + nLitPayload + nLmdPayload <= src.count
         else { return false }
 
-        guard let litDec = initDecoderTable(nstates: literalStates, freq: litFreq) else { return false }
+        // 單表 / 多表（上下文）literal 解碼表
+        var litDecCtx: [[Int32]] = []
+        if let ctxFreqs = litFreqCtx {
+            for f in ctxFreqs {
+                guard let d = initDecoderTable(nstates: literalStates, freq: f) else { return false }
+                litDecCtx.append(d)
+            }
+        }
+        guard let litDec = litFreqCtx == nil
+            ? initDecoderTable(nstates: literalStates, freq: litFreq)
+            : litDecCtx.first else { return false }
         let lDec = initValueDecoderTable(nstates: lStates, freq: lFreq, vbits: lVbits, vbase: lVbase)
         let mDec = initValueDecoderTable(nstates: mStates, freq: mFreq, vbits: mVbits, vbase: mVbase)
         let dDec = initValueDecoderTable(nstates: dStates, freq: dFreq, vbits: dVbits, vbase: dVbase)
@@ -1850,6 +1918,24 @@ public enum LZFSEv1 {
             // --- 解碼 literal（4 路交錯，正序）---
             guard var ins = FSEInStream(base: sp, payloadEnd: litPayloadEnd,
                                         bits: literalBits) else { ok = false; return }
+            if !litDecCtx.isEmpty {
+                // 多表：以「已解出的前一 literal」高 2 位元選表（與編碼端逐步一致）
+                var st: [Int32] = [litState0, litState1, litState2, litState3]
+                var prev: Int = 0
+                var i = 0
+                while i < nLiterals {
+                    guard ins.fill() else { ok = false; return }
+                    for j in 0..<4 {
+                        let e = litDecCtx[prev >> 6][Int(st[j])]
+                        st[j] = (e >> 16) + Int32(truncatingIfNeeded: ins.pull(e & 0xFF))
+                        let sym = UInt8((e >> 8) & 0xFF)
+                        lp[i + j] = sym
+                        prev = Int(sym)
+                    }
+                    i += 4
+                }
+                return
+            }
             // 4 條狀態流用獨立區域變數（避免陣列索引開銷）
             var s0 = litState0, s1 = litState1, s2 = litState2, s3 = litState3
             var i = 0
@@ -2093,6 +2179,16 @@ func runLZFSEv1Tests() {
     let pb = Data("0123456789abcdef-53bytes-period-YYYYYYYYYYYYYYYY\n".utf8)
     for i in 0..<800 { alt.append(i % 3 == 0 ? pb : pa) }
     runCase("交錯距離 (rep-offset)", alt)
+    // 大量 literal 的文字樣本（≥16384 literal/區塊）→ 觸發 bvx3 的多表 literal 模式
+    var bigText = Data()
+    var seed: UInt64 = 0x9E3779B97F4A7C15
+    let words = ["func", "let", "var", "return", "encode", "decode", "stream", "buffer",
+                 "Int32", "UInt8", "guard", "while", "state", "table", "block", "match"]
+    for i in 0..<12000 {
+        seed = seed &* 6364136223846793005 &+ 1442695040888963407
+        bigText.append(Data("\(words[Int(seed >> 33) % words.count])_\(i % 977) ".utf8))
+    }
+    runCase("文字大樣本 (多表 literal)", bigText)
 }
 
 // =====================================================================
@@ -2103,7 +2199,7 @@ func runLZFSEv1Tests() {
 //
 // -algo apple  : 使用 Apple Compression framework（OutputFilter 串流）
 // -algo other3 : 位元相容 LZFSE（標準 bvx2），多核心 + 強化比對（預設）
-// -algo bvx3   : 私有擴充區塊（zstd 式：大字母表 + 4MiB 視窗 + 3 深度 rep-offset）
+// -algo bvx3   : 私有擴充區塊（zstd 式：大字母表 + 4MiB 視窗 + rep-offset + 多表 literal）
 //
 // 互通性說明：
 //   - other3 輸出是合法 LZFSE 串流，Apple 與任何標準解碼器可解。
