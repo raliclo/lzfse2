@@ -714,6 +714,11 @@ public enum LZFSEv1 {
                                                   // → 1024 取中間檔（深搜比例折衷）
     static let chainSearchStrength = 7            // 無 match 跳躍加速（zstd kSearchStrength）
                                                   // R3 調參：6 漏太多、8 太保守 → 7 折衷
+    static let chainLazyLen = 128                 // R5：m ≥ 此長度跳過 lazy 第二次搜尋
+                                                  // （原用 goodEnough=1024 當門檻，
+                                                  //   中長 match 沿途反覆雙搜是 lazy2 的隱性大宗）
+    static let chainTaperLen = 256                // R5：bl ≥ 此長度後鏈走訪降至深度 4
+    static let chainTaperDepth = 4                //     （已夠長，再深搜邊際效益極低）
 
     // =================================================================
     // MARK: - 解析器暫存池（R4）/ Parser scratch pool（zstd CCtx 重用風格）
@@ -870,6 +875,10 @@ public enum LZFSEv1 {
                             if l > bl || (l == bl && d < bd) {
                                 bl = l; bd = d
                                 if bl >= chainGoodEnough { break }   // 夠長即收
+                                // R5：已夠長 → 收斂剩餘深度（邊際效益遞減）
+                                if bl >= chainTaperLen && depth > chainTaperDepth {
+                                    depth = chainTaperDepth
+                                }
                             }
                         }
                         c = Int(chain[c])
@@ -905,7 +914,9 @@ public enum LZFSEv1 {
                 }
 
                 // lazy matching：僅在目前 match 尚短時才付第二次搜尋成本
-                while i + 6 <= n && m0 < chainGoodEnough {   // R4：bestMatch(i+1) 需 i+1 ≤ n-5
+                // R5：門檻 goodEnough(1024) → chainLazyLen(128)——
+                // 中長 match 沿途的反覆雙搜是隱性大宗，zstd lazy 同樣設低門檻
+                while i + 6 <= n && m0 < chainLazyLen {      // R4：bestMatch(i+1) 需 i+1 ≤ n-5
                     let (m1, d1) = bestMatch(i + 1)
                     if m1 > m0 {
                         insert(i + 1)
@@ -965,6 +976,10 @@ public enum LZFSEv1 {
     static let optSearchDepth = 16            // 雜湊鏈候選深度（R3：32→16，suffix-min 保留近距優先）
     static let optSufficientLen = 192         // ≥ 此長度直接貪婪提交（R3：512→192，zstd btopt 級）
     static let optDenseLen = 64               // 逐長度松弛上限；以上改 stride-4 + 精確 maxLen（R3）
+    static let optHugeLen = 256               // R5：≥ 此長度松弛改 stride-16（長 match 相鄰長度
+                                              //     價差極小，DP 落點密度可再降）
+    static let optRepStrongLen = 64           // R5：bestRep ≥ 此值 → 鏈走訪降至荒漠深度
+                                              //     （強 rep 在 DP 價格下幾乎必勝，深搜浪費）
     static let optBarrenStreak = 32           // 連續無 match 位置數 ≥ 此值 → 降深度搜尋（R3）
     static let optBarrenDepth = 4             // 荒漠區段的鏈走訪深度（R3）
 
@@ -1225,8 +1240,8 @@ public enum LZFSEv1 {
                                 cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
                             }
                             if ll == lim { break }
-                            // R3：≥ optDenseLen 後改 stride-4（模型驗證比率零損失）
-                            ll = min(ll + (ll < optDenseLen ? 1 : 4), lim)
+                            // R3：≥ optDenseLen 後 stride-4；R5：≥ optHugeLen 後 stride-16
+                            ll = min(ll + (ll < optDenseLen ? 1 : (ll < optHugeLen ? 4 : 16)), lim)
                         }
                     }
                     // ── ② 雜湊鏈 Pareto frontier（len 遞增）──
@@ -1236,6 +1251,8 @@ public enum LZFSEv1 {
                         var c = candHead
                         // R3：荒漠區段（連續無 match）降深度——llama 類二進位資料的主要成本
                         var depth = barren >= optBarrenStreak ? optBarrenDepth : optSearchDepth
+                        // R5：強 rep 在 DP 價格下幾乎必勝 → 鏈走訪降深度
+                        if bestRep >= optRepStrongLen { depth = min(depth, optBarrenDepth) }
                         while c >= 0 && depth > 0 {
                             if c >= i { break }
                             let dd = i - c
@@ -1290,8 +1307,8 @@ public enum LZFSEv1 {
                                     cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
                                 }
                                 if ll == maxLen { break }
-                                // R3：≥ optDenseLen 後改 stride-4（模型驗證比率零損失）
-                                ll = min(ll + (ll < optDenseLen ? 1 : 4), maxLen)
+                                // R3：≥ optDenseLen 後 stride-4；R5：≥ optHugeLen 後 stride-16
+                                ll = min(ll + (ll < optDenseLen ? 1 : (ll < optHugeLen ? 4 : 16)), maxLen)
                             }
                         }
                         // 荒漠計數：本位置 rep 與鏈皆無 match（frontier 空、rep 無命中）

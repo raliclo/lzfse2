@@ -2,6 +2,53 @@
 
 ---
 
+# 第五輪：lazy2/optimal 提速調參（2026-06-13）/ Round 5
+
+## 本輪改動 / Changes（依 R4 候選策略落地）
+
+| 項目 | 改動 | 理由 |
+| --- | --- | --- |
+| chainLazyLen（新，128） | lazy 第二次搜尋門檻 1024→128 | 中長 match 沿途反覆雙搜是 lazy2 隱性大宗 |
+| chainTaperLen/Depth（新，256/4） | bl ≥ 256 後鏈走訪深度收斂至 4 | 已夠長，深搜邊際效益極低 |
+| optHugeLen（新，256） | DP 松弛 ≥ 256 改 stride-16 | 長 match 相鄰長度價差極小 |
+| optRepStrongLen（新，64） | bestRep ≥ 64 → 鏈走訪降至深度 4 | 強 rep 在 DP 價格下幾乎必勝 |
+
+## 實測結果 / Measured Results
+
+✅ 112 項自我測試全綠；解壓一致性全過（7/7 × 2 資料集）。
+文字小樣本：lazy2 30686→**30453B（更小）**、optimal 29029→29041B（+0.04%，可忽略）。
+
+第一次跑（07:12–07:21）機器同時執行 pip 重灌，時間數據 +15–20% 失真；
+claw-code 已於 07:34 空載重跑（llama 沿用 07:21 輪，其大小數據仍有效）：
+
+| 模式 | claw-code（07:34 乾淨重跑） | llama.cpp |
+| --- | --- | --- |
+| lazy2 | 432M / **25.2s**（R3 433M/32.4s → −22% 時間） | **556M**（R4 572M，−2.8%）/ 10.0s |
+| optimal | 417M / 52.3s | 544M（持平 R4）/ 31.7s |
+| 同輪 zstd -9 | 403M / 3.1s | 541M / 3.8s |
+
+判讀 / Reading:
+
+- **lazy2 全面勝出**：時間較 R3 −22%（claw）且比率還變好
+  （llama −16M、小樣本 −233B）——lazy 門檻 128 + taper 不傷質、
+  R4 滿塊讀取本輪完整生效。對 zstd 比率差：llama **+2.8%**、claw +7.2%。
+- **optimal 維持比率**（llama 544M 持平、小樣本 +0.04%）；
+  claw 417M vs zstd 403M = **+3.5%**（R4 為 +1.3%，但 claw 資料集
+  持續變動——tgz 480→481M、zstd 396→403M——跨輪不可直接比）。
+- optimal 時間 52.3s 未較 R4 改善：stride-16/強 rep 淺搜的節省被
+  資料集變大抵銷；claw 的 DP 成本重心仍在松弛迴圈本身。
+
+## 下一輪建議 / Next (R6)
+
+1. **claw optimal 比率 +3.5% 的歸因 A/B**：固定資料集快照下分別
+   開關 optRepStrongLen 與 optHugeLen，確認是否為 R5 引入的損失；
+   若是，優先回調 optRepStrongLen（64→128 或移除）。
+2. lazy2 若要再進一步（目標 <15s/claw）：BT match finder（R4 候選 #1）。
+3. optimal 提速主軸轉向 **DP 松弛 SIMD 化**（R4 候選 #2）：
+   cPrice 等六陣列 SoA + simd_int4 一次松弛 4 長度。
+
+---
+
 # 第四輪：記憶體開銷 + 多核效率（2026-06-13）/ Round 4: Memory & Multi-core
 
 目標（user 指定）：重新審視 zstd / LZ4 演算法，減少記憶體開銷、善用多核心，
