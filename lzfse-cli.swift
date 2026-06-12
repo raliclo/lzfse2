@@ -125,7 +125,7 @@ public enum LZFSEv1 {
     static let maxD3 = 4194299                  // = d3 表最大可表示值（≥ 4MiB-5）
     static let v3FixedHeaderSize = 54           // 含 literal_mode u16（格式 r2）
     static let litCtxCount = 4                  // literal 上下文數（前一位元組 >> 6）
-    static let litCtxThreshold = 16384          // 區塊 literal 數達標才啟用多表
+    static let litCtxThreshold = 16384          // 多表 literal 的預篩門檻（最終由熵收益決定）
     static let matchesPerBlockV3 = 40000        // bvx3 區塊上限 ×4：攤平頻率表開銷
     static let literalsPerBlockV3 = 160000
 
@@ -693,6 +693,176 @@ public enum LZFSEv1 {
     }
 
     // =================================================================
+    // MARK: - 雜湊鏈 LZ 比對（bvx3；btlazy2 級搜尋深度）
+    // =================================================================
+    //
+    // zstd 高級距（lazy2/btlazy2）的核心是「每個位置嘗試更多候選」。
+    // 這裡用 head/chain 雜湊鏈取代 4 槽歷史：
+    //   - 插入 O(1)：chain[i] = head[h]; head[h] = i（4 槽版要 4 次搬移）
+    //   - 搜尋深度 32 個候選（4 槽版只有 4 個）
+    //   - bl 探測：先比對 data[c+bl] == data[i+bl] 快速排除不可能更長的候選
+    //   - rep 感知：先試 3 個 rep 距離；鏈搜尋後若 rep 長度 ≥ 最佳-2 則偏好
+    //     rep（rep 在 bvx3 的編碼成本近乎為零）
+    //   - 沿用 1-step 反覆 lazy matching
+    // =================================================================
+
+    static let chainHashBits = 16                 // 65536 桶
+    static let chainHashSize = 1 << chainHashBits
+    static let chainSearchDepth = 32              // btlazy2 級候選嘗試數
+
+    static func lzParseChain(_ input: [UInt8],
+                             maxL: Int, maxM: Int,
+                             maxDist: Int) -> (triplets: [Triplet], literals: [UInt8]) {
+        var triplets: [Triplet] = []
+        var literals: [UInt8] = []
+        let n = input.count
+        triplets.reserveCapacity(n >> 5 + 8)
+        literals.reserveCapacity(n >> 1 + 8)
+
+        func pushRun(l: Int, m: Int, d: Int) {
+            var L = l
+            while L > maxL {
+                triplets.append(Triplet(l: Int32(maxL), m: 0, d: 1))
+                L -= maxL
+            }
+            var M = m
+            if M > 0 {
+                while M > maxM {
+                    triplets.append(Triplet(l: Int32(L), m: Int32(maxM), d: Int32(d)))
+                    L = 0; M -= maxM
+                }
+                triplets.append(Triplet(l: Int32(L), m: Int32(M), d: Int32(d)))
+            } else if L > 0 {
+                triplets.append(Triplet(l: Int32(L), m: 0, d: 1))
+            }
+        }
+
+        guard n > 8 else {
+            literals = input
+            pushRun(l: n, m: 0, d: 1)
+            return (triplets, literals)
+        }
+
+        let head = UnsafeMutablePointer<Int32>.allocate(capacity: chainHashSize)
+        head.initialize(repeating: -1, count: chainHashSize)
+        let chain = UnsafeMutablePointer<Int32>.allocate(capacity: n)
+        chain.initialize(repeating: -1, count: n)
+        defer { head.deallocate(); chain.deallocate() }
+
+        // 解析器側 rep 歷史（近似編碼端 transform 的歷史；
+        // 不一致只影響選擇品質，不影響正確性——transform 會重算實際發射值）
+        var rep0p: Int = 0, rep1p: Int = 0, rep2p: Int = 0
+
+        var litStart = 0
+        input.withUnsafeBufferPointer { buf in
+            let p = buf.baseAddress!
+
+            @inline(__always) func load32(_ idx: Int) -> UInt32 {
+                var v: UInt32 = 0; memcpy(&v, p + idx, 4); return UInt32(littleEndian: v)
+            }
+            @inline(__always) func load64(_ idx: Int) -> UInt64 {
+                var v: UInt64 = 0; memcpy(&v, p + idx, 8); return UInt64(littleEndian: v)
+            }
+            @inline(__always) func hash4(_ idx: Int) -> Int {
+                Int((load32(idx) &* 2654435761) >> (32 - UInt32(chainHashBits)))
+            }
+            @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
+                var m = 0
+                while m + 8 <= limit {
+                    let x = load64(a + m) ^ load64(b + m)
+                    if x != 0 { return m + (x.trailingZeroBitCount >> 3) }
+                    m += 8
+                }
+                while m < limit && p[a + m] == p[b + m] { m += 1 }
+                return m
+            }
+            @inline(__always) func insert(_ idx: Int) {
+                let h = hash4(idx)
+                chain[idx] = head[h]
+                head[h] = Int32(idx)
+            }
+            @inline(__always) func repLen(_ idx: Int, _ r: Int) -> Int {
+                guard r > 0, r <= idx, load32(idx - r) == load32(idx) else { return 0 }
+                return 4 + matchLength(idx - r + 4, idx + 4, limit: n - idx - 4)
+            }
+            /// 候選搜尋：rep 先行 → 鏈走訪（bl 探測）→ rep 接近最佳時偏好 rep
+            @inline(__always) func bestMatch(_ idx: Int) -> (len: Int, dist: Int) {
+                var bl = 0, bd = 1
+                // ① rep 距離先試（命中時編碼成本近零）
+                for r in [rep0p, rep1p, rep2p] {
+                    let l = repLen(idx, r)
+                    if l > bl { bl = l; bd = r }
+                }
+                // ② 雜湊鏈走訪（深度上限 + bl 快速排除）
+                let v = load32(idx)
+                var c = Int(head[hash4(idx)])
+                var depth = chainSearchDepth
+                while c >= 0 && depth > 0 {
+                    let d = idx - c
+                    if d > maxDist { break }   // 鏈愈走愈舊，超距即停
+                    if (bl == 0 || (idx + bl < n && p[c + bl] == p[idx + bl])),
+                       load32(c) == v {
+                        let l = 4 + matchLength(c + 4, idx + 4, limit: n - idx - 4)
+                        if l > bl || (l == bl && d < bd) { bl = l; bd = d }
+                    }
+                    c = Int(chain[c])
+                    depth -= 1
+                }
+                // ③ rep 長度接近最佳（差 ≤2）時改選 rep
+                if bd != rep0p && bd != rep1p && bd != rep2p {
+                    for r in [rep0p, rep1p, rep2p] where r != bd {
+                        let l = repLen(idx, r)
+                        if l >= bl - 2 && l >= 4 { bl = l; bd = r; break }
+                    }
+                }
+                return (bl, bd)
+            }
+
+            var i = 0
+            while i + 4 <= n {
+                var (m0, d0) = bestMatch(i)
+                insert(i)
+                if m0 < 4 { i += 1; continue }
+
+                // lazy matching：下一位置更長就右移一格，重複到不再改善
+                while i + 5 <= n {
+                    let (m1, d1) = bestMatch(i + 1)
+                    if m1 > m0 {
+                        insert(i + 1)
+                        i += 1
+                        m0 = m1; d0 = d1
+                    } else { break }
+                }
+
+                literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                count: i - litStart))
+                pushRun(l: i - litStart, m: m0, d: d0)
+                // 更新解析器側 rep 歷史（去重後保留 3 深度）
+                if d0 != rep0p {
+                    if d0 == rep1p {
+                        rep1p = rep0p; rep0p = d0
+                    } else {
+                        rep2p = rep1p; rep1p = rep0p; rep0p = d0
+                    }
+                }
+                let end = i + m0
+                i += 1
+                while i < min(end, n - 4) { insert(i); i += 1 }
+                i = end
+                litStart = end
+            }
+            if litStart < n {
+                literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                count: n - litStart))
+            }
+        }
+        if litStart < n {
+            pushRun(l: n - litStart, m: 0, d: 1)
+        }
+        return (triplets, literals)
+    }
+
+    // =================================================================
     // MARK: - 小端序讀寫工具
     // =================================================================
 
@@ -941,21 +1111,49 @@ public enum LZFSEv1 {
         // ① literal：4 路交錯。literal 數達門檻時啟用「上下文多表」——
         //    以前一個 literal 的高 2 位元選表（4 張 tANS 表、狀態流共享）；
         //    解碼端用「已解出的前一 literal」取得同一上下文，逐步表一致即合法。
-        let literalMode = lits.count >= litCtxThreshold ? 1 : 0
+        // 多表 literal 的「數據驅動」開關：
+        // 只有當（單表熵 − 4 表熵）的增益 > 多出 3 張頻率表的實際編碼成本
+        // 時才啟用 —— 先前固定門檻在真實資料上是淨負收益（表成本攤不回來）。
+        var literalMode = 0
         var litFreqCtx: [[UInt16]] = []
         var litEncCtx: [[FSEEncoderEntry]] = []
-        if literalMode == 1 {
+        if lits.count >= litCtxThreshold {
             var ctxOcc = [[UInt32]](repeating: [UInt32](repeating: 0, count: literalSymbols),
                                     count: litCtxCount)
-            var prev = 0
+            var prevB = 0
             for b in lits {
-                ctxOcc[prev >> 6][Int(b)] += 1
-                prev = Int(b)
+                ctxOcc[prevB >> 6][Int(b)] += 1
+                prevB = Int(b)
             }
-            for c in 0..<litCtxCount {
-                let f = normalizeFreq(nstates: literalStates, counts: ctxOcc[c])
-                litFreqCtx.append(f)
-                litEncCtx.append(initEncoderTable(nstates: literalStates, freq: f))
+            func entropyBits(_ c: [UInt32]) -> Double {
+                var total = 0.0
+                for v in c { total += Double(v) }
+                guard total > 0 else { return 0 }
+                var e = 0.0
+                for v in c where v > 0 {
+                    let pr = Double(v) / total
+                    e -= Double(v) * log2(pr)
+                }
+                return e
+            }
+            func freqCostBits(_ f: [UInt16]) -> Int {
+                var bits = 0
+                for v in f { bits += Int(encodeFreqValue(Int(v)).nbits) }
+                return bits
+            }
+            let eSingle = entropyBits(litOcc)
+            var eCtx = 0.0
+            for c in ctxOcc { eCtx += entropyBits(c) }
+            let ctxFreqs = ctxOcc.map { normalizeFreq(nstates: literalStates, counts: $0) }
+            var ctxFreqCost = 0
+            for f in ctxFreqs { ctxFreqCost += freqCostBits(f) }
+            let extraCost = Double(ctxFreqCost - freqCostBits(litFreq)) + 64.0  // 64 bits 安全邊界
+            if eSingle - eCtx > extraCost {
+                literalMode = 1
+                litFreqCtx = ctxFreqs
+                for f in ctxFreqs {
+                    litEncCtx.append(initEncoderTable(nstates: literalStates, freq: f))
+                }
             }
         }
 
@@ -1202,7 +1400,7 @@ public enum LZFSEv1 {
         }
 
         let (triplets, literals) = bvx3
-            ? lzParseStrong(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2)
+            ? lzParseChain(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2)
             : (strong ? lzParseStrong(bytes) : lzParse(bytes))
 
         // 依每區塊上限切分（留 5 個 match、最大 L 的安全邊界）
