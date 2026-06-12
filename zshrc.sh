@@ -511,8 +511,7 @@ function lz4bench() {
 
     echo $'\n[Info] 測試 tlz4  壓縮 / Testing tlz4 compression:'
     nanoTimeElapsed tlz4 $1
-    measure_res tlz4 $1
-
+    
     echo $'\n[Info] 測試 zstd  壓縮 / Testing zstd compression:'
     nanoTimeElapsed getzstd $1
 

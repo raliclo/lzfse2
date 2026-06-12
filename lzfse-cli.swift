@@ -100,6 +100,7 @@ public enum LZFSEv1 {
     //   (c) 字母表：L/M 各 22 符號（16 直接值 + extra 2/3/5/8/12/16）
     //       M 上限 2359 → 69,947、L 上限 315 → 32,768（減少三元組切割）
     // 狀態數沿用（L/M 64、D 256、literal 1024），重用既有 tANS 機械。
+    // D 通道採 3 深度 rep-offset（發射 0/1/2 = 命中歷史，其餘 = d+2）。
     // 注意：bvx3 是本工具的私有格式，Apple 解碼器無法解開。
     // =================================================================
 
@@ -882,10 +883,26 @@ public enum LZFSEv1 {
         for t in triplets { lVals.append(t.l); mVals.append(t.m); dVals.append(t.d) }
         let nMatches = lVals.count
 
-        var dPrev: Int32 = 0
+        // 3 深度 rep-offset（zstd 式）：發射值 0/1/2 = 命中 rep0/1/2，
+        // 其餘 = 真實距離 +2。命中者落在 d3 符號 0/1/2（0 extra bits）。
+        // rep1/rep2 命中採 move-to-front；歷史每區塊歸零。
+        // 純 literal 三元組（M=0）一律發 0：吃 rep0、不動歷史、近零成本。
+        var rep0: Int32 = 0, rep1: Int32 = 0, rep2: Int32 = 0
         for i in 0..<nMatches {
+            if mVals[i] == 0 { dVals[i] = 0; continue }
             let d = dVals[i]
-            if d == dPrev { dVals[i] = 0 } else { dPrev = d }
+            if d == rep0 {
+                dVals[i] = 0
+            } else if d == rep1 {
+                dVals[i] = 1
+                swap(&rep0, &rep1)
+            } else if d == rep2 {
+                dVals[i] = 2
+                let t = rep2; rep2 = rep1; rep1 = rep0; rep0 = t
+            } else {
+                dVals[i] = d + 2
+                rep2 = rep1; rep1 = rep0; rep0 = d
+            }
         }
 
         var lOcc = [UInt32](repeating: 0, count: lm3Symbols)
@@ -1142,7 +1159,7 @@ public enum LZFSEv1 {
         }
 
         let (triplets, literals) = bvx3
-            ? lzParseStrong(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3)
+            ? lzParseStrong(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2)
             : (strong ? lzParseStrong(bytes) : lzParse(bytes))
 
         // 依每區塊上限切分（留 5 個 match、最大 L 的安全邊界）
@@ -1369,6 +1386,7 @@ public enum LZFSEv1 {
                               mVbits: lm3ExtraBits, mVbase: lm3BaseValue,
                               dVbits: d3ExtraBits, dVbase: d3BaseValue,
                               fillPerField: true,
+                              repOffsets: true,
                               maxMatchValue: maxM3,
                               literalsLimit: literalsPerBlockV3,
                               matchesLimit: matchesPerBlockV3,
@@ -1788,6 +1806,7 @@ public enum LZFSEv1 {
                                 mVbits: [UInt8] = mExtraBits, mVbase: [Int32] = mBaseValue,
                                 dVbits: [UInt8] = dExtraBits, dVbase: [Int32] = dBaseValue,
                                 fillPerField: Bool = false,
+                                repOffsets: Bool = false,
                                 maxMatchValue: Int = maxMValue,
                                 literalsLimit: Int = literalsPerBlock,
                                 matchesLimit: Int = matchesPerBlock,
@@ -1862,6 +1881,7 @@ public enum LZFSEv1 {
             var litPos = 0
             var dstIdx = outBase
             var d: Int32 = 0
+            var rep0: Int32 = 0, rep1: Int32 = 0, rep2: Int32 = 0
 
             @inline(__always) func valueDecode(_ state: inout Int32,
                                                _ table: [FSEValueDecoderEntry],
@@ -1880,7 +1900,24 @@ public enum LZFSEv1 {
                 let m = Int(valueDecode(&mState, mDec, &lmdIn))
                 if fillPerField { guard lmdIn.fill() else { ok = false; return } }
                 let newD = valueDecode(&dState, dDec, &lmdIn)
-                if newD != 0 { d = newD }      // d==0 → 沿用前一距離
+                if repOffsets {
+                    // bvx3：0/1/2 = rep0/1/2（1/2 命中 move-to-front），其餘 = 值-2
+                    switch newD {
+                    case 0:
+                        d = rep0
+                    case 1:
+                        swap(&rep0, &rep1)
+                        d = rep0
+                    case 2:
+                        let t = rep2; rep2 = rep1; rep1 = rep0; rep0 = t
+                        d = rep0
+                    default:
+                        d = newD - 2
+                        rep2 = rep1; rep1 = rep0; rep0 = d
+                    }
+                } else {
+                    if newD != 0 { d = newD }  // 標準 LZFSE：d==0 → 沿用前一距離
+                }
                 let dd = Int(d)
 
                 // 邊界驗證：literal 來源、輸出區段、距離不可越過區段歷史下限
@@ -2050,6 +2087,12 @@ func runLZFSEv1Tests() {
     var mixed = Data()
     for i in 0..<2000 { mixed.append(Data("record-\(i % 97): value=\(i * 31 % 1000)\n".utf8)) }
     runCase("結構化資料", mixed)
+    // 交錯重複距離：兩種週期輪流出現 → 重度行使 rep1/rep2 的 move-to-front
+    var alt = Data()
+    let pa = Data("AAAA-BBBB-CCCC-DDDD-37bytes-period-X\n".utf8)
+    let pb = Data("0123456789abcdef-53bytes-period-YYYYYYYYYYYYYYYY\n".utf8)
+    for i in 0..<800 { alt.append(i % 3 == 0 ? pb : pa) }
+    runCase("交錯距離 (rep-offset)", alt)
 }
 
 // =====================================================================
@@ -2060,7 +2103,7 @@ func runLZFSEv1Tests() {
 //
 // -algo apple  : 使用 Apple Compression framework（OutputFilter 串流）
 // -algo other3 : 位元相容 LZFSE（標準 bvx2），多核心 + 強化比對（預設）
-// -algo bvx3   : 私有擴充區塊（zstd 式大字母表 + 4MiB 視窗），壓縮率優先
+// -algo bvx3   : 私有擴充區塊（zstd 式：大字母表 + 4MiB 視窗 + 3 深度 rep-offset）
 //
 // 互通性說明：
 //   - other3 輸出是合法 LZFSE 串流，Apple 與任何標準解碼器可解。
