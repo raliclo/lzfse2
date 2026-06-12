@@ -1,0 +1,82 @@
+=>lz4bench claw-code
+[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試 / Starting benchmark for tgz, lzfse, tlz4, zstd...
+
+
+[Info] 測試 getar 壓縮 / Testing getar compression:
+938M	claw-code
+305M	claw-code.tgz
+==> Process getar claw-code took: 20839760065 奈秒/nanoseconds
+
+[Info] 測試 lzfseX other3 壓縮 / Testing lzfseX other3 compression:
+tar -cf - claw-code | lzfse -encode -si -o claw-code.lzfse.other3 -algo other3
+--- 壓縮資訊 ---
+938M	claw-code
+304M	claw-code.lzfse.other3
+==> Process lzfseX claw-code other3 took: 1693417072 奈秒/nanoseconds
+
+[Info] 測試 lzfseX bvx3 壓縮 / Testing lzfseX bvx3 compression:
+tar -cf - claw-code | lzfse -encode -si -o claw-code.lzfse.bvx3 -algo bvx3
+--- 壓縮資訊 ---
+938M	claw-code
+294M	claw-code.lzfse.bvx3
+==> Process lzfseX claw-code bvx3 took: 1485970974 奈秒/nanoseconds
+
+[Info] 測試 lzfseX apple 壓縮 / Testing lzfseX apple compression:
+tar -cf - claw-code | lzfse -encode -si -o claw-code.lzfse.apple -algo apple
+--- 壓縮資訊 ---
+938M	claw-code
+304M	claw-code.lzfse.apple
+==> Process lzfseX claw-code apple took: 6313095093 奈秒/nanoseconds
+
+[Info] 測試 tlz4  壓縮 / Testing tlz4 compression:
+938M	claw-code
+366M	claw-code.tar.lz4
+==> Process tlz4 claw-code took: 1529455185 奈秒/nanoseconds
+
+[Info] 測試 zstd  壓縮 / Testing zstd compression:
+938M	claw-code
+251M	claw-code.zst
+==> Process getzstd claw-code took: 2160359144 奈秒/nanoseconds
+
+==================================================
+[Info] 開始評測解壓縮速度 / Benchmarking decompression score:
+==================================================
+
+[Info] 測試 tgz 解壓 / Testing tgz extraction:
+nanoTimeElapsed extract claw-code.tgz
+==> Process extract claw-code.tgz took: 1405724049 奈秒/nanoseconds
+
+[Info] 測試 lzfse.other3 解壓 / Testing lzfse.other3 extraction:
+nanoTimeElapsed extract claw-code.lzfse.other3
+lzfse -decode -i claw-code.lzfse.other3 -so -algo other3 | tar -xf - 
+==> Process extract claw-code.lzfse.other3 took: 1663253069 奈秒/nanoseconds
+
+[Info] 測試 lzfse.bvx3 解壓 / Testing lzfse.bvx3 extraction:
+nanoTimeElapsed extract claw-code.lzfse.bvx3
+lzfse -decode -i claw-code.lzfse.bvx3 -so -algo bvx3   | tar -xf - 
+==> Process extract claw-code.lzfse.bvx3 took: 1914456844 奈秒/nanoseconds
+
+[Info] 測試 lzfse.apple 解壓 / Testing lzfse.apple extraction:
+nanoTimeElapsed extract claw-code.lzfse.apple
+lzfse -decode -i claw-code.lzfse.apple -so -algo apple  | tar -xf - 
+==> Process extract claw-code.lzfse.apple took: 1560492992 奈秒/nanoseconds
+
+[Info] 測試 tlz4 解壓 / Testing tlz4 extraction:
+nanoTimeElapsed extract claw-code.tar.lz4
+==> Process extract claw-code.tar.lz4 took: 1804645061 奈秒/nanoseconds
+
+[Info] 測試 zstd 解壓 / Testing zstd extraction:
+nanoTimeElapsed extract claw-code.zst
+==> Process extract claw-code.zst took: 1961860895 奈秒/nanoseconds
+
+[Success] tgz,tlz4 解壓後的內容完全一致！ / Decompressed contents are identical!
+
+[Success] tgz,lzfse_other3 解壓後的內容完全一致！ / Decompressed contents are identical!
+
+[Success] tgz,lzfse_bvx3 解壓後的內容完全一致！ / Decompressed contents are identical!
+
+[Success] tgz,lzfse_apple 解壓後的內容完全一致！ / Decompressed contents are identical!
+
+[Success] tgz,zstd 解壓後的內容完全一致！ / Decompressed contents are identical!
+
+[Info] 基準測試完成！ / Benchmark finished!
