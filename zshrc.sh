@@ -513,8 +513,10 @@ function diskcheck() {
     if (( avail_gb < 25 )); then
         echo "[Warning] 磁碟可用空間僅 ${avail_gb}GB，建議 ≥25GB，否則解壓可能失敗！"
         echo "[Warning] Only ${avail_gb}GB free — recommend ≥25GB to avoid disk-full failures."
+        return 1
     else
         echo "[Info] 磁碟可用空間充足：${avail_gb}GB / Sufficient disk space: ${avail_gb}GB"
+        return 0
     fi
 
 }
