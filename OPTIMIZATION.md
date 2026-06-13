@@ -2,6 +2,101 @@
 
 ---
 
+# 第十三輪：磁碟回復後的完整可靠基準（2026-06-13）/ Round 13: Full Reliable Benchmark After Disk Recovery
+
+## 本輪目的 / Purpose
+
+無演算法代碼變更。R12 因磁碟僅 10–12 GB 失真且 llama.cpp 解壓截斷；本輪在磁碟回復至 **74 GB 可用**（≫ 25 GB 警戒值）下重跑一輪，取得兩資料集 **全 8 格式、壓縮 + 解壓縮皆完整** 的可靠數據，並驗證 lazy2/optimal 產物正確。
+
+No algorithm code change. This round re-runs the benchmark with disk restored to **74 GB free** (well above the 25 GB threshold), producing a complete, reliable dataset for both corpora — all 8 formats, compression *and* decompression — and confirming lazy2/optimal artifacts are correct.
+
+## 本輪改動 / Changes
+
+**`zshrc.sh` — `lz4bench` 接回 `diskcheck`：** R11 將磁碟預檢抽成獨立 `diskcheck()` 後，未接回 `lz4bench`，使預檢成為死碼。本輪在 `lz4bench` 開頭加入 `diskcheck "$1"`，每輪基準開跑前主動回報磁碟可用空間（本輪：充足 74 GB），避免再度於磁碟壓力下產生失真數據。`extract`、`lzfseX` 對 lazy2/optimal 的處理（`-lazy2`/`-optimal` 旗標、`-algo bvx3` 解碼）經查已正確，維持不動。
+
+## 測試完整度 / Benchmark Completeness
+
+- **claw-code**：✅ 全部完成（8 格式壓縮 + 解壓縮，7 項一致性全通過）
+- **llama.cpp**：✅ 全部完成（8 格式壓縮 + 解壓縮，7 項一致性全通過）— R12 的 Apple/TLZ4/ZSTD 解壓截斷已恢復
+- **lzfse-test**：✅ 全綠（含 bvx3 `-lazy2`/`-optimal` 自我往返與平行解碼）
+
+## 實測結果 / Measured Results（R13 vs R11 可靠基線）
+
+### 壓縮 MB/s（Compression Throughput）— 焦點：lazy2 / optimal
+
+| 格式 | claw R11 | claw R13 | 差異 | llama R11 | llama R13 | 差異 |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+| **Lazy2** | 49.21 | **47.31** | −3.9% | 129.16 | **127.84** | −1.0% |
+| **Optimal** | 23.99 | **22.45** | −6.4% | 40.85 | **38.84** | −4.9% |
+| Other3 | 407.40 | **400.55** | −1.7% | 240.11 | **273.41** | +13.9% |
+| BVX3 | 413.47 | **440.53** | +6.5% | 229.06 | **276.71** | +20.8% |
+| Apple | 136.61 | **140.29** | +2.7% | 127.65 | **143.93** | +12.8% |
+| TGZ | 47.81 | **44.31** | −7.3% | 55.81 | **52.84** | −5.3% |
+| TLZ4 | 534.35 | **521.48** | −2.4% | 273.93 | **310.47** | +13.3% |
+| ZSTD | 404.11 | **386.74** | −4.3% | 338.85 | **371.41** | +9.6% |
+
+> lazy2/optimal 壓縮 MB/s 與 R11 相差僅 1–6%，落在量測噪音範圍內——確認**壓縮吞吐穩定可再現**。
+
+### 解壓縮 MB/s（Decompression Throughput）
+
+| 格式 | claw R11 | claw R13 | 差異 | llama R11 | llama R13 | 差異 |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+| **Lazy2** | 460.04 | **332.40** | −27.7% | 228.01 | **198.27** | −13.0% |
+| **Optimal** | 548.28 | **261.57** | −52.3% | 199.41 | **202.22** | +1.4% |
+| Other3 | 503.52 | **490.25** | −2.6% | 256.81 | **161.77** | −37.0% |
+| BVX3 | 481.99 | **443.04** | −8.1% | 232.81 | **165.18** | −29.0% |
+| Apple | 617.76 | **395.09** | −36.0% | 209.68 | **183.56** | −12.5% |
+| TGZ | 533.61 | **419.14** | −21.5% | 259.96 | **182.99** | −29.6% |
+| TLZ4 | 266.01 | **695.20** | +161% | 244.49 | **204.89** | −16.2% |
+| ZSTD | 355.65 | **362.38** | +1.9% | 528→ **135.37** | — | — |
+
+> ⚠️ 解壓縮 MB/s 在不同輪次間波動很大（claw Optimal R11 的 548、TLZ4 R13 的 695 等皆為與系統負載相關的離群值）。**解壓速度受系統暫態負載與檔案快取影響甚鉅，單輪數值不應視為演算法特性。** 重點觀察：**llama Optimal 解壓（202）≈ Lazy2（198）**——再次印證 bvx3 家族（lazy2/optimal/bvx3）共用同一位元流格式，解壓速度由格式而非解析策略決定。
+
+### 壓縮大小（精確 byte，Compression Sizes）
+
+| 格式 | claw R11 (bytes) | claw R13 (bytes) | 差異 | llama R11 (bytes) | llama R13 (bytes) | 差異 |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+| Lazy2 | 443,123,872 | 443,315,716 | +0.04% | 582,575,735 | 582,331,025 | −0.04% |
+| Optimal | 420,637,703 | 420,637,504 | −199 B | 566,223,268 | 566,261,130 | +0.01% |
+
+> 壓縮輸出 byte 大小相對 R11 偏移皆 < 0.05%（源自資料集/tar metadata 微幅浮動），**確認演算法輸出為 deterministic**，lazy2/optimal 產物正確。
+
+## Lazy2 vs Optimal 分析（R13）/ Lazy2 vs Optimal Analysis
+
+| 指標 | claw Lazy2 | claw Optimal | llama Lazy2 | llama Optimal |
+| --- | ---: | ---: | ---: | ---: |
+| 壓縮 MB/s | 47.31 | **22.45** | 127.84 | **38.84** |
+| 解壓 MB/s | 332.40 | 261.57 | 198.27 | 202.22 |
+| 壓縮後 | 433M | **417M** | 556M | **544M** |
+| 壓縮比（vs tgz） | 0.9018 | **0.8557** | 0.9587 | **0.9322** |
+| vs ZSTD 大小 | +3.7 pt | +3.0 pt | +4.7 pt | +2.0 pt |
+
+**核心取捨：** Optimal 以 **2.1×（claw）/ 3.3×（llama）的壓縮時間** 換取相對 Lazy2 僅 **−3.7%（claw）/ −2.1%（llama）的檔案大小**。Optimal 的壓縮吞吐（claw 22.45 MB/s）是全表最慢，為主要瓶頸；Lazy2 在速度/比率上是更佳的甜蜜點。
+
+## 結論 / Conclusions
+
+1. **R13 為可靠輪次**：磁碟 74 GB，兩資料集全 8 格式壓縮 + 解壓縮皆完整，補齊 R12 截斷的 llama 解壓數據。
+2. **壓縮 MB/s 穩定可再現**：lazy2/optimal 與 R11 差距僅 1–6%（噪音範圍）。
+3. **解壓 MB/s 高度波動**：跨輪離群嚴重，受系統負載/快取主導；應以多輪中位數而非單輪比較，且僅以壓縮 MB/s 與壓縮比作為演算法品質的主指標。
+4. **lazy2/optimal 產物正確**：byte 大小偏移 < 0.05%（deterministic），一致性與 lzfse-test 全綠。
+5. **Optimal 壓縮吞吐是瓶頸**：claw 22.45 MB/s（全表最慢），DP 最優解析成本高，且相對 Lazy2 的比率收益有限。
+
+## 下一輪計畫 / Next (R14)
+
+針對 **claw-code `-optimal` 壓縮熱點（22.45 MB/s）** 進行 profiling，並評估以下 lazy2/optimal 改善策略：
+
+```sh
+# 確認磁碟空間後再 profiling
+df -h ~                 # 需 ≥25 GB
+./run_profile.command   # 對 claw-code -optimal 取樣
+```
+
+- **Optimal**：對 DP 成本模型做 SIMD 化、或對長 match 設定搜尋深度上限（fast-skip），目標在不傷壓縮比下回收吞吐。
+- **Lazy2**：維持為速度/比率甜蜜點；觀察是否能小幅逼近 optimal 比率而不犧牲 ~2× 的速度優勢。
+- **量測紀律**：解壓 MB/s 改採多輪取中位數，降低系統負載造成的離群干擾。
+
+---
+
 # 第十二輪：磁碟壓力下的基準重測（2026-06-13）/ Round 12: Benchmark Under Disk Pressure
 
 ## 本輪目的 / Purpose

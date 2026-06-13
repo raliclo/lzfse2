@@ -504,6 +504,20 @@ function tlz4() {
     du -sh $1.tar.lz4 
 }
 
+function diskcheck() {
+    # 磁碟空間預檢（xbenchTest 峰值約 2 × 原始大小；建議保留 ≥25GB）
+    # Disk space pre-check (xbenchTest peaks at ~2× raw size; recommend ≥25GB free)
+    local avail_kb avail_gb
+    avail_kb=$(df -k . | tail -1 | awk '{print $4}')
+    avail_gb=$(( avail_kb / 1024 / 1024 ))
+    if (( avail_gb < 25 )); then
+        echo "[Warning] 磁碟可用空間僅 ${avail_gb}GB，建議 ≥25GB，否則解壓可能失敗！"
+        echo "[Warning] Only ${avail_gb}GB free — recommend ≥25GB to avoid disk-full failures."
+    else
+        echo "[Info] 磁碟可用空間充足：${avail_gb}GB / Sufficient disk space: ${avail_gb}GB"
+    fi
+
+}
 # ------------------------------------------------------------------------------
 # FUNCTION: lz4bench()
 # DESCRIPTION: Benchmarks and compares the performance (speed and execution time)
@@ -519,15 +533,9 @@ function lz4bench() {
         return 1
     fi
 
-    # 磁碟空間預檢（xbenchTest 峰值約 2 × 原始大小；建議保留 ≥25GB）
-    # Disk space pre-check (xbenchTest peaks at ~2× raw size; recommend ≥25GB free)
-    local avail_kb avail_gb
-    avail_kb=$(df -k . | tail -1 | awk '{print $4}')
-    avail_gb=$(( avail_kb / 1024 / 1024 ))
-    if (( avail_gb < 25 )); then
-        echo "[Warning] 磁碟可用空間僅 ${avail_gb}GB，建議 ≥25GB，否則解壓可能失敗！"
-        echo "[Warning] Only ${avail_gb}GB free — recommend ≥25GB to avoid disk-full failures."
-    fi
+    # 磁碟空間預檢（lazy2/optimal 解壓在磁碟壓力下數據嚴重失真，見 OPTIMIZATION.md R11/R12）
+    # Disk pre-check (lazy2/optimal decompression numbers degrade badly under disk pressure)
+    diskcheck "$1"
 
     echo $'[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試...\n'
 
