@@ -1000,6 +1000,13 @@ public enum LZFSEv1 {
     // R9：每段熵預篩——以輕量 greedy 掃描估重複率。低於門檻者整段直接 greedy 發射、
     // 不啟動 DP（二進位/隨機資料在第一階段就被判定「不值得深究」）。
     static let optPrescreenMinCoverage = 28   // greedy match 覆蓋率（%）門檻；以下跳過 DP
+    // R10：熵取樣器（最便宜的第一道閘）。每段抽樣前 1KB 計 Shannon 熵；
+    // 高於門檻（擬亂資料：GGUF tensor 權重、已壓縮資產）直接走 greedy，
+    // 連覆蓋率掃描都省。門檻 7.5 bits/byte ≈「幾乎不可再壓」，此時
+    // optimal 與 greedy 比率差 < 0.5%，但 DP 成本是 greedy 的數十倍。
+    // 這是 GGUF 分區策略的資料驅動版（不靠脆弱的格式/偏移嗅探）。
+    static let optEntropySampleBytes = 1024
+    static let optEntropyHighThreshold = 7.5  // bits/byte；以上視為擬亂、跳過 DP
 
     static func lzParseOptimal(_ input: [UInt8],
                                maxL: Int, maxM: Int,
@@ -1223,10 +1230,72 @@ public enum LZFSEv1 {
                 litStart = i + len
             }
 
+            /// 整段以 greedy（rep 感知、1 深度）解析並發射。match 截在 segEnd 內，
+            /// 維持「段尾 litStart ≤ segEnd」不變式。供熵閘與覆蓋率閘共用。
+            func greedyEmitSegment(_ segStart: Int, _ segEnd: Int) {
+                var i = segStart
+                while i + 4 <= segEnd {
+                    let h = hash4(min(i, n - 5))
+                    let cand = Int(head[h])
+                    insert(i)
+                    var bl = 0, bd = 0
+                    let segLimit = max(0, segEnd - i - 4)
+                    for r in [rep0, rep1, rep2] where r > 0 && r <= i {
+                        if load32(i - r) == load32(i) {
+                            let l = 4 + matchLength(i - r + 4, i + 4, limit: segLimit)
+                            if l > bl { bl = l; bd = r }
+                        }
+                    }
+                    if bl < 4, cand >= 0, i - cand <= maxDist, load32(cand) == load32(i) {
+                        let l = 4 + matchLength(cand + 4, i + 4, limit: segLimit)
+                        if l >= 4 { bl = l; bd = i - cand }
+                    }
+                    if bl >= 4 {
+                        emitGreedy(at: i, len: bl, dist: bd)
+                        let end = i + bl
+                        i += 1
+                        while i < min(end, n - 4) { insert(i); i += 1 }
+                        i = end
+                    } else {
+                        i += 1
+                    }
+                }
+                if segEnd == n && litStart < n {
+                    literals.append(contentsOf:
+                        UnsafeBufferPointer(start: p + litStart, count: n - litStart))
+                    var j = litStart; while j < n { litCount[Int(p[j])] &+= 1; j += 1 }
+                    pushRun(l: n - litStart, m: 0, d: 1)
+                    litStart = n
+                }
+            }
+
+            /// 抽樣前 optEntropySampleBytes 計 Shannon 熵（bits/byte）。
+            @inline(__always) func sampleEntropy(_ start: Int, _ end: Int) -> Double {
+                let m = min(optEntropySampleBytes, end - start)
+                guard m >= 64 else { return 0 }
+                var freq = [Int](repeating: 0, count: 256)
+                var k = start
+                while k < start + m { freq[Int(p[k])] += 1; k += 1 }
+                let inv = 1.0 / Double(m)
+                var e = 0.0
+                for f in freq where f > 0 {
+                    let pr = Double(f) * inv
+                    e -= pr * log2(pr)
+                }
+                return e
+            }
+
             while segStart < n {
                 rebuildPrices()
                 let segEnd = min(segStart + segCap, n)
                 let segLen = segEnd - segStart
+
+                // R10：熵閘（最便宜的第一道）。擬亂段（GGUF 權重等）直接 greedy。
+                if segLen >= 4096 && sampleEntropy(segStart, segEnd) > optEntropyHighThreshold {
+                    greedyEmitSegment(segStart, segEnd)
+                    segStart = segEnd
+                    continue
+                }
 
                 // R9：熵預篩（Two-Pass 第一階段）。輕量 greedy 掃描估算本段 match 覆蓋率；
                 // 低於門檻（二進位/隨機）→ 整段直接 greedy 發射、不啟動 DP。
@@ -1249,45 +1318,8 @@ public enum LZFSEv1 {
                     }
                     let coverage = covered * 100 / segLen
                     if coverage < optPrescreenMinCoverage {
-                        // 低重複段：DP 不划算 → greedy + rep 感知，直接發射這一段。
-                        // 沿用 DP 的 rep 歷史與統計累計（emitGreedy 內含），維持跨段一致。
-                        var i = segStart
-                        while i + 4 <= segEnd {
-                            let h = hash4(min(i, n - 5))
-                            let cand = Int(head[h])
-                            insert(i)
-                            var bl = 0, bd = 0
-                            // rep 優先（match 限制在 segEnd 內，避免跨段後 litStart > segStart）
-                            let segLimit = max(0, segEnd - i - 4)
-                            for r in [rep0, rep1, rep2] where r > 0 && r <= i {
-                                if load32(i - r) == load32(i) {
-                                    let l = 4 + matchLength(i - r + 4, i + 4, limit: segLimit)
-                                    if l > bl { bl = l; bd = r }
-                                }
-                            }
-                            // 單一最近候選（greedy，僅 1 深度——預篩段不值得深搜）
-                            if bl < 4, cand >= 0, i - cand <= maxDist, load32(cand) == load32(i) {
-                                let l = 4 + matchLength(cand + 4, i + 4, limit: segLimit)
-                                if l >= 4 { bl = l; bd = i - cand }
-                            }
-                            if bl >= 4 {
-                                emitGreedy(at: i, len: bl, dist: bd)
-                                let end = i + bl
-                                i += 1
-                                while i < min(end, n - 4) { insert(i); i += 1 }
-                                i = end
-                            } else {
-                                i += 1
-                            }
-                        }
-                        // 段尾殘餘 literal 在下段或收尾統一發出（litStart 不動）
-                        if segEnd == n && litStart < n {
-                            literals.append(contentsOf:
-                                UnsafeBufferPointer(start: p + litStart, count: n - litStart))
-                            var j = litStart; while j < n { litCount[Int(p[j])] &+= 1; j += 1 }
-                            pushRun(l: n - litStart, m: 0, d: 1)
-                            litStart = n
-                        }
+                        // 低重複段：DP 不划算 → 共用 greedy 段發射（rep 感知、跨段一致）
+                        greedyEmitSegment(segStart, segEnd)
                         segStart = segEnd
                         continue
                     }

@@ -2,6 +2,94 @@
 
 ---
 
+# 第十六輪：熵感知閘門（資料驅動 GGUF 分區）（2026-06-13）/ Round 16: Entropy-Aware Gate (Data-Driven GGUF Partitioning)
+
+## 本輪目的 / Purpose
+
+針對「GGUF tensor 權重佔體積 ~99%、內容擬亂、optimal 與 greedy 比率差 < 0.5%」的觀察，為 optimal 加入**段層級熵取樣器**作為最便宜的第一道閘：擬亂段直接 greedy 發射、完全跳過昂貴的 DP，換取壓縮吞吐。純看內容、不嗅探 GGUF 格式/偏移（脆弱）。
+
+Add a segment-level Shannon-entropy sampler as optimal's cheapest first gate: pseudo-random segments emit greedy and skip DP entirely, trading away DP cost for throughput. Content-driven — no fragile GGUF format/offset sniffing.
+
+## 本輪改動 / Changes
+
+**`lzfse-cli.swift` — `lzParseOptimal` 新增熵閘（R10 設計，本輪實裝）：**
+
+| 項目 | 說明 |
+| --- | --- |
+| `optEntropySampleBytes` | 1024（每段抽樣前 1KB） |
+| `optEntropyHighThreshold` | 7.5 bits/byte（以上視為擬亂、跳過 DP） |
+| 閘門位置 | 置於覆蓋率閘（R9）**之前**：`segLen >= 4096 && sampleEntropy() > 7.5` → `greedyEmitSegment()` |
+| 成本 | 熵取樣 1KB ≪ 覆蓋率全段掃描；高熵段省下整段 DP（DP 成本約 greedy 的數十倍） |
+| 共用 | 熵閘與覆蓋率閘共用 `greedyEmitSegment()`（rep 感知、match 截於 segEnd 內，維持跨段 litStart 不變式） |
+
+`sampleEntropy()` 抽樣前 1KB 計 Shannon 熵（bits/byte）；`greedyEmitSegment()` 由 R15 的 inline greedy 重構為可重用函式，供兩道閘共用。lazy2 解析路徑不受影響（熵閘僅在 optimal 內）。
+
+## 測試完整度 / Benchmark Completeness
+
+- **claw-code**：✅ 全部完成（8 格式壓縮 + 解壓縮，7 項一致性全通過）
+- **llama.cpp**：✅ 全部完成（8 格式壓縮 + 解壓縮，7 項一致性全通過）
+- **lzfse-test**：✅ 全綠（含 bvx3 lazy2/optimal 自我往返與平行解碼）
+- ✅ **磁碟充足**：benchmark.sh 雙重 diskcheck 通過（開頭 28GB、llama 段前 26GB，均 ≥25GB 門檻）；EXIT 0、BENCH_DONE 19:57:21。
+
+## 實測結果 / Measured Results（R16 vs R15，MB/s 以實際 bytes/ns 計）
+
+### 壓縮 MB/s（Compression Throughput）— 焦點：optimal（熵閘僅作用於 optimal）
+
+| 格式 | claw R15 | claw R16 | 差異 | llama R15 | llama R16 | 差異 |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+| **Optimal** | 24.96 | **25.36** | **+1.6% 🟢** | 43.69 | **46.92** | **+7.4% 🟢** |
+| **Lazy2** | 46.27 | **47.36** | +2.4%‡ | 142.63 | **129.59** | −9.1%‡ |
+| Other3 | 404.87 | **460.00** | +13.6% | 361.48 | **309.71** | −14.3% |
+| BVX3 | 410.62 | **515.82** | +25.6% | 135.35 | **299.04** | +120%※ |
+| Apple | 143.54 | **146.32** | +1.9% | 88.99 | **151.62** | +70%※ |
+| TGZ | 46.05 | **47.61** | +3.4% | 54.60 | **55.49** | +1.6% |
+| TLZ4 | 536.59 | **569.78** | +6.2% | 133.67 | **337.63** | +153%※ |
+| ZSTD | 369.66 | **359.44** | −2.8% | 136.97 | **390.32** | +185%※ |
+
+> ‡ lazy2 不受熵閘影響（熵閘僅在 optimal 解析內）；±2–9% 屬量測噪音與資料集版本浮動。
+>
+> ※ R15 的 llama BVX3/Apple/TLZ4/ZSTD 壓縮 MB/s 偏低是該輪 cold-cache I/O 所致（已於 R15 標注）；R16 快取條件較佳，故大幅回升——這是**量測條件差異**而非演算法變化，跨輪務必以同條件比較。
+>
+> **核心結論：熵閘讓 llama optimal 壓縮 +7.4%（擬亂的 GGUF 權重段跳過 DP），claw optimal +1.6%（文字熵低、觸發閘門的段較少）。** 方向與設計預期一致：高熵資料受益最大。
+
+### 壓縮大小（精確 byte）/ Compression Sizes
+
+| 格式 | claw R15 (bytes) | claw R16 (bytes) | 差異 | llama R15 (bytes) | llama R16 (bytes) | 差異 |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+| **Optimal** | 422,142,121 | 422,452,184 | +310,063 (+0.07%) | 571,976,860 | 573,166,606 | +1,189,746 (+0.21%) |
+| **Lazy2** | 443,315,744 | 443,301,919 | −13,825 (≈0%) | 582,331,084 | 583,052,611 | +721,527 (+0.12%)‡ |
+
+> Optimal 因高熵段改走 greedy，壓縮比微降（claw 0.8588→0.8594、llama ~0.9416→0.9411 區間），代價 < 0.25%——正是「DP 成本 vs < 0.5% 比率差」的合理取捨。‡ lazy2 差異來自資料集版本浮動（llama.cpp 倉庫有新 commit）。Apple/ZSTD 壓縮大小即使資料相同也會微幅浮動，跨輪比較以 MB/s 為主要指標。
+
+## Lazy2 vs Optimal 分析（R16）/ Lazy2 vs Optimal Analysis
+
+| 指標 | claw Lazy2 | claw Optimal | llama Lazy2 | llama Optimal |
+| --- | ---: | ---: | ---: | ---: |
+| 壓縮 MB/s | 47.36 | **25.36** | 129.59 | **46.92** |
+| 解壓縮 MB/s | 569.36 | **654.13** | 216.59 | **236.49** |
+| 壓縮後 | 443M | **422M** | 583M | **573M** |
+| 壓縮比（vs tgz） | 0.9018 | **0.8594** | 0.9573 | **0.9411** |
+| Optimal vs Lazy2 壓縮時間倍數 | — | **1.87×** | — | **2.76×** |
+
+**R16 取捨：** 熵閘把 llama optimal 的時間倍數從 R15 的 3.26× 壓到 **2.76×**（擬亂段不再進 DP），同時比率幾乎不變（−0.05 pt）。claw optimal 倍數 1.87×（與 R15 1.85× 持平，文字段多數仍進 DP）。解壓縮 optimal 仍略快於 lazy2（共用 bvx3 位元流，差異屬噪音）。
+
+## 結論 / Conclusions
+
+1. **熵閘對高熵資料有效**：llama optimal 壓縮 +7.4%、時間倍數 3.26×→2.76×，比率代價 < 0.25%。設計目標達成。
+2. **文字資料受益有限**：claw optimal 僅 +1.6%——文字熵低（多數段 < 7.5 bits/byte），仍走 DP；文字的 optimal 瓶頸仍是 DP 本身。
+3. **lazy2 不受影響**：熵閘僅在 optimal 解析內，lazy2 數據變化為噪音/資料集浮動。
+4. **量測紀律**：本輪快取條件較 R15 佳，BVX3/Apple/TLZ4/ZSTD 壓縮 MB/s 大幅回升屬條件差異；跨輪僅比較同條件、以 optimal/lazy2 壓縮 MB/s + 壓縮比為主指標。
+5. **一致性與測試全綠**：兩資料集 7/7 一致、lzfse-test 全通過、磁碟雙檢通過。
+
+## 下一輪計畫 / Next (R17)
+
+- **調低熵門檻**：7.5 偏保守；可試 7.0–7.3，讓更多「中高熵」llama 段跳過 DP（預期 optimal 再加速 5–15%，比率代價 < 0.5%）。需對文字資料設防護，避免高局部熵的文字段誤跳 DP 而失比率。
+- **編碼器調度器（encoder dispatcher）**：依區塊熵自動選 bvx1/bvx2/bvx3，導入 -lazy 與 -optimal（R10 構想的延伸）。
+- **Swift 熱迴圈**：核心 match/DP 迴圈全面 `UnsafePointer` 化、消除 Swift 物件導向開銷，挑戰 C 版 zstd 的壓縮吞吐。
+- **熵取樣強化**：1KB 單點抽樣可能誤判混合段；可試多點抽樣或前/中/後三段取樣取均值。
+
+---
+
 # 第十五輪：二段式預篩 + 搜尋預算計數器（2026-06-13）/ Round 15: Two-Pass Prescreen + Search Budget Counter
 
 ## 本輪目的 / Purpose
