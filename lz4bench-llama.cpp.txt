@@ -1,111 +1,113 @@
-[Info] 磁碟可用空間充足：26GB / Sufficient disk space: 26GB
+[Info] 磁碟可用空間充足：29GB / Sufficient disk space: 29GB
+
+[Info] Warm-cache 預讀資料集 / Pre-reading dataset to warm OS cache...
 [Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試...
 
 
 [Info] 測試 getar 壓縮 / Testing getar compression:
 1.2G	llama.cpp
-593M	llama.cpp.tgz
-==> Process getar llama.cpp took: 22687003136 奈秒/nanoseconds
+592M	llama.cpp.tgz
+==> Process getar llama.cpp took: 33519579887 奈秒/nanoseconds
 
 [Info] 測試 lzfseX other3 壓縮 / Testing lzfseX other3 compression:
 執行中: tar -cf - llama.cpp | lzfse -encode -si -o llama.cpp.lzfse.other3 -algo other3 
 --- 壓縮資訊 ---
 1.2G	llama.cpp
-580M	llama.cpp.lzfse.other3
-[SIZE] llama.cpp.lzfse.other3: 607723996 bytes
-==> Process lzfseX llama.cpp other3 took: 4064768791 奈秒/nanoseconds
+589M	llama.cpp.lzfse.other3
+[SIZE] llama.cpp.lzfse.other3: 606048794 bytes
+==> Process lzfseX llama.cpp other3 took: 7725769043 奈秒/nanoseconds
 
 [Info] 測試 lzfseX bvx3_lazy2 壓縮 / Testing lzfseX bvx3_lazy2 compression:
 執行中: tar -cf - llama.cpp | lzfse -encode -si -o llama.cpp.lzfse.bvx3.lazy2 -algo bvx3 -lazy2
 --- 壓縮資訊 ---
 1.2G	llama.cpp
-569M	llama.cpp.lzfse.bvx3.lazy2
-[SIZE] llama.cpp.lzfse.bvx3.lazy2: 583052611 bytes
-==> Process lzfseX llama.cpp lazy2 took: 9714254856 奈秒/nanoseconds
+557M	llama.cpp.lzfse.bvx3.lazy2
+[SIZE] llama.cpp.lzfse.bvx3.lazy2: 582493227 bytes
+==> Process lzfseX llama.cpp lazy2 took: 16583360910 奈秒/nanoseconds
 
 [Info] 測試 lzfseX bvx3_optimal 壓縮 / Testing lzfseX bvx3_optimal compression:
 執行中: tar -cf - llama.cpp | lzfse -encode -si -o llama.cpp.lzfse.bvx3.optimal -algo bvx3 -optimal
 --- 壓縮資訊 ---
 1.2G	llama.cpp
-560M	llama.cpp.lzfse.bvx3.optimal
-[SIZE] llama.cpp.lzfse.bvx3.optimal: 573166606 bytes
-==> Process lzfseX llama.cpp optimal took: 26832904816 奈秒/nanoseconds
+561M	llama.cpp.lzfse.bvx3.optimal
+[SIZE] llama.cpp.lzfse.bvx3.optimal: 571943835 bytes
+==> Process lzfseX llama.cpp optimal took: 48030875921 奈秒/nanoseconds
 
 [Info] 測試 lzfseX bvx3 壓縮 / Testing lzfseX bvx3 compression:
 執行中: tar -cf - llama.cpp | lzfse -encode -si -o llama.cpp.lzfse.bvx3 -algo bvx3 
 --- 壓縮資訊 ---
 1.2G	llama.cpp
-572M	llama.cpp.lzfse.bvx3
-[SIZE] llama.cpp.lzfse.bvx3: 598142858 bytes
-==> Process lzfseX llama.cpp bvx3 took: 4209742069 奈秒/nanoseconds
+573M	llama.cpp.lzfse.bvx3
+[SIZE] llama.cpp.lzfse.bvx3: 596196208 bytes
+==> Process lzfseX llama.cpp bvx3 took: 7728531837 奈秒/nanoseconds
 
 [Info] 測試 lzfseX apple 壓縮 / Testing lzfseX apple compression:
 執行中: tar -cf - llama.cpp | lzfse -encode -si -o llama.cpp.lzfse.apple -algo apple 
 --- 壓縮資訊 ---
 1.2G	llama.cpp
-595M	llama.cpp.lzfse.apple
-[SIZE] llama.cpp.lzfse.apple: 609539880 bytes
-==> Process lzfseX llama.cpp apple took: 8302893877 奈秒/nanoseconds
+582M	llama.cpp.lzfse.apple
+[SIZE] llama.cpp.lzfse.apple: 607890707 bytes
+==> Process lzfseX llama.cpp apple took: 13799231052 奈秒/nanoseconds
 
 [Info] 測試 tlz4  壓縮 / Testing tlz4 compression:
 1.2G	llama.cpp
-626M	llama.cpp.tar.lz4
-==> Process tlz4 llama.cpp took: 3728638887 奈秒/nanoseconds
+622M	llama.cpp.tar.lz4
+==> Process tlz4 llama.cpp took: 7284132004 奈秒/nanoseconds
 
 [Info] 測試 zstd  壓縮 / Testing zstd compression:
 1.2G	llama.cpp
-546M	llama.cpp.zst
-==> Process getzstd llama.cpp took: 3225312948 奈秒/nanoseconds
+540M	llama.cpp.zst
+==> Process getzstd llama.cpp took: 6298341036 奈秒/nanoseconds
 
 [Info] 壓縮產物精確大小 / Exact compressed sizes:
-[SIZE] llama.cpp (raw): 1289104 KB
-[SIZE] llama.cpp.tgz: 609060323 bytes
-[SIZE] llama.cpp.lzfse.other3: 607723996 bytes
-[SIZE] llama.cpp.lzfse.bvx3.lazy2: 583052611 bytes
-[SIZE] llama.cpp.lzfse.bvx3.optimal: 573166606 bytes
-[SIZE] llama.cpp.lzfse.bvx3: 598142858 bytes
-[SIZE] llama.cpp.lzfse.apple: 609539880 bytes
-[SIZE] llama.cpp.tar.lz4: 642458331 bytes
-[SIZE] llama.cpp.zst: 555479661 bytes
+[SIZE] llama.cpp (raw): 1287236 KB
+[SIZE] llama.cpp.tgz: 607403103 bytes
+[SIZE] llama.cpp.lzfse.other3: 606048794 bytes
+[SIZE] llama.cpp.lzfse.bvx3.lazy2: 582493227 bytes
+[SIZE] llama.cpp.lzfse.bvx3.optimal: 571943835 bytes
+[SIZE] llama.cpp.lzfse.bvx3: 596196208 bytes
+[SIZE] llama.cpp.lzfse.apple: 607890707 bytes
+[SIZE] llama.cpp.tar.lz4: 640792117 bytes
+[SIZE] llama.cpp.zst: 553978698 bytes
 
 ==================================================
 [Info] 開始評測解壓縮速度 / Benchmarking decompression score:
 ==================================================
 
 [Info] 測試 llama.cpp.tgz 解壓:
-==> Process extract llama.cpp.tgz took: 5261960983 奈秒/nanoseconds
+==> Process extract llama.cpp.tgz took: 7763916969 奈秒/nanoseconds
 
 [Info] 測試 llama.cpp.lzfse.other3 解壓:
 lzfse -decode -i llama.cpp.lzfse.other3 -so -algo other3 | tar -xf - 
-==> Process extract llama.cpp.lzfse.other3 took: 5366556883 奈秒/nanoseconds
+==> Process extract llama.cpp.lzfse.other3 took: 9081771851 奈秒/nanoseconds
 [Success] llama.cpp.lzfse.other3 解壓內容與 tgz 一致！
 
 [Info] 測試 llama.cpp.lzfse.bvx3.lazy2 解壓:
 lzfse -decode -i llama.cpp.lzfse.bvx3.lazy2 -so -algo bvx3   | tar -xf - 
-==> Process extract llama.cpp.lzfse.bvx3.lazy2 took: 5812293053 奈秒/nanoseconds
+==> Process extract llama.cpp.lzfse.bvx3.lazy2 took: 9769909143 奈秒/nanoseconds
 [Success] llama.cpp.lzfse.bvx3.lazy2 解壓內容與 tgz 一致！
 
 [Info] 測試 llama.cpp.lzfse.bvx3.optimal 解壓:
 lzfse -decode -i llama.cpp.lzfse.bvx3.optimal -so -algo bvx3 | tar -xf - 
-==> Process extract llama.cpp.lzfse.bvx3.optimal took: 5323250055 奈秒/nanoseconds
+==> Process extract llama.cpp.lzfse.bvx3.optimal took: 9118971109 奈秒/nanoseconds
 [Success] llama.cpp.lzfse.bvx3.optimal 解壓內容與 tgz 一致！
 
 [Info] 測試 llama.cpp.lzfse.bvx3 解壓:
 lzfse -decode -i llama.cpp.lzfse.bvx3 -so -algo bvx3   | tar -xf - 
-==> Process extract llama.cpp.lzfse.bvx3 took: 6517612934 奈秒/nanoseconds
+==> Process extract llama.cpp.lzfse.bvx3 took: 9505853891 奈秒/nanoseconds
 [Success] llama.cpp.lzfse.bvx3 解壓內容與 tgz 一致！
 
 [Info] 測試 llama.cpp.lzfse.apple 解壓:
 lzfse -decode -i llama.cpp.lzfse.apple -so -algo apple  | tar -xf - 
-==> Process extract llama.cpp.lzfse.apple took: 8947512865 奈秒/nanoseconds
+==> Process extract llama.cpp.lzfse.apple took: 9221032858 奈秒/nanoseconds
 [Success] llama.cpp.lzfse.apple 解壓內容與 tgz 一致！
 
 [Info] 測試 llama.cpp.tar.lz4 解壓:
-==> Process extract llama.cpp.tar.lz4 took: 6604871035 奈秒/nanoseconds
+==> Process extract llama.cpp.tar.lz4 took: 7910037041 奈秒/nanoseconds
 [Success] llama.cpp.tar.lz4 解壓內容與 tgz 一致！
 
 [Info] 測試 llama.cpp.zst 解壓:
-==> Process extract llama.cpp.zst took: 5704944849 奈秒/nanoseconds
+==> Process extract llama.cpp.zst took: 8676248789 奈秒/nanoseconds
 [Success] llama.cpp.zst 解壓內容與 tgz 一致！
 
 [Info] 基準測試完成！ / Benchmark finished!

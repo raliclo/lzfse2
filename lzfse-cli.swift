@@ -141,6 +141,16 @@ public enum LZFSEv1 {
         return lo
     }
 
+    @inline(__always)
+    static func symbolPointer(forValue v: Int32, base: UnsafePointer<Int32>, count: Int) -> Int {
+        var lo = 0, hi = count - 1
+        while lo < hi {
+            let mid = (lo + hi + 1) >> 1
+            if base[mid] <= v { lo = mid } else { hi = mid - 1 }
+        }
+        return lo
+    }
+
     // =================================================================
     // MARK: - bvx3：本工具私有的高壓縮率區塊（zstd 啟發，非 LZFSE 標準）
     // =================================================================
@@ -1006,7 +1016,7 @@ public enum LZFSEv1 {
     // optimal 與 greedy 比率差 < 0.5%，但 DP 成本是 greedy 的數十倍。
     // 這是 GGUF 分區策略的資料驅動版（不靠脆弱的格式/偏移嗅探）。
     static let optEntropySampleBytes = 1024
-    static let optEntropyHighThreshold = 7.5  // bits/byte；以上視為擬亂、跳過 DP
+    static let optEntropyHighThreshold = 7.2  // bits/byte；以上視為擬亂、跳過 DP
 
     static func lzParseOptimal(_ input: [UInt8],
                                maxL: Int, maxM: Int,
@@ -1091,13 +1101,16 @@ public enum LZFSEv1 {
         let mPriceTab = UnsafeMutablePointer<Int32>.allocate(capacity: lm3Symbols)
         let dPriceTab = UnsafeMutablePointer<Int32>.allocate(capacity: d3Symbols)
         let lmBaseP   = UnsafeMutablePointer<Int32>.allocate(capacity: lm3Symbols)
+        let d3BaseP   = UnsafeMutablePointer<Int32>.allocate(capacity: d3Symbols)
         litPrice.initialize(repeating: 96, count: 256)
         mPriceTab.initialize(repeating: 96, count: lm3Symbols)
         dPriceTab.initialize(repeating: 96, count: d3Symbols)
         for s in 0..<lm3Symbols { lmBaseP[s] = lm3BaseValue[s] }
+        for s in 0..<d3Symbols { d3BaseP[s] = d3BaseValue[s] }
         defer {
             litPrice.deallocate(); mPriceTab.deallocate()
             dPriceTab.deallocate(); lmBaseP.deallocate()
+            d3BaseP.deallocate()
         }
         let matchConst: Int32 = 80   // L 符號 + 狀態位元的攤提常數（~5 bits）
 
@@ -1160,7 +1173,7 @@ public enum LZFSEv1 {
                 head[h] = Int32(idx)
             }
             @inline(__always) func dSym(_ d: Int) -> Int {
-                symbol(forValue: Int32(d) + 2, base: d3BaseValue)
+                symbolPointer(forValue: Int32(d) + 2, base: UnsafePointer(d3BaseP), count: d3Symbols)
             }
             @inline(__always) func repsAfter(_ d: Int32, _ r0: Int32, _ r1: Int32,
                                              _ r2: Int32) -> (Int32, Int32, Int32) {
@@ -1186,8 +1199,8 @@ public enum LZFSEv1 {
                         var j = litStart
                         while j < i { litCount[Int(p[j])] &+= 1; j += 1 }
                         pushRun(l: i - litStart, m: sl, d: sd)
-                        mSymCount[symbol(forValue: Int32(min(sl, maxM)),
-                                         base: lm3BaseValue)] &+= 1
+                        mSymCount[symbolPointer(forValue: Int32(min(sl, maxM)),
+                                                base: UnsafePointer(lmBaseP), count: lm3Symbols)] &+= 1
                         if sd == rep0 { dSymCount[0] &+= 1 }
                         else if sd == rep1 { dSymCount[1] &+= 1 }
                         else if sd == rep2 { dSymCount[2] &+= 1 }
@@ -1217,7 +1230,7 @@ public enum LZFSEv1 {
                 var j = litStart
                 while j < i { litCount[Int(p[j])] &+= 1; j += 1 }
                 pushRun(l: i - litStart, m: len, d: dist)
-                mSymCount[symbol(forValue: Int32(min(len, maxM)), base: lm3BaseValue)] &+= 1
+                mSymCount[symbolPointer(forValue: Int32(min(len, maxM)), base: UnsafePointer(lmBaseP), count: lm3Symbols)] &+= 1
                 if dist == rep0 { dSymCount[0] &+= 1 }
                 else if dist == rep1 { dSymCount[1] &+= 1 }
                 else if dist == rep2 { dSymCount[2] &+= 1 }
@@ -1269,20 +1282,47 @@ public enum LZFSEv1 {
                 }
             }
 
-            /// 抽樣前 optEntropySampleBytes 計 Shannon 熵（bits/byte）。
-            @inline(__always) func sampleEntropy(_ start: Int, _ end: Int) -> Double {
-                let m = min(optEntropySampleBytes, end - start)
-                guard m >= 64 else { return 0 }
+            /// 抽樣特定區段以計算 Shannon 熵與文字特徵。
+            @inline(__always) func samplePointEntropyAndText(start: Int, len: Int) -> (entropy: Double, isText: Bool) {
+                guard len >= 64 else { return (0.0, false) }
                 var freq = [Int](repeating: 0, count: 256)
+                var textCount = 0
                 var k = start
-                while k < start + m { freq[Int(p[k])] += 1; k += 1 }
-                let inv = 1.0 / Double(m)
+                let end = start + len
+                while k < end {
+                    let b = Int(p[k])
+                    freq[b] += 1
+                    if b == 9 || b == 10 || b == 13 || (b >= 32 && b <= 126) {
+                        textCount += 1
+                    }
+                    k += 1
+                }
+                let inv = 1.0 / Double(len)
                 var e = 0.0
                 for f in freq where f > 0 {
                     let pr = Double(f) * inv
                     e -= pr * log2(pr)
                 }
-                return e
+                let isText = textCount * 100 >= len * 85
+                return (e, isText)
+            }
+
+            /// 三點抽樣（前、中、後各 512B）計算平均 Shannon 熵與文字特徵。
+            @inline(__always) func sampleThreePointEntropyAndText(_ start: Int, _ end: Int) -> (entropy: Double, isText: Bool) {
+                let segLen = end - start
+                let sampleBytes = 512
+                guard segLen >= sampleBytes * 3 else {
+                    return samplePointEntropyAndText(start: start, len: min(1024, segLen))
+                }
+                let p1 = start
+                let p2 = start + segLen / 2 - sampleBytes / 2
+                let p3 = end - sampleBytes
+                let r1 = samplePointEntropyAndText(start: p1, len: sampleBytes)
+                let r2 = samplePointEntropyAndText(start: p2, len: sampleBytes)
+                let r3 = samplePointEntropyAndText(start: p3, len: sampleBytes)
+                let avgEntropy = (r1.entropy + r2.entropy + r3.entropy) / 3.0
+                let isText = r1.isText || r2.isText || r3.isText
+                return (avgEntropy, isText)
             }
 
             while segStart < n {
@@ -1291,7 +1331,9 @@ public enum LZFSEv1 {
                 let segLen = segEnd - segStart
 
                 // R10：熵閘（最便宜的第一道）。擬亂段（GGUF 權重等）直接 greedy。
-                if segLen >= 4096 && sampleEntropy(segStart, segEnd) > optEntropyHighThreshold {
+                // R17：調低熵門檻且加入文字保護，採三點抽樣。
+                let (entropy, isText) = sampleThreePointEntropyAndText(segStart, segEnd)
+                if segLen >= 4096 && !isText && entropy > optEntropyHighThreshold {
                     greedyEmitSegment(segStart, segEnd)
                     segStart = segEnd
                     continue

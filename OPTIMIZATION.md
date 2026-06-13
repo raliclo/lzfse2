@@ -2,6 +2,81 @@
 
 ---
 
+# 第十七輪：熵閘調參 + 三點取樣 + 文字保護 + warm-cache（2026-06-14）/ Round 17: Entropy-Gate Tuning + 3-Point Sampling + Text Guard + Warm-Cache
+
+## 本輪目的 / Purpose
+
+實作 Gemini 建議，細修 R16 熵閘並改善量測穩定度：(1) 熵門檻 7.5→7.2、(2) 預篩覆蓋率門檻 28→35%、(3) `sampleEntropy` 改三點（前/中/後各 512B）取樣 + 文字保護、(4) `lz4bench` 加 warm-cache 預讀資料集。
+
+Implement Gemini's suggestions to refine the R16 entropy gate and stabilise measurement.
+
+## 本輪改動 / Changes
+
+**`lzfse-cli.swift`（`lzParseOptimal`）：**
+
+| 項目 | R16 | R17 |
+| --- | --- | --- |
+| `optEntropyHighThreshold` | 7.5 | **7.2**（更積極跳過 DP） |
+| `optPrescreenMinCoverage` | 28 | **35%**（更多中覆蓋率段走 greedy） |
+| 熵取樣 | 前 1KB 單點 | **三點（前/中/後 512B）平均**，更能代表整段 |
+| 文字保護 | 無 | **`isText` 守門**：可列印字元 ≥85% 的段，即使高熵也**不跳 DP**（避免文字段誤判為擬亂而失比率） |
+
+**`zshrc.sh`（`lz4bench`）：** 壓縮計時前先 `tar -cf - "$1" > /dev/null` 預讀整個資料集進 OS cache，消除「第一個格式 cold-cache、後續 warm-cache」的計時偏差。
+
+## 測試完整度 / Benchmark Completeness
+
+- **claw-code / llama.cpp**：✅ 各 8 格式壓縮+解壓縮、7/7 一致性通過；lzfse-test 全綠；warm-cache 已生效。
+- ⚠️ **本輪量測在系統負載下進行**（見下）。
+
+## ⚠️ 量測條件警示 / Measurement Caveat
+
+本輪（與前一次重跑）**所有格式的壓縮 MB/s 全面下降**，包含與本輪改動無關的 tgz / zstd / bvx3 / lazy2：
+
+| 格式（壓縮 MB/s） | claw R16 | claw R17 | llama R16 | llama R17 |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 47.61 | 43.11 | 55.49 | 37.50 |
+| ZSTD | 359.44 | 209.93 | 390.32 | 199.59 |
+| BVX3 | 515.82 | 205.28 | 299.04 | 162.65 |
+| **Lazy2**（未受本輪改動） | 47.36 | 37.40 | 129.59 | 75.80 |
+| **Optimal** | 25.36 | 16.17 | 46.92 | 26.17 |
+
+> tgz/zstd/bvx3/lazy2 皆與熵閘無關卻同步下降 15–60%，可確定是**系統負載**（背景 check.sh、caffeinate、dispatch、Claude 同時運行）造成，**非演算法退步**。因此本輪「絕對壓縮 MB/s」不可跨輪比較。
+
+## 可信指標：壓縮比（deterministic）/ Reliable Metric: Ratio
+
+| 格式 | claw R16 | claw R17 | llama R16 | llama R17 |
+| --- | ---: | ---: | ---: | ---: |
+| **Optimal** | 0.8594 | **0.8590** | 0.9411 | **0.9416** |
+| **Lazy2** | 0.9018 | **0.9018** | 0.9573 | **0.9590** |
+
+> 壓縮比與 R16 幾乎完全一致（差異 < 0.2%，屬資料集版本浮動）。**關鍵結論：加入文字保護後，optimal 比率未退步**——證明 R16 的熵閘並未因 7.5 門檻誤跳文字段（claw 為文字，isText 守門後仍全程 DP，比率不變）。Apple/ZSTD 大小本來就會隨資料集微幅浮動。
+
+## Lazy2 vs Optimal（R17，僅同輪內相對有效）/ Within-Run Relative
+
+| 指標 | claw Lazy2 | claw Optimal | llama Lazy2 | llama Optimal |
+| --- | ---: | ---: | ---: | ---: |
+| 壓縮 MB/s | 37.40 | 16.17 | 75.80 | 26.17 |
+| 解壓 MB/s | 442.98 | 436.02 | 128.67 | 137.85 |
+| 壓縮比 | 0.9018 | 0.8590 | 0.9590 | 0.9416 |
+| Optimal/Lazy2 壓縮時間倍數 | — | **2.31×** | — | **2.90×** |
+
+> 同輪內，optimal 時間倍數 claw 2.31×、llama 2.90×（與 R16 同條件趨勢一致）。由於整機受載，無法從本輪數字判定熵閘調參帶來的「淨加速」。
+
+## 結論 / Conclusions
+
+1. **四項改動已全部落地且正確**：編譯通過、lzfse-test 7/7、一致性 7/7、warm-cache 生效。
+2. **比率未退步**：文字保護生效，claw/llama optimal 壓縮比與 R16 持平——確認三點取樣 + isText 守門沒有破壞壓縮品質。
+3. **本輪不可作絕對速度比較**：全格式（含無關的 tgz/zstd/bvx3/lazy2）受系統負載拖慢 15–60%；熵閘調參的淨加速效果**尚未量測到**。
+4. **warm-cache 已就位**：未來在乾淨條件下可降低 cold-cache 對壓縮計時的干擾。
+
+## 下一輪計畫 / Next (R18)
+
+- **乾淨環境量測**：在系統閒置（暫停 check.sh / dispatch）下重跑一輪，才能隔離出 7.2 門檻 + 35% 覆蓋率 + 三點取樣對 llama optimal 的真實加速。
+- **編碼器調度器**：依區塊熵自動選 bvx1/bvx2/bvx3，導入 -lazy/-optimal。
+- **Swift 熱迴圈 UnsafePointer 化**：claw（文字）optimal 受文字保護全程 DP，加速須靠 DP 本身的 SIMD/指標化，挑戰 C 版 zstd。
+
+---
+
 # 第十六輪：熵感知閘門（資料驅動 GGUF 分區）（2026-06-13）/ Round 16: Entropy-Aware Gate (Data-Driven GGUF Partitioning)
 
 ## 本輪目的 / Purpose

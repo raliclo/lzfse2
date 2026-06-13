@@ -539,6 +539,13 @@ function lz4bench() {
     # Disk pre-check (lazy2/optimal decompression numbers degrade badly under disk pressure)
     diskcheck "$1"
 
+    # Warm-cache：預讀整個資料集進 OS page cache，消除「第一個格式 cold-cache、
+    # 後續格式 warm-cache」造成的壓縮計時偏差（見 OPTIMIZATION.md R15/R16 cold-cache 註）
+    # Warm-cache: pre-read the whole dataset so every compression format is timed
+    # under the same warm-cache condition (removes first-format cold-cache skew).
+    echo $'\n[Info] Warm-cache 預讀資料集 / Pre-reading dataset to warm OS cache...'
+    tar -cf - "$1" > /dev/null 2>&1
+
     echo $'[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試...\n'
 
     # --------------------------------------------------------------------------
