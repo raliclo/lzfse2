@@ -2,6 +2,93 @@
 
 ---
 
+# 第九輪：基線驗證 + MB/s 比較基準確立（2026-06-13）/ Round 9: Baseline Verification
+
+## 本輪目的 / Purpose
+
+無代碼變更——純粹重跑 benchmark 以確認 R8 基線穩定，並正式確立
+**MB/s 為主要跨輪比較指標**（資料集為活躍工作目錄，大小會隨時間浮動；
+以 MB/s 歸一化後可跨輪公平比較）。
+
+## 實測結果（01:20–01:26）/ Measured Results
+
+✅ 兩資料集一致性全過（7/7 × 2）；R8 數字完全再現——基線穩定 ✓
+
+### claw-code（原始 1300 MB）
+
+| 格式 | 壓縮後 | 壓縮 MB/s | 解壓 MB/s | 壓縮比 |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ（基準） | 480M | 46.1 | 534.1 | 1.000 |
+| LZFSE Other3 | 472M | 375.7 | 498.0 | 0.983 |
+| **LZFSE Lazy2** | **432M** | **45.9** | **524.6** | **0.900** |
+| **LZFSE Optimal** | **417M** | **22.4** | **370.7** | **0.869** |
+| LZFSE BVX3 | 457M | 384.3 | 238.0 | 0.952 |
+| LZFSE Apple | 465M | 139.0 | 225.3 | 0.969 |
+| TLZ4 | 563M | 503.3 | 143.7 | 1.173 |
+| ZSTD -9 | 393M | 376.0 | 145.1 | 0.819 |
+
+### llama.cpp（原始 1200 MB）
+
+| 格式 | 壓縮後 | 壓縮 MB/s | 解壓 MB/s | 壓縮比 |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ（基準） | 593M | 52.6 | 231.1 | 1.000 |
+| LZFSE Other3 | 593M | 207.6 | 235.9 | 1.000 |
+| **LZFSE Lazy2** | **571M** | **118.3** | **196.6** | **0.963** |
+| **LZFSE Optimal** | **544M** | **37.6** | **140.3** | **0.917** |
+| LZFSE BVX3 | 584M | 214.5 | 151.2 | 0.985 |
+| LZFSE Apple | 584M | 121.9 | 163.0 | 0.985 |
+| TLZ4 | 614M | 246.2 | 122.7 | 1.035 |
+| ZSTD -9 | 544M | 297.4 | 87.5 | 0.917 |
+
+## MB/s 分析 / MB/s Analysis
+
+### Optimal 現況
+
+| 資料集 | 壓縮 MB/s | vs ZSTD | 解壓 MB/s | vs ZSTD | 大小 vs ZSTD |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 22.4 | ZSTD 快 **16.8×** | 370.7 | 我們快 **2.6×** | 417 vs 393M（+6.1%） |
+| llama.cpp | 37.6 | ZSTD 快 **7.9×** | 140.3 | 我們快 **1.6×** | **544 vs 544M（打平）** ✓ |
+
+### Lazy2 現況
+
+| 資料集 | 壓縮 MB/s | vs ZSTD | 解壓 MB/s | 大小 vs ZSTD |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code | 45.9 | ZSTD 快 **8.2×** | 524.6 | 432 vs 393M（+9.9%） |
+| llama.cpp | 118.3 | ZSTD 快 **2.5×** | 196.6 | 571 vs 544M（+5.0%） |
+
+**解壓為 lzfse2 的最大優勢**：claw optimal 370.7 MB/s、lazy2 524.6 MB/s——
+ZSTD 僅 145 MB/s，我們快 **2.6–3.6 倍**。
+
+## 結論 / Conclusions
+
+1. **基線穩定**：R8 vs R9 MB/s 誤差 <0.1%，量測可靠，MB/s 可作為跨輪基準。
+2. **Optimal 瓶頸**：壓縮 MB/s 落後 ZSTD 8–17 倍；R8 SIMD skip 在 llama 有效（−4.7%）
+   但 claw 持平——claw 的 58s / 22.4 MB/s 真熱點未知，**必須先 profile 才能動手**。
+3. **Lazy2 天花板**：BT 路線已關閉（R7 負面結果）；hash chain 架構下 claw 45.9 MB/s
+   已接近上限。
+4. **尚未執行 profiling**：`run_profile.command` 已就緒，R10 必須先量測再動手。
+
+## 下一輪計畫 / Next (R10)
+
+**必做：先執行 profiling，找出 claw optimal 22.4 MB/s 的真熱點**
+
+```sh
+cd ~/proj/lzfse2
+open run_profile.command   # 對 claw-code bvx3 -optimal 取樣 20 秒
+# 完成後查看 profile-optimal.txt 的熱函數
+```
+
+根據 profiling 結果選擇方向：
+
+| 若熱點是 | 對應行動 | 預期效益 |
+| --- | --- | --- |
+| DP 松弛陣列寫入（per-cell 6 陣列） | SoA 打包：price+len 合一個 64-bit word，rep 延後重建 | 寫入頻寬 −50%，claw optimal 目標 <35s |
+| `matchLength` 比對迴圈 | SIMD16 向量比較，一次比 16 bytes | match body 內比對成本 −50–70% |
+| hash chain 走訪（`chainSearch`） | `optSearchDepth` 16→8，或 price-based 早退 | claw 走訪量 −30–50%，比率小幅回吐 |
+| emit / backtrace | DP 分段大小 128K→256K，減少回溯次數 | 固定開銷 −50%，效益依分段比例 |
+
+---
+
 # 第八輪：DP 松弛 SIMD 化（2026-06-13）/ Round 8: SIMD Relaxation
 
 ## 本輪改動 / Changes（R4 候選 #2 落地）
