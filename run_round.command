@@ -2,9 +2,10 @@
 # Cowork 自動化執行器：compile → 測試守門 → benchmark
 # Auto-runner: compile → gate on tests → benchmark
 cd /Users/raliclo/proj/lzfse2 || exit 1
-echo "RUNNING compile $(date +%H:%M:%S)" > round_status.txt
+git gc --prune=now --aggressive > round_status.txt 2>&1
+echo "RUNNING compile $(date +%H:%M:%S)" >> round_status.txt
 rm -f ./lzfse
-./compile.sh
+./compile.sh >> round_status.txt 2>&1
 if [[ ! -x ./lzfse ]]; then
     echo "COMPILE_FAILED $(date +%H:%M:%S)" >> round_status.txt
     exit 1
@@ -15,5 +16,11 @@ if grep -q "✗" lzfse-test.txt; then
 fi
 echo "TEST_OK $(date +%H:%M:%S)" >> round_status.txt
 echo "RUNNING benchmark $(date +%H:%M:%S)" >> round_status.txt
-./benchmark.sh
-echo "BENCH_DONE $(date +%H:%M:%S)" >> round_status.txt
+./benchmark.sh >> round_status.txt 2>&1
+status=$?
+if [[ $status -eq 0 ]]; then
+    echo "BENCH_DONE $(date +%H:%M:%S)" >> round_status.txt
+else
+    echo "BENCH_FAILED $status $(date +%H:%M:%S)" >> round_status.txt
+fi
+exit $status
