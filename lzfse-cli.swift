@@ -1241,6 +1241,37 @@ public enum LZFSEv1 {
                                 msym += 1
                             }
                             let c2 = base + matchConst + mPriceTab[msym] + dpr
+                            // R8：bucket 內 c2 恆定——dense 區以 SIMD4 一次檢視 4 cell，
+                            // 全數「無改善」直接跳過（語意與逐格完全等價，純省寫入/分支）
+                            // R8: SIMD4 fast-skip in the dense region; exact same semantics.
+                            if ll < optDenseLen {
+                                let bEnd = msym + 1 < lm3Symbols
+                                    ? min(lim, Int(lmBaseP[msym + 1]) - 1) : lim
+                                let dEnd = min(bEnd, optDenseLen - 1)
+                                let c2v = SIMD4<Int32>(repeating: c2)
+                                while ll + 3 <= dEnd {
+                                    let old = UnsafeRawPointer(cPrice + t + ll)
+                                        .loadUnaligned(as: SIMD4<Int32>.self)
+                                    if any(c2v .< old) {
+                                        for q in ll...(ll + 3) where c2 < cPrice[t + q] {
+                                            cPrice[t + q] = c2; cLen[t + q] = Int32(q)
+                                            cDist[t + q] = r
+                                            cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
+                                        }
+                                    }
+                                    ll += 4
+                                }
+                                while ll <= dEnd {
+                                    let dest = t + ll
+                                    if c2 < cPrice[dest] {
+                                        cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
+                                        cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                    }
+                                    ll += 1
+                                }
+                                if ll > lim { break }
+                                continue
+                            }
                             let dest = t + ll
                             if c2 < cPrice[dest] {
                                 cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
@@ -1248,7 +1279,7 @@ public enum LZFSEv1 {
                             }
                             if ll == lim { break }
                             // R3：≥ optDenseLen 後 stride-4；R5：≥ optHugeLen 後 stride-16
-                            ll = min(ll + (ll < optDenseLen ? 1 : (ll < optHugeLen ? 4 : 16)), lim)
+                            ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
                         }
                     }
                     // ── ② 雜湊鏈 Pareto frontier（len 遞增）──
@@ -1306,6 +1337,40 @@ public enum LZFSEv1 {
                                     msym += 1
                                 }
                                 let c2 = base + matchConst + mPriceTab[msym] + frPrice[e]
+                                // R8：(symbol bucket ∩ frontier 段) 內 c2/dd 恆定——
+                                // dense 區以 SIMD4 快速跳過無改善 cell（語意完全等價）
+                                if ll < optDenseLen {
+                                    let bEnd = msym + 1 < lm3Symbols
+                                        ? min(maxLen, Int(lmBaseP[msym + 1]) - 1) : maxLen
+                                    let dEnd = min(bEnd, Int(frLen[fk]), optDenseLen - 1)
+                                    let dd = frDist[e]
+                                    let c2v = SIMD4<Int32>(repeating: c2)
+                                    while ll + 3 <= dEnd {
+                                        let old = UnsafeRawPointer(cPrice + t + ll)
+                                            .loadUnaligned(as: SIMD4<Int32>.self)
+                                        if any(c2v .< old) {
+                                            for q in ll...(ll + 3) where c2 < cPrice[t + q] {
+                                                cPrice[t + q] = c2; cLen[t + q] = Int32(q)
+                                                cDist[t + q] = dd
+                                                let (n0, n1, n2) = repsAfter(dd, r0, r1, r2)
+                                                cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
+                                            }
+                                        }
+                                        ll += 4
+                                    }
+                                    while ll <= dEnd {
+                                        let dest = t + ll
+                                        if c2 < cPrice[dest] {
+                                            cPrice[dest] = c2; cLen[dest] = Int32(ll)
+                                            cDist[dest] = dd
+                                            let (n0, n1, n2) = repsAfter(dd, r0, r1, r2)
+                                            cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                        }
+                                        ll += 1
+                                    }
+                                    if ll > maxLen { break }
+                                    continue
+                                }
                                 let dest = t + ll
                                 if c2 < cPrice[dest] {
                                     let dd = frDist[e]
@@ -1315,7 +1380,7 @@ public enum LZFSEv1 {
                                 }
                                 if ll == maxLen { break }
                                 // R3：≥ optDenseLen 後 stride-4；R5：≥ optHugeLen 後 stride-16
-                                ll = min(ll + (ll < optDenseLen ? 1 : (ll < optHugeLen ? 4 : 16)), maxLen)
+                                ll = min(ll + (ll < optHugeLen ? 4 : 16), maxLen)
                             }
                         }
                         // 荒漠計數：本位置 rep 與鏈皆無 match（frontier 空、rep 無命中）

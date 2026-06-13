@@ -2,6 +2,49 @@
 
 ---
 
+# 第八輪：DP 松弛 SIMD 化（2026-06-13）/ Round 8: SIMD Relaxation
+
+## 本輪改動 / Changes（R4 候選 #2 落地）
+
+optimal 的 rep / frontier 兩個松弛迴圈，dense 區（長度 4..64）改以
+`SIMD4<Int32>` 一次檢視 4 個 cell：bucket 內 c2 恆定，4 lane 全數
+「無改善」直接跳過。**語意與逐格完全等價**（相同 cell、相同優先序，
+只省略必定無效的寫入與分支）——小樣本輸出 byte 級不變
+（30453B / 29041B）即為證明。
+
+## 實測結果（09:17–09:26）/ Measured Results
+
+✅ 112 項自我測試全綠；一致性 7/7 × 2；輸出大小與 R7b 完全一致 ✓
+
+| 模式 | claw-code | llama.cpp |
+| --- | --- | --- |
+| optimal | 417M / **58.1s**（R7b 58.5s，~持平） | 544M / **31.9s**（R7b 33.5s，−4.7%） |
+| lazy2（未動） | 432M / 28.3s | 571M / 10.1s |
+| 同輪 zstd -9 | 393M / 3.5s | **544M** / 4.0s |
+
+判讀 / Reading:
+
+- **本輪亮點**：llama optimal **544M = zstd 544M，比率正式打平**
+  （資料集本輪漂移至較難壓的內容，zstd 落到與我們同一水位；
+  解壓 8.6s vs 13.7s 仍快 1.6 倍）。
+- SIMD skip 收益有限（llama −4.7%、claw ~0）：**dense 松弛不是
+  claw optimal 的真熱點**——R3 的「松弛最大宗」假設在 stride/sufficient
+  之後已不成立。claw 的 58s 花在別處（候選 matchLength、鏈走訪、
+  per-cell 6 陣列寫入、或 emit/回溯）。
+- 改動保留（零風險、llama 有小賺）。
+
+## 下一輪建議 / Next (R9)
+
+1. **先量測再動手**：盲調已連續兩輪中性——用
+   `xcrun xctrace record --template "Time Profiler"` 對
+   `lzfse -encode -algo bvx3 -optimal` 取樣，找出 claw optimal
+   58s 的真熱點，再決定向量化/重構目標。
+2. 若熱點是 per-cell 6 陣列寫入：改 SoA 打包（price+len 一個 64-bit
+   word、reps 延後重建）可減半寫入頻寬。
+3. 資料集快照凍結（R6 起的待辦）仍是歸因前提。
+
+---
+
 # 第七輪：BT match finder 實驗（2026-06-13）/ Round 7: BT Experiment — Negative Result
 
 ## 本輪實驗 / Experiment
