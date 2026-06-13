@@ -6,13 +6,13 @@
 
 ## 本輪目的 / Purpose
 
-無演算法代碼變更。R12 因磁碟僅 10–12 GB 失真且 llama.cpp 解壓截斷；本輪在磁碟回復至 **74 GB 可用**（≫ 25 GB 警戒值）下重跑一輪，取得兩資料集 **全 8 格式、壓縮 + 解壓縮皆完整** 的可靠數據，並驗證 lazy2/optimal 產物正確。
+無演算法代碼變更。R12 因磁碟僅 10–12 GB 失真且 llama.cpp 解壓截斷；本輪在磁碟回復至 **claw 32 GB / llama 31 GB 可用**（≫ 25 GB 警戒值）下重跑一輪，取得兩資料集 **全 8 格式、壓縮 + 解壓縮皆完整** 的可靠數據，並驗證 lazy2/optimal 產物正確。
 
-No algorithm code change. This round re-runs the benchmark with disk restored to **74 GB free** (well above the 25 GB threshold), producing a complete, reliable dataset for both corpora — all 8 formats, compression *and* decompression — and confirming lazy2/optimal artifacts are correct.
+No algorithm code change. This round re-runs the benchmark with disk restored to **claw 32 GB / llama 31 GB free** (well above the 25 GB threshold), producing a complete, reliable dataset for both corpora — all 8 formats, compression *and* decompression — and confirming lazy2/optimal artifacts are correct.
 
 ## 本輪改動 / Changes
 
-**`zshrc.sh` — `lz4bench` 接回 `diskcheck`：** R11 將磁碟預檢抽成獨立 `diskcheck()` 後，未接回 `lz4bench`，使預檢成為死碼。本輪在 `lz4bench` 開頭加入 `diskcheck "$1"`，每輪基準開跑前主動回報磁碟可用空間（本輪：充足 74 GB），避免再度於磁碟壓力下產生失真數據。`extract`、`lzfseX` 對 lazy2/optimal 的處理（`-lazy2`/`-optimal` 旗標、`-algo bvx3` 解碼）經查已正確，維持不動。
+**`zshrc.sh` — `lz4bench` 接回 `diskcheck`：** R11 將磁碟預檢抽成獨立 `diskcheck()` 後，未接回 `lz4bench`，使預檢成為死碼。本輪在 `lz4bench` 開頭加入 `diskcheck "$1"`，每輪基準開跑前主動回報磁碟可用空間（本輪：充足 claw 32 GB / llama 31 GB），避免再度於磁碟壓力下產生失真數據。`extract`、`lzfseX` 對 lazy2/optimal 的處理（`-lazy2`/`-optimal` 旗標、`-algo bvx3` 解碼）經查已正確，維持不動。
 
 ## 測試完整度 / Benchmark Completeness
 
@@ -48,7 +48,7 @@ No algorithm code change. This round re-runs the benchmark with disk restored to
 | Apple | 617.76 | **395.09** | −36.0% | 209.68 | **183.56** | −12.5% |
 | TGZ | 533.61 | **419.14** | −21.5% | 259.96 | **182.99** | −29.6% |
 | TLZ4 | 266.01 | **695.20** | +161% | 244.49 | **204.89** | −16.2% |
-| ZSTD | 355.65 | **362.38** | +1.9% | 528→ **135.37** | — | — |
+| ZSTD | 355.65 | **362.38** | +1.9% | 231.66 | **135.37** | −41.5% |
 
 > ⚠️ 解壓縮 MB/s 在不同輪次間波動很大（claw Optimal R11 的 548、TLZ4 R13 的 695 等皆為與系統負載相關的離群值）。**解壓速度受系統暫態負載與檔案快取影響甚鉅，單輪數值不應視為演算法特性。** 重點觀察：**llama Optimal 解壓（202）≈ Lazy2（198）**——再次印證 bvx3 家族（lazy2/optimal/bvx3）共用同一位元流格式，解壓速度由格式而非解析策略決定。
 
@@ -75,7 +75,7 @@ No algorithm code change. This round re-runs the benchmark with disk restored to
 
 ## 結論 / Conclusions
 
-1. **R13 為可靠輪次**：磁碟 74 GB，兩資料集全 8 格式壓縮 + 解壓縮皆完整，補齊 R12 截斷的 llama 解壓數據。
+1. **R13 為可靠輪次**：磁碟 claw 32 GB / llama 31 GB，兩資料集全 8 格式壓縮 + 解壓縮皆完整，補齊 R12 截斷的 llama 解壓數據。
 2. **壓縮 MB/s 穩定可再現**：lazy2/optimal 與 R11 差距僅 1–6%（噪音範圍）。
 3. **解壓 MB/s 高度波動**：跨輪離群嚴重，受系統負載/快取主導；應以多輪中位數而非單輪比較，且僅以壓縮 MB/s 與壓縮比作為演算法品質的主指標。
 4. **lazy2/optimal 產物正確**：byte 大小偏移 < 0.05%（deterministic），一致性與 lzfse-test 全綠。
