@@ -2,6 +2,42 @@
 
 ---
 
+# 第七輪：BT match finder 實驗（2026-06-13）/ Round 7: BT Experiment — Negative Result
+
+## 本輪實驗 / Experiment
+
+實作 zstd btlazy2 式 **binary-tree match finder** 取代 lazy2 的雜湊鏈
+（R4 候選 #1、R6 建議 #3）：每雜湊桶一棵後綴排序樹、搜尋即插入、
+共享前綴長度加速比較、good-enough/taper 保留。112 項自我測試全綠、
+兩資料集一致性全過——**正確性無虞，但速度災難性回退**：
+
+| 模式 | 雜湊鏈（回退後實測） | BT 版 | 差異 |
+| --- | --- | --- | --- |
+| claw lazy2 | 432M / 28.8s | 432M / 46.1s | **+60% 時間**，比率 0 |
+| llama lazy2 | 570M / 10.5s | 565M / 68.3s | **+550% 時間**，比率 −0.9% |
+
+## 根因 / Root Cause
+
+**BT 的插入也要走訪（O(depth)），雜湊鏈插入是 O(1)。**
+llama 的 GGUF 長 match 體內有海量「純插入」位置——BT 每個位置付
+16 次比較的樹走訪，雜湊鏈只付 2 次寫入。zstd 自家 btlazy2 也因此
+比 lazy2 慢 2–3 倍；我們的 lazy2 已有 hash5+probe+taper+skip，
+殘餘的鏈走訪成本根本沒有 BT 宣稱的提升空間。
+**已回退至 R6 雜湊鏈版本**（負面結果，代碼不保留）。
+
+## 結論與下一步 / Conclusions & Next (R8)
+
+1. **lazy2 的雜湊鏈 + hash5 + probe 組合已接近此架構的速度天花板**
+   （claw 28.8s、llama 10.5s）；BT 路線正式關閉。
+2. optimal 提速唯一剩餘大項：**DP 松弛 SIMD 化**（R4 候選 #2）——
+   dense 區（長度 4..64）以 SIMD4<Int32> 一次松弛 4 個 cell。
+3. 歸因方法論不變：資料集快照凍結後才做 knob A/B
+   （claw-code 本輪又漂移：zstd 391→400M）。
+4. 現況定位（本輪同機數據）：lazy2 距 zstd 比率 +6.3–8.0%、
+   時間 2.6–8.1 倍；optimal 距 zstd +1.5–4.3%、解壓快 1.8–3.8 倍。
+
+---
+
 # 第六輪：歸因調參（2026-06-13）/ Round 6: Attribution Tuning
 
 ## 本輪改動 / Changes（依 R5 的 R6 建議落地）
