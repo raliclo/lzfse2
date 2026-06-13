@@ -2,6 +2,70 @@
 
 ---
 
+# 第十八輪：R17 改動的乾淨環境重測（2026-06-14）/ Round 18: Clean-Environment Re-measurement of R17
+
+## 本輪目的 / Purpose
+
+無代碼變更。R17 的兩次量測都受系統負載污染（連 tgz 都掉到 21 MB/s）。本輪在系統較閒置時重跑，取得可信的絕對 MB/s，並回答「熵閘調參（7.2 / 35% / 三點取樣 / 文字保護）到底有沒有讓 optimal 變快」。
+
+No code change. R17's measurements were load-contaminated; this clean re-run answers whether the entropy-gate tuning actually speeds up optimal.
+
+## 量測完整度 / Completeness
+
+✅ 兩資料集各 8 格式壓縮+解壓、7/7 一致；lzfse-test 全綠；warm-cache 生效。本輪系統較閒置——tgz/zstd/bvx3 已回到正常速度（claw tgz 48.35、zstd 460、bvx3 511 MB/s），確認非負載輪。
+
+## 實測結果 / Measured Results（MB/s，bytes/ns）
+
+### 壓縮 MB/s（焦點 optimal）vs R16
+
+| 格式 | claw R16 | claw R18 | llama R16 | llama R18 |
+| --- | ---: | ---: | ---: | ---: |
+| **Optimal** | 25.36 | **28.02** | 46.92 | **54.08** |
+| **Lazy2**（未受熵閘影響） | 47.36 | **54.58** | 129.59 | **158.74** |
+| TGZ | 47.61 | 48.35 | 55.49 | 64.93 |
+| ZSTD | 359.44 | 460.12 | 390.32 | 453.21 |
+
+> ⚠️ optimal 看似 +10～15%，但 **lazy2（與熵閘無關）也同步 +15～22%、llama tgz +17%**——代表本輪整機比 R16 更快（系統狀態差異），**並非熵閘帶來的淨加速**。跨輪絕對值仍不能直接歸因。
+
+### 同輪內相對：Optimal / Lazy2 時間倍數（可信指標）
+
+| 資料集 | R16 倍數 | R18 倍數 |
+| --- | ---: | ---: |
+| claw-code | 1.87× | **1.95×** |
+| llama.cpp | 2.76× | **2.93×** |
+
+> 關鍵：同輪內 optimal 相對 lazy2 的時間倍數 R18 **不降反略升**。原因是 R17 的**文字保護（isText）正確地把文字段留在 DP**（R16 的 7.5 門檻無文字保護，可能誤跳了部分文字段而「偷快」）。換言之，熵閘調參對這兩個資料集（claw=文字、llama=原始碼為主）**沒有可量測的淨加速**。
+
+### 壓縮比（deterministic，跨多輪完全可再現）
+
+| 格式 | claw | llama |
+| --- | ---: | ---: |
+| **Optimal** | **0.8590** | **0.9416** |
+| **Lazy2** | 0.9020 | 0.9583 |
+
+> 與 R16/R17 完全一致。**文字保護未犧牲比率**——這是 R17 改動真正的價值：在不動比率下修正了 R16 可能的文字誤判。Apple/ZSTD 大小本來就會隨資料集微幅浮動。
+
+## Lazy2 vs Optimal 改善策略 / Strategy
+
+1. **熵閘對這些資料集效益有限**：claw 為文字（熵 < 7.2，且文字保護強制 DP）→ optimal 無法靠跳 DP 加速；llama 雖含二進位，但 optimal 相對 lazy2 仍要 2.9× 時間。熵閘的真正價值在「**比率中立的安全網**」（避免擬亂段浪費 DP、且不誤傷文字），而非通用加速。
+2. **optimal 的速度瓶頸在 DP 本身**：claw optimal 28 MB/s vs lazy2 55 MB/s vs zstd 460 MB/s。要逼近 zstd，必須對 DP 核心熱迴圈動刀。
+3. **lazy2 仍是速度/比率甜蜜點**：claw 54.58 MB/s、比率 0.9020；多數情境優於 optimal 的 1.95× 代價換 4.3% 比率。
+
+## 結論 / Conclusions
+
+1. **乾淨輪確認**：本輪非負載輪，絕對 MB/s 可信。
+2. **熵閘調參無淨加速**：同輪內 optimal/lazy2 倍數未降（claw 1.95×、llama 2.93×）；optimal 的絕對提升來自系統狀態而非演算法。
+3. **比率零退步且可再現**：optimal claw 0.8590 / llama 0.9416 跨輪一致；文字保護是 R17 的實質收穫。
+4. **方向確立**：optimal 加速須走 DP 核心 UnsafePointer/SIMD，而非繼續調熵閘參數。
+
+## 下一輪計畫 / Next (R19)
+
+- **DP 核心 UnsafePointer 化 + SIMD**：把 `lzParseOptimal` 的 price/match 熱迴圈全面指標化、消除 Swift bounds-check 與 ARC 開銷，目標 claw optimal 28→40+ MB/s。
+- **編碼器調度器**：依區塊熵自動選 bvx1/bvx2/bvx3，導入 -lazy/-optimal。
+- **熵閘定位為安全網**：保留 7.2/35%/三點/文字保護（比率中立），不再以此為加速主軸。
+
+---
+
 # 第十七輪：熵閘調參 + 三點取樣 + 文字保護 + warm-cache（2026-06-14）/ Round 17: Entropy-Gate Tuning + 3-Point Sampling + Text Guard + Warm-Cache
 
 ## 本輪目的 / Purpose

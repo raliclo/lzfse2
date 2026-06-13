@@ -16,7 +16,7 @@ apps=$(osascript -e 'tell application "System Events" to get name of (every proc
 print -r -- "$apps" | while IFS= read -r app; do
   [[ -z "$app" ]] && continue
   case "$app" in
-    Google Chrome) ;;        # Chrome 作後援重啟（不會詢問是否關閉分頁）
+    'Google Chrome') ;;   # Chrome 作後援重啟（不會詢問是否關閉分頁）
     Code) ;;              # Code 跑本腳本
     Finder) ;;            # Finder 作後援重啟
     *) killall -9 "$app" 2>/dev/null ;;
