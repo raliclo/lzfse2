@@ -482,10 +482,12 @@ function lzfseX() {
     echo "執行中: tar -cf - $1 | lzfse -encode -si -o $1.$extension -algo $algo $flags"
     tar -cf - "$1" | lzfse -encode -si -o "$1.$extension" -algo "$algo" ${=flags}
     
-    # 顯示檔案大小
+    # 顯示檔案大小（含精確 byte 數，供 benchmark 計算精確壓縮比）
+    # Show sizes (incl. exact bytes so benchmarks can compute precise ratios)
     echo "--- 壓縮資訊 ---"
     du -sh "$1"
     du -sh "$1.$extension"
+    echo "[SIZE] $1.$extension: $(stat -f%z "$1.$extension" 2>/dev/null || stat -c%s "$1.$extension") bytes"
 }
 
 function getzstd() {
@@ -545,6 +547,21 @@ function lz4bench() {
     
     echo $'\n[Info] 測試 zstd  壓縮 / Testing zstd compression:'
     nanoTimeElapsed getzstd $1
+
+    # --------------------------------------------------------------------------
+    # 1b. 壓縮產物精確大小摘要（lazy2/optimal 等的壓縮比以此為準）
+    #     Exact compressed sizes summary (authoritative for ratio calculation)
+    # --------------------------------------------------------------------------
+    echo $'\n[Info] 壓縮產物精確大小 / Exact compressed sizes:'
+    echo "[SIZE] $1 (raw): $(du -sk "$1" | awk '{print $1}') KB"
+    local size_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.bvx3.lazy2" "$1.lzfse.bvx3.optimal" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
+    for f in "${size_targets[@]}"; do
+        if [[ -f "$f" ]]; then
+            echo "[SIZE] $f: $(stat -f%z "$f" 2>/dev/null || stat -c%s "$f") bytes"
+        else
+            echo "[SIZE] $f: MISSING（壓縮產物不存在 / artifact not found）"
+        fi
+    done
 
     echo $'\n=================================================='
     echo $'[Info] 開始評測解壓縮速度 / Benchmarking decompression score:'

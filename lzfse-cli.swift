@@ -938,7 +938,12 @@ public enum LZFSEv1 {
                 }
                 let end = i + m0
                 i += 1
-                while i < min(end, n - 4) { insert(i); i += 1 }
+                // R6：LZ4 HC 風格 insert-stride——長 match（≥256）體內每 2 格插入。
+                // 插入流量減半且鏈更短（後續搜尋同步加速）；
+                // 長 match 體內相鄰位置候選價值高度重疊，比率風險極小。
+                // LZ4 HC-style stride insertion inside long match bodies.
+                let step = m0 >= 256 ? 2 : 1
+                while i < min(end, n - 4) { insert(i); i += step }
                 i = end
                 litStart = end
             }
@@ -978,8 +983,10 @@ public enum LZFSEv1 {
     static let optDenseLen = 64               // 逐長度松弛上限；以上改 stride-4 + 精確 maxLen（R3）
     static let optHugeLen = 256               // R5：≥ 此長度松弛改 stride-16（長 match 相鄰長度
                                               //     價差極小，DP 落點密度可再降）
-    static let optRepStrongLen = 64           // R5：bestRep ≥ 此值 → 鏈走訪降至荒漠深度
+    static let optRepStrongLen = 128          // R5：bestRep ≥ 此值 → 鏈走訪降至荒漠深度
                                               //     （強 rep 在 DP 價格下幾乎必勝，深搜浪費）
+                                              // R6：64→128 回調——claw optimal 比率 +3.5% 的
+                                              //     頭號嫌疑（64 對文字資料過於激進）
     static let optBarrenStreak = 32           // 連續無 match 位置數 ≥ 此值 → 降深度搜尋（R3）
     static let optBarrenDepth = 4             // 荒漠區段的鏈走訪深度（R3）
 

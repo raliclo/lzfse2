@@ -2,6 +2,54 @@
 
 ---
 
+# 第六輪：歸因調參（2026-06-13）/ Round 6: Attribution Tuning
+
+## 本輪改動 / Changes（依 R5 的 R6 建議落地）
+
+| 項目 | 改動 | 理由 |
+| --- | --- | --- |
+| optRepStrongLen | 64 → 128 | claw optimal 比率 +3.5% 的頭號嫌疑回調 |
+| lazy2 insert-stride（新） | match ≥ 256 體內每 2 格插入 | LZ4 HC 風格：插入流量減半、鏈更短 |
+
+zshrc.sh 經驗證已完整支援 optimal（extract/lzfseX/lz4bench），無需修改。
+
+## 實測結果（07:50–07:59）/ Measured Results
+
+✅ 112 項自我測試全綠；解壓一致性 7/7 × 2。
+小樣本：lazy2 30453B、optimal 29041B——與 R5 完全相同（改動對小樣本中性）。
+
+⚠️ 兩資料集再度變動（未改動的 bvx3：claw 453→447、llama 570→583；
+zstd：403→395、541→534），且本輪 ambient 負載偏高
+（zstd 耗時 +13–21%）。跨輪比較需經 ambient 校正、且大小僅供方向參考。
+
+| 模式 | claw-code | llama.cpp |
+| --- | --- | --- |
+| lazy2 | 433M / 29.3s（校正後 ≈25.8s） | 570M / 10.4s |
+| optimal | 417M / 59.5s（校正後 ≈52.5s） | 544M / 31.9s |
+| 同輪 zstd -9 | 395M / 3.5s | 534M / 4.5s |
+
+判讀 / Reading:
+
+- **optRepStrongLen 64→128 對比率無感**（claw optimal 417M 不動、
+  llama 544M 不動）：claw 的 +3.5–5.6% 差距**並非**此 knob 造成。
+  嫌疑移向 optHugeLen（stride-16）或 R3 既有的 depth16/suff192，
+  也可能根本是資料集難度本身。
+- **insert-stride 中性**：lazy2 大小跟著未改動的 bvx3 同幅漂移（+1M 內），
+  時間校正後持平——插入成本不是 lazy2 的瓶頸（鏈走訪才是）。
+- 兩輪「歸因實驗」均被資料集漂移干擾——活目錄（claw-code 是工作區、
+  llama.cpp 會更新）做 A/B 不可行。
+
+## 下一輪建議 / Next (R7)
+
+1. **凍結資料集快照**（最優先）：`tar -cf claw-code.snapshot.tar claw-code`
+   一次，之後 benchmark 全部對快照 tar 檔執行——資料集漂移歸零，
+   歸因實驗才有效。
+2. 快照固定後重做 optHugeLen / depth / sufficientLen 的單變數 A/B。
+3. lazy2 速度天花板（鏈走訪）：BT match finder（R4 候選 #1）。
+4. optimal 速度：DP 松弛 SIMD 化（R4 候選 #2）。
+
+---
+
 # 第五輪：lazy2/optimal 提速調參（2026-06-13）/ Round 5
 
 ## 本輪改動 / Changes（依 R4 候選策略落地）
