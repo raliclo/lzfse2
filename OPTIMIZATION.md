@@ -2,6 +2,62 @@
 
 ---
 
+# 第十輪：基線再確認 + 磁碟滿載警告（2026-06-13）/ Round 10: Baseline Re-confirmation
+
+## 本輪目的 / Purpose
+
+無代碼變更——再次確認 R8/R9 基線穩定，並記錄本輪磁碟滿載問題。
+
+## 實測結果（10:53–11:02）/ Measured Results
+
+⚠️ **磁碟空間在測試中用盡**（llama.cpp 解壓縮測試後段空間不足 → xbenchTest 共 14G，已清理）：
+- claw-code 全部 8 格式壓縮與解壓縮完成 ✓
+- llama.cpp 全部 8 格式壓縮完成 ✓；解壓縮至 ZSTD 時磁碟爆滿，**ZSTD 解壓失敗**
+- 已執行 `rm -rf xbenchTest` 釋出 14G 空間
+
+⚠️ **llama.cpp 解壓縮數據受磁碟壓力影響**（BVX3 12.2s、Apple 11.1s 等異常偏高）；
+claw-code 的較晚格式（Apple 9.1s）也可能受熱節流影響。
+**解壓縮 MB/s 本輪僅供趨勢參考，不作絕對比較。**
+
+### 壓縮 MB/s（可靠）
+
+| 格式 | claw R9 | claw R10 | 趨勢 | llama R9 | llama R10 | 趨勢 |
+| --- | ---: | ---: | --- | ---: | ---: | --- |
+| Lazy2 | 45.9 | **46.6** | ≈持平 | 118.3 | **121.5** | ≈持平 |
+| Optimal | 22.4 | **22.8** | ≈持平 | 37.6 | **37.6** | 持平 |
+| ZSTD（參考） | 376.0 | **383.1** | ≈持平 | 297.4 | **236.2** | ⚠️偏慢（磁碟寫入壓力） |
+
+### 壓縮大小（穩定）
+
+| 格式 | claw R9 | claw R10 | llama R9 | llama R10 |
+| --- | ---: | ---: | ---: | ---: |
+| Optimal | 417M | **417M** ✓ | 544M | **544M** ✓ |
+| Lazy2 | 432M | **432M** ✓ | 571M | **571M** ✓ |
+
+壓縮比與 R9 完全一致，確認 **基線穩定、無代碼回退**。
+
+## 結論 / Conclusions
+
+1. **壓縮 MB/s 穩定**（±3% noise）：Optimal claw 22.4→22.8、llama 37.6；Lazy2 claw 45.9→46.6、llama 118→121。
+2. **壓縮比不變**：Optimal 417M/544M、Lazy2 432M/571M。
+3. ⚠️ **解壓縮數據不可靠**（磁碟壓力/熱節流），請以 R9 數據作為解壓縮參考基準。
+4. **下一步仍是 profiling**：壓縮 MB/s 改善需先量測熱點。
+
+## 下一輪計畫 / Next (R11)
+
+**執行 profiling，然後依熱點決定方向：**
+
+```sh
+cd ~/proj/lzfse2
+open run_profile.command   # 取 claw-code bvx3 -optimal 20 秒樣本
+# 完成後查看 profile-optimal.txt
+```
+
+⚠️ **磁碟管理**：下次 benchmark 前，先確認有 ≥25G 可用空間（xbenchTest 佔 ~18G）。
+可在 benchmark.sh 執行後立即 `rm -rf ~/proj/lzfse2/xbenchTest` 清理。
+
+---
+
 # 第九輪：基線驗證 + MB/s 比較基準確立（2026-06-13）/ Round 9: Baseline Verification
 
 ## 本輪目的 / Purpose
