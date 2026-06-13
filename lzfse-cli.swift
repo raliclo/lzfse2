@@ -972,6 +972,9 @@ public enum LZFSEv1 {
     //   - 自適應價格：literal / M / D 符號直方圖每段重建一次（log2 → 定點）
     //   - 巨型 match（≥ optSufficientLen）直接貪婪提交並截斷 DP 段——
     //     既是 zstd 的 sufficient_len 策略，也是病態輸入（等長 run）的成本上界
+    //   - R9 速度：① 動態搜尋深度——每段「搜尋預算」(= segLen×2) 監控累計鏈走訪
+    //     步數，超支即砍半剩餘深度；② 二段式——每段先輕量 greedy 估覆蓋率，
+    //     低於門檻（二進位/隨機）整段走 greedy、完全不啟動 DP。
     //
     // 正確性已以 Python 模型驗證：300 組隨機分段/閾值往返 + 格式約束全過；
     // 模型上對 text/structured 資料相對 lazy 解析有 9–10% 的成本下降。
@@ -989,6 +992,14 @@ public enum LZFSEv1 {
                                               //     頭號嫌疑（64 對文字資料過於激進）
     static let optBarrenStreak = 32           // 連續無 match 位置數 ≥ 此值 → 降深度搜尋（R3）
     static let optBarrenDepth = 4             // 荒漠區段的鏈走訪深度（R3）
+
+    // R9：動態搜尋深度（Adaptive Search Depth）。zstd 慢太多的根因是難壓段
+    // 仍付滿額鏈走訪成本。以「搜尋預算」上限（區塊大小的倍數）監控累計鏈走訪
+    // 步數，超支即把剩餘搜尋深度砍半，確保不會「為 0.1% 比率燒 50% 時間」。
+    static let optBudgetMultiplier = 2        // 預算 = segLen × 此倍數（zstd 式成本上界）
+    // R9：每段熵預篩——以輕量 greedy 掃描估重複率。低於門檻者整段直接 greedy 發射、
+    // 不啟動 DP（二進位/隨機資料在第一階段就被判定「不值得深究」）。
+    static let optPrescreenMinCoverage = 28   // greedy match 覆蓋率（%）門檻；以下跳過 DP
 
     static func lzParseOptimal(_ input: [UInt8],
                                maxL: Int, maxM: Int,
@@ -1191,16 +1202,106 @@ public enum LZFSEv1 {
                 return i
             }
 
+            /// 預篩段的單一 match 發射：等同 emitSteps 對一個 match 步的處理
+            /// （literal 補發 + L/M/D 統計 + rep 歷史推進），供 greedy 快路徑共用。
+            func emitGreedy(at i: Int, len: Int, dist: Int) {
+                literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                count: i - litStart))
+                var j = litStart
+                while j < i { litCount[Int(p[j])] &+= 1; j += 1 }
+                pushRun(l: i - litStart, m: len, d: dist)
+                mSymCount[symbol(forValue: Int32(min(len, maxM)), base: lm3BaseValue)] &+= 1
+                if dist == rep0 { dSymCount[0] &+= 1 }
+                else if dist == rep1 { dSymCount[1] &+= 1 }
+                else if dist == rep2 { dSymCount[2] &+= 1 }
+                else { dSymCount[dSym(dist)] &+= 1 }
+                if dist != rep0 {
+                    if dist == rep1 { swap(&rep0, &rep1) }
+                    else if dist == rep2 { let t = rep2; rep2 = rep1; rep1 = rep0; rep0 = t }
+                    else { rep2 = rep1; rep1 = rep0; rep0 = dist }
+                }
+                litStart = i + len
+            }
+
             while segStart < n {
                 rebuildPrices()
                 let segEnd = min(segStart + segCap, n)
                 let segLen = segEnd - segStart
+
+                // R9：熵預篩（Two-Pass 第一階段）。輕量 greedy 掃描估算本段 match 覆蓋率；
+                // 低於門檻（二進位/隨機）→ 整段直接 greedy 發射、不啟動 DP。
+                if segLen >= 4096 {
+                    // 第一遍：純估算覆蓋率（不改動 head/chain，避免污染 DP 的不變式）
+                    var covered = 0
+                    var probe = segStart
+                    let probeEnd = segEnd - 4
+                    var localHead = [Int32](repeating: -1, count: 1 << 14)
+                    while probe <= probeEnd {
+                        let hv = Int((load32(probe) &* 2654435761) >> (32 - 14))
+                        let c = Int(localHead[hv]); localHead[hv] = Int32(probe)
+                        if c >= 0, load32(c) == load32(probe) {
+                            let l = 4 + matchLength(c + 4, probe + 4, limit: segEnd - probe - 4)
+                            covered += l
+                            probe += l
+                        } else {
+                            probe += 1
+                        }
+                    }
+                    let coverage = covered * 100 / segLen
+                    if coverage < optPrescreenMinCoverage {
+                        // 低重複段：DP 不划算 → greedy + rep 感知，直接發射這一段。
+                        // 沿用 DP 的 rep 歷史與統計累計（emitGreedy 內含），維持跨段一致。
+                        var i = segStart
+                        while i + 4 <= segEnd {
+                            let h = hash4(min(i, n - 5))
+                            let cand = Int(head[h])
+                            insert(i)
+                            var bl = 0, bd = 0
+                            // rep 優先（match 限制在 segEnd 內，避免跨段後 litStart > segStart）
+                            let segLimit = max(0, segEnd - i - 4)
+                            for r in [rep0, rep1, rep2] where r > 0 && r <= i {
+                                if load32(i - r) == load32(i) {
+                                    let l = 4 + matchLength(i - r + 4, i + 4, limit: segLimit)
+                                    if l > bl { bl = l; bd = r }
+                                }
+                            }
+                            // 單一最近候選（greedy，僅 1 深度——預篩段不值得深搜）
+                            if bl < 4, cand >= 0, i - cand <= maxDist, load32(cand) == load32(i) {
+                                let l = 4 + matchLength(cand + 4, i + 4, limit: segLimit)
+                                if l >= 4 { bl = l; bd = i - cand }
+                            }
+                            if bl >= 4 {
+                                emitGreedy(at: i, len: bl, dist: bd)
+                                let end = i + bl
+                                i += 1
+                                while i < min(end, n - 4) { insert(i); i += 1 }
+                                i = end
+                            } else {
+                                i += 1
+                            }
+                        }
+                        // 段尾殘餘 literal 在下段或收尾統一發出（litStart 不動）
+                        if segEnd == n && litStart < n {
+                            literals.append(contentsOf:
+                                UnsafeBufferPointer(start: p + litStart, count: n - litStart))
+                            var j = litStart; while j < n { litCount[Int(p[j])] &+= 1; j += 1 }
+                            pushRun(l: n - litStart, m: 0, d: 1)
+                            litStart = n
+                        }
+                        segStart = segEnd
+                        continue
+                    }
+                }
+
                 cPrice.update(repeating: INF, count: segLen + 1)
                 cPrice[0] = 0
                 cR0[0] = Int32(rep0); cR1[0] = Int32(rep1); cR2[0] = Int32(rep2)
 
                 var cutT = -1, cutLen = 0, cutDist = 0
                 var barren = 0          // 連續無 match 的位置數（荒漠偵測，R3）
+                // R9：搜尋預算——累計鏈走訪步數；超支即砍半剩餘深度
+                var searchBudget = segLen * optBudgetMultiplier
+                var budgetExhausted = false
                 var t = 0
                 posLoop: while t < segLen {
                     let i = segStart + t
@@ -1291,6 +1392,9 @@ public enum LZFSEv1 {
                         var depth = barren >= optBarrenStreak ? optBarrenDepth : optSearchDepth
                         // R5：強 rep 在 DP 價格下幾乎必勝 → 鏈走訪降深度
                         if bestRep >= optRepStrongLen { depth = min(depth, optBarrenDepth) }
+                        // R9：搜尋預算超支 → 剩餘段強制砍半深度（含荒漠下限保護）
+                        if budgetExhausted { depth = max(optBarrenDepth, depth >> 1) }
+                        let depth0 = depth
                         while c >= 0 && depth > 0 {
                             if c >= i { break }
                             let dd = i - c
@@ -1311,6 +1415,9 @@ public enum LZFSEv1 {
                             c = Int(chain[c])
                             depth -= 1
                         }
+                        // R9：把本次實際走訪步數計入預算
+                        searchBudget -= (depth0 - depth)
+                        if searchBudget <= 0 { budgetExhausted = true }
                         if frCount > 0 {
                             if Int(frLen[frCount - 1]) >= optSufficientLen {
                                 cutT = t
