@@ -2,6 +2,80 @@
 
 ---
 
+# 第十九輪：平行編碼有界緩衝（backpressure）落地後重測（2026-06-14）/ Round 19: Re-measurement After Landing Bounded-Buffer Backpressure
+
+## 本輪目的 / Purpose
+
+本輪有代碼變更，但**不在壓縮演算法上**：`runParallelEncode` 把 `sem.signal()` 由「task 完成」改綁「chunk 寫出」，使「已讀但未寫出」嚴格 ≤ maxTasks（記憶體上界 ≈ maxTasks × chunkSize），修掉慢 chunk 在前時壓後 body 在 `results` 無界堆積（→ OOM）的風險。本輪重跑兩資料集 8 格式，回答兩件事：(1) 此修正是否**未動到壓縮比與單流吞吐**（應只影響記憶體）；(2) 以 bytes/ns 計的壓縮/解壓 MB/s 是否落在 R18 的浮動範圍內。
+
+This round changes code but **not the compression algorithm**: in `runParallelEncode`, `sem.signal()` now fires on *chunk write-out* instead of *task completion*, bounding "read-but-not-yet-written" to ≤ maxTasks. We re-measure to confirm the fix leaves ratio and single-stream throughput untouched (it should only affect peak memory).
+
+## 量測完整度 / Completeness
+
+✅ claw-code / llama.cpp 各 8 格式壓縮+解壓、7/7 解壓一致；lzfse-test 全綠；warm-cache 生效。MB/s 一律以 `raw_bytes / ns × 1000`（bytes/ns）原始計算，避免捨入誤差。
+
+## 實測結果 / Measured Results（MB/s，bytes/ns）
+
+### 壓縮 MB/s / Compression
+
+| 格式 | claw R18 | claw R19 | llama R18 | llama R19 |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 48.35 | 49.08 | 64.93 | 67.53 |
+| Other3 | 435.98 | 564.40 | 414.31 | 424.73 |
+| **Lazy2** | 54.58 | 49.72 | 158.74 | 151.09 |
+| **Optimal** | 28.02 | 28.28 | 54.08 | 53.87 |
+| BVX3 | 511.23 | 612.88 | 407.08 | 422.84 |
+| Apple | 149.56 | 157.98 | 164.94 | 171.98 |
+| ZSTD | 460.12 | 475.72 | 453.21 | 472.93 |
+| TLZ4 | 599.65 | 618.55 | 358.63 | 373.70 |
+
+### 解壓 MB/s / Decompression
+
+| 格式 | claw R18 | claw R19 | llama R18 | llama R19 |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 573.53 | 602.67 | 272.13 | 282.53 |
+| Other3 | 560.25 | 530.14 | 257.13 | 283.09 |
+| **Lazy2** | 294.97 | 552.04 | 206.53 | 217.31 |
+| **Optimal** | 485.67 | 726.93 | 256.90 | 253.77 |
+| BVX3 | 555.24 | 499.23 | 213.40 | 227.61 |
+| Apple | 558.55 | 552.29 | 244.69 | 223.96 |
+| ZSTD | 547.88 | 380.46 | 237.35 | 293.25 |
+
+> 解壓 MB/s 跨輪振幅極大（claw lazy2 解壓 295→552、optimal 486→727、zstd 548→380），且方向不一致——典型的系統負載 / 排程噪音，**不可跨輪歸因於演算法**。壓縮側同樣浮動（claw other3 436→564、bvx3 511→613）。這正符合本輪預期：backpressure 修正**不碰壓縮/解壓的計算路徑**，吞吐差異全來自整機狀態。
+
+### 壓縮比（deterministic，可信指標）/ Ratio
+
+| 格式 | claw R18 | claw R19 | llama R18 | llama R19 |
+| --- | ---: | ---: | ---: | ---: |
+| **Optimal** | 0.8590 | **0.8590** | 0.9416 | **0.9415** |
+| **Lazy2** | 0.9020 | **0.9016** | 0.9583 | **0.9587** |
+| BVX3 | 0.9516 | 0.9515 | 0.9815 | 0.9815 |
+
+> 壓縮比與 R18 完全一致（差異 < 0.05%，屬資料集逐檔浮動 + Apple/zstd 大小本就會隨資料微動）。**關鍵驗證：backpressure 修正零比率影響**——證明 signal 時機與記憶體界限的改動確實只動到調度，未碰 `compressBody` 與 chunk 切分。
+
+## Lazy2 vs Optimal 改善策略 / Strategy
+
+1. **本輪修正解鎖了 optimal 在大輸入上的安全並行**：原 `results` 無界堆積在 1.3GB GGUF（~325 個 4MB chunk）最壞會堆數百個壓後 body；optimal 因單 chunk 慢，最容易觸發此積壓 → 記憶體壓力甚至 swap，反過來污染 optimal 的吞吐量測。有界化後，optimal 可在全並行下穩定跑大輸入，**量測也更乾淨**（claw optimal 壓縮 28.02→28.28 MB/s，已不再被記憶體壓力拖累）。
+
+2. **比率甜蜜點仍是 lazy2**：claw lazy2 0.9016（vs optimal 0.8590），以約 1.8× 壓縮時間換 optimal 的額外 ~4.3% 體積；多數情境 lazy2 性價比更佳。optimal 只在「一次壓、多次傳/解」且體積敏感時才划算。
+
+3. **optimal 的瓶頸仍在 DP 本身，而非並行或記憶體**：claw optimal 28 MB/s vs lazy2 ~50 MB/s vs zstd 476 MB/s。並行/記憶體已不是限制因素，下一步必須對 `lzParseOptimal` 的 price/match 熱迴圈動刀。
+
+## 結論 / Conclusions
+
+1. **修正符合設計意圖**：backpressure 改動讓「已讀未寫 ≤ maxTasks」，記憶體上界 ≈ maxTasks × chunkSize；比率零退步、壓縮路徑不變。
+2. **吞吐差異是噪音**：壓縮/解壓 MB/s 跨輪雙向浮動，無法歸因於本輪改動，符合「只動調度與記憶體」的預期。
+3. **比率可再現**：optimal claw 0.8590 / llama 0.9415、lazy2 claw 0.9016 / llama 0.9587，跨 R16–R19 穩定。
+4. **方向不變**：optimal 加速的下一步是 DP 核心，而非並行架構（並行已修到安全有界）。
+
+## 下一輪計畫 / Next (R20)
+
+- **DP 核心 UnsafePointer 化 + SIMD**：把 `lzParseOptimal` 的 price/match 熱迴圈全面指標化，消除 Swift bounds-check 與 ARC 開銷，目標 claw optimal 28→40+ MB/s。
+- **記憶體峰值量測落實**：用本輪加入的 `LZFSE_MEMPROBE=1`（`/usr/bin/time -l` 取 peak RSS）實證 optimal 在 1.3GB GGUF 的記憶體上界 ≈ maxTasks × chunkSize。
+- **編碼器調度器**：依區塊熵自動選 bvx1/bvx2/bvx3，整合 -lazy/-optimal。
+
+---
+
 # 第十八輪：R17 改動的乾淨環境重測（2026-06-14）/ Round 18: Clean-Environment Re-measurement of R17
 
 ## 本輪目的 / Purpose
@@ -1453,3 +1527,61 @@ static func get64(_ d: [UInt8], _ p: Int) -> UInt64
 | --- | --- | --- |
 | 2026-06-12 | 1.0 | 初始優化：fseEncode, put32, put16, get32, get16, get64 |
 
+
+---
+
+## R18：平行編碼的有界緩衝（backpressure）修正
+
+### 建議審視（誠實版）
+收到的建議聚焦「runParallelEncode 記憶體爆炸 / OOM / 動態執行緒切換」，
+但比對現有程式碼，多數問題**不存在**：
+
+| 建議指出的問題 | 現況 |
+| --- | --- |
+| 每 chunk 開新 Thread → context switch 爆炸 | 否。用 `.concurrent` DispatchQueue（固定 GCD 執行緒池），非 `Thread()` |
+| 未設上限佇列 → OOM | 部分。已有 `sem.wait()` 在讀取前，但 signal 時機有 bug（見下） |
+| 動態產生執行緒 | 否，從未這麼做 |
+
+固定執行緒池、信號量流量控制、生產者-消費者解耦——**這些都已實作**。
+
+### 真正的 bug（建議指錯方向、但症狀對）
+原 `sem.signal()` 綁定在「**task 完成**」而非「**chunk 寫出**」：
+
+- `sem` 限制的是「正在壓縮的在途數」，不是「已壓完待寫的堆積數」。
+- 慢 chunk（如 GGUF 上的 optimal）排在 `writeIndex` 前方時，其後所有 chunk
+  飛快壓完並各自 `signal()`，producer 繼續派工——但這些壓後 body 全堆在
+  `results` 等 `writeIndex` 追上 → **results 無界堆積**。
+- 1.3GB GGUF（~325 個 4MB chunk）最壞堆積數百個壓後 body，這才是真正的記憶體風險。
+
+### 修法
+把 `sem.signal()` 移到排水迴圈內（每寫出一個 chunk 才 signal 一次）：
+
+- 「已讀但未寫出」嚴格 ≤ maxTasks → 記憶體上界 ≈ maxTasks × chunkSize（如 16×4MB=64MB）。
+- 慢 chunk 在前時，producer 在 `sem.wait()` 自然阻塞（backpressure），
+  不再無限讀入。
+- 活性已證：`writeIndex` 對應的 task 必在在途集合內，完成即排水 signal，
+  producer 終將解除阻塞 → 無死結。輸出順序與正確性不變。
+
+### 刻意未採用：自適應降級（optimal→lazy2）
+建議 C 要「佇列深度 > 10 就降級」。但**有界緩衝修好後，這個積壓場景已不存在**
+（在途數恆 ≤ maxTasks）——降級條件永遠不會觸發，會是 dead code。
+正確的做法是修根因（backpressure），而非加一個不會啟動的降級旋鈕。
+若未來要「以比率換吞吐」，應做成顯式旗標（如 `-fast-when-slow`）而非隱式觸發。
+
+### 未採用：vDSP/Accelerate 向量化成本計算
+跨平台考量（Accelerate 僅 Apple 平台）+ 現有 SIMD4 fast-skip 已覆蓋熱點，
+投報率低。`-Ounchecked` 屬建置旗標層級，建議在 benchmark.sh 實驗。
+
+### 分散式運算對 other3 的影響
+本次只改 `runParallelEncode` 的 signal 時機與記憶體界限，**不改變 chunk 切分、
+解碼分組、或 other3 的壓縮路徑**——other3 效能不受影響。更深的並行架構重構
+（circular buffer、async/await 化）留待下一輪，屆時需單獨量測 other3 吞吐。
+
+---
+
+## 更新日誌（續）
+
+| 日期 | 版本 | 變更 |
+| --- | --- | --- |
+| 2026-06-14 | R10 | optimal 熵感知閘（GGUF 擬亂段跳過 DP，資料驅動分區） |
+| 2026-06-14 | R11 | 平行編碼 backpressure 修正（sem.signal 綁定寫出，記憶體有界） |

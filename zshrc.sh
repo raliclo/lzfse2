@@ -563,6 +563,20 @@ function lz4bench() {
     echo $'\n[Info] 測試 lzfseX bvx3_optimal 壓縮 / Testing lzfseX bvx3_optimal compression:'
     nanoTimeElapsed lzfseX $1 optimal
 
+    # R11 驗證（選用）：量測 optimal 壓縮的記憶體峰值，確認平行編碼 backpressure
+    # 修正後「已讀未寫 ≤ maxTasks」的有界記憶體（GGUF 慢 chunk 不再無界堆積）。
+    # 設 LZFSE_MEMPROBE=1 開啟；用 /usr/bin/time -l（macOS）取 maximum resident set size。
+    if [[ "$LZFSE_MEMPROBE" == "1" ]]; then
+        echo $'[Info] R11 記憶體峰值量測 (optimal) / Peak-RSS probe:'
+        if /usr/bin/time -l true 2>/dev/null; then
+            /usr/bin/time -l sh -c "tar -cf - '$1' | lzfse -encode -si -o '$1.memprobe.tmp' -algo bvx3 -optimal" 2>&1 \
+                | awk '/maximum resident set size/ {printf "[MEM] optimal peak RSS: %.1f MB\n", $1/1048576}'
+            rm -f "$1.memprobe.tmp"
+        else
+            echo "[MEM] /usr/bin/time -l 不可用（非 macOS？），略過記憶體量測"
+        fi
+    fi
+
     echo $'\n[Info] 測試 lzfseX bvx3 壓縮 / Testing lzfseX bvx3 compression:'
     nanoTimeElapsed lzfseX $1 bvx3
 

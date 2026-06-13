@@ -3343,6 +3343,9 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
                        strong: Bool = false, bvx3: Bool = false, lazy2: Bool = false,
                        optimal: Bool = false) {
     let maxTasks = max(2, ProcessInfo.processInfo.activeProcessorCount)
+    // 有界緩衝：sem 限制「已讀但尚未寫出」的 chunk 數 ≤ maxTasks。
+    // 關鍵——sem.signal() 綁定在「該 chunk 被寫出」而非「task 完成」，
+    // 否則慢 chunk 在前時，其後已壓完的 body 會在 results 無界堆積（→ OOM）。
     let sem = DispatchSemaphore(value: maxTasks)
     let lock = NSLock()
     var results: [Int: Data] = [:]
@@ -3355,8 +3358,6 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
 
     while true {
         // R4：pipe（tar | lzfse）可能短讀——累積讀滿 chunkSize 再派工。
-        // 滿塊保證：比率（視窗滿 4MiB）、每塊固定開銷、平行解碼分組都依賴它。
-        // Pipes may return short reads; accumulate a full chunk before dispatch.
         var data = Data(capacity: chunkSize)
         do {
             while data.count < chunkSize,
@@ -3370,23 +3371,25 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
         }
         if data.isEmpty { break }
 
-        sem.wait()                    // 流量控制：限制在途分塊數
+        sem.wait()                    // 流量控制：已讀未寫 ≤ maxTasks（綁定寫出端）
         let idx = readIndex           // 以值捕獲
         readIndex += 1
+
         group.enter()
         queue.async {
             let body = LZFSEv1.compressBody(data, strong: strong, bvx3: bvx3,
-                                            lazy2: lazy2, optimal: optimal)   // 區塊串，不含 bvx$
+                                            lazy2: lazy2, optimal: optimal)
             lock.lock()
             results[idx] = body
-            // 任一執行緒都可在鎖內依序排水，保證輸出順序
+            // 任一執行緒在鎖內依序排水；每寫出一個 chunk 才 signal 一次 sem，
+            // 使「已讀未寫」嚴格 ≤ maxTasks（記憶體上界 ≈ maxTasks × chunkSize）。
             while let r = results.removeValue(forKey: writeIndex) {
                 do { try output.write(contentsOf: r) }
                 catch { failure = failure ?? "\(error)" }
                 writeIndex += 1
+                sem.signal()          // ← 綁定寫出，而非 task 完成
             }
             lock.unlock()
-            sem.signal()
             group.leave()
         }
     }

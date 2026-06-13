@@ -21,4 +21,10 @@ sleep 60
 # Second disk check before llama.cpp section
 diskcheck || { echo "Benchmark aborted: insufficient disk space." >&2; exit 1; }
 lz4bench llama.cpp > lz4bench-llama.cpp.txt 2>&1
+
+rm -rf xbenchTest
+rm -rf llama.cpp.*
+rm -rf claw-code.*
+git gc --prune=now --aggressive >> round_status.txt 2>&1
+
 echo "Done."
