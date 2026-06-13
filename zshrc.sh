@@ -519,6 +519,16 @@ function lz4bench() {
         return 1
     fi
 
+    # 磁碟空間預檢（xbenchTest 峰值約 2 × 原始大小；建議保留 ≥25GB）
+    # Disk space pre-check (xbenchTest peaks at ~2× raw size; recommend ≥25GB free)
+    local avail_kb avail_gb
+    avail_kb=$(df -k . | tail -1 | awk '{print $4}')
+    avail_gb=$(( avail_kb / 1024 / 1024 ))
+    if (( avail_gb < 25 )); then
+        echo "[Warning] 磁碟可用空間僅 ${avail_gb}GB，建議 ≥25GB，否則解壓可能失敗！"
+        echo "[Warning] Only ${avail_gb}GB free — recommend ≥25GB to avoid disk-full failures."
+    fi
+
     echo $'[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試...\n'
 
     # --------------------------------------------------------------------------
@@ -529,7 +539,7 @@ function lz4bench() {
 
     echo $'\n[Info] 測試 lzfseX other3 壓縮 / Testing lzfseX other3 compression:'
     nanoTimeElapsed lzfseX $1 other3
-    
+
     echo $'\n[Info] 測試 lzfseX bvx3_lazy2 壓縮 / Testing lzfseX bvx3_lazy2 compression:'
     nanoTimeElapsed lzfseX $1 lazy2
 
@@ -544,7 +554,7 @@ function lz4bench() {
 
     echo $'\n[Info] 測試 tlz4  壓縮 / Testing tlz4 compression:'
     nanoTimeElapsed tlz4 $1
-    
+
     echo $'\n[Info] 測試 zstd  壓縮 / Testing zstd compression:'
     nanoTimeElapsed getzstd $1
 
@@ -568,37 +578,44 @@ function lz4bench() {
     echo $'=================================================='
 
     # --------------------------------------------------------------------------
-    # 2. 解壓縮測試 (整合記憶體監測)
+    # 2. 解壓縮測試 + 即時一致性驗證
+    #    每個格式解壓後立即核對 tgz 基準並清理，避免 xbenchTest 峰值過大導致磁碟爆滿
+    #    Decompression + inline consistency check: each format is verified then
+    #    immediately removed, keeping peak xbenchTest disk usage to ~2× raw size.
     # --------------------------------------------------------------------------
-    
-    # 定義解壓測試的目標清單
     local extract_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.bvx3.lazy2" "$1.lzfse.bvx3.optimal" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
-    
+    local base_dir="./xbenchTest/tgz"   # tgz 保留到最後作為比對基準
+    local is_first=true
+
     for target in "${extract_targets[@]}"; do
         local test_dir="./xbenchTest/${target##*.}"
         mkdir -p "$test_dir" > /dev/null 2>&1
         cp "$target" "$test_dir" > /dev/null 2>&1
-        
+
         echo $'\n[Info] 測試 '$target' 解壓:'
         (
             cd "$test_dir" > /dev/null 2>&1
             rm -rf $1 > /dev/null 2>&1
-            nanoTimeElapsed extract "$target"        )
+            nanoTimeElapsed extract "$target"
+        )
+
+        # 即時一致性核對 + 立即清理（tgz 基準保留到所有格式完成）
+        # Inline consistency check + immediate cleanup (tgz base kept until end)
+        if $is_first; then
+            is_first=false   # tgz 作為基準，跳過自比對
+        else
+            diff -rq "$base_dir/$1" "$test_dir/$1" > /dev/null 2>&1 && \
+                echo "[Success] $target 解壓內容與 tgz 一致！" || \
+                echo "[Warning] $target 解壓內容與 tgz 不一致！"
+            rm -rf "$test_dir"   # 立即釋放此格式的解壓空間
+        fi
     done
 
     # --------------------------------------------------------------------------
-    # 3. 環境清理與驗證
+    # 3. 最終清理 / Final cleanup
     # --------------------------------------------------------------------------
-    echo $'\n[Info] 驗證解壓內容一致性...'
-    local base_dir="./xbenchTest/tgz/$1"
-    for dir in ./xbenchTest/*; do
-        if [[ "$dir" != *"tgz"* ]]; then
-            diff -rq "$base_dir" "$dir/$1" > /dev/null 2>&1 && \
-            echo "[Success] $dir 解壓內容與 tgz 一致！" || \
-            echo "[Warning] $dir 解壓內容與 tgz 不一致！"
-        fi
-    done
-    
+    rm -rf "./xbenchTest"
+
     echo $'\n[Info] 基準測試完成！ / Benchmark finished!'
 }
 
