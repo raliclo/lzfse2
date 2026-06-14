@@ -6,52 +6,45 @@
 
 ## 本輪目的 / Purpose
 
-本輪有代碼變更，但**不在壓縮演算法上**：`runParallelEncode` 把 `sem.signal()` 由「task 完成」改綁「chunk 寫出」，使「已讀但未寫出」嚴格 ≤ maxTasks（記憶體上界 ≈ maxTasks × chunkSize），修掉慢 chunk 在前時壓後 body 在 `results` 無界堆積（→ OOM）的風險。為排除單次量測偏差，本輪以**同一份程式碼連跑兩次**（R19a、R19b 重測）兩資料集 8 格式，回答：(1) 此修正是否**未動到壓縮比與單流吞吐**（應只影響記憶體）；(2) 以 bytes/ns 計的 MB/s 在「同碼重跑」之間到底浮動多大——藉此把「演算法效應」與「整機噪音」分離。
+本輪有代碼變更，但**不在壓縮演算法上**：`runParallelEncode` 把 `sem.signal()` 由「task 完成」改綁「chunk 寫出」，使「已讀但未寫出」嚴格 ≤ maxTasks（記憶體上界 ≈ maxTasks × chunkSize），修掉慢 chunk 在前時壓後 body 在 `results` 無界堆積（→ OOM）的風險。為排除單次量測偏差，本輪以**同一份程式碼連跑三次**（R19a / R19b / R19c）兩資料集 8 格式，回答：(1) 此修正是否**未動到壓縮比與單流吞吐**（應只影響記憶體）；(2) 以 bytes/ns 計的 MB/s 在「同碼重跑」之間到底浮動多大——藉此把「演算法效應」與「整機噪音」分離。
 
-This round changes code but **not the compression algorithm**. To separate algorithm effect from machine noise, we ran the *same binary twice* (R19a, R19b). MB/s is computed as `raw_bytes / ns × 1000` (bytes/ns).
+This round changes code but **not the compression algorithm**. To separate algorithm effect from machine noise, we ran the *same binary three times* (R19a/b/c). MB/s is computed as `raw_bytes / ns × 1000` (bytes/ns).
 
 ## 量測完整度 / Completeness
 
-✅ claw-code / llama.cpp 各 8 格式壓縮+解壓、7/7 解壓一致；lzfse-test 112/112 全綠（0 ✗）；warm-cache 生效。下表 **R19** 欄為最新重測（R19b，與 `BenchMarkResult.csv` 一致）。
+✅ claw-code / llama.cpp 各 8 格式壓縮+解壓、7/7 解壓一致；lzfse-test 112/112 全綠（0 ✗）；warm-cache 生效。下表 **R19c** 欄為最新重測（與 `BenchMarkResult.csv` 一致），另列「三輪範圍」量化同碼浮動。三輪皆**未啟用 probe**；R20 已備妥 `LZFSE_MEMPROBE=1`（見下）。
 
 ## 實測結果 / Measured Results（MB/s，bytes/ns）
 
-### 壓縮 MB/s / Compression（R19 = 最新重測 R19b）
+### 壓縮 MB/s（主指標：三輪穩定）/ Compression — the reliable metric
 
-| 格式 | claw R18 | claw R19 | llama R18 | llama R19 |
-| --- | ---: | ---: | ---: | ---: |
-| TGZ | 48.35 | 51.44 | 64.93 | 68.00 |
-| Other3 | 435.98 | 481.41 | 414.31 | 440.56 |
-| **Lazy2** | 54.58 | 52.62 | 158.74 | 148.01 |
-| **Optimal** | 28.02 | 28.82 | 54.08 | 52.89 |
-| BVX3 | 511.23 | 499.16 | 407.08 | 418.99 |
-| Apple | 149.56 | 157.07 | 164.94 | 170.73 |
-| ZSTD | 460.12 | 481.25 | 453.21 | 466.17 |
-| TLZ4 | 599.65 | 602.99 | 358.63 | 366.08 |
+| 格式 | claw R19c | claw 三輪範圍 | llama R19c | llama 三輪範圍 |
+| --- | ---: | :--- | ---: | :--- |
+| TGZ | 51.41 | 49.1–51.4 (±5%) | 68.35 | 67.5–68.3 (±1%) |
+| Other3 | 508.51 | 481–564 (±16%) | 440.07 | 425–441 (±4%) |
+| **Lazy2** | **53.34** | 49.7–53.3 (±7%) | **154.73** | 148–155 (±4%) |
+| **Optimal** | **29.53** | 28.3–29.5 (±4%) | **53.57** | 52.9–53.9 (±2%) |
+| BVX3 | 621.72 | 499–622 (±21%) | 418.65 | 419–423 (±1%) |
+| Apple | 160.00 | 157–160 (±2%) | 170.98 | 171–172 (±1%) |
+| ZSTD | 488.36 | 476–488 (±3%) | 468.64 | 466–473 (±1%) |
+| TLZ4 | 638.66 | 603–639 (±6%) | 374.58 | 366–375 (±2%) |
 
-### 解壓 MB/s / Decompression（R19 = 最新重測 R19b）
+> **壓縮 MB/s 是穩定、可比的指標**：focus 的 optimal / lazy2 三輪浮動僅 ±2–7%。claw optimal 三輪 28.3 / 28.8 / 29.5 MB/s，lazy2 49.7 / 52.6 / 53.3 MB/s——這是真實的演算法吞吐。
 
-| 格式 | claw R18 | claw R19 | llama R18 | llama R19 |
-| --- | ---: | ---: | ---: | ---: |
-| TGZ | 573.53 | 624.60 | 272.13 | 284.70 |
-| Other3 | 560.25 | 707.48 | 257.13 | 264.68 |
-| **Lazy2** | 294.97 | 696.91 | 206.53 | 216.96 |
-| **Optimal** | 485.67 | 736.20 | 256.90 | 213.01 |
-| BVX3 | 555.24 | 429.80 | 213.40 | 256.04 |
-| Apple | 558.55 | 600.85 | 244.69 | 241.49 |
-| ZSTD | 547.88 | 1059.41 | 237.35 | 290.75 |
+### 解壓 MB/s（同碼三輪噪音極大，不可比）/ Decompression — too noisy to compare
 
-### ⚠️ 同碼重跑的解壓噪音（claw，R19a vs R19b，程式碼完全相同）/ Same-Binary Decode Noise
+| 格式（claw） | 三輪範圍 | 變異 |
+| --- | :--- | ---: |
+| **ZSTD** | 380.5 – **1059.4** | **±88%** |
+| BVX3 | 429.8 – 672.3 | ±45% |
+| **Optimal** | 467.4 – 736.2 | ±42% |
+| Other3 | 530.1 – 707.5 | ±28% |
+| **Lazy2** | 545.7 – 696.9 | ±25% |
+| TLZ4 | 678.7 – 862.9 | ±24% |
+| Apple | 552.3 – 681.7 | ±21% |
+| TGZ | 601.8 – 624.6 | ±4% |
 
-| 格式 | R19a | R19b | 變動 |
-| --- | ---: | ---: | ---: |
-| **ZSTD** | 380.46 | **1059.41** | **×2.78** |
-| Other3 | 530.14 | 707.48 | ×1.33 |
-| **Lazy2** | 552.04 | 696.91 | ×1.26 |
-| BVX3 | 499.23 | 429.80 | ×0.86 |
-| **Optimal** | 726.93 | 736.20 | ×1.01 |
-
-> **這是本輪最有力的證據**：兩次重跑跑的是**同一個 binary、同一份資料**，解壓 MB/s 卻可差到 **2.78 倍**（claw zstd 380→1059），方向也不一致。證明解壓吞吐主要由 OS page-cache 命中率與排程決定，**單次解壓 MB/s 跨輪不可比、不可歸因於演算法**。壓縮側較穩（optimal 28.0→28.8、lazy2 ~50 上下），但仍有 ±10% 浮動。因此唯一可信的速度指標是**同輪內**的相對量（如 optimal/lazy2 時間倍數）。
+> **這是本輪最有力的證據**：三次跑的是**同一個 binary、同一份資料**，claw zstd 解壓 MB/s 卻在 380 ↔ 1059 間擺盪（**±88%**），optimal / bvx3 也達 ±42–45%，方向毫無規律。證明解壓吞吐主要由 OS page-cache 命中率與排程決定，**單次解壓 MB/s 跨輪不可比、不可歸因於演算法**。對照壓縮側僅 ±1–7%——故本報告一律以**壓縮 MB/s + 同輪內相對量**為準，解壓只作參考。
 
 ### 壓縮比（deterministic，可信指標）/ Ratio
 
@@ -61,37 +54,37 @@ This round changes code but **not the compression algorithm**. To separate algor
 | **Lazy2** | 0.9020 | **0.9016** | 0.9583 | **0.9587** |
 | BVX3 | 0.9516 | 0.9515 | 0.9815 | 0.9815 |
 
-> 壓縮後 byte 數在 R19a / R19b **完全相同**（確定性壓縮），與 R18 差異 < 0.05%（屬資料集逐檔浮動 + Apple/zstd 大小本就會隨資料微動）。**關鍵驗證：backpressure 修正零比率影響**——signal 時機與記憶體界限的改動確實只動到調度，未碰 `compressBody` 與 chunk 切分。
+> 壓縮後 byte 數在 R19a / R19b / R19c **三輪完全相同**（確定性壓縮），與 R18 差異 < 0.05%（屬資料集逐檔浮動 + Apple/zstd 大小本就會隨資料微動）。**關鍵驗證：backpressure 修正零比率影響**——signal 時機與記憶體界限的改動確實只動到調度，未碰 `compressBody` 與 chunk 切分。
 
-### 同輪內相對：Optimal / Lazy2 壓縮時間倍數（可信）/ Within-Run Ratio
+### 同輪內相對：Optimal / Lazy2 壓縮時間倍數（最可信）/ Within-Run Ratio
 
-| 資料集 | R18 | R19b |
-| --- | ---: | ---: |
-| claw-code | 1.95× | **1.83×** |
-| llama.cpp | 2.93× | **2.80×** |
+| 資料集 | R18 | R19a | R19b | R19c |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code | 1.95× | 1.76× | 1.83× | **1.81×** |
+| llama.cpp | 2.93× | 2.80× | 2.80× | **2.89×** |
 
-> 同輪內 optimal 相對 lazy2 的時間倍數穩定落在 claw ~1.8–2.0×、llama ~2.8–2.9×。這是不受整機噪音污染的可信比較：**optimal 多花約 1.8–2.9× 時間，只換得約 4% 的額外體積**。
+> 同輪內 optimal 相對 lazy2 的時間倍數三輪穩定落在 claw ~1.8×、llama ~2.8×。這是不受整機噪音污染的可信比較：**optimal 多花約 1.8–2.9× 時間，只換得約 4% 的額外體積**。
 
 ## Lazy2 vs Optimal 改善策略 / Strategy
 
-1. **比率甜蜜點仍是 lazy2**：claw lazy2 0.9016（vs optimal 0.8590），以同輪內 ~1.83× 壓縮時間換 optimal 的額外 ~4.3% 體積；多數情境 lazy2 性價比更佳。optimal 只在「一次壓、多次傳/解」且體積敏感時才划算。
+1. **比率甜蜜點仍是 lazy2**：claw lazy2 0.9016（vs optimal 0.8590），以同輪內 ~1.8× 壓縮時間換 optimal 的額外 ~4.3% 體積；多數情境 lazy2 性價比更佳。optimal 只在「一次壓、多次傳/解」且體積敏感時才划算。
 
-2. **optimal 的瓶頸在 DP 本身，而非並行或記憶體**：壓縮 MB/s 是少數穩定指標——claw optimal 連兩跑 28.0 / 28.8 MB/s，vs lazy2 ~50、zstd ~480。並行/記憶體已修到有界，**不再是限制因素**；要再快必須對 `lzParseOptimal` 的 price/match 熱迴圈動刀（UnsafePointer + SIMD）。
+2. **optimal 的瓶頸在 DP 本身，而非並行或記憶體**：壓縮 MB/s 是穩定指標——claw optimal 三輪 28.3 / 28.8 / 29.5 MB/s，vs lazy2 ~50、zstd ~480。並行/記憶體已修到有界，**不再是限制因素**；要再快必須對 `lzParseOptimal` 的 price/match 熱迴圈動刀（UnsafePointer + SIMD）。
 
-3. **量測方法本身要再硬化**：解壓噪音 ×2.78 證明 warm-cache 仍不足以穩定解壓計時。下一步應對「解壓」也做多次取中位數，或改量「壓縮」這個較穩的指標為主軸；解壓只取同輪內相對值。
+3. **量測方法已部分硬化、仍需續做**：解壓噪音 ±88% 證明 warm-cache 不足以穩定解壓計時。本輪已：(a) 報告主軸改用壓縮 MB/s；(b) 為 R20 備妥 peak-RSS probe。下一步對「解壓」做多次取中位數。
 
 ## 結論 / Conclusions
 
 1. **修正符合設計意圖**：backpressure 改動讓「已讀未寫 ≤ maxTasks」，記憶體上界 ≈ maxTasks × chunkSize；比率零退步、壓縮路徑不變。
-2. **吞吐差異是噪音（已用同碼重跑證明）**：同一 binary 兩跑解壓 MB/s 可差 2.78×，故單次 MB/s 跨輪不可歸因於演算法；唯一可信速度指標是同輪內相對量。
-3. **比率可再現**：optimal claw 0.8590 / llama 0.9415、lazy2 claw 0.9016 / llama 0.9587，跨 R16–R19（含同碼重跑）穩定。
+2. **吞吐差異是噪音（已用同碼三跑證明）**：同一 binary 三跑解壓 MB/s 可差 ±88%，故單次解壓 MB/s 不可歸因於演算法；壓縮 MB/s（±1–7%）與同輪內相對量才可信。
+3. **比率可再現**：optimal claw 0.8590 / llama 0.9415、lazy2 claw 0.9016 / llama 0.9587，跨 R16–R19（含同碼三跑）完全穩定。
 4. **方向不變**：optimal 加速的下一步是 DP 核心，而非並行架構（並行已修到安全有界）。
 
 ## 下一輪計畫 / Next (R20)
 
-- **DP 核心 UnsafePointer 化 + SIMD**：把 `lzParseOptimal` 的 price/match 熱迴圈全面指標化，消除 Swift bounds-check 與 ARC 開銷，目標 claw optimal 28→40+ MB/s。
-- **記憶體峰值量測落實**：用 `LZFSE_MEMPROBE=1`（`/usr/bin/time -l` 取 peak RSS，本輪已把量測修正為直接量 lzfse 程序、並涵蓋 lazy2+optimal 的 encode/decode）實證 optimal 在 1.3GB GGUF 的記憶體上界 ≈ maxTasks × chunkSize。
-- **量測硬化**：解壓改多次取中位數（或以較穩的壓縮 MB/s 為主軸），消除 page-cache 造成的 ×2+ 解壓噪音。
+- **已備妥 probe**：`benchmark.sh` 預設 `export LZFSE_MEMPROBE=1`，下一輪會自動對 lazy2 / optimal 的 **encode + decode** 量 peak RSS（`zshrc.sh` 的 `memProbe`，已修正為「`time -l` 直接前綴 lzfse」而非包 `sh -c` 管線，否則量到的是 shell）。預期實證 optimal 在 1.3GB GGUF 的記憶體上界 ≈ maxTasks × chunkSize。要關閉：`export LZFSE_MEMPROBE=0`。
+- **DP 核心 UnsafePointer 化 + SIMD**：把 `lzParseOptimal` 的 price/match 熱迴圈全面指標化，消除 Swift bounds-check 與 ARC 開銷，目標 claw optimal 29→40+ MB/s。
+- **量測硬化**：解壓改多次取中位數（壓縮 MB/s 已證實夠穩，續作主軸），消除 page-cache 造成的 ±88% 解壓噪音。
 - **編碼器調度器**：依區塊熵自動選 bvx1/bvx2/bvx3，整合 -lazy/-optimal。
 
 ---

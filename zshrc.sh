@@ -640,11 +640,12 @@ function lz4bench() {
     #     encode：直接量 lzfse 編碼程序（tar 由管線餵入）；decode：用上方既有壓縮產物。
     # --------------------------------------------------------------------------
     if [[ "$LZFSE_MEMPROBE" == "1" ]]; then
+        mkdir -p memprobeResults > /dev/null 2>&1
         echo $'\n[Info] 記憶體峰值量測 (lazy2 / optimal，encode + decode) / Peak-RSS probes:'
-        lzfseX "$1" lazy2   probe
-        lzfseX "$1" optimal probe
-        extract "$1.lzfse.bvx3.lazy2"   probe
-        extract "$1.lzfse.bvx3.optimal" probe
+        lzfseX "$1" lazy2   probe > memprobeResults/compress-lazy2-memprobe.txt 2&>1
+        lzfseX "$1" optimal probe > memprobeResults/compress-optimal-memprobe.txt 2&>1
+        extract "$1.lzfse.bvx3.lazy2"   probe > memprobeResults/extract-lazy2-memprobe.txt 2&>1
+        extract "$1.lzfse.bvx3.optimal" probe > memprobeResults/extract-optimal-memprobe.txt 2&>1
     fi
 
     echo $'\n=================================================='
