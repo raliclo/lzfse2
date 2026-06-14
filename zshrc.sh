@@ -368,6 +368,19 @@ trash () {
 # ------------------------------------------------------------------------------
 extract () {
     if [ -f "$1" ] ; then
+        # 記憶體峰值量測模式：extract <file> probe → 只量「解碼程序」peak RSS，不真正解壓。
+        # 解碼輸出寫 /dev/null（不經 tar 管線），確保 time -l 量到的是 lzfse 本身。
+        if [[ "$2" == "probe" ]]; then
+            local da
+            case "$1" in
+                *.lzfse.other3) da=other3 ;;
+                *.lzfse.apple)  da=apple ;;
+                *.lzfse.bvx3*)  da=bvx3 ;;
+                *) echo "[MEM] $1: 非 lzfse 格式，略過解碼量測 / non-lzfse, skipped"; return 0 ;;
+            esac
+            memProbe "decode ${1##*/}" lzfse -decode -i "$1" -o /dev/null -algo "$da"
+            return 0
+        fi
         case "$1" in
             *.lzfse.bvx3)       echo "lzfse -decode -i $1 -so -algo bvx3   | tar -xf - " ; lzfse -decode -i $1 -so -algo bvx3   | tar -xf -  ;;
             *.lzfse.bvx3.lazy2) echo "lzfse -decode -i $1 -so -algo bvx3   | tar -xf - " ; lzfse -decode -i $1 -so -algo bvx3   | tar -xf -  ;;
@@ -464,9 +477,10 @@ function lzfseX() {
         return 1
     fi
 
-    # 設置預設值為 'other3' (若 $2 為空)
+    # 設置預設值為 'other3' (若 $2 為空)；第三參數 mode：run（預設）或 probe（僅量測記憶體峰值）
     local algo="${2:-other3}"
-    
+    local mode="${3:-run}"
+
     # 根據演算法設定副檔名（lazy2/optimal 為 bvx3 的解析器旗標）
     local extension="lzfse.other3"
     local flags=""
@@ -477,6 +491,16 @@ function lzfseX() {
         optimal)  extension="lzfse.bvx3.optimal"; algo="bvx3"; flags="-optimal" ;; # 分段 DP 最優解析
         other3)   extension="lzfse.other3" ;;
     esac
+
+    # 記憶體峰值量測模式（沿用上方 algo/flags 對應）：直接量「lzfse 編碼程序」的 peak RSS，
+    # 不產生 benchmark 產物。lazy2/optimal 皆走 bvx3 平行編碼，用以實證「已讀未寫 ≤ maxTasks」
+    # → 記憶體上界 ≈ maxTasks × chunkSize（見 OPTIMIZATION.md R19）。輸出寫 /dev/null 不佔磁碟。
+    if [[ "$mode" == "probe" ]]; then
+        echo "[Info] 記憶體峰值量測 (encode ${algo}${flags:+ }${flags}) / Encode peak-RSS probe:"
+        tar -cf - "$1" | memProbe "encode ${algo}${flags:+ }${flags}" \
+            lzfse -encode -si -o /dev/null -algo "$algo" ${=flags}
+        return 0
+    fi
 
     # 執行壓縮
     echo "執行中: tar -cf - $1 | lzfse -encode -si -o $1.$extension -algo $algo $flags"
@@ -520,6 +544,25 @@ function diskcheck() {
     fi
 
 }
+
+# ------------------------------------------------------------------------------
+# FUNCTION: memProbe()
+# DESCRIPTION: 以 /usr/bin/time -l（macOS）量測「單一程序」的 peak RSS。
+#   關鍵：time -l 必須「直接」前綴目標程序（如 lzfse），不可包成 `sh -c "管線"`，
+#   否則 wait4 取得的是 shell 的 rusage（僅數 MB），而非 lzfse 真正的常駐記憶體。
+#   $1 = 標籤；其餘參數 = 要量測的命令（直接 exec，不經 shell）。
+#   stdin 由呼叫端以管線/重導提供（如 `tar -cf - dir | memProbe ... lzfse -encode -si ...`）。
+# ------------------------------------------------------------------------------
+function memProbe() {
+    local label="$1"; shift
+    if ! /usr/bin/time -l true 2>/dev/null; then
+        echo "[MEM] ${label}: /usr/bin/time -l 不可用（非 macOS？），略過 / skipped"
+        return 0
+    fi
+    /usr/bin/time -l "$@" 2>&1 \
+        | awk -v l="$label" '/maximum resident set size/ {printf "[MEM] %s peak RSS: %.1f MB\n", l, $1/1048576}'
+}
+
 # ------------------------------------------------------------------------------
 # FUNCTION: lz4bench()
 # DESCRIPTION: Benchmarks and compares the performance (speed and execution time)
@@ -563,20 +606,6 @@ function lz4bench() {
     echo $'\n[Info] 測試 lzfseX bvx3_optimal 壓縮 / Testing lzfseX bvx3_optimal compression:'
     nanoTimeElapsed lzfseX $1 optimal
 
-    # R11 驗證（選用）：量測 optimal 壓縮的記憶體峰值，確認平行編碼 backpressure
-    # 修正後「已讀未寫 ≤ maxTasks」的有界記憶體（GGUF 慢 chunk 不再無界堆積）。
-    # 設 LZFSE_MEMPROBE=1 開啟；用 /usr/bin/time -l（macOS）取 maximum resident set size。
-    if [[ "$LZFSE_MEMPROBE" == "1" ]]; then
-        echo $'[Info] R11 記憶體峰值量測 (optimal) / Peak-RSS probe:'
-        if /usr/bin/time -l true 2>/dev/null; then
-            /usr/bin/time -l sh -c "tar -cf - '$1' | lzfse -encode -si -o '$1.memprobe.tmp' -algo bvx3 -optimal" 2>&1 \
-                | awk '/maximum resident set size/ {printf "[MEM] optimal peak RSS: %.1f MB\n", $1/1048576}'
-            rm -f "$1.memprobe.tmp"
-        else
-            echo "[MEM] /usr/bin/time -l 不可用（非 macOS？），略過記憶體量測"
-        fi
-    fi
-
     echo $'\n[Info] 測試 lzfseX bvx3 壓縮 / Testing lzfseX bvx3 compression:'
     nanoTimeElapsed lzfseX $1 bvx3
 
@@ -603,6 +632,20 @@ function lz4bench() {
             echo "[SIZE] $f: MISSING（壓縮產物不存在 / artifact not found）"
         fi
     done
+
+    # --------------------------------------------------------------------------
+    # 1c. 記憶體峰值量測（選用，LZFSE_MEMPROBE=1）/ Peak-RSS probes (opt-in)
+    #     涵蓋 lazy2 與 optimal 的「編碼」與「解碼」峰值，實證平行編/解碼的有界記憶體
+    #     （≈ maxTasks × chunkSize，見 OPTIMIZATION.md R19）。
+    #     encode：直接量 lzfse 編碼程序（tar 由管線餵入）；decode：用上方既有壓縮產物。
+    # --------------------------------------------------------------------------
+    if [[ "$LZFSE_MEMPROBE" == "1" ]]; then
+        echo $'\n[Info] 記憶體峰值量測 (lazy2 / optimal，encode + decode) / Peak-RSS probes:'
+        lzfseX "$1" lazy2   probe
+        lzfseX "$1" optimal probe
+        extract "$1.lzfse.bvx3.lazy2"   probe
+        extract "$1.lzfse.bvx3.optimal" probe
+    fi
 
     echo $'\n=================================================='
     echo $'[Info] 開始評測解壓縮速度 / Benchmarking decompression score:'
