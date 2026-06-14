@@ -1,17 +1,11 @@
-RUNNING compile 08:34:54
-TEST_OK 08:35:01
-RUNNING benchmark 08:35:01
-./benchmark.sh:3: no matches found: llama.cpp.*
-./benchmark.sh:4: no matches found: claw-code.*
+RUNNING compile 12:46:33
+TEST_OK 12:46:41
+RUNNING benchmark 12:46:41
 [36m[Info] Configuring compiler environment... / 正在配置編譯器環境...(B[m
 [33m-> Switching to System Default GCC Environment / 已切換至系統預設 GCC 環境(B[m
 [32m[Success] setcc completed. CURRENT SETCC=gcc, PACORES=20(B[m
-[Info] 磁碟可用空間充足：37GB / Sufficient disk space: 37GB
-./benchmark.sh:16: no matches found: llama.cpp.*
-[Info] 磁碟可用空間充足：37GB / Sufficient disk space: 37GB
-./benchmark.sh:27: no matches found: claw-code.*
+[Info] Running Benchmark WITH probe mode (LZFSE_MEMPROBE=1). Peak-RSS for lazy2/optimal (encode+decode) will be recorded in the result txt.
+[Info] 磁碟可用空間充足：34GB / Sufficient disk space: 34GB
+[Info] 磁碟可用空間充足：34GB / Sufficient disk space: 34GB
 Done.
-./benchmark.sh:31: command not found: -rf
-./benchmark.sh:32: no matches found: llama.cpp.*
-./benchmark.sh:33: no matches found: claw-code.*
-Done.
+BENCH_DONE 13:08:24

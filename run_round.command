@@ -17,10 +17,10 @@ fi
 echo "TEST_OK $(date +%H:%M:%S)" >> round_status.txt
 echo "RUNNING benchmark $(date +%H:%M:%S)" >> round_status.txt
 ./benchmark.sh >> round_status.txt 2>&1
-status=$?
-if [[ $status -eq 0 ]]; then
+rc=$?
+if [[ $rc -eq 0 ]]; then
     echo "BENCH_DONE $(date +%H:%M:%S)" >> round_status.txt
 else
-    echo "BENCH_FAILED $status $(date +%H:%M:%S)" >> round_status.txt
+    echo "BENCH_FAILED $rc $(date +%H:%M:%S)" >> round_status.txt
 fi
-exit $status
+exit $rc

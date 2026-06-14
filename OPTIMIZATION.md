@@ -2,6 +2,166 @@
 
 ---
 
+# 第二十一輪：完整 memProbe 覆蓋與重測（2026-06-14）/ Round 21: Full memProbe Coverage and Re-run
+
+## 本輪目的 / Purpose
+
+本輪先修正 benchmark helper，再重新執行 `run_round.command`。重點是讓 `round_status.txt` 可判斷成功/失敗，並讓 `memprobeResults` 覆蓋所有 benchmark 格式：`tgz`、`zstd`、`tar.lz4`、`other3`、`apple`、`bvx3`、`lazy2`、`optimal`。`BenchMarkResult.csv` 已用最新 `lz4bench-claw-code.txt`、`lz4bench-llama.cpp.txt` 的 raw bytes / ns 重新計算 decimal MB/s。
+
+## 量測完整度 / Completeness
+
+- ✅ `run_round.command`：`TEST_OK 12:46:41`，`BENCH_DONE 13:08:24`。
+- ✅ `claw-code` / `llama.cpp`：各 8 格式壓縮與解壓完成，7/7 一致性通過。
+- ✅ `lzfse-test.txt`：未見失敗標記。
+- ✅ `memprobeResults`：兩資料集各 8 格式 encode + decode peak RSS 皆產出。
+- ✅ helper 修正：`benchmark.sh` 使用 zsh safe glob，`run_round.command` 正確回報 benchmark exit code；`zshrc.sh` 的 `extract` / `lzfseX` / `lz4bench` 支援 lazy2/optimal 產物與完整 probe。
+
+## 實測結果 / Measured Results（decimal MB/s，bytes/ns）
+
+### 壓縮 MB/s / Compression
+
+| 格式 | claw-code | llama.cpp |
+| --- | ---: | ---: |
+| TGZ | 52.36 | 65.62 |
+| Other3 | 540.56 | 401.92 |
+| **Lazy2** | **46.49** | **136.82** |
+| **Optimal** | **27.11** | **40.93** |
+| BVX3 | 505.74 | 320.84 |
+| Apple | 150.31 | 145.03 |
+| TLZ4 | 490.55 | 257.22 |
+| ZSTD | 324.59 | 289.45 |
+
+### 解壓 MB/s / Decompression
+
+| 格式 | claw-code | llama.cpp |
+| --- | ---: | ---: |
+| TGZ | 436.82 | 214.73 |
+| Other3 | 435.86 | 86.10 |
+| **Lazy2** | **384.56** | **81.46** |
+| **Optimal** | **268.60** | **74.32** |
+| BVX3 | 327.22 | 75.99 |
+| Apple | 288.64 | 45.78 |
+| TLZ4 | 203.24 | 70.23 |
+| ZSTD | 380.50 | 63.07 |
+
+> 本輪解壓 MB/s 明顯低於 R20，尤其 llama.cpp。這輪在解壓前新增完整 encode/decode memProbe，會改變 page-cache 與整機記憶體狀態；因此解壓 MB/s 仍只能作同輪記錄，不宜當作演算法退步證據。壓縮 MB/s 與同輪 lazy2/optimal 倍數仍是主要比較依據。
+
+### 壓縮比與同輪成本 / Ratio and Within-Run Cost
+
+| 資料集 | Lazy2 ratio | Optimal ratio | Optimal 額外體積收益 | Optimal/Lazy2 壓縮時間 |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code | 0.9016 | 0.8590 | 4.72% smaller vs lazy2 | 1.72x |
+| llama.cpp | 0.9587 | 0.9415 | 1.80% smaller vs lazy2 | 3.34x |
+
+## MemProbe 結果 / Peak RSS
+
+| 格式 | claw encode | claw decode | llama encode | llama decode |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 4.0 MB | 3.7 MB | 4.2 MB | 3.8 MB |
+| ZSTD | 381.3 MB | 9.2 MB | 464.5 MB | 9.8 MB |
+| TLZ4 | 83.2 MB | 33.8 MB | 74.9 MB | 33.8 MB |
+| Other3 | 947.0 MB | 1454.7 MB | 1310.9 MB | 2344.5 MB |
+| Apple | 1356.3 MB | 473.1 MB | 1193.8 MB | 590.3 MB |
+| BVX3 | 1514.8 MB | 2244.6 MB | 1320.8 MB | 2047.4 MB |
+| Lazy2 | 1703.3 MB | 2197.6 MB | 1490.1 MB | 2300.3 MB |
+| Optimal | 1757.9 MB | 2157.8 MB | 1592.2 MB | 2281.1 MB |
+
+> LZFSE/bvx3 系列的 decode RSS 約 2.0–2.3 GB，遠高於外部工具；這與平行解碼 staging / output buffer 成本一致。Optimal encode 比 lazy2 高約 55 MB（claw）與 102 MB（llama），差距小於速度成本，表示 optimal 的主要瓶頸仍是 DP 計算，不是 peak RSS。
+
+## Lazy2 / Optimal 改善策略 / Strategy
+
+1. **先 profiling 再動 DP**：claw optimal 27.11 MB/s，仍未接近 40+ MB/s。下一步必須用 Time Profiler 找出前二大熱點，不能再用整體感覺改 `lzParseOptimal`。
+2. **成本閘比全域 optimal 更有價值**：llama.cpp optimal 多花 3.34x 壓縮時間只省 1.8% 體積；cheap probe 應在段層級預估收益，低收益段走 lazy2/bvx3。
+3. **decode RSS 是另一條線**：如果未來要優化記憶體，應針對 parallel decode staging / output buffer，而不是混在 optimal DP 加速裡。
+4. **下一輪成功條件**：profiling 產出可引用的 hotspot 排名，並以單點改動證明同輪 claw optimal 壓縮時間改善 ≥10%，壓縮比不退步。
+
+## 下一輪計畫 / Next (R22)
+
+- 用 `helper/tracer.command` 或 Instruments 對 claw optimal 做 Time Profiler，輸出放在 `trace/`。
+- 保持 `-si` 輸入路徑；不要用 `-i` 代替 pipeline 量測。
+- 依 profiler 選一個熱點改動：chain walk、`matchLength`、dense relax、`rebuildPrices`、或預篩。
+- 若 full benchmark 後再量解壓，將 memProbe 與解壓 benchmark 拆成不同 round，避免 page-cache 狀態互相污染。
+
+---
+
+# 第二十輪：完整 benchmark + memprobe 重新整理（2026-06-14）/ Round 20: Full Benchmark + Memprobe Refresh
+
+## 本輪目的 / Purpose
+
+本輪重讀最新 `lz4bench-claw-code.txt`、`lz4bench-llama.cpp.txt`、`lzfse-test.txt`、`memprobeResults/lazy2-memprobe.txt`、`memprobeResults/optimal-memprobe.txt`，並以 exact raw bytes / nanoseconds 重新計算 `BenchMarkResult.csv` 的 MB/s。`lzfse-test.txt` 是功能與相容性測試輸出，不是同型的 throughput benchmark，因此用於確認 lazy2/optimal 往返與 Apple 相容性，不納入 CSV 的 MB/s 表。
+
+MB/s 計算改以 decimal MB/s：`raw_bytes / elapsed_ns * 1000`。原始大小欄仍沿用既有 CSV 顯示慣例（raw KiB 轉 MiB 後四捨五入），壓縮後大小以 exact compressed bytes 轉 MB 後四捨五入，壓縮比用「相對 TGZ compressed bytes」計算。
+
+## 量測完整度 / Completeness
+
+- ✅ `claw-code`：8 格式壓縮與解壓完成，7/7 一致性通過。
+- ✅ `llama.cpp`：8 格式壓縮與解壓完成，7/7 一致性通過。
+- ✅ `lzfse-test.txt`：各測試案例 lazy2 / optimal 自我往返、平行解碼、Apple 相容/拒解路徑皆通過，未見失敗標記。
+- ✅ `memprobeResults`：取得 llama.cpp 的 lazy2 / optimal encode 與 decode peak RSS。
+- ⚠️ `round_status.txt` 仍記錄 `benchmark.sh` 的 zsh `nomatch` 訊息；結果檔仍已完整產出，但 helper 清理段需修正為 `NULL_GLOB` 或 glob qualifier，避免狀態檔誤導。
+
+## 實測結果 / Measured Results（decimal MB/s，bytes/ns）
+
+### 壓縮 MB/s / Compression
+
+| 格式 | claw-code | llama.cpp |
+| --- | ---: | ---: |
+| TGZ | 52.69 | 68.15 |
+| Other3 | 542.12 | 447.14 |
+| **Lazy2** | **51.89** | **155.37** |
+| **Optimal** | **29.05** | **54.43** |
+| BVX3 | 587.07 | 422.57 |
+| Apple | 159.53 | 170.17 |
+| TLZ4 | 627.54 | 370.01 |
+| ZSTD | 489.21 | 442.07 |
+
+### 解壓 MB/s / Decompression
+
+| 格式 | claw-code | llama.cpp |
+| --- | ---: | ---: |
+| TGZ | 607.60 | 285.67 |
+| Other3 | 690.64 | 270.29 |
+| **Lazy2** | **652.28** | **240.51** |
+| **Optimal** | **685.82** | **219.34** |
+| BVX3 | 706.44 | 259.18 |
+| Apple | 697.58 | 223.76 |
+| TLZ4 | 836.46 | 288.55 |
+| ZSTD | 891.94 | 271.47 |
+
+### 壓縮比與同輪時間倍數 / Ratio and Within-Run Cost
+
+| 資料集 | Lazy2 ratio | Optimal ratio | Optimal 額外體積收益 | Optimal/Lazy2 壓縮時間 |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code | 0.9016 | 0.8590 | 4.72% smaller vs lazy2 | 1.79x |
+| llama.cpp | 0.9587 | 0.9415 | 1.79% smaller vs lazy2 | 2.85x |
+
+> 同輪比較仍是最可信指標：claw-code optimal 多花約 1.8x 壓縮時間換 4.7% 體積；llama.cpp 多花約 2.85x 只換 1.8% 體積。這支持「預設或自動策略偏 lazy2，optimal 只給高體積敏感段」的方向。
+
+## Memprobe 結果 / Peak RSS
+
+| 模式 | Encode peak RSS | Decode peak RSS |
+| --- | ---: | ---: |
+| llama.cpp bvx3 lazy2 | 1541.8 MB | 2300.5 MB |
+| llama.cpp bvx3 optimal | 1611.6 MB | 2280.7 MB |
+
+> optimal encode peak RSS 只比 lazy2 高約 69.8 MB（約 +4.5%），代表目前 optimal 的主要問題不是記憶體峰值，而是 DP 計算時間。decode RSS 兩者接近，且 optimal decode 略低，暫不構成優化主軸。
+
+## Lazy2 / Optimal 改善策略 / Strategy
+
+1. **短期成功條件改為 profiling 驗證**：40+ MB/s 可保留為中期目標，但下一輪不要直接承諾速度；先用 Time Profiler 找出 claw optimal 約 49 秒中的前二大熱點，至少用一個單點改動證明同輪 ≥10% 改善。
+2. **段層級成本閘優先於全域 optimal**：對每段做 cheap probe，估算 optimal 相對 lazy2 的可能收益；低收益段直接走 lazy2/greedy，高收益段才進 DP。llama.cpp 的 optimal 只多省 1.8% 體積卻花 2.85x 時間，是最明顯的候選。
+3. **DP 核心仍需 UnsafePointer/SIMD，但要被 profiling 指向**：R19 的方向仍成立，不過這輪資料顯示性能收益不可誇大。若 profiler 顯示成本集中在 chain walk、`matchLength`、dense relax、`rebuildPrices` 或預篩，就只改第一、第二熱點，避免大範圍重寫。
+4. **helper 需先清理狀態可信度**：`round_status.txt` 的 `nomatch` 訊息會干擾判讀；下一次 benchmark 前先修 `benchmark.sh` 清理 glob，並讓 `run_round.command` 在 benchmark 非 0 時寫 `BENCH_FAILED`。
+
+## 下一輪計畫 / Next (R21)
+
+- 修正 helper 的 zsh glob 清理與失敗狀態回報，讓 `round_status.txt` 可直接判斷整輪是否成功。
+- 使用 `helper/tracer.command` 或 Instruments 量 claw optimal，輸出放入 `trace/`，不要用 `-i`，stdin path 必須使用 `-si`。
+- 依 profiling 結果選一個熱點做單點改動，成功條件是同輪 claw optimal 壓縮時間至少改善 10%，且 lazy2/optimal 壓縮比維持不退步。
+- 若要把 `lzfse-test.txt` 的小型案例轉成速度資料，需另做專用 microbenchmark；目前它只作正確性依據，不與 claw-code / llama.cpp 的 MB/s 混比。
+
+---
+
 # 第十九輪：平行編碼有界緩衝（backpressure）落地後重測（2026-06-14）/ Round 19: Re-measurement After Landing Bounded-Buffer Backpressure
 
 ## 本輪目的 / Purpose
