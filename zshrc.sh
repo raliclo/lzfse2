@@ -373,6 +373,10 @@ extract () {
     fi
 
     if [[ -f "$1" ]] ; then
+        local n_args=()
+        if [[ -n "${LZFSE_BENCH_N:-}" ]]; then
+            n_args=(-n "$LZFSE_BENCH_N")
+        fi
         # 記憶體峰值量測模式：extract <file> probe → 只量「解碼程序」peak RSS，不真正解壓。
         # 解碼輸出寫 /dev/null（不經 tar 管線），確保 time -l 量到的是 lzfse 本身。
         if [[ "$2" == "probe" ]]; then
@@ -388,15 +392,16 @@ extract () {
                 *.tar.lz4)            memProbe "decode ${1##*/}" lz4 -d -q -f "$1" /dev/null; return 0 ;;
                 *) echo "[MEM] $1: 非 lzfse 格式，略過解碼量測 / non-lzfse, skipped"; return 0 ;;
             esac
-            memProbe "decode ${1##*/}" lzfse -decode -i "$1" -o /dev/null -algo "$da" ${arg2:+-$arg2}
+            memProbe "decode ${1##*/}${LZFSE_BENCH_N:+ -n ${LZFSE_BENCH_N}}" \
+                lzfse -decode -i "$1" -o /dev/null -algo "$da" ${arg2:+-$arg2} "${n_args[@]}"
             return 0
         fi
         case "$1" in
-            *.lzfse.bvx3.lazy2) echo "lzfse -decode -i $1 -so -algo bvx3 | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 | tar -xf -  ;;
-            *.lzfse.bvx3.optimal) echo "lzfse -decode -i $1 -so -algo bvx3 | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 | tar -xf -  ;;
-            *.lzfse.bvx3)       echo "lzfse -decode -i $1 -so -algo bvx3 | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 | tar -xf -  ;;
-            *.lzfse.other3)     echo "lzfse -decode -i $1 -so -algo other3 | tar -xf - " ; lzfse -decode -i "$1" -so -algo other3 | tar -xf -  ;;
-            *.lzfse.apple)      echo "lzfse -decode -i $1 -so -algo apple | tar -xf - " ; lzfse -decode -i "$1" -so -algo apple | tar -xf -  ;;
+            *.lzfse.bvx3.lazy2) echo "lzfse -decode -i $1 -so -algo bvx3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 "${n_args[@]}" | tar -xf -  ;;
+            *.lzfse.bvx3.optimal) echo "lzfse -decode -i $1 -so -algo bvx3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 "${n_args[@]}" | tar -xf -  ;;
+            *.lzfse.bvx3)       echo "lzfse -decode -i $1 -so -algo bvx3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 "${n_args[@]}" | tar -xf -  ;;
+            *.lzfse.other3)     echo "lzfse -decode -i $1 -so -algo other3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo other3 "${n_args[@]}" | tar -xf -  ;;
+            *.lzfse.apple)      echo "lzfse -decode -i $1 -so -algo apple ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo apple "${n_args[@]}" | tar -xf -  ;;
             *.tar.lz4)   lz4 -T0 -d -q -c $1 | tar -xf - ;;
             *.zst)       zstd -d -c "$1" | tar -xf - ;;
             *.tar.xz)    tar xf "$1"      ;;
@@ -499,6 +504,10 @@ function lzfseX() {
     # 根據演算法設定副檔名（lazy2/optimal 為 bvx3 的解析器旗標）
     local extension="lzfse.other3"
     local flags=""
+    local n_args=()
+    if [[ -n "${LZFSE_BENCH_N:-}" ]]; then
+        n_args=(-n "$LZFSE_BENCH_N")
+    fi
     case "$algo" in
         apple)    extension="lzfse.apple" ;;
         bvx3)     extension="lzfse.bvx3" ;;
@@ -512,20 +521,20 @@ function lzfseX() {
     # 不產生 benchmark 產物。lazy2/optimal 皆走 bvx3 平行編碼，用以實證「已讀未寫 ≤ maxTasks」
     # → 記憶體上界 ≈ maxTasks × chunkSize（見 OPTIMIZATION.md R19）。輸出寫 /dev/null 不佔磁碟。
     if [[ "$mode" == "probe" ]]; then
-        local probe_label="encode ${1##*/} ${algo}${flags:+ }${flags}"
+        local probe_label="encode ${1##*/} ${algo}${flags:+ }${flags}${LZFSE_BENCH_N:+ -n ${LZFSE_BENCH_N}}"
         echo "[Info] 記憶體峰值量測 (${probe_label}) / Encode peak-RSS probe:"
         if ! /usr/bin/time -l true 2>/dev/null; then
             echo "[MEM] ${probe_label}: /usr/bin/time -l 不可用（非 macOS？），略過 / skipped"
             return 0
         fi
         tar -cf - "$1" | memProbe "$probe_label" \
-            lzfse -encode -si -o /dev/null -algo "$algo" ${=flags}
+            lzfse -encode -si -o /dev/null -algo "$algo" ${=flags} "${n_args[@]}"
         return 0
     fi
 
     # 執行壓縮
-    echo "執行中: tar -cf - $1 | lzfse -encode -si -o $1.$extension -algo $algo $flags"
-    tar -cf - "$1" | lzfse -encode -si -o "$1.$extension" -algo "$algo" ${=flags}
+    echo "執行中: tar -cf - $1 | lzfse -encode -si -o $1.$extension -algo $algo $flags ${n_args[*]}"
+    tar -cf - "$1" | lzfse -encode -si -o "$1.$extension" -algo "$algo" ${=flags} "${n_args[@]}"
     local rc=$?
     if [[ $rc -ne 0 || ! -f "$1.$extension" ]]; then
         echo "[Error] lzfseX failed to create $1.$extension"
@@ -649,6 +658,10 @@ function lz4bench() {
     # Disk pre-check (lazy2/optimal decompression numbers degrade badly under disk pressure)
     diskcheck "$1" || return 1
 
+    if [[ -n "${LZFSE_BENCH_N:-}" ]]; then
+        echo "[Info] Fixed LZFSE -n for this round: -n ${LZFSE_BENCH_N}"
+    fi
+
     # Warm-cache：預讀整個資料集進 OS page cache，消除「第一個格式 cold-cache、
     # 後續格式 warm-cache」造成的壓縮計時偏差（見 OPTIMIZATION.md R15/R16 cold-cache 註）
     # Warm-cache: pre-read the whole dataset so every compression format is timed
@@ -706,37 +719,6 @@ function lz4bench() {
         return 1
     fi
 
-    # --------------------------------------------------------------------------
-    # 1c. 記憶體峰值量測（選用，LZFSE_MEMPROBE=1）/ Peak-RSS probes (opt-in)
-    #     涵蓋所有的「編碼」與「解碼」峰值，實證平行編/解碼的有界記憶體
-    #     （≈ maxTasks × chunkSize，見 OPTIMIZATION.md R19）。
-    #     encode：直接量 lzfse 編碼程序（tar 由管線餵入）；decode：用上方既有壓縮產物。
-    # --------------------------------------------------------------------------
-    if [[ "$LZFSE_MEMPROBE" == "1" ]]; then
-        mkdir -p memprobeResults > /dev/null 2>&1
-        echo $'\n[Info] 記憶體峰值量測 (tgz / zstd / tar.lz4 / other3 / apple / bvx3 / lazy2 / optimal，encode + decode) / Peak-RSS probes:'
-        local probe_algo probe_file probe_artifact
-        for probe_algo in tgz zstd tar.lz4 other3 apple bvx3 lazy2 optimal; do
-            case "$probe_algo" in
-                tgz)     probe_artifact="$1.tgz" ;;
-                zstd)    probe_artifact="$1.zst" ;;
-                tar.lz4) probe_artifact="$1.tar.lz4" ;;
-                other3)  probe_artifact="$1.lzfse.other3" ;;
-                apple)   probe_artifact="$1.lzfse.apple" ;;
-                bvx3)    probe_artifact="$1.lzfse.bvx3" ;;
-                lazy2)   probe_artifact="$1.lzfse.bvx3.lazy2" ;;
-                optimal) probe_artifact="$1.lzfse.bvx3.optimal" ;;
-            esac
-            probe_file="memprobeResults/${1}-${probe_algo}-memprobe.txt"
-            case "$probe_algo" in
-                tgz|zstd|tar.lz4) archiveMemProbe "$1" "$probe_algo" > "$probe_file" 2>&1 || return 1 ;;
-                *) lzfseX "$1" "$probe_algo" probe > "$probe_file" 2>&1 || return 1 ;;
-            esac
-            extract "$probe_artifact" probe >> "$probe_file" 2>&1 || return 1
-            cp "$probe_file" "memprobeResults/${probe_algo}-memprobe.txt"
-        done
-    fi
-
     echo $'\n=================================================='
     echo $'[Info] 開始評測解壓縮速度 / Benchmarking decompression score:'
     echo $'=================================================='
@@ -779,6 +761,37 @@ function lz4bench() {
     # 3. 最終清理 / Final cleanup
     # --------------------------------------------------------------------------
     rm -rf "./xbenchTest"
+
+    # --------------------------------------------------------------------------
+    # 4. 記憶體峰值量測（選用，LZFSE_MEMPROBE=1）/ Peak-RSS probes (opt-in)
+    #    必須放在壓縮與解壓 benchmark 後，避免 probe 改變 page-cache / memory pressure，
+    #    污染正式解壓 MB/s。encode：直接量目標編碼程序；decode：用既有壓縮產物。
+    # --------------------------------------------------------------------------
+    if [[ "$LZFSE_MEMPROBE" == "1" ]]; then
+        mkdir -p memprobeResults > /dev/null 2>&1
+        echo $'\n[Info] 記憶體峰值量測 (tgz / zstd / tar.lz4 / other3 / apple / bvx3 / lazy2 / optimal，encode + decode) / Peak-RSS probes:'
+        local probe_algo probe_file probe_artifact probe_suffix
+        probe_suffix="${LZFSE_BENCH_SUFFIX:-}"
+        for probe_algo in tgz zstd tar.lz4 other3 apple bvx3 lazy2 optimal; do
+            case "$probe_algo" in
+                tgz)     probe_artifact="$1.tgz" ;;
+                zstd)    probe_artifact="$1.zst" ;;
+                tar.lz4) probe_artifact="$1.tar.lz4" ;;
+                other3)  probe_artifact="$1.lzfse.other3" ;;
+                apple)   probe_artifact="$1.lzfse.apple" ;;
+                bvx3)    probe_artifact="$1.lzfse.bvx3" ;;
+                lazy2)   probe_artifact="$1.lzfse.bvx3.lazy2" ;;
+                optimal) probe_artifact="$1.lzfse.bvx3.optimal" ;;
+            esac
+            probe_file="memprobeResults/${1}${probe_suffix}-${probe_algo}-memprobe.txt"
+            case "$probe_algo" in
+                tgz|zstd|tar.lz4) archiveMemProbe "$1" "$probe_algo" > "$probe_file" 2>&1 || return 1 ;;
+                *) lzfseX "$1" "$probe_algo" probe > "$probe_file" 2>&1 || return 1 ;;
+            esac
+            extract "$probe_artifact" probe >> "$probe_file" 2>&1 || return 1
+            cp "$probe_file" "memprobeResults/${probe_algo}${probe_suffix}-memprobe.txt"
+        done
+    fi
 
     echo $'\n[Info] 基準測試完成！ / Benchmark finished!'
 }

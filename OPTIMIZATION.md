@@ -6,7 +6,9 @@
 
 ## 本輪目的 / Purpose
 
-本輪重讀 `lz4bench-claw-code.txt`、`lz4bench-llama.cpp.txt`、`lzfse-test.txt`、`memprobeResults/` 與 `trace/`。`BenchMarkResult.csv` 已重新整理為同一張表，速度欄以 raw bytes / ns 計算 decimal MB/s，並新增 `Encode RSS(MB)`、`Decode RSS(MB)`、`Trace wall time(秒)`，讓 throughput、peak RSS、Time Profiler 覆蓋狀態可以同列比較。
+本輪重讀 `lz4bench-claw-code.txt`、`lz4bench-llama.cpp.txt`、`lzfse-test.txt`、`memprobeResults/` 與 `trace/`。`BenchMarkResult.csv` 已重新整理為同一張表，速度欄以 raw bytes / ns 計算 decimal MB/s，並保留 `Encode RSS(MB)`、`Decode RSS(MB)`、`Trace wall time(秒)`，讓 throughput、peak RSS、Time Profiler 覆蓋狀態可以同列比較。
+
+本輪 helper 已把 memProbe 移到壓縮與解壓 benchmark 全部完成之後再跑；因此正式解壓 MB/s 不再被 probe 事前擾動，特別是 llama.cpp 的解壓數字比前輪更可信。
 
 `lzfse-test.txt` 仍定位為正確性與相容性測試，不納入 MB/s 計算；本輪未見失敗標記，lazy2 / optimal 自我往返、平行解碼、Apple 相容/拒解路徑皆維持通過。
 
@@ -16,53 +18,53 @@
 
 | 格式 | claw-code | llama.cpp |
 | --- | ---: | ---: |
-| TGZ | 50.77 | 65.39 |
-| Other3 | 363.34 | 385.55 |
-| **Lazy2** | **46.15** | **131.42** |
-| **Optimal** | **26.99** | **38.92** |
-| BVX3 | 464.50 | 228.06 |
-| Apple | 147.22 | 104.32 |
-| TLZ4 | 436.70 | 135.59 |
-| ZSTD | 303.79 | 128.96 |
+| TGZ | 50.79 | 66.01 |
+| Other3 | 354.87 | 440.47 |
+| **Lazy2** | **48.31** | **164.23** |
+| **Optimal** | **26.71** | **56.88** |
+| BVX3 | 515.78 | 429.01 |
+| Apple | 149.57 | 166.95 |
+| TLZ4 | 500.44 | 363.81 |
+| ZSTD | 327.97 | 470.05 |
 
 ### 解壓 MB/s / Decompression
 
 | 格式 | claw-code | llama.cpp |
 | --- | ---: | ---: |
-| TGZ | 581.23 | 195.49 |
-| Other3 | 527.04 | 78.09 |
-| **Lazy2** | **305.11** | **60.92** |
-| **Optimal** | **307.86** | **92.65** |
-| BVX3 | 348.97 | 71.69 |
-| Apple | 263.37 | 43.10 |
-| TLZ4 | 282.45 | 55.80 |
-| ZSTD | 265.50 | 81.69 |
+| TGZ | 246.23 | 272.43 |
+| Other3 | 301.33 | 273.42 |
+| **Lazy2** | **367.70** | **237.55** |
+| **Optimal** | **284.12** | **226.03** |
+| BVX3 | 162.91 | 265.73 |
+| Apple | 201.03 | 219.65 |
+| TLZ4 | 179.11 | 268.29 |
+| ZSTD | 182.70 | 254.60 |
 
-> 本輪速度數值和前輪有明顯浮動，尤其 llama.cpp 的 TLZ4/ZSTD 與解壓結果。因此文件比較仍以同輪內的相對關係為主，不把 Apple/ZSTD/TGZ 的壓縮大小小幅差異視為演算法變更證據。
+> 本輪速度數值和前輪仍有浮動。llama.cpp 在 memProbe 後移後，解壓 MB/s 大幅回到 220–273 MB/s 區間；claw-code 的解壓仍顯示較大磁碟/快取波動，尤其 BVX3 單點偏低。因此比較仍以同輪內相對關係與多輪趨勢為主，不把 Apple/ZSTD/TGZ 的壓縮大小小幅差異視為演算法變更證據。
 
 ## 壓縮比與成本 / Ratio and Cost
 
 | 資料集 | Lazy2 ratio | Optimal ratio | Optimal 額外體積收益 | Optimal/Lazy2 壓縮時間 |
 | --- | ---: | ---: | ---: | ---: |
-| claw-code | 0.9016 | 0.8590 | 4.72% smaller vs lazy2 | 1.71x |
-| llama.cpp | 0.9587 | 0.9415 | 1.80% smaller vs lazy2 | 3.38x |
+| claw-code | 0.9016 | 0.8590 | 4.72% smaller vs lazy2 | 1.81x |
+| llama.cpp | 0.9587 | 0.9415 | 1.80% smaller vs lazy2 | 2.89x |
 
-結論維持不變：optimal 對 claw-code 有可見體積收益，但對 llama.cpp 只多省 1.80%，卻需要 3.38x lazy2 壓縮時間。下一輪不應把 optimal 當全域策略，應改成段層級 cheap probe：高收益段才進 optimal，低收益段走 lazy2 或 bvx3。
+結論維持不變：optimal 對 claw-code 有可見體積收益，但對 llama.cpp 只多省 1.80%，卻仍需要 2.89x lazy2 壓縮時間。下一輪不應把 optimal 當全域策略，應改成段層級 cheap probe：高收益段才進 optimal，低收益段走 lazy2 或 bvx3。
 
 ## MemProbe 結果 / Peak RSS
 
 | 格式 | claw encode | claw decode | llama encode | llama decode |
 | --- | ---: | ---: | ---: | ---: |
-| TGZ | 4.0 MB | 3.7 MB | 4.2 MB | 3.8 MB |
-| ZSTD | 352.7 MB | 9.2 MB | 448.7 MB | 9.4 MB |
-| TLZ4 | 81.1 MB | 33.8 MB | 83.3 MB | 33.8 MB |
-| Other3 | 1534.1 MB | 1014.1 MB | 1296.2 MB | 1244.2 MB |
-| Apple | 1177.5 MB | 473.1 MB | 1009.5 MB | 590.3 MB |
-| BVX3 | 1105.3 MB | 982.2 MB | 1304.7 MB | 1226.7 MB |
-| Lazy2 | 1396.4 MB | 935.0 MB | 1484.0 MB | 1200.1 MB |
-| Optimal | 1481.0 MB | 895.3 MB | 1597.1 MB | 1180.2 MB |
+| TGZ | 4.0 MB | 3.7 MB | 4.1 MB | 3.8 MB |
+| ZSTD | 392.3 MB | 9.5 MB | 508.4 MB | 9.3 MB |
+| TLZ4 | 74.6 MB | 33.8 MB | 83.6 MB | 33.8 MB |
+| Other3 | 1334.8 MB | 1014.2 MB | 1372.8 MB | 1244.2 MB |
+| Apple | 1356.4 MB | 473.1 MB | 1193.8 MB | 590.3 MB |
+| BVX3 | 1523.0 MB | 981.9 MB | 1365.8 MB | 1226.6 MB |
+| Lazy2 | 1163.0 MB | 935.1 MB | 1554.0 MB | 1199.9 MB |
+| Optimal | 1616.0 MB | 895.0 MB | 1655.3 MB | 1180.1 MB |
 
-最新 memProbe 顯示 decode RSS 已低於前一版 2GB+ 記錄，但仍遠高於外部工具；encode RSS 則更明確是主問題。LZFSE / bvx3 家族 encode 約 1.0–1.6GB，對比 TLZ4 約 81–83MB、ZSTD 約 353–449MB，代表 parallel encode 的在途 chunk、parser workspace、壓縮 body、排序 buffer 或 `Data` copy 仍需要獨立壓低。
+最新 memProbe 顯示 decode RSS 穩定落在約 473MB–1.24GB，已不再回到 R21 的 2GB+，但仍遠高於外部工具；encode RSS 則更明確是主問題。LZFSE / bvx3 家族 encode 約 1.16–1.66GB，對比 TLZ4 約 75–84MB、ZSTD 約 392–508MB，代表 parallel encode 的在途 chunk、parser workspace、壓縮 body、排序 buffer 或 `Data` copy 仍需要獨立壓低。`-n` 預設值沒有讓 RSS 自動下降，下一步要用較小 N 做掃描。
 
 ## Trace 統整 / Trace Summary
 
@@ -83,23 +85,40 @@ Trace 的可用結論很窄：lazy2 / optimal 是長段，尤其 claw-code optim
 
 ## bvx3 家族下一步計畫 / Next Plan
 
-1. **先做 encode RSS 單點改善**：把 `runParallelEncode` 的在途任務數從核心數解耦，先做固定 N 或環境變數控制，並確認是否能重用 parser / DP scratch。成功條件：bvx3/lazy2/optimal 任一 encode RSS 降低 ≥20%，壓縮比 byte 級不退步。
+1. **先做小 N 掃描，而不是直接宣稱 encode RSS 已解決**：預設 N 仍讓 bvx3 家族 encode RSS 落在 1.16–1.66GB。下一輪需固定同碼，掃 `-n 40 / 8 / 4` 或相近值，確認較小 N 是否能把 bvx3/lazy2/optimal 任一 encode RSS 降低 ≥20%，且壓縮 MB/s / 比率可接受。
 2. **再做 optimal 成本閘**：用 cheap probe 在段層級估算 lazy2→optimal 的收益。llama.cpp 這類低收益資料不應全段進 optimal；claw-code 高收益段才值得付 DP 成本。
-3. **decode RSS 仍列問題，但順位低於 encode**：decode 目前約 0.47–1.24GB，仍比 zstd/tlz4 高一到兩個數量級；但本輪最不合理的是 encode 1.0–1.6GB。decode 有界串流視窗應獨立排期，避免和 optimal DP 加速混在同一輪。
+3. **decode RSS 仍列問題，但順位低於 encode**：decode 目前約 0.47–1.24GB，仍比 zstd/tlz4 高一到兩個數量級；但本輪最不合理的是 encode 1.16–1.66GB。decode 有界串流視窗應獨立排期，避免和 optimal DP 加速混在同一輪。
 4. **profiling 只採 GUI 讀取後的具體熱點**：下一次若要改 DP / match loop，先從 `trace/claw-code-optimal.trace` 與 `trace/llama.cpp-optimal.trace` 摘出 top two hotspots，再做單點改動；速度成功條件維持同輪 claw optimal 壓縮時間改善 ≥10%。
+
+## 本次實作驗收觀察 / Implemented This Round
+
+**項目 1（encode 在途數解耦）—— 已做 + 投資評估**
+- `-n <N>` 旋鈕（encode / decode 共用，與核心數解耦）：`runParallelEncode` 的 sem 上限改由 N 決定。預設 = 核心數×2、上限 < 核心數×4、下限 1。
+- ⚠️ **驗收結果**：預設設定下 encode RSS 沒有達到 −20% 成功條件，仍約 1.16–1.66GB。這表示 N 旋鈕需要用較小值驗證，且 parser/DP scratch / `Data` copy 才是下一個更確定的單點。
+- **scratch 重用評估（「確認是否能重用」）**：可行，但需把 `lzParseOptimal` / `lzParseChain` / `lzParseStrong` 內的 DP segment、hash、chain 陣列改成「由外部傳入的 thread-local scratch pool」（簽名變動，屬侵入式、correctness-critical），故本輪**未盲改**，列為需可編譯驗證的下一步。另 `compressBody` 內 `let bytes = [UInt8](input)` 每 chunk 多複製一份 4MiB，可一併改 `withUnsafeBytes` 省去。
+
+**decode 再降一步 —— 已做**
+- 消除 CLI 解碼路徑的**重複輸入複製**：原本 `readToEnd()` 的 `Data` 與 `decodeStreamToHandle` 內的 `[UInt8]` 各持一份完整壓縮檔；改為只讀入單一份 `[UInt8]`（`decodeStreamToHandle` 直接吃 `[UInt8]`，不再內部複製）。預期再省 ~壓縮檔大小（claw ~0.4GB、llama ~0.55GB）的 decode RSS。
+- **驗收結果**：decode RSS 維持在 473MB–1.24GB，沒有回到 R21 的 2GB+；但也還沒到幾十 MB，代表 `scanBlocks` / `src` 增量化仍是必要的後續工作。
+- 再往「幾十 MB」需第二階段 b：`scanBlocks` 增量掃描 + `src` 串流讀入（尚未做）。
+
+**helper 調度修正 —— 已做**
+- memProbe 已移到正式壓縮/解壓 benchmark 之後執行；這讓解壓 MB/s 不再被事前 probe 污染。llama.cpp 解壓結果回升到 220–273 MB/s 區間，支持這個調整方向。
+
+**驗收建議**：`-test` 守 7/7 一致與 Apple 互解；下一輪固定同碼掃 `-n 40 / 8 / 4` 看 RSS↔速度取捨；若小 N 不足以降 RSS，改做 parser scratch pool 或 `compressBody` 去除每 chunk `[UInt8](input)` copy。
 
 ---
 
 # 修改方向建議：bvx3 家族記憶體整體解法（R23 設計筆記）/ Direction: Holistic Memory Fix for the Whole LZFSE Family
 
-> 本節為設計方向，非實測。承 R21/R23 memProbe 與 R22 的 B線/C線：encode RSS 約 1.0–1.6GB、decode RSS 約 0.47–1.24GB 是**架構級**成本，且**所有格式共用**（other3 / Apple 也受影響，並非 bvx3 專屬）。因此解法必須在共用層一次解決，並保證 other3/Apple 相容。
+> 本節為設計方向，非實測。承 R21/R23 memProbe 與 R22 的 B線/C線：encode RSS 約 1.16–1.66GB、decode RSS 約 0.47–1.24GB 是**架構級**成本，且**所有格式共用**（other3 / Apple 也受影響，並非 bvx3 專屬）。因此解法必須在共用層一次解決，並保證 other3/Apple 相容。
 
 ## 1. 問題定位（共用層，非格式專屬）/ Root Cause in the Shared Layer
 
 `decodeStream`（2677 行）與 `runParallelEncode`（3342 行）是所有演算法共用的 I/O 管線：
 
 - **decode 仍有整檔級成本**：(a) 2678 行 `let src = [UInt8](input)` 持有整份壓縮輸入（~0.4–0.6GB）；(b) 已有分批輸出後，峰值仍約 0.47–1.24GB，代表壓縮輸入、群組暫存、`Data` copy / staging 仍未完全有界。
-- **encode 在途數綁定核心數**：3345 行 `maxTasks = activeProcessorCount`（本機 20）。每個在途 chunk 自帶輸入 4MiB + 輸出 + parser workspace + hash-chain/DP 陣列，峰值 ≈ 核心數 × 每 chunk 工作集，目前約 1.0–1.6GB。
+- **encode 在途數綁定核心數**：3345 行 `maxTasks = activeProcessorCount`（本機 20）。每個在途 chunk 自帶輸入 4MiB + 輸出 + parser workspace + hash-chain/DP 陣列，峰值 ≈ 核心數 × 每 chunk 工作集，目前約 1.16–1.66GB。
 
 ## 2. 支點：最大回溯距離由「格式」決定，且很小 / The Enabling Invariant
 
@@ -128,7 +147,7 @@ Trace 的可用結論很窄：lazy2 / optimal 是長段，尤其 claw-code optim
 ## 5. 記憶體估算與使用者旋鈕 / Estimates & `-mem`
 
 - decode N=4 + 增量掃描後：0.47–1.24GB → ≈ N×4MiB + 4MiB ≈ **20–24MB**。
-- encode N=8 + scratch pool 後：1.0–1.6GB → ≈ 8×(4MiB + workspace) ≈ **數百 MB**。
+- encode N=8 + scratch pool 後：1.16–1.66GB → ≈ 8×(4MiB + workspace) ≈ **數百 MB**。
 - 建議對外做成 `-mem low|balanced|max`（N = 2 / 8 / cores）：`max` 維持今日速度與記憶體，`low` 換低 RSS。
 
 ## 6. 權衡 / Trade-off
@@ -143,7 +162,7 @@ Trace 的可用結論很窄：lazy2 / optimal 是長段，尤其 claw-code optim
   - 記憶體旋鈕：CLI `-n <N>`（同時在記憶體的群組數）。**預設 = 核心數 × 2**；**上限須 < 核心數 × 4**（超過會被夾到 4×cores−1 並提示）；下限 1。輸出側峰值 ≈ N × 4MiB（預設 20 核 → N=40 → ~160MB；`-n 4` → ~16MB）。
   - ⚠️ **實際降幅校準**：本階段只消除「整份輸出緩衝（~1.3GB）」；**壓縮輸入 `src` 仍整份讀入（~0.4–0.6GB）**。本次 memProbe 已降到約 0.47–1.24GB，但尚非「幾十 MB」；要更低需第二階段 b 或設小 `-n`。
 - **第二階段 b（待做）**：`scanBlocks`（2610 行）改增量掃描、`src` 改串流讀入，消掉那 ~0.5GB → 才能到幾十 MB。
-- **第一階段（待做）/ encode**：在途數限 N + scratch pool，降 encode RSS（1.0–1.6GB）。
+- **第一階段（待做）/ encode**：在途數限 N + scratch pool，降 encode RSS（1.16–1.66GB）。
 - **驗收（你跑 benchmark + memProbe）**：7/7 解壓一致、壓縮比 byte 級不變；decode RSS（other3/bvx3/lazy2/optimal）−≥20%（本階段預期 ~−70%）。可另測 `-n 4`、`-n 2` 看記憶體↔解壓速度的取捨。
 
 ---

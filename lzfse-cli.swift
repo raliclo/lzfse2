@@ -2750,9 +2750,9 @@ public enum LZFSEv1 {
     /// 依序寫出 → 立即釋放」，使輸出側記憶體 ≈ inflight × chunkRaw，而非整份輸出（~1.3GB）。
     /// 跨組 match / 外來單流（apple 等）→ 退回原 whole-buffer 解碼，保證位元組完全相同、零相容性風險。
     /// inflight = 同時在記憶體中的群組數（記憶體 ↔ 吞吐旋鈕，由 CLI `-n` 指定；預設 = 核心數×2）。
-    static func decodeStreamToHandle(_ input: Data, parallel: Bool, chunkRaw: Int,
+    /// 直接吃 `[UInt8]`（呼叫端已是唯一一份壓縮輸入），不再內部複製，避免重複持有整份輸入。
+    static func decodeStreamToHandle(_ src: [UInt8], parallel: Bool, chunkRaw: Int,
                                      inflight: Int, output: FileHandle) -> Bool {
-        let src = [UInt8](input)
         guard let blocks = scanBlocks(src) else { return false }
         let total = blocks.reduce(0) { $0 + $1.rawBytes }
         if total == 0 { return true }
@@ -2774,7 +2774,7 @@ public enum LZFSEv1 {
 
         // 單組（外來單流／不可分塊）→ 無法分批界定記憶體，沿用原 whole-buffer 解碼
         if groups.count <= 1 {
-            guard let d = decodeStream(input, parallel: false, chunkRaw: chunkRaw) else { return false }
+            guard let d = decodeStream(Data(src), parallel: false, chunkRaw: chunkRaw) else { return false }
             output.write(d)
             return true
         }
@@ -2814,7 +2814,7 @@ public enum LZFSEv1 {
             if failed {
                 // 跨組 match（外來串流）→ 退回 whole-buffer 循序解碼，保證正確
                 buf.deallocate()
-                guard let d = decodeStream(input, parallel: false, chunkRaw: chunkRaw) else { return false }
+                guard let d = decodeStream(Data(src), parallel: false, chunkRaw: chunkRaw) else { return false }
                 output.write(d)
                 return true
             }
@@ -3356,9 +3356,13 @@ if useOptimal && useLazy2 {
     eprint("Note: -optimal supersedes -lazy2. / 提示：-optimal 優先於 -lazy2。")
 }
 
-// -n：解碼有界串流「同時在記憶體中的群組數」（記憶體 ↔ 解壓速度旋鈕）。
-// 預設 = 核心數 × 2；上限須「小於」核心數 × 4；下限 1。輸出側峰值 ≈ N × 4MiB。
-let decodeInflight: Int = {
+// -n：在途任務數（encode 與 decode 共用的「記憶體 ↔ 吞吐」旋鈕，與核心數解耦）。
+//   decode = 同時在記憶體中的解碼群組數（輸出側峰值 ≈ N × 4MiB）。
+//   encode = runParallelEncode 的在途分塊數（sem 上限）；實際同時壓縮的執行緒仍由 GCD 池
+//            約束 ≈ 核心數，故較大 N 主要加深讀寫管線、較小 N 直接降低同時佔用的 parser/DP
+//            scratch → 降 encode RSS。
+// 預設 = 核心數 × 2；上限須「小於」核心數 × 4；下限 1。
+let inflightN: Int = {
     let cores = max(1, ProcessInfo.processInfo.activeProcessorCount)
     let cap = cores * 4            // N 必須小於此值
     var n = cores * 2             // 預設：核心數 × 2
@@ -3442,10 +3446,13 @@ if args.contains("-so") {
 ///   5. 結果在鎖內按 writeIndex 順序排水寫出，保證輸出順序正確；
 ///      所有分塊寫完後才補上唯一一個 bvx$。
 func runParallelEncode(input: FileHandle, output: FileHandle,
+                       inflight: Int,
                        chunkSize: Int = LZFSEv1.parallelChunkSize,
                        strong: Bool = false, bvx3: Bool = false, lazy2: Bool = false,
                        optimal: Bool = false) {
-    let maxTasks = max(2, ProcessInfo.processInfo.activeProcessorCount)
+    // 在途數由 -n 決定（與核心數解耦）。實際同時壓縮的執行緒仍由 GCD 並行佇列約束 ≈ 核心數，
+    // 故較大 N 主要加深讀寫管線；較小 N 直接降低同時佔用的 parser/DP scratch → 降 encode RSS。
+    let maxTasks = max(2, inflight)
     // 有界緩衝：sem 限制「已讀但尚未寫出」的 chunk 數 ≤ maxTasks。
     // 關鍵——sem.signal() 綁定在「該 chunk 被寫出」而非「task 完成」，
     // 否則慢 chunk 在前時，其後已壓完的 body 會在 results 無界堆積（→ OOM）。
@@ -3536,22 +3543,25 @@ case .other3, .bvx3:
     // 非分塊串流自動退回循序，結果保證正確。
     if isEncoding {
         runParallelEncode(input: inputHandle, output: outputHandle,
+                          inflight: inflightN,
                           strong: true, bvx3: algo == .bvx3,
                           lazy2: algo == .bvx3 && useLazy2 && !useOptimal,
                           optimal: algo == .bvx3 && useOptimal)
     } else {
-        let data: Data
+        // 只保留單一份壓縮輸入（[UInt8]）：readToEnd 的 Data 為暫存，複製進 src 後即釋放，
+        // 避免「Data + [UInt8]」同時各持一份壓縮檔（省 ~壓縮檔大小 的 RSS）。
+        let src: [UInt8]
         do {
-            data = try inputHandle.readToEnd() ?? Data()
+            src = [UInt8](try inputHandle.readToEnd() ?? Data())
         } catch {
             eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
             exit(1)
         }
         // 有界串流解碼：分批平行解碼後依序寫出並釋放，輸出側峰值 RSS ≈ inflight × chunkRaw，
         // 取代「一次配置整份輸出（~1.3GB）」。外來單流/跨組 match 會自動退回 whole-buffer，保證正確。
-        guard LZFSEv1.decodeStreamToHandle(data, parallel: true,
+        guard LZFSEv1.decodeStreamToHandle(src, parallel: true,
                                            chunkRaw: LZFSEv1.parallelChunkSize,
-                                           inflight: decodeInflight,
+                                           inflight: inflightN,
                                            output: outputHandle) else {
             eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
             exit(1)
