@@ -2745,6 +2745,88 @@ public enum LZFSEv1 {
         })
     }
 
+    /// 有界串流解碼（降低 decode 峰值 RSS）/ Bounded streaming decode.
+    /// 自家分塊串流（other3/bvx3 各 4MiB chunk 獨立壓縮）→ 群組自包含，可「分批平行解碼 →
+    /// 依序寫出 → 立即釋放」，使輸出側記憶體 ≈ inflight × chunkRaw，而非整份輸出（~1.3GB）。
+    /// 跨組 match / 外來單流（apple 等）→ 退回原 whole-buffer 解碼，保證位元組完全相同、零相容性風險。
+    /// inflight = 同時在記憶體中的群組數（記憶體 ↔ 吞吐旋鈕，由 CLI `-n` 指定；預設 = 核心數×2）。
+    static func decodeStreamToHandle(_ input: Data, parallel: Bool, chunkRaw: Int,
+                                     inflight: Int, output: FileHandle) -> Bool {
+        let src = [UInt8](input)
+        guard let blocks = scanBlocks(src) else { return false }
+        let total = blocks.reduce(0) { $0 + $1.rawBytes }
+        if total == 0 { return true }
+
+        // 分組：累計原始大小於 chunkRaw 倍數處切（與 decodeStream 一致）
+        var groups: [[BlockInfo]] = []
+        if parallel && chunkRaw > 0 {
+            var current: [BlockInfo] = []
+            var cum = 0
+            for b in blocks {
+                current.append(b)
+                cum += b.rawBytes
+                if cum % chunkRaw == 0 && b.rawBytes > 0 { groups.append(current); current = [] }
+            }
+            if !current.isEmpty { groups.append(current) }
+        } else {
+            groups = [blocks]
+        }
+
+        // 單組（外來單流／不可分塊）→ 無法分批界定記憶體，沿用原 whole-buffer 解碼
+        if groups.count <= 1 {
+            guard let d = decodeStream(input, parallel: false, chunkRaw: chunkRaw) else { return false }
+            output.write(d)
+            return true
+        }
+
+        let groupRaw = groups.map { g in g.reduce(0) { $0 + $1.rawBytes } }
+        // inflight：同時在記憶體中的群組數上限（= 輸出側峰值 ≈ inflight × chunkRaw）
+        let n0 = max(1, inflight)
+
+        var gi = 0
+        while gi < groups.count {
+            let hi = min(gi + n0, groups.count)
+            // 本批各組於批緩衝內的位移
+            var offs = [0]
+            for k in gi..<hi { offs.append(offs.last! + groupRaw[k]) }
+            let batchTotal = max(offs.last!, 1)
+            let buf = UnsafeMutableRawPointer.allocate(byteCount: batchTotal, alignment: 16)
+            let dp = buf.bindMemory(to: UInt8.self, capacity: batchTotal)
+            var failed = false
+            let lock = NSLock()
+            let n = hi - gi
+
+            DispatchQueue.concurrentPerform(iterations: n) { j in
+                let regionBase = offs[j]
+                let regionEnd = offs[j + 1]
+                var cursor = regionBase
+                let litScratch = UnsafeMutablePointer<UInt8>.allocate(capacity: literalsPerBlockV3 + 8)
+                defer { litScratch.deallocate() }
+                for b in groups[gi + j] {
+                    guard decodeOneBlock(src: src, at: b.start, magic: b.magic,
+                                         dp: dp, regionBase: regionBase, regionEnd: regionEnd,
+                                         cursor: &cursor, litScratch: litScratch) != nil
+                    else { lock.lock(); failed = true; lock.unlock(); return }
+                }
+                if cursor != regionEnd { lock.lock(); failed = true; lock.unlock() }
+            }
+
+            if failed {
+                // 跨組 match（外來串流）→ 退回 whole-buffer 循序解碼，保證正確
+                buf.deallocate()
+                guard let d = decodeStream(input, parallel: false, chunkRaw: chunkRaw) else { return false }
+                output.write(d)
+                return true
+            }
+
+            // 依序寫出本批並立即釋放（zero-copy，write 為同步寫入）
+            output.write(Data(bytesNoCopy: buf, count: batchTotal, deallocator: .none))
+            buf.deallocate()
+            gi = hi
+        }
+        return true
+    }
+
     /// 循序後援：整條串流視為單一區段（完整歷史）解進同一塊緩衝
     static func sequentialInto(blocks: [BlockInfo], src: [UInt8],
                                dp: UnsafeMutablePointer<UInt8>, total: Int) -> Bool {
@@ -3274,6 +3356,27 @@ if useOptimal && useLazy2 {
     eprint("Note: -optimal supersedes -lazy2. / 提示：-optimal 優先於 -lazy2。")
 }
 
+// -n：解碼有界串流「同時在記憶體中的群組數」（記憶體 ↔ 解壓速度旋鈕）。
+// 預設 = 核心數 × 2；上限須「小於」核心數 × 4；下限 1。輸出側峰值 ≈ N × 4MiB。
+let decodeInflight: Int = {
+    let cores = max(1, ProcessInfo.processInfo.activeProcessorCount)
+    let cap = cores * 4            // N 必須小於此值
+    var n = cores * 2             // 預設：核心數 × 2
+    if let index = args.firstIndex(of: "-n"), index + 1 < args.count {
+        guard let v = Int(args[index + 1]) else {
+            eprint("Error: -n expects an integer. / 錯誤：-n 需要整數。")
+            exit(1)
+        }
+        n = v
+    }
+    if n < 1 { n = 1 }
+    if n >= cap {
+        eprint("Note: -n clamped to < \(cap) (4× cores=\(cores)). / 提示：-n 已限制為小於核心數×4（上限 \(cap)）。")
+        n = cap - 1
+    }
+    return n
+}()
+
 #if !canImport(Compression)
 if algo == .apple {
     eprint("Error: Compression framework unavailable on this platform; use -algo other. / 錯誤：此平台沒有 Compression framework，請改用 -algo other。")
@@ -3444,11 +3547,15 @@ case .other3, .bvx3:
             eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
             exit(1)
         }
-        guard let result = LZFSEv1.parallelDecompress(data) else {
+        // 有界串流解碼：分批平行解碼後依序寫出並釋放，輸出側峰值 RSS ≈ inflight × chunkRaw，
+        // 取代「一次配置整份輸出（~1.3GB）」。外來單流/跨組 match 會自動退回 whole-buffer，保證正確。
+        guard LZFSEv1.decodeStreamToHandle(data, parallel: true,
+                                           chunkRaw: LZFSEv1.parallelChunkSize,
+                                           inflight: decodeInflight,
+                                           output: outputHandle) else {
             eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
             exit(1)
         }
-        outputHandle.write(result)
     }
 }
 
