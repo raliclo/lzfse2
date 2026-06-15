@@ -19,6 +19,12 @@ SUMMARY_OUT="$OUT_DIR/cpu_call_tree_summary.csv"
 HOT_BY_FILE_OUT="$OUT_DIR/hot_symbols_by_file.csv"
 HOT_GLOBAL_OUT="$OUT_DIR/hot_symbols_global.csv"
 NOTES_OUT="$OUT_DIR/notes.md"
+CPU_CALL_TREE_GLOBAL_TOP_N="${CPU_CALL_TREE_GLOBAL_TOP_N:-500}"
+
+if ! [[ "$CPU_CALL_TREE_GLOBAL_TOP_N" == <-> ]]; then
+    echo "[Error] CPU_CALL_TREE_GLOBAL_TOP_N must be a positive integer: ${CPU_CALL_TREE_GLOBAL_TOP_N}" >&2
+    exit 2
+fi
 
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
@@ -259,6 +265,7 @@ contains_text() {
             | sort \
             | uniq -c \
             | sort -nr \
+            | head -n "$CPU_CALL_TREE_GLOBAL_TOP_N" \
             | while read -r count kind symbol; do
                 symbol_category="$(category_for_symbol "$symbol")"
                 {
@@ -278,6 +285,7 @@ contains_text() {
         echo "- 來源：\`trace/analysis/cpu_call_tree/time-profile\` 與 \`time-sample\`。"
         echo "- \`time-profile\` 會產出 symbol occurrence 統計；這不是精確 CPU 百分比。"
         echo "- \`time-sample\` 是 raw kperf address table，目前只記錄 row count 與 target 狀態，不納入 symbol 熱點排名。"
+        echo "- \`hot_symbols_global.csv\` 預設只保留全域前 ${CPU_CALL_TREE_GLOBAL_TOP_N} 名；可用 \`CPU_CALL_TREE_GLOBAL_TOP_N\` 調整。"
         echo "- 分析前先看 \`trace_summary.csv\`，確認 \`target_seen=yes\`，並確認來源 trace 是否 timeout。"
         echo "- timeout trace 可用來判斷 hotspot 方向，但不能拿來計算 MB/s 或完整執行時間。"
         echo

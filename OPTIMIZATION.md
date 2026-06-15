@@ -5,6 +5,82 @@
 
 ---
 
+# 第二十六輪驗收補充：Benchmark / Trace / CPU 欄位已重建（2026-06-16）
+
+## 資料狀態
+
+本節依最新 `BenchMarkResult.csv`、`best_points/best_points.md`、`trace/analysis/trace_summary.csv`、`trace/analysis/cpu_call_tree_summary/`、`round_status.txt` 與 `lzfse-test.txt` 彙整。這輪先前曾出現 `BenchMarkResult.csv` 的 CPU 欄位空白，原因是 `benchmark.sh` 的排程先執行 `benchmark_result_rebuild.command --write`，後執行 `cpu_call_tree_analysis.command`。目前流程已修正為：
+
+`trace_analysis` → `cpu_call_tree_analysis` → `git gc` → `benchmark_result_rebuild --write` → `best_points_analysis`
+
+最新已用現有 trace 產物補跑 `helper/cpu_call_tree_analysis.command`、`helper/benchmark_result_rebuild.command --write` 與 `helper/best_points_analysis.command`。`BenchMarkResult.csv` 共 48 rows，48 rows 皆已有 `CPU Symbol Status`；主要 CSV 仍為 UTF-8 BOM，維持 Excel 中文相容。
+
+`trace_summary.csv` 目前有 36 筆 trace summary，全部 `target_seen=yes` 且 `time-profile/time-sample` 皆為 `ok`；其中 30 筆為 timeout trace。這些 timeout trace 可用於 hotspot 方向判斷，但不可拿來計算完整執行時間或 MB/s。`cpu_call_tree_summary.csv` 有 72 rows：36 筆 `time-profile` symbol 統計與 36 筆 `time-sample` raw kperf address table；`hot_symbols_global.csv` 目前只保留前 500 名全域熱點，避免產物膨脹。
+
+`lzfse-test.txt` 顯示 correctness case 維持通過：Other3 自我往返與 Apple 相容、bvx3 / lazy2 / optimal 自我往返、平行解碼、私有 bvx3 Apple 拒解、單流後援與 Apple 互解路徑皆正常。
+
+## 最新速度 / 壓縮比 / RSS
+
+`best_points/best_points.md` 顯示本輪最佳點如下：
+
+- `claw-code`
+  - Other3：最佳壓縮 `596.14 MB/s`（n8），最佳解壓 `766.42 MB/s`（n40），壓縮比 `0.9872`。
+  - BVX3：最佳壓縮 `646.70 MB/s`（n40），最佳解壓 `574.21 MB/s`（n8），壓縮比 `0.9515`，最低 encode RSS `129.2 MB`（n4）。
+  - Lazy2：最佳壓縮 `57.54 MB/s`（n40），最佳解壓 `652.50 MB/s`（n8），壓縮比 `0.9016`，最低 encode RSS `192.9 MB`（n4）。
+  - Optimal：最佳壓縮 `29.84 MB/s`（n40），最佳解壓 `679.77 MB/s`（n8），壓縮比 `0.8590`，最低 encode RSS `197.4 MB`（n4）。
+  - ZSTD：最佳壓縮比 `0.8255`，最佳壓縮 `482.03 MB/s`（log n8），最佳解壓 `787.58 MB/s`（log n40），decode RSS 約 `9.0–9.1 MB`。
+- `llama.cpp`
+  - Other3：最佳壓縮 `447.76 MB/s`（n40），最佳解壓 `265.95 MB/s`（n40），壓縮比 `0.9978`。
+  - BVX3：最佳壓縮 `437.28 MB/s`（n40），最佳解壓 `252.98 MB/s`（n4），壓縮比 `0.9815`，最低 encode RSS `132.9 MB`（n4）。
+  - Lazy2：最佳壓縮 `173.90 MB/s`（n40），最佳解壓 `294.33 MB/s`（n8），壓縮比 `0.9587`，最低 encode RSS `194.5 MB`（n4）。
+  - Optimal：最佳壓縮 `56.21 MB/s`（n40），最佳解壓 `253.37 MB/s`（n4），壓縮比 `0.9415`，最低 encode RSS `217.4 MB`（n4）。
+  - ZSTD：最佳壓縮比 `0.9123`，最佳壓縮 `469.71 MB/s`（log n4），最佳解壓 `294.07 MB/s`（log n8），decode RSS 約 `9.0–9.4 MB`。
+
+RSS 取捨仍清楚：n40 通常給 LZFSE 家族最高壓縮速度，但 encode RSS 也升高。n40 代表值為 `claw-code` BVX3 `359.1 MB`、Lazy2 `488.4 MB`、Optimal `570.3 MB`；`llama.cpp` BVX3 `394.8 MB`、Lazy2 `525.5 MB`、Optimal `573.6 MB`。因此後續優化不能只看 MB/s，仍需同步看 RSS 與壓縮比。
+
+## CPU 熱點結論
+
+`BenchMarkResult.csv` 現已直接帶入 CPU top symbol / count / category，不必再另行手動對照 summary CSV。主要熱點維持和 R26 假設一致：
+
+- BVX3：兩個資料集 n40 top category 都是 `encode`，top symbol 為 `specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)`。n40 代表值：`claw-code` top count `92`、`llama.cpp` top count `99`。R26 的 `encodeBlockV3` 單趟融合方向仍正確。
+- Lazy2：top symbol 穩定為 `bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)`。n40 代表值：`claw-code` top count `162`、parse hits `380`；`llama.cpp` top count `130`、parse hits `317`。R26 的 rep 長度快取仍是正確焦點。
+- Optimal：top symbol 穩定為 `specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)`。n40 代表值：`claw-code` top count `565`、parse hits `963`；`llama.cpp` top count `508`、parse hits `893`。Optimal 的主要成本仍在 DP / parse closure，下一步若要動 optimal，應先做段層級 gating 或 cheap probe，而不是只微調 encode path。
+- Other3 / Apple / 外部工具：Other3 主要在 `encodeBlock` / FSE，Apple 在 `lzfseEncodeMatches`，TLZ4 / ZSTD 熱點屬外部工具內部 symbol，不應和 Swift LZFSE parser 熱點混比。
+
+## 下一步
+
+1. 以本輪數字更新驗收基準：BVX3 以 `claw-code n40 646.70 MB/s` / `llama.cpp n40 437.28 MB/s`；Lazy2 以 `57.54 / 173.90 MB/s`；Optimal 以 `29.84 / 56.21 MB/s`。
+2. 後續每次完整 benchmark 必須確認 `round_status.txt` 中 `CPU_CALL_TREE_ANALYSIS_DONE` 早於 `BENCHMARK_RESULT_REBUILD_DONE`，避免 CPU 欄位再次空白。
+3. 下一個程式碼優化仍優先驗收 R26 的兩個單點：BVX3 `encodeBlockV3` 與 Lazy2 `bestMatch`；每個改動都需同時比較壓縮速度、解壓速度、壓縮比、encode/decode RSS 與 CPU top symbol 變化。
+
+---
+
+# 第二十六輪：BVX3 / Lazy2 CPU 單點優化（2026-06-15）/ Round 26: BVX3 & Lazy2 Single-Point CPU Opts
+
+> 只動 `lzfse-cli.swift`。承 R25 cpu_call_tree 的 top symbol（BVX3→`encodeBlockV3`、Lazy2→`lzParseChain.bestMatch`），做兩個**輸出位元組完全相同、不改壓縮比**的單點加速;待 benchmark/memProbe 驗收。
+
+## 改動 1：`encodeBlockV3` 三趟融合為單趟 / Fuse 3 passes into 1
+
+- 原本對 nMatches 走三趟:(a) 由 triplets 建 `lVals/mVals/dVals`、(b) 3 深度 rep-offset transform、(c) 計算 `lSyms/mSyms/dSyms` 與頻次 `lOcc/mOcc/dOcc`。
+- 改為**單一 `for t in triplets` 迴圈**內一次完成值擷取、rep-offset、符號與頻次;陣列改一次性配置（`repeating:count:`）而非 `append`。
+- 效果:對 nMatches 的走訪由 3 趟→1 趟,移除 `append` 重配置與大量 Swift Array 走訪（R25 trace 的 `encode` + `swift_array` 熱點）。`lVals/mVals/dVals` 仍保留供後段 LMD 編碼的 extra bits 使用,故只融合前段、不刪陣列。
+- 正確性:rep-offset 的 MTF 狀態機、M=0→發 0、symbol 計算順序與輸入值完全一致 → **輸出位元組不變**。
+
+## 改動 2：`lzParseChain.bestMatch` 的 rep 長度快取 / Cache rep lengths
+
+- `bestMatch` 的 ①（rep 先試）已用 `repLen`(內含 `matchLength` 掃描) 算過 rep0/1/2 長度;但 ③（rep 接近最佳時改選）**又重算了一次** `repLen`。
+- 改為在 ① 一次算出 `l0/l1/l2`（相同距離直接共用、不重複掃描），③ 直接重用,移除每次 `bestMatch` 最多 3 次 `matchLength` 掃描。
+- 效果:`bestMatch` 是 Lazy2 的 top symbol;③ 在「最佳 match 來自鏈而非 rep」時觸發（常見），此處省下的 `matchLength` 是 lazy2 的隱性大宗。
+- 正確性:快取值與原重算值逐一相等、`else-if` 短路選擇順序不變 → **選到的 (len,dist) 完全相同 → 輸出位元組不變**。
+
+## 驗收（待你 benchmark）
+
+- `swiftc -O` 可編譯、`./lzfse -test` 全過、7/7 一致、壓縮比 byte 級不變（兩改動皆 output-identical）。
+- 速度基準（R25 claw n40）:BVX3 `631.83 MB/s`、Lazy2 `57.88 MB/s`;目標同資料集同 `-n` 下 ≥10% 單點加速。
+- ⚠️ 沙箱無 swiftc,本輪只做了結構/平衡靜態檢查;實際快慢需你的 benchmark 量測。
+
+---
+
 # 第二十五輪補充：完整 staged 結果檢查（2026-06-15 16:59）
 
 ## 完成狀態

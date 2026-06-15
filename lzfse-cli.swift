@@ -859,16 +859,14 @@ public enum LZFSEv1 {
                 var bl = 0, bd = 1
                 // ① rep 距離先試（命中時編碼成本近零）
                 // R4：手動展開 + 去重——熱路徑零配置（原 [r0,r1,r2] 每呼叫建陣列）
+                // R6：三個 rep 長度只算一次（repLen 內含 matchLength 掃描），供 ③ 重用，
+                //     避免原本 ③ 重算 repLen 的隱性成本。相同距離直接共用，不重複掃描。
                 let l0 = repLen(idx, rep0p)
+                let l1: Int = (rep1p == rep0p) ? l0 : repLen(idx, rep1p)
+                let l2: Int = (rep2p == rep0p) ? l0 : (rep2p == rep1p ? l1 : repLen(idx, rep2p))
                 if l0 > bl { bl = l0; bd = rep0p }
-                if rep1p != rep0p {
-                    let l1 = repLen(idx, rep1p)
-                    if l1 > bl { bl = l1; bd = rep1p }
-                }
-                if rep2p != rep0p && rep2p != rep1p {
-                    let l2 = repLen(idx, rep2p)
-                    if l2 > bl { bl = l2; bd = rep2p }
-                }
+                if rep1p != rep0p, l1 > bl { bl = l1; bd = rep1p }
+                if rep2p != rep0p && rep2p != rep1p, l2 > bl { bl = l2; bd = rep2p }
                 // ② 雜湊鏈走訪（深度上限 + bl 快速排除 + good-enough 提前退出）
                 //    rep 已達 good-enough 時整段跳過 —— 零填充等長 run 區段
                 //    （所有位置同雜湊、鏈最稠密）正是靠這個避開病態成本
@@ -895,18 +893,11 @@ public enum LZFSEv1 {
                         depth -= 1
                     }
                 }
-                // ③ rep 長度接近最佳（差 ≤2）時改選 rep（R4：展開，零配置）
+                // ③ rep 長度接近最佳（差 ≤2）時改選 rep（R6：重用 ① 已算的 l0/l1/l2，不再重算）
                 if bd != rep0p && bd != rep1p && bd != rep2p {
-                    let r0l = repLen(idx, rep0p)
-                    if r0l >= bl - 2 && r0l >= 4 { bl = r0l; bd = rep0p }
-                    else {
-                        let r1l = repLen(idx, rep1p)
-                        if r1l >= bl - 2 && r1l >= 4 { bl = r1l; bd = rep1p }
-                        else {
-                            let r2l = repLen(idx, rep2p)
-                            if r2l >= bl - 2 && r2l >= 4 { bl = r2l; bd = rep2p }
-                        }
-                    }
+                    if l0 >= bl - 2 && l0 >= 4 { bl = l0; bd = rep0p }
+                    else if l1 >= bl - 2 && l1 >= 4 { bl = l1; bd = rep1p }
+                    else if l2 >= bl - 2 && l2 >= 4 { bl = l2; bd = rep2p }
                 }
                 return (bl, bd)
             }
@@ -1801,46 +1792,49 @@ public enum LZFSEv1 {
         var lits = Array(literals)
         while lits.count & 3 != 0 { lits.append(0) }
 
-        var lVals = [Int32](), mVals = [Int32](), dVals = [Int32]()
-        lVals.reserveCapacity(triplets.count)
-        for t in triplets { lVals.append(t.l); mVals.append(t.m); dVals.append(t.d) }
-        let nMatches = lVals.count
-
-        // 3 深度 rep-offset（zstd 式）：發射值 0/1/2 = 命中 rep0/1/2，
-        // 其餘 = 真實距離 +2。命中者落在 d3 符號 0/1/2（0 extra bits）。
-        // rep1/rep2 命中採 move-to-front；歷史每區塊歸零。
-        // 純 literal 三元組（M=0）一律發 0：吃 rep0、不動歷史、近零成本。
-        var rep0: Int32 = 0, rep1: Int32 = 0, rep2: Int32 = 0
-        for i in 0..<nMatches {
-            if mVals[i] == 0 { dVals[i] = 0; continue }
-            let d = dVals[i]
-            if d == rep0 {
-                dVals[i] = 0
-            } else if d == rep1 {
-                dVals[i] = 1
-                swap(&rep0, &rep1)
-            } else if d == rep2 {
-                dVals[i] = 2
-                let t = rep2; rep2 = rep1; rep1 = rep0; rep0 = t
-            } else {
-                dVals[i] = d + 2
-                rep2 = rep1; rep1 = rep0; rep0 = d
-            }
-        }
-
+        let nMatches = triplets.count
+        var lVals = [Int32](repeating: 0, count: nMatches)
+        var mVals = [Int32](repeating: 0, count: nMatches)
+        var dVals = [Int32](repeating: 0, count: nMatches)
+        var lSyms = [UInt8](repeating: 0, count: nMatches)
+        var mSyms = [UInt8](repeating: 0, count: nMatches)
+        var dSyms = [UInt8](repeating: 0, count: nMatches)
         var lOcc = [UInt32](repeating: 0, count: lm3Symbols)
         var mOcc = [UInt32](repeating: 0, count: lm3Symbols)
         var dOcc = [UInt32](repeating: 0, count: d3Symbols)
         var litOcc = [UInt32](repeating: 0, count: literalSymbols)
-        var lSyms = [UInt8](repeating: 0, count: nMatches)
-        var mSyms = [UInt8](repeating: 0, count: nMatches)
-        var dSyms = [UInt8](repeating: 0, count: nMatches)
-        for i in 0..<nMatches {
-            let ls = symbol(forValue: lVals[i], base: lm3BaseValue)
-            let ms = symbol(forValue: mVals[i], base: lm3BaseValue)
-            let ds = symbol(forValue: dVals[i], base: d3BaseValue)
+
+        // 單一趟：值擷取 + 3 深度 rep-offset + 符號/頻次（融合原本三趟，輸出位元組完全相同）。
+        // rep-offset（zstd 式）：發射值 0/1/2 = 命中 rep0/1/2（落在 d3 符號 0/1/2、0 extra bits），
+        // 其餘 = 真實距離 +2；命中 rep1/rep2 採 move-to-front；歷史每區塊歸零。
+        // 純 literal 三元組（M=0）一律發 0：吃 rep0、不動歷史、近零成本。
+        var rep0: Int32 = 0, rep1: Int32 = 0, rep2: Int32 = 0
+        var i = 0
+        for t in triplets {
+            let l = t.l, m = t.m
+            lVals[i] = l; mVals[i] = m
+            var dv: Int32
+            if m == 0 {
+                dv = 0
+            } else {
+                let d = t.d
+                if d == rep0 {
+                    dv = 0
+                } else if d == rep1 {
+                    dv = 1; swap(&rep0, &rep1)
+                } else if d == rep2 {
+                    dv = 2; let tt = rep2; rep2 = rep1; rep1 = rep0; rep0 = tt
+                } else {
+                    dv = d + 2; rep2 = rep1; rep1 = rep0; rep0 = d
+                }
+            }
+            dVals[i] = dv
+            let ls = symbol(forValue: l, base: lm3BaseValue)
+            let ms = symbol(forValue: m, base: lm3BaseValue)
+            let ds = symbol(forValue: dv, base: d3BaseValue)
             lSyms[i] = UInt8(ls); mSyms[i] = UInt8(ms); dSyms[i] = UInt8(ds)
             lOcc[ls] += 1; mOcc[ms] += 1; dOcc[ds] += 1
+            i += 1
         }
         for b in lits { litOcc[Int(b)] += 1 }
 

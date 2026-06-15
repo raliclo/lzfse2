@@ -113,7 +113,17 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "TRACE_ANALYSIS_DONE"
 
-# Step.8 壓縮 Git 物件，降低大量 trace 產物後的 repo 體積 / Compact Git objects after trace outputs.
+# Step.8 彙整 CPU call tree 熱點 / Summarize CPU call tree hotspots.
+roundStatus "RUNNING_CPU_CALL_TREE_ANALYSIS"
+./helper/cpu_call_tree_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "CPU_CALL_TREE_ANALYSIS_FAILED $rc"
+    exit $rc
+fi
+roundStatus "CPU_CALL_TREE_ANALYSIS_DONE"
+
+# Step.9 壓縮 Git 物件，降低大量 trace 產物後的 repo 體積 / Compact Git objects after trace outputs.
 roundStatus "RUNNING_GIT_GC"
 git gc --prune=now --aggressive >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
@@ -123,7 +133,7 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "GIT_GC_DONE"
 
-# Step.9 由 benchmark/memProbe/trace 重建 BenchMarkResult.csv / Rebuild BenchMarkResult.csv.
+# Step.10 由 benchmark/memProbe/trace 重建 BenchMarkResult.csv / Rebuild BenchMarkResult.csv.
 roundStatus "RUNNING_BENCHMARK_RESULT_REBUILD"
 ./helper/benchmark_result_rebuild.command --write >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
@@ -133,7 +143,7 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "BENCHMARK_RESULT_REBUILD_DONE"
 
-# Step.10 產生 Best Points 分析，輸出至 best_points/ / Generate Best Points analysis into best_points/.
+# Step.11 產生 Best Points 分析，輸出至 best_points/ / Generate Best Points analysis into best_points/.
 roundStatus "RUNNING_BEST_POINTS_ANALYSIS"
 ./helper/best_points_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
@@ -143,13 +153,4 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "BEST_POINTS_ANALYSIS_DONE"
 
-# Step.11 彙整 CPU call tree 熱點 / Summarize CPU call tree hotspots.
-roundStatus "RUNNING_CPU_CALL_TREE_ANALYSIS"
-./helper/cpu_call_tree_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
-rc=$?
-if [[ $rc -ne 0 ]]; then
-    roundStatus "CPU_CALL_TREE_ANALYSIS_FAILED $rc"
-    exit $rc
-fi
-roundStatus "CPU_CALL_TREE_ANALYSIS_DONE"
 echo "Done."
