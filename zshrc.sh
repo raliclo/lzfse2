@@ -564,20 +564,39 @@ function tlz4() {
 }
 
 function diskcheck() {
-    # 磁碟空間預檢（xbenchTest 峰值約 2 × 原始大小；建議保留 ≥25GB）
-    # Disk space pre-check (xbenchTest peaks at ~2× raw size; recommend ≥25GB free)
+    # 磁碟空間預檢（xbenchTest 峰值約 2 × 原始大小；建議保留 ≥20GB）
+    # Disk space pre-check (xbenchTest peaks at ~2× raw size; recommend ≥20GB free)
     local avail_kb avail_gb
     avail_kb=$(df -k . | tail -1 | awk '{print $4}')
     avail_gb=$(( avail_kb / 1024 / 1024 ))
-    if (( avail_gb < 25 )); then
-        echo "[Warning] 磁碟可用空間僅 ${avail_gb}GB，建議 ≥25GB，否則解壓可能失敗！"
-        echo "[Warning] Only ${avail_gb}GB free — recommend ≥25GB to avoid disk-full failures."
+    if (( avail_gb < 20 )); then
+        echo "[Warning] 磁碟可用空間僅 ${avail_gb}GB，建議 ≥20GB，否則解壓可能失敗！"
+        echo "[Warning] Only ${avail_gb}GB free — recommend ≥20GB to avoid disk-full failures."
         return 1
     else
         echo "[Info] 磁碟可用空間充足：${avail_gb}GB / Sufficient disk space: ${avail_gb}GB"
         return 0
     fi
 
+}
+
+function benchStatus() {
+    local status_file="${ROUND_STATUS_FILE:-round_status.txt}"
+    echo "$@ $(date +%H:%M:%S)" >> "$status_file"
+}
+
+function benchAlgoName() {
+    case "$1" in
+        *.tgz)                echo "tgz" ;;
+        *.zst)                echo "zstd" ;;
+        *.tar.lz4)            echo "tar.lz4" ;;
+        *.lzfse.other3)       echo "other3" ;;
+        *.lzfse.apple)        echo "apple" ;;
+        *.lzfse.bvx3.lazy2)   echo "lazy2" ;;
+        *.lzfse.bvx3.optimal) echo "optimal" ;;
+        *.lzfse.bvx3)         echo "bvx3" ;;
+        *)                    echo "${1##*.}" ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -661,6 +680,8 @@ function lz4bench() {
     if [[ -n "${LZFSE_BENCH_N:-}" ]]; then
         echo "[Info] Fixed LZFSE -n for this round: -n ${LZFSE_BENCH_N}"
     fi
+    local status_suffix="${LZFSE_BENCH_SUFFIX:-}"
+    benchStatus "RUNNING_LZ4BENCH ${1}${status_suffix}"
 
     # Warm-cache：預讀整個資料集進 OS page cache，消除「第一個格式 cold-cache、
     # 後續格式 warm-cache」造成的壓縮計時偏差（見 OPTIMIZATION.md R15/R16 cold-cache 註）
@@ -676,27 +697,35 @@ function lz4bench() {
     # --------------------------------------------------------------------------
     echo $'\n[Info] 測試 getar 壓縮 / Testing getar compression:'
     nanoTimeElapsed getar $1
+    [[ -f "$1.tgz" ]] && benchStatus "ENCODED ${1}${status_suffix} tgz" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} tgz"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX other3 壓縮 / Testing lzfseX other3 compression:'
     nanoTimeElapsed lzfseX $1 other3
+    [[ -f "$1.lzfse.other3" ]] && benchStatus "ENCODED ${1}${status_suffix} other3" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} other3"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX bvx3_lazy2 壓縮 / Testing lzfseX bvx3_lazy2 compression:'
     nanoTimeElapsed lzfseX $1 lazy2
+    [[ -f "$1.lzfse.bvx3.lazy2" ]] && benchStatus "ENCODED ${1}${status_suffix} lazy2" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} lazy2"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX bvx3_optimal 壓縮 / Testing lzfseX bvx3_optimal compression:'
     nanoTimeElapsed lzfseX $1 optimal
+    [[ -f "$1.lzfse.bvx3.optimal" ]] && benchStatus "ENCODED ${1}${status_suffix} optimal" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} optimal"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX bvx3 壓縮 / Testing lzfseX bvx3 compression:'
     nanoTimeElapsed lzfseX $1 bvx3
+    [[ -f "$1.lzfse.bvx3" ]] && benchStatus "ENCODED ${1}${status_suffix} bvx3" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} bvx3"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX apple 壓縮 / Testing lzfseX apple compression:'
     nanoTimeElapsed lzfseX $1 apple
+    [[ -f "$1.lzfse.apple" ]] && benchStatus "ENCODED ${1}${status_suffix} apple" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} apple"; return 1; }
 
     echo $'\n[Info] 測試 tlz4  壓縮 / Testing tlz4 compression:'
     nanoTimeElapsed tlz4 $1
+    [[ -f "$1.tar.lz4" ]] && benchStatus "ENCODED ${1}${status_suffix} tar.lz4" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} tar.lz4"; return 1; }
 
     echo $'\n[Info] 測試 zstd  壓縮 / Testing zstd compression:'
     nanoTimeElapsed getzstd $1
+    [[ -f "$1.zst" ]] && benchStatus "ENCODED ${1}${status_suffix} zstd" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} zstd"; return 1; }
 
     # --------------------------------------------------------------------------
     # 1b. 壓縮產物精確大小摘要（lazy2/optimal 等的壓縮比以此為準）
@@ -735,8 +764,14 @@ function lz4bench() {
 
     for target in "${extract_targets[@]}"; do
         local test_dir="./xbenchTest/${target##*.}"
+        local target_algo
+        target_algo="$(benchAlgoName "$target")"
         mkdir -p "$test_dir" > /dev/null 2>&1
-        cp "$target" "$test_dir" > /dev/null 2>&1
+        if ! mv "$target" "$test_dir" > /dev/null 2>&1; then
+            benchStatus "DECODE_FAILED ${1}${status_suffix} ${target_algo} move_artifact"
+            echo "[Error] failed to move $target into $test_dir"
+            return 1
+        fi
 
         echo $'\n[Info] 測試 '$target' 解壓:'
         (
@@ -744,15 +779,32 @@ function lz4bench() {
             rm -rf "$1" > /dev/null 2>&1
             nanoTimeElapsed extract "$target"
         )
+        local extract_rc=$?
+        if ! mv "$test_dir/$target" "$target" > /dev/null 2>&1; then
+            benchStatus "DECODE_FAILED ${1}${status_suffix} ${target_algo} restore_artifact"
+            echo "[Error] failed to restore $target from $test_dir"
+            return 1
+        fi
+        if [[ $extract_rc -ne 0 ]]; then
+            benchStatus "DECODE_FAILED ${1}${status_suffix} ${target_algo} ${extract_rc}"
+            echo "[Error] $target 解壓失敗 / decompression failed"
+            return "$extract_rc"
+        fi
+        benchStatus "DECODED ${1}${status_suffix} ${target_algo}"
 
         # 即時一致性核對 + 立即清理（tgz 基準保留到所有格式完成）
         # Inline consistency check + immediate cleanup (tgz base kept until end)
         if $is_first; then
             is_first=false   # tgz 作為基準，跳過自比對
+            benchStatus "COMPARE_BASE ${1}${status_suffix} tgz"
         else
-            diff -rq "$base_dir/$1" "$test_dir/$1" > /dev/null 2>&1 && \
-                echo "[Success] $target 解壓內容與 tgz 一致！" || \
+            if diff -rq "$base_dir/$1" "$test_dir/$1" > /dev/null 2>&1; then
+                echo "[Success] $target 解壓內容與 tgz 一致！"
+                benchStatus "COMPARED_WITH_TGZ_OK ${1}${status_suffix} ${target_algo}"
+            else
                 echo "[Warning] $target 解壓內容與 tgz 不一致！"
+                benchStatus "COMPARED_WITH_TGZ_FAILED ${1}${status_suffix} ${target_algo}"
+            fi
             rm -rf "$test_dir"   # 立即釋放此格式的解壓空間
         fi
     done
@@ -784,15 +836,17 @@ function lz4bench() {
                 optimal) probe_artifact="$1.lzfse.bvx3.optimal" ;;
             esac
             probe_file="memprobeResults/${1}${probe_suffix}-${probe_algo}-memprobe.txt"
+            benchStatus "RUNNING_MEMPROBE ${1}${status_suffix} ${probe_algo}"
             case "$probe_algo" in
-                tgz|zstd|tar.lz4) archiveMemProbe "$1" "$probe_algo" > "$probe_file" 2>&1 || return 1 ;;
-                *) lzfseX "$1" "$probe_algo" probe > "$probe_file" 2>&1 || return 1 ;;
+                tgz|zstd|tar.lz4) archiveMemProbe "$1" "$probe_algo" > "$probe_file" 2>&1 || { benchStatus "MEMPROBE_FAILED ${1}${status_suffix} ${probe_algo} encode"; return 1; } ;;
+                *) lzfseX "$1" "$probe_algo" probe > "$probe_file" 2>&1 || { benchStatus "MEMPROBE_FAILED ${1}${status_suffix} ${probe_algo} encode"; return 1; } ;;
             esac
-            extract "$probe_artifact" probe >> "$probe_file" 2>&1 || return 1
-            cp "$probe_file" "memprobeResults/${probe_algo}${probe_suffix}-memprobe.txt"
+            extract "$probe_artifact" probe >> "$probe_file" 2>&1 || { benchStatus "MEMPROBE_FAILED ${1}${status_suffix} ${probe_algo} decode"; return 1; }
+            benchStatus "MEMPROBE_DONE ${1}${status_suffix} ${probe_algo}"
         done
     fi
 
+    benchStatus "LZ4BENCH_DONE ${1}${status_suffix}"
     echo $'\n[Info] 基準測試完成！ / Benchmark finished!'
 }
 

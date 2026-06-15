@@ -23,4 +23,5 @@ if [[ $rc -eq 0 ]]; then
 else
     echo "BENCH_FAILED $rc $(date +%H:%M:%S)" >> round_status.txt
 fi
+git gc --prune=now --aggressive >> round_status.txt 2>&1
 exit $rc

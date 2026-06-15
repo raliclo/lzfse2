@@ -7,74 +7,101 @@ TRACE_DIR="./trace"
 PROFILE_BIN="$TRACE_DIR/lzfse-profile"
 LOG_OUT="$TRACE_DIR/tracer.log"
 STATUS_OUT="$TRACE_DIR/tracer_status.txt"
+TRACE_TIMEOUT_SECONDS="${TRACE_TIMEOUT_SECONDS:-300}"
+XCTRACE_TIME_LIMIT="${XCTRACE_TIME_LIMIT:-5m}"
 
 mkdir -p "$TRACE_DIR"
 echo "RUNNING tracer $(date +%H:%M:%S)" > "$STATUS_OUT"
 
+traceRoundStatus() {
+    if [[ -n "${ROUND_STATUS_FILE:-}" ]]; then
+        echo "$@ $(date +%H:%M:%S)" >> "$ROUND_STATUS_FILE"
+    fi
+}
+
+run_xctrace_record() {
+    local start_seconds="$SECONDS"
+    xcrun xctrace record --time-limit "$XCTRACE_TIME_LIMIT" "$@"
+    local rc=$?
+    local elapsed=$((SECONDS - start_seconds))
+    if [[ $elapsed -ge $TRACE_TIMEOUT_SECONDS ]]; then
+        return 124
+    fi
+    return "$rc"
+}
+
 trace_one() {
     local dataset="$1"
     local algo="$2"
+    local trace_n="${3:-}"
     local tar_input="$TRACE_DIR/${dataset}.tar"
-    local trace_out="$TRACE_DIR/${dataset}-${algo}.trace"
-    local compressed_out="$TRACE_DIR/${dataset}.${algo}.out"
-    local command_text
+    local trace_suffix=""
+    local n_args=()
+    if [[ -n "$trace_n" ]]; then
+        trace_suffix="-n${trace_n}"
+        n_args=(-n "$trace_n")
+    fi
+    local trace_out="$TRACE_DIR/${dataset}-${algo}${trace_suffix}.trace"
+    local compressed_out="$TRACE_DIR/${dataset}.${algo}${trace_suffix}.out"
+    local compressed_active="${compressed_out}.active"
 
-    rm -rf "$trace_out" "$compressed_out"
-    echo "[Info] Trace ${dataset} ${algo} -> ${trace_out}"
+    rm -rf "$trace_out" "$compressed_out" "$compressed_active"
+    echo "active ${dataset} ${algo}${trace_suffix} $(date '+%Y-%m-%d %H:%M:%S')" > "$compressed_active"
+    echo "[Info] Trace ${dataset} ${algo}${trace_suffix} -> ${trace_out}"
 
     case "$algo" in
         tgz)
-            xcrun xctrace record \
+            run_xctrace_record \
                 --template "Time Profiler" \
                 --output "$trace_out" \
                 --launch -- /usr/bin/tar czf "$compressed_out" "$dataset"
             ;;
         zstd)
-            xcrun xctrace record \
+            run_xctrace_record \
                 --template "Time Profiler" \
                 --output "$trace_out" \
                 --launch -- /opt/homebrew/bin/zstd -9 -T0 -q -f "$tar_input" -o "$compressed_out"
             ;;
         tar.lz4)
-            xcrun xctrace record \
+            run_xctrace_record \
                 --template "Time Profiler" \
                 --output "$trace_out" \
                 --launch -- /opt/homebrew/bin/lz4 -T0 -6 -q -f "$tar_input" "$compressed_out"
             ;;
         other3)
-            command_text="cat '$tar_input' | '$PROFILE_BIN' -encode -si -o '$compressed_out' -algo other3"
-            xcrun xctrace record \
+            run_xctrace_record \
                 --template "Time Profiler" \
                 --output "$trace_out" \
-                --launch -- /bin/zsh -lc "$command_text"
+                --target-stdin "$tar_input" \
+                --launch -- "$PROFILE_BIN" -encode -si -o "$compressed_out" -algo other3 "${n_args[@]}"
             ;;
         apple)
-            command_text="cat '$tar_input' | '$PROFILE_BIN' -encode -si -o '$compressed_out' -algo apple"
-            xcrun xctrace record \
+            run_xctrace_record \
                 --template "Time Profiler" \
                 --output "$trace_out" \
-                --launch -- /bin/zsh -lc "$command_text"
+                --target-stdin "$tar_input" \
+                --launch -- "$PROFILE_BIN" -encode -si -o "$compressed_out" -algo apple "${n_args[@]}"
             ;;
         bvx3)
-            command_text="cat '$tar_input' | '$PROFILE_BIN' -encode -si -o '$compressed_out' -algo bvx3"
-            xcrun xctrace record \
+            run_xctrace_record \
                 --template "Time Profiler" \
                 --output "$trace_out" \
-                --launch -- /bin/zsh -lc "$command_text"
+                --target-stdin "$tar_input" \
+                --launch -- "$PROFILE_BIN" -encode -si -o "$compressed_out" -algo bvx3 "${n_args[@]}"
             ;;
         lazy2)
-            command_text="cat '$tar_input' | '$PROFILE_BIN' -encode -si -o '$compressed_out' -algo bvx3 -lazy2"
-            xcrun xctrace record \
+            run_xctrace_record \
                 --template "Time Profiler" \
                 --output "$trace_out" \
-                --launch -- /bin/zsh -lc "$command_text"
+                --target-stdin "$tar_input" \
+                --launch -- "$PROFILE_BIN" -encode -si -o "$compressed_out" -algo bvx3 -lazy2 "${n_args[@]}"
             ;;
         optimal)
-            command_text="cat '$tar_input' | '$PROFILE_BIN' -encode -si -o '$compressed_out' -algo bvx3 -optimal"
-            xcrun xctrace record \
+            run_xctrace_record \
                 --template "Time Profiler" \
                 --output "$trace_out" \
-                --launch -- /bin/zsh -lc "$command_text"
+                --target-stdin "$tar_input" \
+                --launch -- "$PROFILE_BIN" -encode -si -o "$compressed_out" -algo bvx3 -optimal "${n_args[@]}"
             ;;
         *)
             echo "[Error] unknown trace algorithm: $algo"
@@ -82,13 +109,32 @@ trace_one() {
             ;;
     esac
     local rc=$?
-    rm -f "$compressed_out"
+    rm -f "$compressed_out" "$compressed_active"
+    echo "TRACE_OUTPUT_CLEANED ${dataset} ${algo}${trace_suffix} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    traceRoundStatus "TRACE_OUTPUT_CLEANED ${dataset} ${algo}${trace_suffix}"
+    if [[ $rc -eq 124 && -d "$trace_out" ]]; then
+        rm -rf "${trace_out}.timeout"
+        mv "$trace_out" "${trace_out}.timeout"
+    fi
     return "$rc"
 }
 
 {
+    echo "[Info] Clean old trace packages / 清除舊 trace packages"
+    echo "CLEAN_OLD_TRACES $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    traceRoundStatus "CLEAN_OLD_TRACES"
+    rm -rf "$TRACE_DIR"/*.trace(N)
+    rm -rf "$TRACE_DIR"/*.trace.timeout(N)
+
     echo "[Info] Build profile binary / 建立 profiling binary"
     swiftc -O -g lzfse-cli.swift -o "$PROFILE_BIN"
+
+    typeset -a LZFSE_TRACE_N_SWEEP
+    if [[ -n "${LZFSE_TRACE_N_SWEEP_OVERRIDE:-}" ]]; then
+        LZFSE_TRACE_N_SWEEP=(${=LZFSE_TRACE_N_SWEEP_OVERRIDE})
+    else
+        LZFSE_TRACE_N_SWEEP=(4 8 40)
+    fi
 
     dataset=""
     for dataset in claw-code llama.cpp; do
@@ -101,26 +147,60 @@ trace_one() {
         tar -cf "$TRACE_DIR/${dataset}.tar" "$dataset"
 
         algo=""
-        for algo in tgz zstd tar.lz4 other3 apple bvx3 lazy2 optimal; do
+        for algo in tgz zstd tar.lz4; do
             echo "RUNNING trace ${dataset} ${algo} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+            traceRoundStatus "RUNNING_TRACE ${dataset} ${algo}"
             if trace_one "$dataset" "$algo"; then
                 echo "TRACE_OK ${dataset} ${algo} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                traceRoundStatus "TRACE_DONE ${dataset} ${algo}"
             else
                 rc=$?
-                echo "TRACE_FAILED ${dataset} ${algo} ${rc} $(date +%H:%M:%S)" >> "$STATUS_OUT"
-                exit "$rc"
+                if [[ $rc -eq 124 ]]; then
+                    echo "TRACE_TIMEOUT ${dataset} ${algo} ${TRACE_TIMEOUT_SECONDS}s $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                    traceRoundStatus "TRACE_TIMEOUT ${dataset} ${algo} ${TRACE_TIMEOUT_SECONDS}s"
+                    continue
+                else
+                    echo "TRACE_FAILED ${dataset} ${algo} ${rc} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                    traceRoundStatus "TRACE_FAILED ${dataset} ${algo} ${rc}"
+                    exit "$rc"
+                fi
             fi
+        done
+
+        trace_n=""
+        for trace_n in "${LZFSE_TRACE_N_SWEEP[@]}"; do
+            for algo in other3 apple bvx3 lazy2 optimal; do
+                echo "RUNNING trace ${dataset} ${algo} -n ${trace_n} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                traceRoundStatus "RUNNING_TRACE ${dataset} ${algo} -n ${trace_n}"
+                if trace_one "$dataset" "$algo" "$trace_n"; then
+                    echo "TRACE_OK ${dataset} ${algo} -n ${trace_n} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                    traceRoundStatus "TRACE_DONE ${dataset} ${algo} -n ${trace_n}"
+                else
+                    rc=$?
+                    if [[ $rc -eq 124 ]]; then
+                        echo "TRACE_TIMEOUT ${dataset} ${algo} -n ${trace_n} ${TRACE_TIMEOUT_SECONDS}s $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                        traceRoundStatus "TRACE_TIMEOUT ${dataset} ${algo} -n ${trace_n} ${TRACE_TIMEOUT_SECONDS}s"
+                        continue
+                    else
+                        echo "TRACE_FAILED ${dataset} ${algo} -n ${trace_n} ${rc} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                        traceRoundStatus "TRACE_FAILED ${dataset} ${algo} -n ${trace_n} ${rc}"
+                        exit "$rc"
+                    fi
+                fi
+            done
         done
     done
 } > "$LOG_OUT" 2>&1
 
 rc=$?
-rm -f "$TRACE_DIR/claw-code.tar" "$TRACE_DIR/llama.cpp.tar" "$TRACE_DIR"/*.out(N)
+rm -f "$TRACE_DIR/claw-code.tar" "$TRACE_DIR/llama.cpp.tar"
 echo "EXIT $rc $(date +%H:%M:%S)" >> "$STATUS_OUT"
 if [[ $rc -eq 0 ]]; then
     echo "TRACE_DONE $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    traceRoundStatus "TRACER_TRACE_DONE"
 else
     echo "TRACE_FAILED $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    traceRoundStatus "TRACER_TRACE_FAILED"
 fi
 
 exit "$rc"

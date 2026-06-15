@@ -2827,6 +2827,149 @@ public enum LZFSEv1 {
         return true
     }
 
+    /// 串流解碼結果：ok=成功；fallback=尚未寫出任何輸出即判定非自家分塊串流（呼叫端可重讀整檔退回
+    /// whole-buffer 路徑，保證正確）；error=已寫出部分後才失敗（串流損毀，呼叫端應報錯離開，不可重跑）。
+    enum StreamDecodeResult { case ok, fallback, error }
+
+    /// 串流式解碼（檔案輸入專用，降低「壓縮輸入側」RSS）/ Streaming decode from file.
+    /// 逐塊讀入壓縮串流、依群組（chunkRaw 邊界）累積、**整批 N 組平行解碼成功後才依序寫出並釋放**，
+    /// 全程不持有整份壓縮輸入 → RSS ≈ inflight ×（一組壓縮 + 一組輸出）+ 讀取視窗，不再隨檔案大小線性。
+    /// 只適用「自家分塊串流」（各 4MiB chunk 獨立壓縮 → 群組自包含）；外來單流（apple）或非分塊
+    /// 會在「首批、尚未寫出」時被偵測（misalign 或解碼失敗）→ 回 .fallback，由呼叫端重讀整檔退回
+    /// 既有 whole-buffer 路徑。輸出位元組與 whole-buffer 完全相同 → Apple/other3 相容性零影響。
+    static func decodeStreamFromFile(path: String, chunkRaw: Int, inflight: Int,
+                                     output: FileHandle) -> StreamDecodeResult {
+        guard chunkRaw > 0, let fh = FileHandle(forReadingAtPath: path) else { return .fallback }
+        defer { try? fh.close() }
+
+        let readChunk = 1 << 20
+        var buf = [UInt8]()
+        var pos = 0
+        var eof = false
+        let N = max(1, inflight)
+        var wroteAny = false
+        var streamEnded = false
+        var misaligned = false
+
+        // 確保 buf[pos...] 至少有 need bytes；不足則向檔案讀入，並適時壓實 buf 避免無限長。
+        // autoreleasepool：同 encode，主執行緒讀取迴圈須逐塊排空 read 的 autoreleased 暫存，
+        // 否則壓縮輸入會以暫存形式累積駐留（decode RSS ≈ 整份壓縮輸入）。
+        func ensure(_ need: Int) -> Bool {
+            while buf.count - pos < need {
+                if eof { return false }
+                var emptyRead = false
+                autoreleasepool {
+                    let chunk = (try? fh.read(upToCount: readChunk)) ?? nil
+                    guard let dd = chunk, !dd.isEmpty else { emptyRead = true; return }
+                    if pos > readChunk { buf.removeFirst(pos); pos = 0 }
+                    buf.append(contentsOf: dd)
+                }
+                if emptyRead { eof = true; return buf.count - pos >= need }
+            }
+            return true
+        }
+
+        struct Blk { let off: Int; let magic: UInt32; let raw: Int }
+
+        // 讀下一個群組（累積至 chunkRaw 或結束標記）。回傳 nil 表示：乾淨結束（comp 空）或異常（misaligned=true）
+        func nextGroup() -> (comp: [UInt8], blks: [Blk], raw: Int)? {
+            var comp = [UInt8]()
+            var blks = [Blk]()
+            var cumRaw = 0
+            while true {
+                guard ensure(4) else {
+                    if comp.isEmpty { return nil }          // 乾淨結束
+                    misaligned = true; return nil           // 半個群組 → 異常
+                }
+                let magic = get32(buf, pos)
+                if magic == magicEndOfStream {
+                    pos += 4; streamEnded = true
+                    return comp.isEmpty ? nil : (comp, blks, cumRaw)
+                }
+                var size = 0, raw = 0
+                switch magic {
+                case magicUncompressed:
+                    guard ensure(8) else { misaligned = true; return nil }
+                    raw = Int(get32(buf, pos + 4)); size = 8 + raw
+                case magicCompressedV1:
+                    guard ensure(v1HeaderSize) else { misaligned = true; return nil }
+                    raw = Int(get32(buf, pos + 4)); size = v1HeaderSize + Int(get32(buf, pos + 8))
+                case magicCompressedV2:
+                    guard ensure(32) else { misaligned = true; return nil }
+                    raw = Int(get32(buf, pos + 4))
+                    let v0 = get64(buf, pos + 8), v1f = get64(buf, pos + 16), v2f = get64(buf, pos + 24)
+                    let hdr = Int(v2f & 0xFFFF_FFFF)
+                    guard hdr >= 32 else { misaligned = true; return nil }
+                    size = hdr + Int((v0 >> 20) & 0xFFFFF) + Int((v1f >> 40) & 0xFFFFF)
+                case magicLZVN:
+                    guard ensure(12) else { misaligned = true; return nil }
+                    raw = Int(get32(buf, pos + 4)); size = 12 + Int(get32(buf, pos + 8))
+                case magicBVX3:
+                    guard ensure(v3FixedHeaderSize) else { misaligned = true; return nil }
+                    raw = Int(get32(buf, pos + 4))
+                    let hdr = Int(get16(buf, pos + 52))
+                    guard hdr >= v3FixedHeaderSize else { misaligned = true; return nil }
+                    size = hdr + Int(get32(buf, pos + 8))
+                default:
+                    misaligned = true; return nil
+                }
+                guard size > 0, ensure(size) else { misaligned = true; return nil }
+                blks.append(Blk(off: comp.count, magic: magic, raw: raw))
+                comp.append(contentsOf: buf[pos ..< pos + size])
+                pos += size
+                cumRaw += raw
+                if cumRaw > chunkRaw { misaligned = true; return nil }   // 非自家分塊
+                if cumRaw == chunkRaw { return (comp, blks, cumRaw) }    // 群組滿
+            }
+        }
+
+        // 解碼單一自包含群組（regionBase=0）→ 輸出 [UInt8]；失敗回 nil
+        func decodeGroup(_ comp: [UInt8], _ blks: [Blk], _ raw: Int) -> [UInt8]? {
+            if raw == 0 { return [] }
+            var out = [UInt8](repeating: 0, count: raw)
+            let ok = out.withUnsafeMutableBufferPointer { ob -> Bool in
+                let dp = ob.baseAddress!
+                var cursor = 0
+                let lit = UnsafeMutablePointer<UInt8>.allocate(capacity: literalsPerBlockV3 + 8)
+                defer { lit.deallocate() }
+                for b in blks {
+                    guard decodeOneBlock(src: comp, at: b.off, magic: b.magic,
+                                         dp: dp, regionBase: 0, regionEnd: raw,
+                                         cursor: &cursor, litScratch: lit) != nil else { return false }
+                }
+                return cursor == raw
+            }
+            return ok ? out : nil
+        }
+
+        while !streamEnded {
+            var batch: [(comp: [UInt8], blks: [Blk], raw: Int)] = []
+            while batch.count < N && !streamEnded {
+                guard let g = nextGroup() else { break }
+                batch.append(g)
+            }
+            if misaligned { return wroteAny ? .error : .fallback }
+            if batch.isEmpty { break }
+
+            var outs = [[UInt8]?](repeating: nil, count: batch.count)
+            var failed = false
+            let lock = NSLock()
+            DispatchQueue.concurrentPerform(iterations: batch.count) { i in
+                let o = decodeGroup(batch[i].comp, batch[i].blks, batch[i].raw)
+                lock.lock()
+                if let o = o { outs[i] = o } else { failed = true }
+                lock.unlock()
+            }
+            if failed { return wroteAny ? .error : .fallback }
+            for o in outs {
+                guard let o = o else { return wroteAny ? .error : .fallback }
+                if !o.isEmpty { output.write(Data(o)) }
+            }
+            wroteAny = true
+        }
+        return .ok
+    }
+
     /// 循序後援：整條串流視為單一區段（完整歷史）解進同一塊緩衝
     static func sequentialInto(blocks: [BlockInfo], src: [UInt8],
                                dp: UnsafeMutablePointer<UInt8>, total: Int) -> Bool {
@@ -3392,10 +3535,12 @@ if algo == .apple {
 // 2. 設定輸入源 / Set up input source
 // ---------------------------------------------------------------------
 let inputHandle: FileHandle
+var inputPath: String? = nil           // -i 檔案路徑（供解碼端預取大小、單份讀入）
 if args.contains("-si") {
     inputHandle = .standardInput
 } else if let index = args.firstIndex(of: "-i"), index + 1 < args.count {
     let path = args[index + 1]
+    inputPath = path
     do {
         inputHandle = try FileHandle(forReadingFrom: URL(fileURLWithPath: path))
     } catch {
@@ -3468,12 +3613,17 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
 
     while true {
         // R4：pipe（tar | lzfse）可能短讀——累積讀滿 chunkSize 再派工。
+        // autoreleasepool：FileHandle.read 在 macOS 會回傳 autoreleased Data 暫存；主執行緒讀取
+        // 迴圈若無 pool，這些暫存會累積到「整份輸入大小」才在程序結束時釋放（這正是先前 encode
+        // RSS ≈ 整份輸入、與 N/parser 無關的主因）。每塊讀完即排空，data 留在 pool 外不受影響。
         var data = Data(capacity: chunkSize)
         do {
-            while data.count < chunkSize,
-                  let part = try input.read(upToCount: chunkSize - data.count),
-                  !part.isEmpty {
-                data.append(part)
+            try autoreleasepool {
+                while data.count < chunkSize,
+                      let part = try input.read(upToCount: chunkSize - data.count),
+                      !part.isEmpty {
+                    data.append(part)
+                }
             }
         } catch {
             eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
@@ -3547,22 +3697,62 @@ case .other3, .bvx3:
                           strong: true, bvx3: algo == .bvx3,
                           lazy2: algo == .bvx3 && useLazy2 && !useOptimal,
                           optimal: algo == .bvx3 && useOptimal)
+    } else if let p = inputPath {
+        // 檔案輸入：串流解碼，全程不持有整份壓縮輸入（輸入側 RSS 不再隨檔案大小線性）。
+        // 非自家分塊串流（apple/外來）會在「尚未寫出」時回 .fallback → 重讀整檔走 whole-buffer，保證正確。
+        switch LZFSEv1.decodeStreamFromFile(path: p, chunkRaw: LZFSEv1.parallelChunkSize,
+                                            inflight: inflightN, output: outputHandle) {
+        case .ok:
+            break
+        case .error:
+            eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
+            exit(1)
+        case .fallback:
+            // 後援：重讀整檔，單份讀入 + whole-buffer 解碼（外來單流/跨組 match 由此處理）
+            var src = [UInt8]()
+            do {
+                if let attrs = try? FileManager.default.attributesOfItem(atPath: p),
+                   let size = (attrs[.size] as? NSNumber)?.intValue { src.reserveCapacity(size) }
+                let rh = try FileHandle(forReadingFrom: URL(fileURLWithPath: p))
+                while true {
+                    var stop = false
+                    try autoreleasepool {
+                        guard let part = try rh.read(upToCount: 1 << 20), !part.isEmpty else { stop = true; return }
+                        src.append(contentsOf: part)
+                    }
+                    if stop { break }
+                }
+                try? rh.close()
+            } catch {
+                eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
+                exit(1)
+            }
+            guard LZFSEv1.decodeStreamToHandle(src, parallel: true,
+                                               chunkRaw: LZFSEv1.parallelChunkSize,
+                                               inflight: inflightN, output: outputHandle) else {
+                eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
+                exit(1)
+            }
+        }
     } else {
-        // 只保留單一份壓縮輸入（[UInt8]）：readToEnd 的 Data 為暫存，複製進 src 後即釋放，
-        // 避免「Data + [UInt8]」同時各持一份壓縮檔（省 ~壓縮檔大小 的 RSS）。
-        let src: [UInt8]
+        // stdin（-si）：無法重讀，沿用單份讀入 + whole-buffer 解碼
+        var src = [UInt8]()
         do {
-            src = [UInt8](try inputHandle.readToEnd() ?? Data())
+            while true {
+                var stop = false
+                try autoreleasepool {
+                    guard let part = try inputHandle.read(upToCount: 1 << 20), !part.isEmpty else { stop = true; return }
+                    src.append(contentsOf: part)
+                }
+                if stop { break }
+            }
         } catch {
             eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
             exit(1)
         }
-        // 有界串流解碼：分批平行解碼後依序寫出並釋放，輸出側峰值 RSS ≈ inflight × chunkRaw，
-        // 取代「一次配置整份輸出（~1.3GB）」。外來單流/跨組 match 會自動退回 whole-buffer，保證正確。
         guard LZFSEv1.decodeStreamToHandle(src, parallel: true,
                                            chunkRaw: LZFSEv1.parallelChunkSize,
-                                           inflight: inflightN,
-                                           output: outputHandle) else {
+                                           inflight: inflightN, output: outputHandle) else {
             eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
             exit(1)
         }
