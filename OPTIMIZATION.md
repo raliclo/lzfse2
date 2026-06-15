@@ -5,6 +5,55 @@
 
 ---
 
+# 第二十七輪：Optimal tag-packed hash chain 驗收（2026-06-16）
+
+## 變更摘要
+
+本輪將 tag-packing 同步進 `lzParseOptimal`，並讓 `lzParseChain` 使用同一套 packed hash chain。核心是把 hash bucket 與 8-bit secondary tag 由一次 5-byte 乘法產生，`head[h]` 存 `(tag << 24) | idx`，`chain[idx]` 沿用前一節點 packed 值。走訪鏈時先用 `(packed >> 24) == qtag` 做純暫存器過濾，不符就跳過，減少純碰撞候選造成的 `p[c]` 隨機讀取與 pointer chasing。
+
+這次不改 bitstream 格式、不改 decoder、不改 FSE table 建構，也不改 `lzParseStrong` / `lzParse` 的獨立 `hashTable`。Optimal 的 coverage prescreen 仍使用獨立 `localHead`，不污染主 `head/chain`。`greedyEmitSegment` 只解包低 24-bit index，不做 tag 過濾，維持 greedy 候選語意。
+
+## 正確性與資料狀態
+
+- `hashAndTag` 取代 `hash4` 後，bucket 仍使用乘積高 `chainHashBits` 位，tag 取相鄰 8 位；插入與查詢使用同一函式。
+- `insert` 保持 `chain[idx] = head[h]`、再更新 `head[h]` 的順序，鏈結語意不變，只是節點指標從 raw index 變成 packed 值。
+- `lzParseOptimal` 在 DP 內仍先取 `candPacked/qtag` 再 `insert(i)`，避免 self reference。
+- `chainNullIndex = 0x00FF_FFFF` 對應 `head = -1` 的低 24 bits；真實 chunk index 由 `parallelChunkSize = 4MiB` 保證小於 sentinel。
+- 新增 `assert(n <= chainIndexMask)` 只在 debug 檢查 chunk 上限，`swiftc -O` release 無 assert 成本。
+
+本輪 `round_status.txt` 已到 `BENCH_DONE 04:10:42`，`BenchMarkResult.csv` 共 48 rows，包含 `-n4/-n8/-n40` 的速度、RSS、trace target 與 CPU top symbol 欄位。`lzfse-test.txt` 顯示 Other3、BVX3、Lazy2、Optimal、Apple 相容與平行解碼路徑皆通過；tag-packing 未造成 round-trip 或格式相容回歸。
+
+## Benchmark 結果
+
+以 raw bytes / ns 重算 MB/s 後，Optimal 的加速成立，但兩個資料集幅度不同：
+
+- `claw-code` Optimal：`n4 57.80s / 24.50 MB/s`、`n8 47.36s / 29.90 MB/s`、`n40 41.21s / 34.36 MB/s`，壓縮比維持 `0.8590`。對照前一基準 `69.12s / 53.27s / 47.08s`，約改善 `19.6% / 11.1% / 12.5%`。
+- `llama.cpp` Optimal：`n4 33.59s / 39.37 MB/s`、`n8 24.80s / 53.33 MB/s`、`n40 21.95s / 60.24 MB/s`，壓縮比為 `0.9416`，相對前一基準 `0.9415` 只有極小浮動。對照前一基準 `35.27s / 25.95s / 23.11s`，約改善 `4.8% / 4.4% / 5.0%`。
+- Lazy2 在 `claw-code` 最佳壓縮為 `55.30 MB/s`（n40），低於上一輪紀錄 `57.54 MB/s`；但 `llama.cpp` 最佳壓縮為 `186.98 MB/s`（n40），高於上一輪 `173.90 MB/s`。因此 tag-packing 對 `lzParseChain` 不是單調收益，後續不應把 Lazy2 加速歸因於 tag 本身。
+- BVX3 / Other3 仍由 encode path 主導。`claw-code` BVX3 最佳壓縮 `634.82 MB/s`（n40），`llama.cpp` BVX3 最佳壓縮 `398.70 MB/s`（n40）；壓縮比維持 `0.9515 / 0.9816`。
+
+RSS 取捨沒有改變：n40 通常提高 LZFSE 家族壓縮速度，但 encode/decode RSS 也上升。Optimal encode RSS 從 n4 到 n40 約為 `212.3 → 570.2 MB`（claw-code）與 `221.7 → 572.8 MB`（llama.cpp）；decode RSS 則升到 `313–342 MB` 等級。這仍明顯高於 ZSTD decode 約 `9 MB` 與 TLZ4 decode 約 `34 MB`，所以後續不能只追壓縮 MB/s。
+
+## Trace / CPU 解讀
+
+`trace/analysis/trace_summary.csv` 顯示 36 個 trace 都有 `target_seen=yes`，`time-profile/time-sample` schema 皆可匯出。LZFSE encode trace 多為 300s timeout，因此只能判斷 hotspot 方向，不能拿來算完整 wall time 或 MB/s。
+
+CPU call tree 顯示 tag-packing 有降低部分 parser 成本，但不是主瓶頸的完整答案：
+
+- Optimal top symbol 仍是 `specialized closure #1 in static LZFSEv1.lzParseOptimal`。`claw-code n40` top count 從上一輪 `565` 降到 `532`，parse hits 從 `963` 降到 `922`；`llama.cpp n40` top count 從 `508` 降到 `499`，parse hits 從 `893` 降到 `877`。下降幅度只有約 `2–6%`，小於 wall-time 改善，代表收益可能混有本輪噪音、分段排程或其他程式碼變更影響。
+- `hashAndTag` 本身進入全域熱點但 count 只有 `52`（Optimal）與 `44`（Chain），沒有變成新的主要瓶頸。
+- Lazy2 top symbol 仍是 `lzParseChain.bestMatch`，全域 `bestMatch` count `827`；`repLen`、`matchLength` 仍可見，表示下一步 Lazy2 應繼續針對 match 掃描與候選策略，而不是再加深 tag filter。
+- BVX3 top symbol 仍是 `encodeBlockV3`，全域 count `1473`，另有 `fseEncode`、`FSEOutStream.push/flush`、Swift Array/COW 熱點。BVX3 家族下一個高勝率方向仍是 encode/FSE/array staging 與 RSS 控制。
+
+## 下一步
+
+1. Optimal：tag-packing 可保留，但不再把 hash-chain collision 當主線。下一輪應做段層級 cheap probe / envelope pruning，讓低收益段走 Lazy2 或 greedy；成功條件是同輪 Optimal wall time 再改善 `>=10%`，壓縮比不明顯退步，且 CPU top symbol 從 `lzParseOptimal` closure 或 parse hits 上有可解釋下降。
+2. Lazy2：不要只延伸 tag filter。優先看 `bestMatch` 內的候選接受順序、`matchLength` 掃描次數與 rep fast path；要求同輪兩資料集至少一個固定 `-n` 有 `>=10%` 改善，另一資料集不可明顯退步。
+3. BVX3：主線放回 `encodeBlockV3`、FSE output 與 Swift Array/COW。若速度已接近 TLZ4/ZSTD，下一個驗收要把 RSS 納入一級目標，例如同 `-n` encode/decode RSS 降 `>=20%` 且 MB/s 不退超過 `5%`。
+4. Benchmark 流程：保留 `-n4/-n8/-n40` 固定掃描；trace timeout 結果只寫 hotspot 解讀，不寫速度；每輪都確認 `CPU_CALL_TREE_ANALYSIS_DONE` 早於 `BENCHMARK_RESULT_REBUILD_DONE`，避免 `BenchMarkResult.csv` 的 CPU 欄位空白。
+
+---
+
 # 第二十六輪驗收補充：Benchmark / Trace / CPU 欄位已重建（2026-06-16）
 
 ## 資料狀態
