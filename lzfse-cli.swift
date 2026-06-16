@@ -1132,6 +1132,10 @@ public enum LZFSEv1 {
             dPriceTab.deallocate(); lmBaseP.deallocate()
             d3BaseP.deallocate()
         }
+        // R26：localHead 移出段迴圈——避免每段 64KB Swift 陣列 malloc/memset；
+        // 每段開頭以 initialize(repeating:) 重置，語意等效，省 ARC + bounds check。
+        let localHead = UnsafeMutablePointer<Int32>.allocate(capacity: 1 << 14)
+        defer { localHead.deallocate() }
         let matchConst: Int32 = 80   // L 符號 + 狀態位元的攤提常數（~5 bits）
 
         func rebuildPrices() {
@@ -1373,7 +1377,7 @@ public enum LZFSEv1 {
                     var covered = 0
                     var probe = segStart
                     let probeEnd = segEnd - 4
-                    var localHead = [Int32](repeating: -1, count: 1 << 14)
+                    localHead.initialize(repeating: -1, count: 1 << 14)
                     while probe <= probeEnd {
                         let hv = Int((load32(probe) &* 2654435761) >> (32 - 14))
                         let c = Int(localHead[hv]); localHead[hv] = Int32(probe)
@@ -1423,68 +1427,148 @@ public enum LZFSEv1 {
                     let v = load32(i)
                     let cap = segEnd - i
                     // ── ① rep 候選（去重；含巨型 match 提交檢查）──
+                    // R26：3-rep 展開——消除外層迴圈、三元選擇 r0/r1/r2、repsAfter() 呼叫；
+                    // n0/n1/n2 依 repsAfter 語意硬編碼；dpr 直接索引。
                     var bestRep = 0
-                    for rIdx in 0..<3 {
-                        let r: Int32 = rIdx == 0 ? r0 : (rIdx == 1 ? r1 : r2)
-                        if rIdx == 1 && r == r0 { continue }
-                        if rIdx == 2 && (r == r0 || r == r1) { continue }
-                        let rd = Int(r)
-                        guard rd > 0, rd <= i, load32(i - rd) == v else { continue }
-                        let l = 4 + matchLength(i - rd + 4, i + 4, limit: n - i - 4)
-                        if l > bestRep { bestRep = l }
-                        if l >= optSufficientLen {
-                            cutT = t; cutLen = min(l, n - i); cutDist = rd
-                            break posLoop
-                        }
-                        let dpr = dPriceTab[rIdx]
-                        let (n0, n1, n2) = repsAfter(r, r0, r1, r2)
-                        var msym = 4
-                        var ll = 4
-                        let lim = min(l, cap)
-                        while ll <= lim {
-                            while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] {
-                                msym += 1
-                            }
-                            let c2 = base + matchConst + mPriceTab[msym] + dpr
-                            // R8：bucket 內 c2 恆定——dense 區以 SIMD4 一次檢視 4 cell，
-                            // 全數「無改善」直接跳過（語意與逐格完全等價，純省寫入/分支）
-                            // R8: SIMD4 fast-skip in the dense region; exact same semantics.
-                            if ll < optDenseLen {
-                                let bEnd = msym + 1 < lm3Symbols
-                                    ? min(lim, Int(lmBaseP[msym + 1]) - 1) : lim
-                                let dEnd = min(bEnd, optDenseLen - 1)
-                                let c2v = SIMD4<Int32>(repeating: c2)
-                                while ll + 3 <= dEnd {
-                                    let old = UnsafeRawPointer(cPrice + t + ll)
-                                        .loadUnaligned(as: SIMD4<Int32>.self)
-                                    if any(c2v .< old) {
-                                        for q in ll...(ll + 3) where c2 < cPrice[t + q] {
-                                            cPrice[t + q] = c2; cLen[t + q] = Int32(q)
-                                            cDist[t + q] = r
-                                            cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
+                    // ── rep0 ──
+                    do {
+                        let r = r0; let rd = Int(r)
+                        if rd > 0 && rd <= i && load32(i - rd) == v {
+                            let l = 4 + matchLength(i - rd + 4, i + 4, limit: n - i - 4)
+                            if l > bestRep { bestRep = l }
+                            if l >= optSufficientLen { cutT = t; cutLen = min(l, n - i); cutDist = rd; break posLoop }
+                            let dpr = dPriceTab[0]
+                            let n0 = r0; let n1 = r1; let n2 = r2
+                            var msym = 4; var ll = 4; let lim = min(l, cap)
+                            while ll <= lim {
+                                while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] { msym += 1 }
+                                let c2 = base + matchConst + mPriceTab[msym] + dpr
+                                if ll < optDenseLen {
+                                    let bEnd = msym + 1 < lm3Symbols ? min(lim, Int(lmBaseP[msym + 1]) - 1) : lim
+                                    let dEnd = min(bEnd, optDenseLen - 1)
+                                    let c2v = SIMD4<Int32>(repeating: c2)
+                                    while ll + 3 <= dEnd {
+                                        let old = UnsafeRawPointer(cPrice + t + ll).loadUnaligned(as: SIMD4<Int32>.self)
+                                        if any(c2v .< old) {
+                                            for q in ll...(ll + 3) where c2 < cPrice[t + q] {
+                                                cPrice[t + q] = c2; cLen[t + q] = Int32(q)
+                                                cDist[t + q] = r; cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
+                                            }
                                         }
+                                        ll += 4
                                     }
-                                    ll += 4
-                                }
-                                while ll <= dEnd {
-                                    let dest = t + ll
-                                    if c2 < cPrice[dest] {
-                                        cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
-                                        cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                    while ll <= dEnd {
+                                        let dest = t + ll
+                                        if c2 < cPrice[dest] {
+                                            cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
+                                            cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                        }
+                                        ll += 1
                                     }
-                                    ll += 1
+                                    if ll > lim { break }; continue
                                 }
-                                if ll > lim { break }
-                                continue
+                                let dest = t + ll
+                                if c2 < cPrice[dest] {
+                                    cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
+                                    cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                }
+                                if ll == lim { break }
+                                ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
                             }
-                            let dest = t + ll
-                            if c2 < cPrice[dest] {
-                                cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
-                                cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                        }
+                    }
+                    // ── rep1 ──
+                    if r1 != r0 {
+                        let r = r1; let rd = Int(r)
+                        if rd > 0 && rd <= i && load32(i - rd) == v {
+                            let l = 4 + matchLength(i - rd + 4, i + 4, limit: n - i - 4)
+                            if l > bestRep { bestRep = l }
+                            if l >= optSufficientLen { cutT = t; cutLen = min(l, n - i); cutDist = rd; break posLoop }
+                            let dpr = dPriceTab[1]
+                            let n0 = r1; let n1 = r0; let n2 = r2
+                            var msym = 4; var ll = 4; let lim = min(l, cap)
+                            while ll <= lim {
+                                while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] { msym += 1 }
+                                let c2 = base + matchConst + mPriceTab[msym] + dpr
+                                if ll < optDenseLen {
+                                    let bEnd = msym + 1 < lm3Symbols ? min(lim, Int(lmBaseP[msym + 1]) - 1) : lim
+                                    let dEnd = min(bEnd, optDenseLen - 1)
+                                    let c2v = SIMD4<Int32>(repeating: c2)
+                                    while ll + 3 <= dEnd {
+                                        let old = UnsafeRawPointer(cPrice + t + ll).loadUnaligned(as: SIMD4<Int32>.self)
+                                        if any(c2v .< old) {
+                                            for q in ll...(ll + 3) where c2 < cPrice[t + q] {
+                                                cPrice[t + q] = c2; cLen[t + q] = Int32(q)
+                                                cDist[t + q] = r; cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
+                                            }
+                                        }
+                                        ll += 4
+                                    }
+                                    while ll <= dEnd {
+                                        let dest = t + ll
+                                        if c2 < cPrice[dest] {
+                                            cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
+                                            cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                        }
+                                        ll += 1
+                                    }
+                                    if ll > lim { break }; continue
+                                }
+                                let dest = t + ll
+                                if c2 < cPrice[dest] {
+                                    cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
+                                    cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                }
+                                if ll == lim { break }
+                                ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
                             }
-                            if ll == lim { break }
-                            // R3：≥ optDenseLen 後 stride-4；R5：≥ optHugeLen 後 stride-16
-                            ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
+                        }
+                    }
+                    // ── rep2 ──
+                    if r2 != r0 && r2 != r1 {
+                        let r = r2; let rd = Int(r)
+                        if rd > 0 && rd <= i && load32(i - rd) == v {
+                            let l = 4 + matchLength(i - rd + 4, i + 4, limit: n - i - 4)
+                            if l > bestRep { bestRep = l }
+                            if l >= optSufficientLen { cutT = t; cutLen = min(l, n - i); cutDist = rd; break posLoop }
+                            let dpr = dPriceTab[2]
+                            let n0 = r2; let n1 = r0; let n2 = r1
+                            var msym = 4; var ll = 4; let lim = min(l, cap)
+                            while ll <= lim {
+                                while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] { msym += 1 }
+                                let c2 = base + matchConst + mPriceTab[msym] + dpr
+                                if ll < optDenseLen {
+                                    let bEnd = msym + 1 < lm3Symbols ? min(lim, Int(lmBaseP[msym + 1]) - 1) : lim
+                                    let dEnd = min(bEnd, optDenseLen - 1)
+                                    let c2v = SIMD4<Int32>(repeating: c2)
+                                    while ll + 3 <= dEnd {
+                                        let old = UnsafeRawPointer(cPrice + t + ll).loadUnaligned(as: SIMD4<Int32>.self)
+                                        if any(c2v .< old) {
+                                            for q in ll...(ll + 3) where c2 < cPrice[t + q] {
+                                                cPrice[t + q] = c2; cLen[t + q] = Int32(q)
+                                                cDist[t + q] = r; cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
+                                            }
+                                        }
+                                        ll += 4
+                                    }
+                                    while ll <= dEnd {
+                                        let dest = t + ll
+                                        if c2 < cPrice[dest] {
+                                            cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
+                                            cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                        }
+                                        ll += 1
+                                    }
+                                    if ll > lim { break }; continue
+                                }
+                                let dest = t + ll
+                                if c2 < cPrice[dest] {
+                                    cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
+                                    cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
+                                }
+                                if ll == lim { break }
+                                ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
+                            }
                         }
                     }
                     // ── ② 雜湊鏈 Pareto frontier（len 遞增）──
@@ -1983,22 +2067,32 @@ public enum LZFSEv1 {
         memset(scratch + litCap, 0, 8)
         lmdOut.ptr += 8
         var lState: Int32 = 0, mState: Int32 = 0, dState: Int32 = 0
-        var mi = nMatches
-        while mi > 0 {
-            mi -= 1
-            let dsym = Int(dSyms[mi])           // D ≤ 8+19 = 27 bits
-            lmdOut.push(Int32(d3ExtraBits[dsym]), UInt64(dVals[mi] - d3BaseValue[dsym]))
-            fseEncode(state: &dState, dEnc[dsym], &lmdOut)
-            lmdOut.flush()
-            let msym = Int(mSyms[mi])           // M ≤ 6+16 = 22 bits
-            lmdOut.push(Int32(lm3ExtraBits[msym]), UInt64(mVals[mi] - lm3BaseValue[msym]))
-            fseEncode(state: &mState, mEnc[msym], &lmdOut)
-            lmdOut.flush()
-            let lsym = Int(lSyms[mi])           // L ≤ 6+16 = 22 bits
-            lmdOut.push(Int32(lm3ExtraBits[lsym]), UInt64(lVals[mi] - lm3BaseValue[lsym]))
-            fseEncode(state: &lState, lEnc[lsym], &lmdOut)
-            lmdOut.flush()
-        }
+        // R28：LMD 熱迴圈以 UnsafeBufferPointer 存取 6 個 n 大小陣列，去除每 match × 6 次
+        //      Swift Array bounds-check（R26/R27 trace 的 encodeBlockV3 + swift_array 熱點）。
+        //      只改存取方式,索引與輸出位元組完全不變。
+        lSyms.withUnsafeBufferPointer { lsp in
+        mSyms.withUnsafeBufferPointer { msp in
+        dSyms.withUnsafeBufferPointer { dsp in
+        lVals.withUnsafeBufferPointer { lvp in
+        mVals.withUnsafeBufferPointer { mvp in
+        dVals.withUnsafeBufferPointer { dvp in
+            var mi = nMatches
+            while mi > 0 {
+                mi -= 1
+                let dsym = Int(dsp[mi])            // D ≤ 8+19 = 27 bits
+                lmdOut.push(Int32(d3ExtraBits[dsym]), UInt64(dvp[mi] - d3BaseValue[dsym]))
+                fseEncode(state: &dState, dEnc[dsym], &lmdOut)
+                lmdOut.flush()
+                let msym = Int(msp[mi])            // M ≤ 6+16 = 22 bits
+                lmdOut.push(Int32(lm3ExtraBits[msym]), UInt64(mvp[mi] - lm3BaseValue[msym]))
+                fseEncode(state: &mState, mEnc[msym], &lmdOut)
+                lmdOut.flush()
+                let lsym = Int(lsp[mi])            // L ≤ 6+16 = 22 bits
+                lmdOut.push(Int32(lm3ExtraBits[lsym]), UInt64(lvp[mi] - lm3BaseValue[lsym]))
+                fseEncode(state: &lState, lEnc[lsym], &lmdOut)
+                lmdOut.flush()
+            }
+        }}}}}}
         let lmdBits = lmdOut.finish()
         let lmdLen = lmdOut.count
 

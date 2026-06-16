@@ -5,6 +5,57 @@
 
 ---
 
+# 第二十八輪：encodeBlockV3 LMD 熱迴圈去 bounds-check 驗收（2026-06-16）
+
+> 只動 `lzfse-cli.swift`。承 R26/R27 trace 確認 `encodeBlockV3` 仍是 BVX3 家族 top symbol（含 `fseEncode`、`FSEOutStream.push/flush` 與 Swift Array/COW）。本輪做一個 **output-identical** 的 encode 加速，已完成 benchmark / memProbe / trace / cpu_call_tree / CSV rebuild 驗收。
+
+## 改動：LMD 編碼迴圈以 UnsafeBufferPointer 存取
+
+- `encodeBlockV3` 的 ② L/M/D 編碼迴圈對每個 match 讀取 6 個 n 大小陣列（`lSyms/mSyms/dSyms` + `lVals/mVals/dVals`），每次都是 Swift Array bounds-check。
+- 改為把這 6 個陣列包進巢狀 `withUnsafeBufferPointer`,迴圈內以 pointer 存取,去除每 match × 6 次 bounds-check（R26/R27 trace 的 `swift_array` 熱點之一）。`fseEncode` 與 `lmdOut.push/flush` 的核心 FSE 工作不變;extra-bits / base / encoder 查表（依 symbol 索引、小常數表）維持原樣。
+- 正確性:索引（`mi`）與所有發射值、bit push 順序完全不變 → **輸出位元組完全相同,壓縮比不變**。
+
+## 資料狀態
+
+`round_status.txt` 顯示 `compile` 與 `lzfse-test` 通過，兩個資料集的 `-n40/-n8/-n4` benchmark 與 memProbe 都完成；`helper/tracer.command` 於 `16:37:13` 完成，`trace_analysis`、`cpu_call_tree_analysis`、`BenchMarkResult.csv` rebuild 與 `best_points` 於 `16:42:06` 完成。`run_round.command` 未留下最外層 `BENCH_DONE` 行，但 benchmark pipeline 的分析輸出已完整重建。
+
+`lzfse-test.txt` 顯示 Other3、BVX3、Lazy2、Optimal、Apple 相容與平行解碼路徑皆通過。BVX3 壓縮後大小維持 `claw-code 446M`、`llama.cpp 572M`，壓縮比維持 `0.9515 / 0.9816`；此輪符合 output-identical 目標。
+
+## Benchmark 結果
+
+以 `BenchMarkResult.csv` 的 raw bytes / ns MB/s 比較 R27 → R28：
+
+- `claw-code` BVX3：n40 `634.82 → 672.71 MB/s`（`+6.0%`），n8 `596.70 → 588.41 MB/s`（`-1.4%`），n4 `380.58 → 405.68 MB/s`（`+6.6%`）。n40 達到 5–10% 目標區間，n8 小退但仍接近 R27。
+- `llama.cpp` BVX3：n40 `398.70 → 448.98 MB/s`（`+12.6%`），n8 `396.03 → 414.69 MB/s`（`+4.7%`），n4 `322.67 → 336.25 MB/s`（`+4.2%`）。此資料集三個 n 都改善，n40 超過 10%。
+- Other3 雖未直接修改 `encodeBlock`，仍在本輪同步上升：`claw-code n40 618.34 MB/s`、`llama.cpp n40 455.40 MB/s`。這比較可能是輪次噪音、cache / I/O 或編譯環境波動，不應歸因於 R28 的 pointer 化。
+- Lazy2 / Optimal 的壓縮速度也有波動：`claw-code n40 Lazy2 66.46 MB/s`、Optimal `34.93 MB/s`；`llama.cpp n40 Lazy2 193.22 MB/s`、Optimal `60.67 MB/s`。這些 parser 路徑未被 R28 直接命中，僅作背景基準。
+
+解壓速度不是本輪改動目標，但需要記錄退步：BVX3 n40 解壓從 R27 的 `746.42 → 663.05 MB/s`（claw-code，`-11.2%`）與 `292.37 → 224.37 MB/s`（llama.cpp，`-23.3%`）。解壓路徑未被本輪修改，較可能是量測波動、I/O/cache、trace/memProbe 前後狀態或資料集 tar 狀態影響；下一輪若繼續改 encode，仍需盯住 decode 不可持續退步。
+
+RSS 取捨大致維持原判斷：BVX3 n40 encode RSS `claw-code 366.3 MB`（R27 `350.7 MB`，`+4.4%`）、`llama.cpp 380.2 MB`（R27 `394.2 MB`，`-3.6%`）。decode RSS 仍約 `315–343 MB`，明顯高於 ZSTD decode 約 `9–10 MB` 與 TLZ4 decode 約 `34 MB`。
+
+## Trace / CPU 解讀
+
+`trace/analysis` 本輪 36 個 trace 均可匯出 time-profile / time-sample；LZFSE encode trace 仍多為 300s timeout，只用於 hotspot 方向，不用於完整耗時計算。
+
+- R28 命中的熱點確實下降：BVX3 n40 `encodeBlockV3` top count 從 R27 的 `100 → 64`（claw-code，`-36%`）與 `102 → 57`（llama.cpp，`-44%`）。`CPU Encode Hits` 也從 `137 → 130`（claw-code）與 `150 → 122`（llama.cpp）下降。
+- 但 `CPU Swift Array Hits` 反而上升：claw-code n40 `84 → 106`，llama.cpp n40 `77 → 101`。解讀是 LMD 讀取迴圈 bounds-check 被移除後，剩餘陣列成本轉移到 `encodeBlockV3` 前段 staging、symbol/value arrays、FSE output buffer 或其他 Array/COW 路徑；R28 不是 Array 成本的終點。
+- `llama.cpp n4` BVX3 top symbol 轉為 `static LZFSEv1.fseEncode(state:_:_:)`，表示小 n / 低併發下 FSE encode 已可壓過 `encodeBlockV3` loop 本身。下一個 BVX3 單點若只再 pointer 化 LMD 讀取，邊際效益會降低。
+- Optimal 的 CPU parse hits 本輪上升（例如 claw-code n40 `922 → 1160`、llama.cpp n40 `877 → 1086`），再次確認 Optimal 下一步不該靠 encodeBlockV3；應另做段層級 cheap probe / envelope pruning。
+
+## 結論與下一步
+
+R28 可保留：它是 output-identical、correctness 通過、BVX3 n40 在兩個資料集都有明確壓縮速度改善，且 trace 顯示 `encodeBlockV3` top count 顯著下降。成功條件「同資料集同 n 不退、理想 5–10%」在 n40 成立，尤其 `llama.cpp` 超過 10%。
+
+下一步建議：
+
+1. BVX3：不要再只針對 LMD 讀取 loop 微調。優先看 `encodeBlockV3` 前段 staging / symbol arrays / FSEOutStream，目標是讓 Swift Array hits 降回 R27 以下，且 BVX3 n40 壓縮維持 `claw-code ≥670 MB/s`、`llama.cpp ≥445 MB/s`。
+2. RSS：BVX3 encode RSS 仍是 `~366–380 MB`，decode RSS `~315–343 MB`；若再做 encode path 優化，需同步設定 RSS 成功條件，例如同 n RSS 降 `>=10–20%` 或至少不再升高。
+3. Decode：下一輪需確認 BVX3 decode 退步是否可重現。若連續兩輪都低於 R27，應先查 decode benchmark 的 I/O/cache 與 parallel inflight，而不是把問題歸因於 R28。
+4. Optimal：維持 R27 結論，下一個真正有機會的方向是段層級 cheap probe / envelope pruning；這會改輸出選路與可能改壓縮比，需作為獨立 DOE，不要混在 output-identical encode 微優化裡。
+
+---
+
 # 第二十七輪：Optimal tag-packed hash chain 驗收（2026-06-16）
 
 ## 變更摘要
