@@ -5,6 +5,45 @@
 
 ---
 
+# 第三十輪：Optimal cheap-probe gating + literal UBP DOE 結果（2026-06-16）/ Round 30: Cheap-Probe Gating + Literal UBP DOE
+
+> 只動 `lzfse-cli.swift`。本輪同時實驗 **#1**（cheap-probe gating）與 **#2**（literal UBP）。benchmark 結果:#1 有效、**#2 造成 BVX3 退步 −12.4%**。**兩者皆已 commit**（見 lzfse-cli.swift 差分）；#2 的 revert 排入 **R31**。#3（power 量測硬化）屬 harness,未動。
+
+## benchmark 結果（claw-code n40）/ Results
+
+| 格式 | R30 MB/s | vs R27 | vs R29 | 判定 |
+| --- | ---: | ---: | ---: | --- |
+| **Optimal** | **37.13** | +8.1% | +6.3% | ✅ #1 有效 |
+| BVX3 | 589.03 | −7.2% | −12.4% | ❌ #2 退步 → revert |
+| Other3 | 513.14 | — | −17.0% | ⚠️ 機器噪音（n40 < n8 587,熱節流/批次長度效應） |
+| Lazy2 | 69.15 | +25.0% | +4.0% | — |
+
+- **Optimal 能耗**:502.8 J vs R29 567.2 J → **−11.4%** ✅
+- **壓縮比 0.8590 / 0.9416 完全不變** ✅ → #1 gating 安全（門檻 256 保守、被改判段極少且確為長 match 主導）。
+
+## #1 Optimal cheap-probe gating — ✅ 保留
+
+- 在既有兩道閘（熵閘 >7.2、coverage < 28%）後新增第三道:預篩 greedy 掃描順便數 `matchCount`,若**平均 match 長度 ≥ `optDPSkipAvgMatchLen`（預設 256）**→ 長 match 主導段、DP 低收益 → 走既有 `greedyEmitSegment`。
+- 驗收:Optimal claw n40 34.93→**37.13 MB/s（+6.3%）**、能耗 **−11.4%**、**壓縮比不變**。正確性 safe（既有 greedy 路徑、合法 bvx3、decoder 不變、round-trip 不受影響）。
+- 旋鈕:設 `optDPSkipAvgMatchLen` 極大值即關閉、回到 R29;下調則更積極（需再驗 ratio）。
+
+## #2 literal 編碼迴圈 UnsafeBufferPointer — ❌ BVX3 退步，待 R31 revert
+
+- 把非 ctx literal 迴圈的 `litEnc[...]` 包成 `litEnc.withUnsafeBufferPointer { le in ... }` 後,**BVX3 claw n40 −12.4%、llama −13.0%**。
+- 原因研判:在 `-O` 下,`UnsafeBufferPointer` subscript 省下的 bounds-check **不足以抵消 closure 包裹開銷**;closure 邊界可能**阻斷 `fseEncode` 的 inline 或 caller-level 優化**,使這個 per-literal 最熱的迴圈整體變慢。
+- 教訓:同樣是「去 bounds-check」,R28 的 LMD 迴圈（6 個 n 大小陣列、每 match 3 次 fseEncode）有效,但 literal 迴圈（每次 4 次 fseEncode、更短迴圈體）反受 closure 包裹拖累——**UBP 包裝並非一律划算,需逐迴圈量測**。`FSEOutStream`/`fseEncode` 已 inline+pointer,純函式無餘地。
+- **行動**：R31 將 revert `litEnc.withUnsafeBufferPointer { ... }` 回 `litEnc[Int(lp[...])]`，確認 BVX3 回到 ~672 MB/s 水位。
+
+## #3 power 量測硬化 — 屬 harness,未動
+
+修正點在 `helper/power_benchmark.command`（shell）,不在 `lzfse-cli.swift`。選項:(a) 放寬約束我改 harness（短 decode loop N 次再平均）;(b) 我在 CLI 加 `-repeat N` 供量測。待指定。
+
+## 備註 / Caveat
+
+本輪 benchmark 數據（BenchMarkResult.csv）是**同時含 #1 與 #2 的 binary** 量到的（故 BVX3 顯示退步 −12.4%）。**lzfse-cli.swift 此 commit 仍含 #2**（`litEnc.withUnsafeBufferPointer`）；BVX3 退步來源已確認為 #2。**R31 將 revert #2**，下一輪 benchmark 應見 BVX3 回到 ~672 MB/s 水位以反向確認（依約定本輪不重跑）。Other3 −17% 為機器噪音（n40 慢於 n8）。
+
+---
+
 # 第二十九輪：R26①② + R28 合併 DOE 結果 + 首次 power/energy 量測（2026-06-16）/ Round 29: Combined DOE + First Power Measurement
 
 > 本輪在 R27（tag-packing）基礎上合併三組 **output-identical** 變更一起量測：R28（`encodeBlockV3` LMD `withUnsafeBufferPointer`）、R26①（`lzParseOptimal` 的 `localHead` 外提、per-call 配置）、R26②（3-rep 展開）。並首次納入 `powerResults/` 的 CPU/GPU/DRAM 功率與能耗。只動 `lzfse-cli.swift` 與 `OPTIMIZATION.md`。

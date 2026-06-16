@@ -1,74 +1,74 @@
 ﻿file,kind,dataset,algorithm,n,total_rows,symbol_status,unique_symbols,lzfse_profile_seen,lzfse_symbol_hits,parse_hits,encode_hits,fse_hits,swift_array_hits,swift_runtime_hits,memory_copy_hits,io_hits,apple_compression_hits,external_tool_hits,top_symbol,top_count,top_category
 檔案,種類,資料夾,演算法,N,row總數,symbol狀態,唯一symbol數,看到lzfse-profile,lzfse symbol命中,parse命中,encode命中,FSE命中,Swift Array命中,Swift runtime命中,memory copy命中,IO命中,Apple Compression命中,外部工具命中,最高symbol,最高命中數,最高分類
-claw-code-apple-n4.time-profile.xml,time-profile,claw-code,apple,4,8228,ok,122,yes,149,,,,,8,6,19,1,3,lzfseEncodeMatches,81,apple_lzfse
-claw-code-apple-n40.time-profile.xml,time-profile,claw-code,apple,40,8239,ok,125,yes,146,,,,,10,6,26,1,5,lzfseEncodeMatches,79,apple_lzfse
-claw-code-apple-n8.time-profile.xml,time-profile,claw-code,apple,8,8204,ok,142,yes,146,,,,,12,3,29,1,3,lzfseEncodeMatches,77,apple_lzfse
-claw-code-bvx3-n4.time-profile.xml,time-profile,claw-code,bvx3,4,13402,ok,197,yes,285,97,84,,73,37,16,17,,4,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),41,encode
-claw-code-bvx3-n40.time-profile.xml,time-profile,claw-code,bvx3,40,19575,ok,263,yes,352,104,130,,106,51,22,19,,4,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),64,encode
-claw-code-bvx3-n8.time-profile.xml,time-profile,claw-code,bvx3,8,17271,ok,229,yes,342,105,120,,104,50,19,16,,5,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),58,encode
-claw-code-lazy2-n4.time-profile.xml,time-profile,claw-code,lazy2,4,101006,ok,229,yes,532,343,81,,67,48,17,18,,5,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),148,parse
-claw-code-lazy2-n40.time-profile.xml,time-profile,claw-code,lazy2,40,194508,ok,267,yes,603,367,121,,100,65,20,25,,4,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),152,parse
-claw-code-lazy2-n8.time-profile.xml,time-profile,claw-code,lazy2,8,157263,ok,240,yes,572,358,109,,91,55,18,19,,5,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),153,parse
-claw-code-optimal-n4.time-profile.xml,time-profile,claw-code,optimal,4,209295,ok,6274,yes,1225,1013,75,,125,84,13,19,,79,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),692,parse
-claw-code-optimal-n40.time-profile.xml,time-profile,claw-code,optimal,40,369896,ok,8787,yes,1418,1160,117,,183,137,22,20,,91,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),756,parse
-claw-code-optimal-n8.time-profile.xml,time-profile,claw-code,optimal,8,318507,ok,7985,yes,1404,1158,110,,182,122,18,19,,86,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),752,parse
-claw-code-other3-n4.time-profile.xml,time-profile,claw-code,other3,4,14085,ok,217,yes,262,96,71,,62,58,18,15,,4,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),51,encode
-claw-code-other3-n40.time-profile.xml,time-profile,claw-code,other3,40,18915,ok,240,yes,282,100,98,,78,66,21,16,,4,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),73,encode
-claw-code-other3-n8.time-profile.xml,time-profile,claw-code,other3,8,17431,ok,230,yes,285,100,95,,73,57,21,15,,5,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),73,encode
-claw-code-tar.lz4.time-profile.xml,time-profile,claw-code,tar.lz4,,16362,ok,73,no,,,,,,,1,21,2,316,LZ4HC_compress_generic_noDictCtx,284,external_tool
-claw-code-tgz.time-profile.xml,time-profile,claw-code,tgz,,27308,ok,204,no,,,,,,1,5,65,,6,0x19d117bac,86,other
-claw-code-zstd.time-profile.xml,time-profile,claw-code,zstd,,26239,ok,123,no,,,,,,,11,62,7,653,ZSTD_compressBlock_lazy2_row,168,external_tool
-llama.cpp-apple-n4.time-profile.xml,time-profile,llama.cpp,apple,4,6332,ok,118,yes,144,,,,,7,7,24,1,3,lzfseEncodeMatches,78,apple_lzfse
-llama.cpp-apple-n40.time-profile.xml,time-profile,llama.cpp,apple,40,6328,ok,138,yes,144,,,,,19,6,26,1,3,lzfseEncodeMatches,79,apple_lzfse
-llama.cpp-apple-n8.time-profile.xml,time-profile,llama.cpp,apple,8,6333,ok,124,yes,150,,,,,7,5,22,1,4,lzfseEncodeMatches,86,apple_lzfse
-llama.cpp-bvx3-n4.time-profile.xml,time-profile,llama.cpp,bvx3,4,10432,ok,235,yes,282,92,74,,71,29,14,16,,4,static LZFSEv1.fseEncode(state:_:_:),42,fse
-llama.cpp-bvx3-n40.time-profile.xml,time-profile,llama.cpp,bvx3,40,15036,ok,231,yes,334,101,122,,101,56,20,22,,5,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),57,encode
-llama.cpp-bvx3-n8.time-profile.xml,time-profile,llama.cpp,bvx3,8,13579,ok,263,yes,330,101,115,,105,57,21,21,,6,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),53,encode
-llama.cpp-lazy2-n4.time-profile.xml,time-profile,llama.cpp,lazy2,4,29984,ok,244,yes,463,270,77,,66,55,13,20,,6,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),121,parse
-llama.cpp-lazy2-n40.time-profile.xml,time-profile,llama.cpp,lazy2,40,59434,ok,272,yes,554,307,134,,95,59,19,18,,6,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),135,parse
-llama.cpp-lazy2-n8.time-profile.xml,time-profile,llama.cpp,lazy2,8,45510,ok,235,yes,531,303,109,,91,55,21,21,,6,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),123,parse
-llama.cpp-optimal-n4.time-profile.xml,time-profile,llama.cpp,optimal,4,125881,ok,3254,yes,1154,934,77,,131,102,18,16,,82,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),598,parse
-llama.cpp-optimal-n40.time-profile.xml,time-profile,llama.cpp,optimal,40,203825,ok,4229,yes,1355,1086,131,,177,135,18,28,,88,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),669,parse
-llama.cpp-optimal-n8.time-profile.xml,time-profile,llama.cpp,optimal,8,179956,ok,3899,yes,1321,1057,114,,178,134,14,23,,92,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),652,parse
-llama.cpp-other3-n4.time-profile.xml,time-profile,llama.cpp,other3,4,10236,ok,206,yes,244,96,63,,58,35,16,24,,7,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),42,encode
-llama.cpp-other3-n40.time-profile.xml,time-profile,llama.cpp,other3,40,14730,ok,231,yes,290,105,96,,75,69,22,18,,6,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),72,encode
-llama.cpp-other3-n8.time-profile.xml,time-profile,llama.cpp,other3,8,13426,ok,206,yes,283,99,91,,74,55,20,16,,4,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),67,encode
-llama.cpp-tar.lz4.time-profile.xml,time-profile,llama.cpp,tar.lz4,,16733,ok,61,no,,,,,,,1,22,1,322,LZ4HC_compress_generic_noDictCtx,294,external_tool
-llama.cpp-tgz.time-profile.xml,time-profile,llama.cpp,tgz,,19143,ok,225,no,,,,,,,9,88,,9,0x19d117bac,72,other
-llama.cpp-zstd.time-profile.xml,time-profile,llama.cpp,zstd,,13708,ok,125,no,,,,,,,9,46,7,520,ZSTD_RowFindBestMatch_noDict_5_4,141,external_tool
-claw-code-apple-n4.time-sample.xml,time-sample,claw-code,apple,4,8230,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-apple-n40.time-sample.xml,time-sample,claw-code,apple,40,8241,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-apple-n8.time-sample.xml,time-sample,claw-code,apple,8,8206,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-bvx3-n4.time-sample.xml,time-sample,claw-code,bvx3,4,13404,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-bvx3-n40.time-sample.xml,time-sample,claw-code,bvx3,40,19577,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-bvx3-n8.time-sample.xml,time-sample,claw-code,bvx3,8,17273,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-lazy2-n4.time-sample.xml,time-sample,claw-code,lazy2,4,101008,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-lazy2-n40.time-sample.xml,time-sample,claw-code,lazy2,40,194510,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-lazy2-n8.time-sample.xml,time-sample,claw-code,lazy2,8,157265,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-optimal-n4.time-sample.xml,time-sample,claw-code,optimal,4,209297,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-optimal-n40.time-sample.xml,time-sample,claw-code,optimal,40,369898,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-optimal-n8.time-sample.xml,time-sample,claw-code,optimal,8,318509,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-other3-n4.time-sample.xml,time-sample,claw-code,other3,4,14087,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-other3-n40.time-sample.xml,time-sample,claw-code,other3,40,18917,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-other3-n8.time-sample.xml,time-sample,claw-code,other3,8,17433,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-claw-code-tar.lz4.time-sample.xml,time-sample,claw-code,tar.lz4,,16364,raw_kperf_addresses_only,0,no,,,,,,,,,,,,,
-claw-code-tgz.time-sample.xml,time-sample,claw-code,tgz,,27310,raw_kperf_addresses_only,0,no,,,,,,,,,,,,,
-claw-code-zstd.time-sample.xml,time-sample,claw-code,zstd,,26241,raw_kperf_addresses_only,0,no,,,,,,,,,,,,,
-llama.cpp-apple-n4.time-sample.xml,time-sample,llama.cpp,apple,4,6334,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-apple-n40.time-sample.xml,time-sample,llama.cpp,apple,40,6330,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-apple-n8.time-sample.xml,time-sample,llama.cpp,apple,8,6335,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-bvx3-n4.time-sample.xml,time-sample,llama.cpp,bvx3,4,10434,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-bvx3-n40.time-sample.xml,time-sample,llama.cpp,bvx3,40,15038,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-bvx3-n8.time-sample.xml,time-sample,llama.cpp,bvx3,8,13581,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-lazy2-n4.time-sample.xml,time-sample,llama.cpp,lazy2,4,29986,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-lazy2-n40.time-sample.xml,time-sample,llama.cpp,lazy2,40,59436,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-lazy2-n8.time-sample.xml,time-sample,llama.cpp,lazy2,8,45512,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-optimal-n4.time-sample.xml,time-sample,llama.cpp,optimal,4,125883,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-optimal-n40.time-sample.xml,time-sample,llama.cpp,optimal,40,203827,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-optimal-n8.time-sample.xml,time-sample,llama.cpp,optimal,8,179958,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-other3-n4.time-sample.xml,time-sample,llama.cpp,other3,4,10238,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-other3-n40.time-sample.xml,time-sample,llama.cpp,other3,40,14732,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-other3-n8.time-sample.xml,time-sample,llama.cpp,other3,8,13428,raw_kperf_addresses_only,0,yes,,,,,,,,,,,,,
-llama.cpp-tar.lz4.time-sample.xml,time-sample,llama.cpp,tar.lz4,,16735,raw_kperf_addresses_only,0,no,,,,,,,,,,,,,
-llama.cpp-tgz.time-sample.xml,time-sample,llama.cpp,tgz,,19145,raw_kperf_addresses_only,0,no,,,,,,,,,,,,,
-llama.cpp-zstd.time-sample.xml,time-sample,llama.cpp,zstd,,13710,raw_kperf_addresses_only,0,no,,,,,,,,,,,,,
+"claw-code-apple-n4.time-profile.xml","time-profile","claw-code","apple","4","8250","ok","150","yes","146","","","","","18","7","32","1","4","lzfseEncodeMatches","80","apple_lzfse"
+"claw-code-apple-n40.time-profile.xml","time-profile","claw-code","apple","40","8191","ok","103","yes","148","","","","","8","7","23","1","3","lzfseEncodeMatches","80","apple_lzfse"
+"claw-code-apple-n8.time-profile.xml","time-profile","claw-code","apple","8","8198","ok","135","yes","142","","","","","18","6","26","1","4","lzfseEncodeMatches","76","apple_lzfse"
+"claw-code-bvx3-n4.time-profile.xml","time-profile","claw-code","bvx3","4","13364","ok","253","yes","296","99","74","","76","41","17","22","","6","static LZFSEv1.fseEncode(state:_:_:)","44","fse"
+"claw-code-bvx3-n40.time-profile.xml","time-profile","claw-code","bvx3","40","18969","ok","261","yes","354","107","123","","108","63","19","23","","4","specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","57","encode"
+"claw-code-bvx3-n8.time-profile.xml","time-profile","claw-code","bvx3","8","17356","ok","230","yes","343","105","124","","102","58","17","23","","5","specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","60","encode"
+"claw-code-lazy2-n4.time-profile.xml","time-profile","claw-code","lazy2","4","99118","ok","212","yes","519","336","80","","63","46","16","17","","5","bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","148","parse"
+"claw-code-lazy2-n40.time-profile.xml","time-profile","claw-code","lazy2","40","192150","ok","264","yes","581","352","126","","98","63","21","17","","4","bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","148","parse"
+"claw-code-lazy2-n8.time-profile.xml","time-profile","claw-code","lazy2","8","154513","ok","254","yes","585","360","116","","82","68","20","23","","5","bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","147","parse"
+"claw-code-optimal-n4.time-profile.xml","time-profile","claw-code","optimal","4","210031","ok","3063","yes","1220","1005","80","","126","89","17","22","","83","specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","671","parse"
+"claw-code-optimal-n40.time-profile.xml","time-profile","claw-code","optimal","40","369187","ok","5651","yes","1379","1105","128","","175","131","19","22","","89","specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","693","parse"
+"claw-code-optimal-n8.time-profile.xml","time-profile","claw-code","optimal","8","317267","ok","4812","yes","1355","1096","119","","179","129","17","22","","89","specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","687","parse"
+"claw-code-other3-n4.time-profile.xml","time-profile","claw-code","other3","4","14098","ok","256","yes","274","101","74","","66","61","18","27","","5","specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","51","encode"
+"claw-code-other3-n40.time-profile.xml","time-profile","claw-code","other3","40","19056","ok","230","yes","279","97","95","","76","67","20","25","","5","specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","71","encode"
+"claw-code-other3-n8.time-profile.xml","time-profile","claw-code","other3","8","17377","ok","229","yes","301","105","99","","68","58","22","18","","7","specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","73","encode"
+"claw-code-tar.lz4.time-profile.xml","time-profile","claw-code","tar.lz4","","16188","ok","70","no","","","","","","","3","28","1","337","LZ4HC_compress_generic_noDictCtx","300","external_tool"
+"claw-code-tgz.time-profile.xml","time-profile","claw-code","tgz","","29105","ok","165","no","","","","","","","6","61","","5","0x19d117bac","79","other"
+"claw-code-zstd.time-profile.xml","time-profile","claw-code","zstd","","25596","ok","136","no","","","","","","","10","62","8","663","ZSTD_compressBlock_lazy2_row","165","external_tool"
+"llama.cpp-apple-n4.time-profile.xml","time-profile","llama.cpp","apple","4","6291","ok","106","yes","139","","","","","9","6","31","1","3","lzfseEncodeMatches","76","apple_lzfse"
+"llama.cpp-apple-n40.time-profile.xml","time-profile","llama.cpp","apple","40","6337","ok","148","yes","140","","","","4","11","6","29","1","4","lzfseEncodeMatches","78","apple_lzfse"
+"llama.cpp-apple-n8.time-profile.xml","time-profile","llama.cpp","apple","8","6315","ok","121","yes","149","","","","","10","6","28","1","3","lzfseEncodeMatches","85","apple_lzfse"
+"llama.cpp-bvx3-n4.time-profile.xml","time-profile","llama.cpp","bvx3","4","10321","ok","260","yes","288","91","84","","72","49","16","18","","5","static LZFSEv1.fseEncode(state:_:_:)","45","fse"
+"llama.cpp-bvx3-n40.time-profile.xml","time-profile","llama.cpp","bvx3","40","15061","ok","283","yes","341","101","124","","107","65","19","15","","4","specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","55","encode"
+"llama.cpp-bvx3-n8.time-profile.xml","time-profile","llama.cpp","bvx3","8","13614","ok","253","yes","348","102","125","","92","57","19","24","","7","specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","54","encode"
+"llama.cpp-lazy2-n4.time-profile.xml","time-profile","llama.cpp","lazy2","4","29533","ok","224","yes","472","270","90","","63","39","15","21","","5","bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","121","parse"
+"llama.cpp-lazy2-n40.time-profile.xml","time-profile","llama.cpp","lazy2","40","58472","ok","271","yes","536","300","124","","87","62","18","15","","6","bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","127","parse"
+"llama.cpp-lazy2-n8.time-profile.xml","time-profile","llama.cpp","lazy2","8","45455","ok","256","yes","521","284","121","","88","61","17","19","","6","bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","123","parse"
+"llama.cpp-optimal-n4.time-profile.xml","time-profile","llama.cpp","optimal","4","126345","ok","1626","yes","1116","880","86","","126","104","14","21","","82","specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","558","parse"
+"llama.cpp-optimal-n40.time-profile.xml","time-profile","llama.cpp","optimal","40","204790","ok","2844","yes","1277","1009","126","","181","148","20","16","","89","specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","595","parse"
+"llama.cpp-optimal-n8.time-profile.xml","time-profile","llama.cpp","optimal","8","180545","ok","2464","yes","1274","1002","120","","163","128","16","18","","87","specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","606","parse"
+"llama.cpp-other3-n4.time-profile.xml","time-profile","llama.cpp","other3","4","10214","ok","173","yes","244","93","63","","55","41","15","17","","6","specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","38","encode"
+"llama.cpp-other3-n40.time-profile.xml","time-profile","llama.cpp","other3","40","14691","ok","217","yes","286","100","103","","81","65","21","16","","4","specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","76","encode"
+"llama.cpp-other3-n8.time-profile.xml","time-profile","llama.cpp","other3","8","13294","ok","250","yes","284","102","90","","72","73","19","21","","6","specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","65","encode"
+"llama.cpp-tar.lz4.time-profile.xml","time-profile","llama.cpp","tar.lz4","","16712","ok","82","no","","","","","","","1","20","","315","LZ4HC_compress_generic_noDictCtx","285","external_tool"
+"llama.cpp-tgz.time-profile.xml","time-profile","llama.cpp","tgz","","19368","ok","230","no","","","","","","","9","90","","8","0x19d117bac","74","other"
+"llama.cpp-zstd.time-profile.xml","time-profile","llama.cpp","zstd","","13122","ok","108","no","","","","","","","12","46","6","516","ZSTD_compressBlock_lazy2_row","143","external_tool"
+"claw-code-apple-n4.time-sample.xml","time-sample","claw-code","apple","4","8252","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-apple-n40.time-sample.xml","time-sample","claw-code","apple","40","8193","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-apple-n8.time-sample.xml","time-sample","claw-code","apple","8","8200","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-bvx3-n4.time-sample.xml","time-sample","claw-code","bvx3","4","13366","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-bvx3-n40.time-sample.xml","time-sample","claw-code","bvx3","40","18971","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-bvx3-n8.time-sample.xml","time-sample","claw-code","bvx3","8","17358","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-lazy2-n4.time-sample.xml","time-sample","claw-code","lazy2","4","99120","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-lazy2-n40.time-sample.xml","time-sample","claw-code","lazy2","40","192152","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-lazy2-n8.time-sample.xml","time-sample","claw-code","lazy2","8","154515","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-optimal-n4.time-sample.xml","time-sample","claw-code","optimal","4","210033","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-optimal-n40.time-sample.xml","time-sample","claw-code","optimal","40","369189","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-optimal-n8.time-sample.xml","time-sample","claw-code","optimal","8","317269","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-other3-n4.time-sample.xml","time-sample","claw-code","other3","4","14100","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-other3-n40.time-sample.xml","time-sample","claw-code","other3","40","19058","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-other3-n8.time-sample.xml","time-sample","claw-code","other3","8","17379","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"claw-code-tar.lz4.time-sample.xml","time-sample","claw-code","tar.lz4","","16190","raw_kperf_addresses_only","0","no","","","","","","","","","","","","",""
+"claw-code-tgz.time-sample.xml","time-sample","claw-code","tgz","","29107","raw_kperf_addresses_only","0","no","","","","","","","","","","","","",""
+"claw-code-zstd.time-sample.xml","time-sample","claw-code","zstd","","25598","raw_kperf_addresses_only","0","no","","","","","","","","","","","","",""
+"llama.cpp-apple-n4.time-sample.xml","time-sample","llama.cpp","apple","4","6293","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-apple-n40.time-sample.xml","time-sample","llama.cpp","apple","40","6339","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-apple-n8.time-sample.xml","time-sample","llama.cpp","apple","8","6317","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-bvx3-n4.time-sample.xml","time-sample","llama.cpp","bvx3","4","10323","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-bvx3-n40.time-sample.xml","time-sample","llama.cpp","bvx3","40","15063","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-bvx3-n8.time-sample.xml","time-sample","llama.cpp","bvx3","8","13616","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-lazy2-n4.time-sample.xml","time-sample","llama.cpp","lazy2","4","29535","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-lazy2-n40.time-sample.xml","time-sample","llama.cpp","lazy2","40","58474","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-lazy2-n8.time-sample.xml","time-sample","llama.cpp","lazy2","8","45457","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-optimal-n4.time-sample.xml","time-sample","llama.cpp","optimal","4","126347","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-optimal-n40.time-sample.xml","time-sample","llama.cpp","optimal","40","204792","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-optimal-n8.time-sample.xml","time-sample","llama.cpp","optimal","8","180547","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-other3-n4.time-sample.xml","time-sample","llama.cpp","other3","4","10216","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-other3-n40.time-sample.xml","time-sample","llama.cpp","other3","40","14693","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-other3-n8.time-sample.xml","time-sample","llama.cpp","other3","8","13296","raw_kperf_addresses_only","0","yes","","","","","","","","","","","","",""
+"llama.cpp-tar.lz4.time-sample.xml","time-sample","llama.cpp","tar.lz4","","16714","raw_kperf_addresses_only","0","no","","","","","","","","","","","","",""
+"llama.cpp-tgz.time-sample.xml","time-sample","llama.cpp","tgz","","19370","raw_kperf_addresses_only","0","no","","","","","","","","","","","","",""
+"llama.cpp-zstd.time-sample.xml","time-sample","llama.cpp","zstd","","13124","raw_kperf_addresses_only","0","no","","","","","","","","","","","","",""

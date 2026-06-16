@@ -1028,6 +1028,11 @@ public enum LZFSEv1 {
     // R9：每段熵預篩——以輕量 greedy 掃描估重複率。低於門檻者整段直接 greedy 發射、
     // 不啟動 DP（二進位/隨機資料在第一階段就被判定「不值得深究」）。
     static let optPrescreenMinCoverage = 28   // greedy match 覆蓋率（%）門檻；以下跳過 DP
+    // R30：cheap-probe gating（會改壓縮比的閘）。當預篩 greedy 的「平均 match 長度」≥ 此值時，
+    // 該段由長 match 主導 → DP 相對 greedy/lazy 的邊際收益極低（長 match 幾乎無選擇空間），
+    // 直接 greedy 省下 DP 的時間與能耗。預設 256 偏保守（理論上 ratio 影響極小）；DOE 可下調更積極。
+    // 設極大值（如 1<<30）等同關閉此閘、回到 R29 行為。
+    static let optDPSkipAvgMatchLen = 256
     // R10：熵取樣器（最便宜的第一道閘）。每段抽樣前 1KB 計 Shannon 熵；
     // 高於門檻（擬亂資料：GGUF tensor 權重、已壓縮資產）直接走 greedy，
     // 連覆蓋率掃描都省。門檻 7.5 bits/byte ≈「幾乎不可再壓」，此時
@@ -1375,6 +1380,7 @@ public enum LZFSEv1 {
                 if segLen >= 4096 {
                     // 第一遍：純估算覆蓋率（不改動 head/chain，避免污染 DP 的不變式）
                     var covered = 0
+                    var matchCount = 0
                     var probe = segStart
                     let probeEnd = segEnd - 4
                     localHead.initialize(repeating: -1, count: 1 << 14)
@@ -1384,6 +1390,7 @@ public enum LZFSEv1 {
                         if c >= 0, load32(c) == load32(probe) {
                             let l = 4 + matchLength(c + 4, probe + 4, limit: segEnd - probe - 4)
                             covered += l
+                            matchCount += 1
                             probe += l
                         } else {
                             probe += 1
@@ -1392,6 +1399,13 @@ public enum LZFSEv1 {
                     let coverage = covered * 100 / segLen
                     if coverage < optPrescreenMinCoverage {
                         // 低重複段：DP 不划算 → 共用 greedy 段發射（rep 感知、跨段一致）
+                        greedyEmitSegment(segStart, segEnd)
+                        segStart = segEnd
+                        continue
+                    }
+                    // R30：長 match 主導段 → DP 低收益（greedy≈optimal）→ 直接 greedy，省時間/能耗。
+                    //   ⚠️ 會改壓縮比（門檻保守，預期影響極小）；以 benchmark 驗 ratio，可調 optDPSkipAvgMatchLen。
+                    if matchCount > 0 && covered / matchCount >= optDPSkipAvgMatchLen {
                         greedyEmitSegment(segStart, segEnd)
                         segStart = segEnd
                         continue
@@ -2048,6 +2062,8 @@ public enum LZFSEv1 {
                 }
                 s0 = st[0]; s1 = st[1]; s2 = st[2]; s3 = st[3]
             } else {
+                // R30 #2 已 revert：litEnc 的 UnsafeBufferPointer 包裝在 -O 下反而讓 BVX3 退步
+                //   （closure 包裹開銷 > bounds-check 節省，疑阻斷 fseEncode inline / caller 優化）。
                 var i = lits.count
                 while i > 0 {
                     i -= 4

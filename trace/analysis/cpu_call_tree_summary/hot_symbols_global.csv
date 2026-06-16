@@ -1,502 +1,502 @@
 ﻿kind,symbol,count,category
 種類,symbol,命中數,分類
-time-profile,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),4119,parse
-time-profile,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),924,encode
-time-profile,static LZFSEv1.fseEncode(state:_:_:),895,fse
-time-profile,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),832,parse
-time-profile,specialized Array._getElement(_:wasNativeTypeChecked:matchingSubscriptCheck:),826,swift_array
-time-profile,specialized _ArrayBuffer.beginCOWMutation(),790,swift_array
-time-profile,LZ4HC_compress_generic_noDictCtx,578,external_tool
-time-profile,samplePointEntropyAndText #1 (start:len:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),489,parse
-time-profile,static LZFSEv1.symbol(forValue:base:),481,fse
-time-profile,lzfseEncodeMatches,480,apple_lzfse
-time-profile,specialized emitSteps #1 (_:from:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),479,parse
-time-profile,_platform_memmove,466,memory_copy
-time-profile,specialized Array._checkSubscript(_:wasNativeTypeChecked:),450,swift_array
-time-profile,specialized _ArrayBuffer._checkValidSubscriptMutating(_:),416,swift_array
-time-profile,lzfseEncodeBase,380,apple_lzfse
-time-profile,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),378,encode
-time-profile,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:),374,parse
-time-profile,LZFSEv1.FSEOutStream.push(_:_:),352,fse
-time-profile,closure #2 in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),351,encode
-time-profile,"swift::runtime::AccessSet::insert(swift::runtime::Access*, void*, void*, swift::ExclusivityFlags)",339,other
-time-profile,specialized Array.append<A>(contentsOf:),319,swift_array
-time-profile,matchLength #1 (_:_:limit:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),317,parse
-time-profile,ZSTD_compressBlock_lazy2_row,305,external_tool
-time-profile,ZSTD_RowFindBestMatch_noDict_5_4,290,external_tool
-time-profile,swift_beginAccess,269,swift_runtime
-time-profile,static LZFSEv1.compressBody(_:strong:bvx3:lazy2:optimal:),256,encode
-time-profile,LZFSEv1.FSEOutStream.flush(),254,fse
-time-profile,repLen #1 (_:_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),250,parse
-time-profile,closure #1 in closure #1 in closure #1 in closure #1 in closure #1 in closure #3 in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),249,encode
-time-profile,specialized Array._makeMutableAndUnique(),234,swift_array
-time-profile,matchLength #1 (_:_:limit:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),232,parse
-time-profile,closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),220,parse
-time-profile,specialized IndexingIterator.next(),217,swift_array
-time-profile,insert #1 (_:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:),201,parse
-time-profile,closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:),200,parse
-time-profile,specialized rebuildPrices #1 () in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),198,parse
-time-profile,swift_endAccess,197,swift_runtime
-time-profile,specialized greedyEmitSegment #1 (_:_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),189,parse
-time-profile,specialized Array.init(_uninitializedCount:),180,swift_array
-time-profile,specialized min<A>(_:_:),177,other
-time-profile,_xzm_free,174,other
-time-profile,static LZFSEv1.symbolPointer(forValue:base:count:),170,other
-time-profile,insert #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),165,parse
-time-profile,matchLength #1 (_:_:limit:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:),161,parse
-time-profile,specialized _ContiguousArrayBuffer.mutableFirstElementAddress.getter,158,swift_array
-time-profile,0x19d117bac,158,other
-time-profile,specialized UnsafeMutablePointer<>.initialize(to:),154,other
-time-profile,_xzm_xzone_malloc_tiny,154,other
-time-profile,swift::runtime::SwiftTLSContext::get(),152,swift_runtime
-time-profile,log2,150,other
-time-profile,entropyBits #1 (_:) in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),148,encode
-time-profile,specialized Array.subscript.modify,147,swift_array
-time-profile,specialized Array._createNewBuffer(bufferIsUnique:minimumCapacity:growForAppend:),140,swift_array
-time-profile,specialized pushRun #1 (l:m:d:) in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:),139,parse
-time-profile,lzfsePushMatch,139,apple_lzfse
-time-profile,specialized _ArrayBuffer._consumeAndCreateNew(bufferIsUnique:minimumCapacity:growForAppend:),126,swift_array
-time-profile,"bool swift::RefCounts<swift::RefCountBitsT<(swift::RefCountInlinedness)1>>::doDecrementSlow<(swift::PerformDeinit)1>(swift::RefCountBitsT<(swift::RefCountInlinedness)1>, unsigned int)",116,other
-time-profile,specialized static LZFSEv1.initEncoderTable(nstates:freq:),114,other
-time-profile,load32 #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),114,parse
-time-profile,-[NSConcreteFileHandle readDataOfLength:],114,io
-time-profile,0x19d1180b0,113,other
-time-profile,load32 #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),110,parse
-time-profile,_platform_memset,108,other
-time-profile,_ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:),108,swift_array
-time-profile,xzm_malloc_zone_size,107,other
-time-profile,_NSReadFromFileDescriptorWithProgress,104,other
-time-profile,swift_arrayDestroy,100,swift_runtime
-time-profile,specialized emitGreedy #1 (at:len:dist:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),100,parse
-time-profile,"dyld4::prepare(dyld4::APIs&, mach_o::UnsafeHeader const*)",96,other
-time-profile,0x19d11ae78,96,other
-time-profile,<deduplicated_symbol>,93,other
-time-profile,xzm_segment_group_alloc_chunk,92,other
-time-profile,static LZFSEv1.normalizeFreq(nstates:counts:),91,other
-time-profile,_swift_release_dealloc,91,swift_runtime
-time-profile,insert #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),90,parse
-time-profile,swift_isUniquelyReferenced_nonNull_native,89,swift_runtime
-time-profile,xzm_realloc,88,other
-time-profile,swift_deallocClassInstance,86,swift_runtime
-time-profile,specialized _ArrayBuffer.immutableCount.getter,86,swift_array
-time-profile,static LZFSEv1.initEncoderTable(nstates:freq:),85,other
-time-profile,specialized pushRun #1 (l:m:d:) in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),85,parse
-time-profile,_ContiguousArrayStorage.__deallocating_deinit,84,swift_array
-time-profile,start,80,external_tool
-time-profile,specialized Array.append(_:),80,swift_array
-time-profile,HUF_buildCTable_wksp,78,external_tool
-time-profile,specialized UnsafeMutablePointer.initialize(from:count:),75,other
-time-profile,load64 #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),73,parse
-time-profile,closure #1 in static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),72,encode
-time-profile,HIST_count_parallel_wksp,71,other
-time-profile,hashAndTag #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),71,parse
-time-profile,specialized pushRun #1 (l:m:d:) in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),70,parse
-time-profile,protocol witness for Strideable.advanced(by:) in conformance Int,68,other
-time-profile,closure #2 in runParallelEncode(input:output:inflight:chunkSize:strong:bvx3:lazy2:optimal:),68,other
-time-profile,specialized Double.init<A>(_:),67,other
-time-profile,_xzm_segment_group_find_and_allocate_chunk,67,other
-time-profile,main,66,other
-time-profile,LZFSEv1.d3BaseValue.unsafeMutableAddressor,66,other
-time-profile,load32 #1 (_:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:),65,parse
-time-profile,DYLD-STUB$$swift_isUniquelyReferenced_nonNull_native,65,swift_runtime
-time-profile,"std::__1::pair<swift::GenericCacheEntry*, swift::MetadataResponse> swift::LockingConcurrentMap<swift::GenericCacheEntry, swift::LockingConcurrentMapStorage<swift::GenericCacheEntry, (unsigned short)14>>::getOrInsert<swift::MetadataCacheKey, swift::MetadataRequest&, swift::TargetTypeContextDescriptor<swift::InProcess> const*&, void const* const*&>(swift::MetadataCacheKey, swift::MetadataRequest&, swift::TargetTypeContextDescriptor<swift::InProcess> const*&, void const* const*&)",64,other
-time-profile,read,64,io
-time-profile,specialized UnsafeBufferPointer._copyContents(initializing:),63,other
-time-profile,"_swift_getGenericMetadata(swift::MetadataRequest, void const* const*, swift::TargetTypeContextDescriptor<swift::InProcess> const*)",62,swift_runtime
-time-profile,xzm_segment_group_free_chunk,60,other
-time-profile,swift::TargetContextDescriptor<swift::InProcess>::getGenericContext() const,60,other
-time-profile,"std::__1::pair<swift::GenericCacheEntry*, bool> swift::StableAddressConcurrentReadableHashMap<swift::GenericCacheEntry, swift::TaggedMetadataAllocator<(unsigned short)14>, swift::Mutex>::getOrInsert<swift::MetadataCacheKey, swift::MetadataWaitQueue::Worker&, swift::MetadataRequest&, swift::TargetTypeContextDescriptor<swift::InProcess> const*&, void const* const*&>(swift::MetadataCacheKey, swift::MetadataWaitQueue::Worker&, swift::MetadataRequest&, swift::TargetTypeContextDescriptor<swift::InProcess> const*&, void const* const*&)",60,other
-time-profile,"dyld4::Loader::runInitializersBottomUp(dyld4::RuntimeState&, lsl::Vector<AuthenticatedValue<dyld4::Loader const*>>&, lsl::Vector<AuthenticatedValue<dyld4::Loader const*>>&) const",60,other
-time-profile,mach_absolute_time,58,other
-time-profile,HUF_compress1X_usingCTable_internal,58,external_tool
-time-profile,specialized static LZFSEv1.normalizeFreq(nstates:counts:),57,other
-time-profile,malloc_size,57,other
-time-profile,load64 #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),57,parse
-time-profile,specialized _ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:),56,swift_array
-time-profile,swift::MetadataCacheKey::operator==(swift::MetadataCacheKey const&) const,55,other
-time-profile,swift_unownedRelease,55,swift_runtime
-time-profile,runParallelEncode(input:output:inflight:chunkSize:strong:bvx3:lazy2:optimal:),55,other
-time-profile,NSFileHandle.read(upToCount:),55,io
-time-profile,swift_allocObject,52,swift_runtime
-time-profile,specialized Array._makeUniqueAndReserveCapacityIfNotUnique(),52,swift_array
-time-profile,getCache(swift::TargetTypeContextDescriptor<swift::InProcess> const&),51,other
-time-profile,closure #1 in runParallelEncode(input:output:inflight:chunkSize:strong:bvx3:lazy2:optimal:),51,other
-time-profile,"swift::swift_slowAllocTyped(unsigned long, unsigned long, unsigned long long)",50,swift_runtime
-time-profile,specialized protocol witness for RangeExpression.contains(_:) in conformance ClosedRange<A>,50,other
-time-profile,0x19d11a9e8,50,other
-time-profile,hashAndTag #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),46,parse
-time-profile,specialized Array.subscript.getter,45,swift_array
-time-profile,_xzm_segment_group_span_mark_smaller,45,other
-time-profile,specialized Collection._failEarlyRangeCheck(_:bounds:),44,swift_array
-time-profile,load64 #1 (_:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:),44,parse
-time-profile,DYLD-STUB$$swift_endAccess,43,swift_runtime
-time-profile,_xzm_segment_group_segment_span_free_coalesce,43,other
-time-profile,_realloc,43,other
-time-profile,ZSTD_encodeSequences,42,external_tool
-time-profile,LZFSEv1.lm3ExtraBits.unsafeMutableAddressor,42,other
-time-profile,libSystem_initializer,42,other
-time-profile,0x19d11b234,42,other
-time-profile,specialized Array._endMutation(),41,swift_array
-time-profile,mach_vm_reclaim_try_cancel,41,other
-time-profile,LZFSEv1.lm3BaseValue.unsafeMutableAddressor,41,other
-time-profile,DYLD-STUB$$swift_beginAccess,41,swift_runtime
-time-profile,DYLD-STUB$$memcpy,41,memory_copy
-time-profile,swift_release,40,swift_runtime
-time-profile,specialized UnsafeMutablePointer.initialize(repeating:count:),40,other
-time-profile,"dyld4::start(dyld4::KernelArgs*, void*, void*, unsigned long long)::$_1::operator()() const",39,external_tool
-time-profile,"mach_o::UnsafeHeader::forEachLoadCommand(void (load_command const*, bool&) block_pointer) const",38,other
-time-profile,invocation function for block in dyld4::Loader::findAndRunAllInitializers(dyld4::RuntimeState&) const::$_0::operator()() const,38,other
-time-profile,_xzm_malloc_large_huge,38,other
-time-profile,"invocation function for block in mach_o::UnsafeHeader::forEachSection(void (mach_o::UnsafeHeader::SectionInfo const&, bool&) block_pointer) const",37,other
-time-profile,__swift_instantiateCanonicalPrespecializedGenericMetadata,37,swift_runtime
-time-profile,start_wqthread,36,io
-time-profile,specialized Collection._copyToContiguousArray(),36,swift_array
-time-profile,OutputFilter.write<A>(_:),36,io
-time-profile,__isPlatformOrVariantPlatformVersionAtLeast,36,other
-time-profile,write,35,io
-time-profile,static LZFSEv1.encodeFreqValue(_:),35,other
-time-profile,"mach_o::UnsafeHeader::forEachSection(void (mach_o::UnsafeHeader::SectionInfo const&, bool&) block_pointer) const",35,other
-time-profile,dyld4::Loader::findAndRunAllInitializers(dyld4::RuntimeState&) const,35,other
-time-profile,dyld4::APIs::runAllInitializersForMain(),35,other
-time-profile,"dyld3::MachOAnalyzer::forEachInitializer(Diagnostics&, dyld3::MachOAnalyzer::VMAddrConverter const&, void (unsigned int) block_pointer, void const*) const",35,other
-time-profile,__bzero,35,other
-time-profile,"invocation function for block in dyld3::MachOAnalyzer::forEachInitializer(Diagnostics&, dyld3::MachOAnalyzer::VMAddrConverter const&, void (unsigned int) block_pointer, void const*) const",34,other
-time-profile,dyld4::PrebuiltLoader::runInitializers(dyld4::RuntimeState&) const,34,other
-time-profile,_free,34,other
-time-profile,specialized static UnsafeMutablePointer.allocate(capacity:),33,other
-time-profile,specialized _ArrayBuffer.mutableCapacity.getter,33,swift_array
-time-profile,reallocf,33,other
-time-profile,_malloc_zone_realloc,33,other
-time-profile,__swift_instantiateConcreteTypeFromMangledNameV2,33,swift_runtime
-time-profile,FSE_buildCTable_wksp,32,external_tool
-time-profile,dyld4::Loader::runInitializersBottomUpPlusUpwardLinks(dyld4::RuntimeState&) const::$_0::operator()() const,32,other
-time-profile,-[NSConcreteFileHandle readDataUpToLength:error:],32,io
-time-profile,_xzm_xzone_free_freelist,32,other
-time-profile,objc_msgSend,31,other
-time-profile,specialized NSFileHandle.write<A>(contentsOf:),30,io
-time-profile,NSFileHandle.write<A>(contentsOf:),30,io
-time-profile,mach_vm_reclaim_try_enter,30,other
-time-profile,lzfseBackendMatch,30,other
-time-profile,dyld4::Loader::runInitializersBottomUpPlusUpwardLinks(dyld4::RuntimeState&) const,30,other
-time-profile,_dispatch_client_callout,30,other
-time-profile,ZSTD_splitBlock,29,external_tool
-time-profile,specialized ArraySlice._copyToContiguousArray(),29,swift_array
-time-profile,specialized Array._appendElementAssumeUniqueAndCapacity(_:newElement:),29,swift_array
-time-profile,Data.InlineSlice.append(contentsOf:),29,other
-time-profile,_xzm_xzone_malloc,29,other
-time-profile,_xzm_reclaim_mark_used_locked,29,other
-time-profile,xzm_reclaim_mark_free_locked,28,other
-time-profile,protocol witness for static Equatable.== infix(_:_:) in conformance Int,28,other
-time-profile,FSE_writeNCount_generic,28,io
-time-profile,_xzm_reclaim_mark_used,28,other
-time-profile,_pthread_wqthread,28,io
-time-profile,specialized Data.InlineSlice.init(_:),27,other
-time-profile,archive_write_pax_header,27,io
-time-profile,_xzm_xzone_malloc_freelist_outlined,27,other
-time-profile,_dispatch_async_redirect_invoke,27,other
-time-profile,__DataStorage.replaceBytes(in:with:length:),27,other
-time-profile,__DataStorage.init(bytes:length:),27,other
-time-profile,thunk for @escaping @callee_guaranteed @Sendable () -> (),26,other
-time-profile,Data._Representation.append(contentsOf:),26,other
-time-profile,Data._copyContents(initializing:),26,other
-time-profile,_xzm_free_outlined,26,other
-time-profile,_dispatch_root_queue_drain,26,other
-time-profile,specialized UnsafeMutablePointer.moveInitialize(from:count:),25,other
-time-profile,specialized Data.init<A>(_:),25,other
-time-profile,_dispatch_continuation_pop,25,other
-time-profile,specialized UnsafeRawPointer.loadUnaligned<A>(fromByteOffset:as:),24,other
-time-profile,specialized UnsafeBufferPointer.makeIterator(),24,other
-time-profile,specialized closure #1 in Array.withUnsafeBytes<A>(_:),24,swift_array
-time-profile,specialized Array._reserveCapacityImpl(minimumCapacity:growForAppend:),24,swift_array
-time-profile,Data.InlineSlice.init(_:),24,other
-time-profile,closure #1 in writeSingleRegion #1 <A><A1>(_:) in NSFileHandle.write<A>(contentsOf:),24,io
-time-profile,_dispatch_worker_thread2,24,io
-time-profile,_dispatch_call_block_and_release,24,other
-time-profile,specialized UnsafeMutablePointer.deallocate(),23,other
-time-profile,specialized Data.init(referencing:),23,other
-time-profile,specialized _SliceBuffer._checkValidSubscript(_:),23,other
-time-profile,dyld4::RuntimeLocks::withLoadersReadLock(void () block_pointer),23,other
-time-profile,_xzm_xzone_malloc_small_freelist,23,other
-time-profile,_objc_init,23,other
-time-profile,ZSTD_row_update,22,external_tool
-time-profile,swift_bridgeObjectRelease,22,swift_runtime
-time-profile,lzfseStreamEncode,22,other
-time-profile,libdispatch_init,22,other
-time-profile,_os_object_init,22,other
-time-profile,ZSTD_buildSequencesStatistics,21,external_tool
-time-profile,swift_slowAlloc,21,swift_runtime
-time-profile,swift_initStackObject,21,swift_runtime
-time-profile,static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),21,parse
-time-profile,specialized _allocateUninitializedArray<A>(_:),21,other
-time-profile,map_images,21,other
-time-profile,malloc_type_posix_memalign,21,other
-time-profile,"invocation function for block in dyld4::RuntimeState::setObjCNotifiers(dyld4::ReadOnlyCallback<void (*)(char const*, mach_header const*)>, dyld4::ReadOnlyCallback<void (*)(mach_header const*, void*, mach_header const*, void const*)>, dyld4::ReadOnlyCallback<void (*)(_dyld_objc_notify_mapped_info const*)>, dyld4::ReadOnlyCallback<void (*)(unsigned int, _dyld_objc_notify_mapped_info const*, void (unsigned int) block_pointer)>)::$_0::operator()() const",21,other
-time-profile,"dyld4::RuntimeState::setObjCNotifiers(dyld4::ReadOnlyCallback<void (*)(char const*, mach_header const*)>, dyld4::ReadOnlyCallback<void (*)(mach_header const*, void*, mach_header const*, void const*)>, dyld4::ReadOnlyCallback<void (*)(_dyld_objc_notify_mapped_info const*)>, dyld4::ReadOnlyCallback<void (*)(unsigned int, _dyld_objc_notify_mapped_info const*, void (unsigned int) block_pointer)>)",21,other
-time-profile,dyld4::APIs::_dyld_objc_register_callbacks(dyld4::ObjCCallbacks const*),21,other
-time-profile,DYLD-STUB$$log2,21,other
-time-profile,copyfile,21,other
-time-profile,_dyld_objc_register_callbacks,21,other
-time-profile,specialized _SliceBuffer.getElement(_:),20,other
-time-profile,specialized _ContiguousArrayBuffer.beginCOWMutation(),20,swift_array
-time-profile,next_entry,20,other
-time-profile,"invocation function for block in dyld4::Loader::forEachBindTarget(Diagnostics&, dyld4::RuntimeState&, void (unsigned int, unsigned int, dyld4::Loader::ResolvedSymbol const&) block_pointer, bool, void (dyld4::Loader::ResolvedSymbol const&, bool&) block_pointer, void (dyld4::Loader::ResolvedSymbol const&, bool&) block_pointer) const",20,other
-time-profile,getContiguousArrayStorageType<A>(for:),20,swift_array
-time-profile,0x19d11a49c,20,other
-time-profile,_xzm_segment_group_span_mark_used,20,other
-time-profile,_xzm_reclaim_mark_free,20,other
-time-profile,__DataStorage.__deallocating_deinit,20,other
-time-profile,ZSTD_XXH64_update,19,external_tool
-time-profile,HUF_compress_internal,19,external_tool
-time-profile,0x19d1163e0,19,other
-time-profile,_platform_memcmp,19,other
-time-profile,_dispatch_once_callout,19,other
-time-profile,ZSTD_seqToCodes,18,external_tool
-time-profile,static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),18,encode
-time-profile,malloc_type_malloc,18,other
-time-profile,lzfseEncodeTranslateState,18,apple_lzfse
-time-profile,FSE_normalizeCount,18,external_tool
-time-profile,0x19d11b41c,18,other
-time-profile,_xzm_segment_group_span_mark_free,18,other
-time-profile,ZSTD_selectEncodingType,17,external_tool
-time-profile,"std::__1::pair<swift::HashMapElementWrapper<swift::GenericCacheEntry>*, unsigned int> swift::ConcurrentReadableHashMap<swift::HashMapElementWrapper<swift::GenericCacheEntry>, swift::Mutex>::find<swift::MetadataCacheKey>(swift::MetadataCacheKey const&, swift::ConcurrentReadableHashMap<swift::HashMapElementWrapper<swift::GenericCacheEntry>, swift::Mutex>::IndexStorage, unsigned long, swift::HashMapElementWrapper<swift::GenericCacheEntry>*)",17,other
-time-profile,specialized static LZFSEv1.releaseScratch(_:),17,other
-time-profile,map_images_nolock,17,other
-time-profile,closure #1 in OutputFilter.write<A>(_:),17,io
-time-profile,_availability_version_check,17,other
-time-profile,specialized Array.init(repeating:count:),16,swift_array
-time-profile,dispatch_once_f,16,other
-time-profile,closure #6 in,16,other
-time-profile,archive_entry_clear,16,other
-time-profile,_xzm_segment_group_alloc_segment,16,other
-time-profile,_dispatch_semaphore_wait_slow,16,other
-time-profile,SetAlgebra.init<A>(_:),15,other
-time-profile,HIST_count_simple,15,other
-time-profile,fstat,15,other
-time-profile,ZSTDMT_compressionJob,14,apple_compression
-time-profile,swift_getCanonicalPrespecializedGenericMetadata,14,swift_runtime
-time-profile,specialized _ProcessInfo.processorCount.getter,14,other
-time-profile,HUF_writeCTable_wksp,14,io
-time-profile,"dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)",14,other
-time-profile,default argument 2 of OS_dispatch_queue.async(group:qos:flags:execute:),14,other
-time-profile,_utf8_to_unicode,14,other
-time-profile,ZSTD_recordFingerprint_5,13,external_tool
-time-profile,ZSTD_compressContinue_internal,13,external_tool
-time-profile,OS_dispatch_queue.asyncUnsafe(group:qos:flags:execute:),13,other
-time-profile,FSE_compress_usingCTable_generic,13,external_tool
-time-profile,"dyld4::JustInTimeLoader::applyFixups(Diagnostics&, dyld4::RuntimeState&, dyld4::DyldCacheDataConstLazyScopedWriter&, bool, lsl::Vector<std::__1::pair<dyld4::Loader const*, char const*>>*) const",13,other
-time-profile,dyld4::ExternallyViewableState::generateAtlas(lsl::Allocator&),13,other
-time-profile,0x19d115ea0,13,other
-time-profile,_swift_dispatch_async,13,swift_runtime
-time-profile,_dispatch_sema4_wait,13,other
-time-profile,__sysctl,13,other
-time-profile,write_hierarchy,12,io
-time-profile,"swift::MetadataCacheEntryBase<swift::GenericCacheEntry, void const*>::awaitSatisfyingState(swift::ConcurrencyControl&, swift::MetadataRequest)",12,other
-time-profile,static LZFSEv1.releaseScratch(_:),12,other
-time-profile,static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:),12,parse
-time-profile,"realizeClassWithoutSwift(objc_class*, objc_class*)",12,swift_runtime
-time-profile,qos_class_main,12,other
-time-profile,"dyld4::PrebuiltLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)",12,other
-time-profile,DYLD-STUB$$bzero,12,other
-time-profile,Data._Representation.init(capacity:),12,other
-time-profile,archive_read_disk_entry_from_file,12,io
-time-profile,@objc _NSFileManagerBridge.createFile(atPath:contents:attributes:),12,other
-time-profile,_NSFileManagerBridge.createFile(atPath:contents:attributes:),12,other
-time-profile,static LZFSEv1.acquireScratch(_:),11,other
-time-profile,specialized UnsafeMutablePointer.assign(repeating:count:),11,other
-time-profile,specialized Array._reserveCapacityAssumingUniqueBuffer(oldCount:),11,swift_array
-time-profile,semaphore_wait_trap,11,other
-time-profile,"mach_o::Fixups::forEachBindTarget_ChainedFixups(Diagnostics&, void (mach_o::Fixups::BindTargetInfo const&, bool&) block_pointer) const",11,other
-time-profile,"dyld4::RuntimeState::notifyDtrace(std::__1::span<dyld4::Loader const*, 18446744073709551615ul> const&)",11,other
-time-profile,"dyld4::RuntimeState::notifyDebuggerLoad(std::__1::span<dyld4::Loader const*, 18446744073709551615ul> const&)",11,other
-time-profile,"dyld4::Loader::hasExportedSymbol(Diagnostics&, dyld4::RuntimeState&, char const*, dyld4::Loader::ExportedSymbolMode, dyld4::Loader::ResolverMode, dyld4::Loader::ResolvedSymbol*, dyld3::Array<dyld4::Loader const*>*) const",11,other
-time-profile,"dyld4::Loader::forEachBindTarget(Diagnostics&, dyld4::RuntimeState&, void (unsigned int, unsigned int, dyld4::Loader::ResolvedSymbol const&) block_pointer, bool, void (dyld4::Loader::ResolvedSymbol const&, bool&) block_pointer, void (dyld4::Loader::ResolvedSymbol const&, bool&) block_pointer) const",11,other
-time-profile,"dyld3::MachOFile::forEachChainedFixupTarget(Diagnostics&, dyld_chained_fixups_header const*, linkedit_data_command const*, void (int, char const*, unsigned long long, bool, bool&) block_pointer)",11,other
-time-profile,"dyld3::MachOAnalyzer::withVMLayout(Diagnostics&, void (mach_o::Layout const&) block_pointer) const",11,other
-time-profile,DYLD-STUB$$swift_bridgeObjectRelease,11,swift_runtime
-time-profile,_GLOBAL__sub_I_PKGMenuBarContext.mm,11,other
-time-profile,_dispatch_root_queue_poke_slow,11,other
-time-profile,_call_dispose_helpers_excp,11,other
-time-profile,_Block_release,11,other
-time-profile,__workq_kernreturn,11,other
-time-profile,sysctl,10,other
-time-profile,specialized Array.formIndex(after:),10,swift_array
-time-profile,specialized _ArrayBuffer._consumeAndCreateNew(),10,swift_array
-time-profile,setup_mac_metadata,10,other
-time-profile,LZFSEv1.d3ExtraBits.unsafeMutableAddressor,10,other
-time-profile,freqCostBits #1 (_:) in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),10,encode
-time-profile,"dyld4::ExternallyViewableState::addImages(lsl::Allocator&, lsl::Allocator&, std::__1::span<dyld4::ExternallyViewableState::ImageInfo, 18446744073709551615ul> const&)",10,other
-time-profile,CGColorSpaceCreateWithName,10,other
-time-profile,CGColorCreateGenericGray,10,other
-time-profile,+[NSData(NSData) dataWithBytesNoCopy:length:],10,other
-time-profile,_swift_isClassOrObjCExistentialType,10,swift_runtime
-time-profile,_kernelrpc_mach_vm_map_trap,10,other
-time-profile,_archive_read_data_block,10,io
-time-profile,__sfvwrite,10,io
-time-profile,__DataStorage.init(capacity:),10,other
-time-profile,ZSTDMT_compressStream_generic,9,external_tool
-time-profile,xzm_segment_group_try_realloc_large_chunk,9,other
-time-profile,utf8_to_unicode,9,other
-time-profile,specialized static Array.+ infix(_:_:),9,swift_array
-time-profile,"specialized Collection.map<A, B>(_:)",9,swift_array
-time-profile,setup_sparse,9,other
-time-profile,POOL_thread,9,io
-time-profile,objc_msgSend$isCancelled,9,other
-time-profile,"mach_o::UnsafeHeader::forEachSection(void (mach_o::UnsafeHeader::SegmentInfo const&, mach_o::UnsafeHeader::SectionInfo const&, bool&) block_pointer) const",9,other
-time-profile,lookUpImpOrForward,9,other
-time-profile,"invocation function for block in mach_o::Fixups::forEachBindTarget_ChainedFixups(Diagnostics&, void (mach_o::Fixups::BindTargetInfo const&, bool&) block_pointer) const",9,other
-time-profile,"dyld4::Loader::resolveSymbol(Diagnostics&, dyld4::RuntimeState&, int, char const*, bool, bool, void (unsigned int, unsigned int, dyld4::Loader::ResolvedSymbol const&) block_pointer, bool) const",9,other
-time-profile,"dyld3::MachOFile::forEachDOFSection(Diagnostics&, void (unsigned int) block_pointer) const",9,other
-time-profile,DYLD-STUB$$swift_initStackObject,9,swift_runtime
-time-profile,archive_entry_clone,9,other
-time-profile,-[NSConcreteData _bridgingCopy:length:],9,other
-time-profile,_archive_read_next_header2,9,io
-time-profile,tree_next,8,other
-time-profile,"specialized autoreleasepool<A, B>(invoking:)",8,other
-time-profile,specialized ArraySlice.subscript.getter,8,swift_array
-time-profile,NSAllocateObject,8,other
-time-profile,LZ4_XXH32_update,8,external_tool
-time-profile,"invocation function for block in dyld4::Loader::getLoader(Diagnostics&, dyld4::RuntimeState&, char const*, dyld4::Loader::LoadOptions const&)",8,other
-time-profile,HUF_compress4X_usingCTable_internal,8,external_tool
-time-profile,fse_adjust_freqs,8,other
-time-profile,FIO_compressFilename_internal,8,other
-time-profile,"dyld4::Loader::forEachResolvedAtPathVar(dyld4::RuntimeState&, char const*, dyld4::Loader::LoadOptions const&, dyld4::ProcessConfig::PathOverrides::Type, bool&, void (char const*, dyld4::ProcessConfig::PathOverrides::Type, bool&) block_pointer)",8,other
-time-profile,dSym #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),8,parse
-time-profile,Data._bridgeToObjectiveC(),8,other
-time-profile,archive_string_append,8,other
-time-profile,0x6,8,other
-time-profile,0x4,8,other
-time-profile,0x3,8,other
-time-profile,0x19d11b318,8,other
-time-profile,-[NSData(NSData) enumerateByteRangesUsingBlock:],8,other
-time-profile,_xzm_range_group_alloc_anywhere_segment,8,other
-time-profile,_xpc_collect_images,8,other
-time-profile,_pthread_workqueue_addthreads,8,io
-time-profile,_platform_strlen,8,other
-time-profile,_libxpc_initializer,8,other
-time-profile,__open,8,other
-time-profile,ZSTD_entropyCompressSeqStore_internal,7,external_tool
-time-profile,ZSTD_compressLiterals,7,external_tool
-time-profile,ZSTD_buildSeqStore,7,external_tool
-time-profile,ZSTD_buildCTable,7,external_tool
-time-profile,swift_retain,7,swift_runtime
-time-profile,"swift_getTypeByMangledNodeImpl(swift::MetadataRequest, swift::Demangle::__runtime::Demangler&, swift::Demangle::__runtime::Node*, void const* const*, std::__1::function<void const* (unsigned int, unsigned int)>, std::__1::function<swift::TargetWitnessTable<swift::InProcess> const* (swift::TargetMetadata<swift::InProcess> const*, unsigned int)>)",7,swift_runtime
-time-profile,"swift_getTypeByMangledNameImpl(swift::MetadataRequest, __swift::__runtime::llvm::StringRef, void const* const*, std::__1::function<void const* (unsigned int, unsigned int)>, std::__1::function<swift::TargetWitnessTable<swift::InProcess> const* (swift::TargetMetadata<swift::InProcess> const*, unsigned int)>)",7,swift_runtime
-time-profile,strncat_from_utf8_to_utf8,7,other
-time-profile,specialized _SliceBuffer.nativeBuffer.getter,7,other
-time-profile,repsAfter #1 (_:_:_:_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),7,parse
-time-profile,objc_msgSend$setCompletedUnitCount:,7,other
-time-profile,objc_autoreleasePoolPop,7,other
-time-profile,malloc_type_realloc,7,other
-time-profile,mach_vm_map,7,other
-time-profile,"mach_o::UnsafeHeader::forEachLinkedDylib(void (char const*, mach_o::LinkedDylibAttributes, mach_o::Version32, mach_o::Version32, bool, bool&) block_pointer) const",7,other
-time-profile,LZ4IO_compressFilename_extRess_MT,7,external_tool
-time-profile,"invocation function for block in mach_o::UnsafeHeader::forEachLinkedDylib(void (char const*, mach_o::LinkedDylibAttributes, mach_o::Version32, mach_o::Version32, bool, bool&) block_pointer) const",7,other
-time-profile,"invocation function for block in dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)",7,other
-time-profile,fwrite,7,io
-time-profile,fread,7,io
-time-profile,"dyld4::ProcessConfig::PathOverrides::forEachPathVariant(char const*, mach_o::Platform, bool, bool, bool&, void (char const*, dyld4::ProcessConfig::PathOverrides::Type, bool&) block_pointer) const",7,other
-time-profile,"dyld4::Loader::getLoader(Diagnostics&, dyld4::RuntimeState&, char const*, dyld4::Loader::LoadOptions const&)",7,other
-time-profile,"dyld4::Loader::forEachPath(Diagnostics&, dyld4::RuntimeState&, char const*, dyld4::Loader::LoadOptions const&, void (char const*, dyld4::ProcessConfig::PathOverrides::Type, bool&) block_pointer)",7,other
-time-profile,"dyld3::MachOFile::trieWalk(Diagnostics&, unsigned char const*, unsigned char const*, char const*)",7,other
-time-profile,DYLD-STUB$$malloc_size,7,other
-time-profile,create_singleton,7,other
-time-profile,CGColorSpaceCreateGenericGray,7,other
-time-profile,AutoreleasePoolPage::releaseUntil(objc_object**),7,other
-time-profile,archive_string_ensure,7,other
-time-profile,archive_mstring_clean,7,other
-time-profile,archive_compressor_gzip_write,7,io
-time-profile,0x7,7,other
-time-profile,0x5,7,other
-time-profile,-[_NSPlaceholderData initWithBytes:length:copy:deallocator:],7,other
-time-profile,_xzm_xzone_find_and_malloc_from_freelist_chunk,7,other
-time-profile,_xzm_segment_group_cache_mark_used,7,other
-time-profile,_xzm_free_large_huge,7,other
-time-profile,_Block_copy,7,other
-time-profile,__CGColorSpaceCreateGenericGray_block_invoke,7,other
-time-profile,__archive_write_format_header_ustar,7,io
-time-profile,ZSTD_compressBlock_internal,6,external_tool
-time-profile,tree_dir_next_posix,6,other
-time-profile,"swift::Demangle::__runtime::TypeDecoder<(anonymous namespace)::DecodedMetadataBuilder>::decodeMangledType(swift::Demangle::__runtime::Node*, unsigned int, bool)",6,other
-time-profile,swift_isClassType,6,swift_runtime
-time-profile,swift_getTypeByMangledNode,6,swift_runtime
-time-profile,"swift_getTypeByMangledNameInContextImpl(char const*, unsigned long, swift::TargetContextDescriptor<swift::InProcess> const*, void const* const*)",6,swift_runtime
-time-profile,swift_getTypeByMangledName,6,swift_runtime
-time-profile,"swift_cvw_destroyImpl(swift::OpaqueValue*, swift::TargetMetadata<swift::InProcess> const*)",6,swift_runtime
-time-profile,statx1,6,other
-time-profile,static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),6,parse
-time-profile,static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),6,encode
-time-profile,specialized max<A>(_:_:),6,other
-time-profile,specialized ContiguousArray._createNewBuffer(bufferIsUnique:minimumCapacity:growForAppend:),6,swift_array
-time-profile,specialized _SwiftURL.__allocating_init(fileURLWithPath:),6,swift_runtime
-time-profile,"specialized _ArrayBuffer.withUnsafeBufferPointer<A, B>(_:)",6,swift_array
-time-profile,setup_xattrs,6,other
-time-profile,protocol witness for IteratorProtocol.next() in conformance IndexingIterator<A>,6,swift_array
-time-profile,protocol witness for ContiguousBytes.withUnsafeBytes<A>(_:) in conformance Data,6,other
-time-profile,partial apply for closure #1 in OutputFilter.write<A>(_:),6,io
-time-profile,dyld4::ExternallyViewableState::setDyldState(unsigned char),6,other
-time-profile,DYLD-STUB$$free,6,other
-time-profile,DYLD-STUB$$dispatch_once_f,6,other
-time-profile,dispatch thunk of OutputFilter.write<A>(_:),6,io
-time-profile,dispatch thunk of ContiguousBytes.withUnsafeBytes<A>(_:),6,other
-time-profile,Data.withUnsafeBytes<A>(_:),6,other
-time-profile,Data._Representation.withUnsafeBytes<A>(_:),6,other
-time-profile,copy_file_data_block,6,other
-time-profile,compression_stream_process,6,apple_compression
-time-profile,color_space_state_create_generic_gray,6,other
-time-profile,closure #1 in writeToFileAux(path:buffer:options:attributes:reportProgress:),6,io
-time-profile,closure #1 in writeToFile(path:data:options:attributes:reportProgress:),6,io
-time-profile,archive_strncat,6,other
-time-profile,0xf,6,other
-time-profile,0xe,6,other
-time-profile,0xd,6,other
-time-profile,0xc,6,other
-time-profile,0xb,6,other
-time-profile,0xa,6,other
-time-profile,0x9,6,other
-time-profile,0x8,6,other
-time-profile,0x588,6,other
-time-profile,0x14,6,other
-time-profile,0x12,6,other
-time-profile,0x11,6,other
-time-profile,0x10,6,other
-time-profile,"(anonymous namespace)::DecodedMetadataBuilder::createBoundGenericType(swift::TargetContextDescriptor<swift::InProcess> const*, __swift::__runtime::llvm::ArrayRef<swift::MetadataPackOrValue>, swift::MetadataPackOrValue) const",6,other
-time-profile,-[NSData(NSData) initWithBytes:length:copy:freeWhenDone:bytesAreVM:],6,other
-time-profile,-[NSConcreteFileHandle writeData:],6,io
-time-profile,-[NSConcreteData dealloc],6,other
-time-profile,-[NSConcreteData _copyWillRetain],6,other
-time-profile,_xzm_xzone_malloc_from_freelist_chunk,6,other
-time-profile,_xzm_segment_group_cache_mark_free,6,other
-time-profile,_xzm_chunk_list_pop,6,other
-time-profile,_pthread_mutex_firstfit_lock_slow,6,io
-time-profile,_NSWriteToFileDescriptorWithProgress,6,other
-time-profile,_CFExecutableLinkedOnOrAfter,6,other
-time-profile,__ulock_wake,6,other
-time-profile,__psynch_cvsignal,6,other
-time-profile,__fread,6,io
-time-profile,__DataStorage.withUnsafeBytes<A>(in:apply:),6,other
-time-profile,__34-[NSConcreteFileHandle writeData:]_block_invoke,6,io
-time-profile,ZSTD_fseBitCost,5,external_tool
-time-profile,xzm_malloc_zone_malloc_type_malloc,5,other
-time-profile,xpc_bundle_copy_services,5,other
-time-profile,write_entry,5,io
-time-profile,type metadata accessor for _ContiguousArrayStorage,5,swift_array
-time-profile,TPool_thread,5,io
-time-profile,swift::TargetMetadata<swift::InProcess>::getTypeContextDescriptor() const,5,other
-time-profile,swift_once,5,swift_runtime
-time-profile,swift_checkMetadataState,5,swift_runtime
-time-profile,swift_arrayInitWithCopy,5,swift_runtime
-time-profile,specialized UnsafeMutablePointer.deinitialize(count:),5,other
-time-profile,semaphore_signal_trap,5,other
-time-profile,pthread_cond_signal,5,io
-time-profile,objc_retainAutoreleasedReturnValue,5,other
-time-profile,LZ4IO_readAndProcess,5,io
-time-profile,HUF_simpleQuickSort,5,external_tool
-time-profile,free,5,other
-time-profile,dyld4::RuntimeState::notifyObjCInit(dyld4::Loader const*),5,other
-time-profile,"dyld4::PrebuiltLoader::dependent(dyld4::RuntimeState const&, unsigned int, mach_o::LinkedDylibAttributes*) const",5,other
-time-profile,"dyld4::ExternallyViewableState::generateCompactInfo(lsl::Allocator&, AAREncoder&)",5,other
-time-profile,"dyld4::APIs::_dyld_lookup_section_info(mach_header const*, _dyld_section_location_info_s*, _dyld_section_location_kind)",5,other
-time-profile,DYLD-STUB$$static Array._allocateBufferUninitialized(minimumCapacity:),5,swift_array
-time-profile,DYLD-STUB$$read,5,io
-time-profile,drive_compressor,5,other
-time-profile,archive_read_disk_entry_setup_path,5,io
+"time-profile","specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","3810","parse"
+"time-profile","static LZFSEv1.fseEncode(state:_:_:)","912","fse"
+"time-profile","specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","895","encode"
+"time-profile","bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","814","parse"
+"time-profile","specialized _ArrayBuffer.beginCOWMutation()","783","swift_array"
+"time-profile","specialized Array._getElement(_:wasNativeTypeChecked:matchingSubscriptCheck:)","735","swift_array"
+"time-profile","LZ4HC_compress_generic_noDictCtx","585","external_tool"
+"time-profile","static LZFSEv1.symbol(forValue:base:)","509","fse"
+"time-profile","samplePointEntropyAndText #1 (start:len:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","489","parse"
+"time-profile","lzfseEncodeMatches","475","apple_lzfse"
+"time-profile","specialized emitSteps #1 (_:from:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","471","parse"
+"time-profile","_platform_memmove","470","memory_copy"
+"time-profile","specialized Array._checkSubscript(_:wasNativeTypeChecked:)","425","swift_array"
+"time-profile","specialized _ArrayBuffer._checkValidSubscriptMutating(_:)","401","swift_array"
+"time-profile","bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:)","392","parse"
+"time-profile","LZFSEv1.FSEOutStream.push(_:_:)","381","fse"
+"time-profile","specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","374","encode"
+"time-profile","lzfseEncodeBase","373","apple_lzfse"
+"time-profile","swift::runtime::AccessSet::insert(swift::runtime::Access*, void*, void*, swift::ExclusivityFlags)","323","other"
+"time-profile","specialized Array.append<A>(contentsOf:)","311","swift_array"
+"time-profile","ZSTD_compressBlock_lazy2_row","308","external_tool"
+"time-profile","matchLength #1 (_:_:limit:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","306","parse"
+"time-profile","closure #1 in closure #1 in closure #1 in closure #1 in closure #1 in closure #3 in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","291","encode"
+"time-profile","ZSTD_RowFindBestMatch_noDict_5_4","289","external_tool"
+"time-profile","swift_beginAccess","270","swift_runtime"
+"time-profile","static LZFSEv1.compressBody(_:strong:bvx3:lazy2:optimal:)","260","encode"
+"time-profile","repLen #1 (_:_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","253","parse"
+"time-profile","LZFSEv1.FSEOutStream.flush()","252","fse"
+"time-profile","closure #1 in closure #2 in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","234","encode"
+"time-profile","specialized IndexingIterator.next()","230","swift_array"
+"time-profile","specialized Array._makeMutableAndUnique()","230","swift_array"
+"time-profile","matchLength #1 (_:_:limit:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","221","parse"
+"time-profile","closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","213","parse"
+"time-profile","insert #1 (_:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:)","206","parse"
+"time-profile","closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:)","200","parse"
+"time-profile","swift_endAccess","196","swift_runtime"
+"time-profile","specialized Array.init(_uninitializedCount:)","195","swift_array"
+"time-profile","specialized rebuildPrices #1 () in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","194","parse"
+"time-profile","specialized greedyEmitSegment #1 (_:_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","186","parse"
+"time-profile","specialized min<A>(_:_:)","185","other"
+"time-profile","_xzm_free","179","other"
+"time-profile","closure #2 in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","172","encode"
+"time-profile","insert #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","169","parse"
+"time-profile","specialized Array.subscript.modify","167","swift_array"
+"time-profile","static LZFSEv1.symbolPointer(forValue:base:count:)","159","other"
+"time-profile","swift::runtime::SwiftTLSContext::get()","157","swift_runtime"
+"time-profile","log2","154","other"
+"time-profile","0x19d117bac","153","other"
+"time-profile","entropyBits #1 (_:) in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","151","encode"
+"time-profile","specialized UnsafeMutablePointer<>.initialize(to:)","150","other"
+"time-profile","lzfsePushMatch","150","apple_lzfse"
+"time-profile","matchLength #1 (_:_:limit:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:)","149","parse"
+"time-profile","_xzm_xzone_malloc_tiny","145","other"
+"time-profile","specialized pushRun #1 (l:m:d:) in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:)","132","parse"
+"time-profile","-[NSConcreteFileHandle readDataOfLength:]","132","io"
+"time-profile","specialized _ContiguousArrayBuffer.mutableFirstElementAddress.getter","131","swift_array"
+"time-profile","load32 #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","127","parse"
+"time-profile","specialized Array._createNewBuffer(bufferIsUnique:minimumCapacity:growForAppend:)","120","swift_array"
+"time-profile","specialized _ArrayBuffer._consumeAndCreateNew(bufferIsUnique:minimumCapacity:growForAppend:)","119","swift_array"
+"time-profile","bool swift::RefCounts<swift::RefCountBitsT<(swift::RefCountInlinedness)1>>::doDecrementSlow<(swift::PerformDeinit)1>(swift::RefCountBitsT<(swift::RefCountInlinedness)1>, unsigned int)","113","other"
+"time-profile","0x19d1180b0","111","other"
+"time-profile","_platform_memset","111","other"
+"time-profile","specialized emitGreedy #1 (at:len:dist:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","110","parse"
+"time-profile","load32 #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","110","parse"
+"time-profile","swift_arrayDestroy","104","swift_runtime"
+"time-profile","xzm_malloc_zone_size","99","other"
+"time-profile","0x19d11ae78","99","other"
+"time-profile","specialized static LZFSEv1.initEncoderTable(nstates:freq:)","98","other"
+"time-profile","_ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:)","96","swift_array"
+"time-profile","swift_isUniquelyReferenced_nonNull_native","93","swift_runtime"
+"time-profile","static LZFSEv1.normalizeFreq(nstates:counts:)","93","other"
+"time-profile","<deduplicated_symbol>","93","other"
+"time-profile","_swift_release_dealloc","93","swift_runtime"
+"time-profile","_NSReadFromFileDescriptorWithProgress","92","other"
+"time-profile","xzm_realloc","90","other"
+"time-profile","xzm_segment_group_alloc_chunk","86","other"
+"time-profile","specialized _ArrayBuffer.immutableCount.getter","86","swift_array"
+"time-profile","insert #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","86","parse"
+"time-profile","_ContiguousArrayStorage.__deallocating_deinit","83","swift_array"
+"time-profile","swift_deallocClassInstance","82","swift_runtime"
+"time-profile","specialized pushRun #1 (l:m:d:) in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","80","parse"
+"time-profile","static LZFSEv1.initEncoderTable(nstates:freq:)","78","other"
+"time-profile","closure #1 in static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","78","encode"
+"time-profile","specialized UnsafeMutablePointer.initialize(from:count:)","77","other"
+"time-profile","dyld4::prepare(dyld4::APIs&, mach_o::UnsafeHeader const*)","77","other"
+"time-profile","start","76","external_tool"
+"time-profile","HIST_count_parallel_wksp","76","other"
+"time-profile","closure #2 in runParallelEncode(input:output:inflight:chunkSize:strong:bvx3:lazy2:optimal:)","75","other"
+"time-profile","HUF_buildCTable_wksp","74","external_tool"
+"time-profile","specialized Array.append(_:)","73","swift_array"
+"time-profile","specialized Double.init<A>(_:)","72","other"
+"time-profile","main","72","other"
+"time-profile","_swift_getGenericMetadata(swift::MetadataRequest, void const* const*, swift::TargetTypeContextDescriptor<swift::InProcess> const*)","72","swift_runtime"
+"time-profile","getCache(swift::TargetTypeContextDescriptor<swift::InProcess> const&)","71","other"
+"time-profile","specialized pushRun #1 (l:m:d:) in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","69","parse"
+"time-profile","xzm_segment_group_free_chunk","68","other"
+"time-profile","load32 #1 (_:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:)","67","parse"
+"time-profile","DYLD-STUB$$swift_isUniquelyReferenced_nonNull_native","66","swift_runtime"
+"time-profile","HUF_compress1X_usingCTable_internal","65","external_tool"
+"time-profile","load64 #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","64","parse"
+"time-profile","swift::MetadataCacheKey::operator==(swift::MetadataCacheKey const&) const","63","other"
+"time-profile","LZFSEv1.d3BaseValue.unsafeMutableAddressor","63","other"
+"time-profile","read","62","io"
+"time-profile","std::__1::pair<swift::GenericCacheEntry*, bool> swift::StableAddressConcurrentReadableHashMap<swift::GenericCacheEntry, swift::TaggedMetadataAllocator<(unsigned short)14>, swift::Mutex>::getOrInsert<swift::MetadataCacheKey, swift::MetadataWaitQueue::Worker&, swift::MetadataRequest&, swift::TargetTypeContextDescriptor<swift::InProcess> const*&, void const* const*&>(swift::MetadataCacheKey, swift::MetadataWaitQueue::Worker&, swift::MetadataRequest&, swift::TargetTypeContextDescriptor<swift::InProcess> const*&, void const* const*&)","60","other"
+"time-profile","specialized UnsafeBufferPointer._copyContents(initializing:)","59","other"
+"time-profile","std::__1::pair<swift::GenericCacheEntry*, swift::MetadataResponse> swift::LockingConcurrentMap<swift::GenericCacheEntry, swift::LockingConcurrentMapStorage<swift::GenericCacheEntry, (unsigned short)14>>::getOrInsert<swift::MetadataCacheKey, swift::MetadataRequest&, swift::TargetTypeContextDescriptor<swift::InProcess> const*&, void const* const*&>(swift::MetadataCacheKey, swift::MetadataRequest&, swift::TargetTypeContextDescriptor<swift::InProcess> const*&, void const* const*&)","58","other"
+"time-profile","load64 #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","58","parse"
+"time-profile","specialized static LZFSEv1.normalizeFreq(nstates:counts:)","56","other"
+"time-profile","hashAndTag #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","56","parse"
+"time-profile","swift_unownedRelease","55","swift_runtime"
+"time-profile","protocol witness for Strideable.advanced(by:) in conformance Int","55","other"
+"time-profile","mach_absolute_time","55","other"
+"time-profile","swift::swift_slowAllocTyped(unsigned long, unsigned long, unsigned long long)","54","swift_runtime"
+"time-profile","specialized _ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:)","54","swift_array"
+"time-profile","NSFileHandle.read(upToCount:)","54","io"
+"time-profile","malloc_size","54","other"
+"time-profile","hashAndTag #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","54","parse"
+"time-profile","closure #1 in runParallelEncode(input:output:inflight:chunkSize:strong:bvx3:lazy2:optimal:)","54","other"
+"time-profile","LZFSEv1.lm3BaseValue.unsafeMutableAddressor","53","other"
+"time-profile","_xzm_segment_group_find_and_allocate_chunk","53","other"
+"time-profile","swift_allocObject","52","swift_runtime"
+"time-profile","0x19d11a9e8","52","other"
+"time-profile","dyld4::Loader::runInitializersBottomUp(dyld4::RuntimeState&, lsl::Vector<AuthenticatedValue<dyld4::Loader const*>>&, lsl::Vector<AuthenticatedValue<dyld4::Loader const*>>&) const","51","other"
+"time-profile","swift::TargetContextDescriptor<swift::InProcess>::getGenericContext() const","50","other"
+"time-profile","_xzm_segment_group_span_mark_smaller","48","other"
+"time-profile","_realloc","46","other"
+"time-profile","0x19d11b234","45","other"
+"time-profile","ZSTD_encodeSequences","44","external_tool"
+"time-profile","specialized Array._makeUniqueAndReserveCapacityIfNotUnique()","44","swift_array"
+"time-profile","load64 #1 (_:) in closure #1 in static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:)","44","parse"
+"time-profile","specialized Collection._failEarlyRangeCheck(_:bounds:)","43","swift_array"
+"time-profile","specialized Collection._copyToContiguousArray()","43","swift_array"
+"time-profile","DYLD-STUB$$swift_endAccess","43","swift_runtime"
+"time-profile","DYLD-STUB$$swift_beginAccess","43","swift_runtime"
+"time-profile","_xzm_malloc_large_huge","43","other"
+"time-profile","runParallelEncode(input:output:inflight:chunkSize:strong:bvx3:lazy2:optimal:)","42","other"
+"time-profile","dyld4::start(dyld4::KernelArgs*, void*, void*, unsigned long long)::$_1::operator()() const","42","external_tool"
+"time-profile","_xzm_segment_group_segment_span_free_coalesce","42","other"
+"time-profile","start_wqthread","41","io"
+"time-profile","specialized protocol witness for RangeExpression.contains(_:) in conformance ClosedRange<A>","41","other"
+"time-profile","OutputFilter.write<A>(_:)","41","io"
+"time-profile","DYLD-STUB$$memcpy","41","memory_copy"
+"time-profile","specialized UnsafeMutablePointer.initialize(repeating:count:)","40","other"
+"time-profile","LZFSEv1.lm3ExtraBits.unsafeMutableAddressor","40","other"
+"time-profile","_xzm_xzone_malloc","40","other"
+"time-profile","__swift_instantiateConcreteTypeFromMangledNameV2","40","swift_runtime"
+"time-profile","protocol witness for static Equatable.== infix(_:_:) in conformance Int","39","other"
+"time-profile","mach_vm_reclaim_try_cancel","38","other"
+"time-profile","FSE_buildCTable_wksp","38","external_tool"
+"time-profile","__swift_instantiateCanonicalPrespecializedGenericMetadata","38","swift_runtime"
+"time-profile","specialized Array._endMutation()","37","swift_array"
+"time-profile","_free","37","other"
+"time-profile","swift_release","36","swift_runtime"
+"time-profile","static LZFSEv1.encodeFreqValue(_:)","36","other"
+"time-profile","specialized Array._appendElementAssumeUniqueAndCapacity(_:newElement:)","36","swift_array"
+"time-profile","lzfseStreamEncode","36","other"
+"time-profile","__bzero","36","other"
+"time-profile","specialized _ArrayBuffer.mutableCapacity.getter","34","swift_array"
+"time-profile","invocation function for block in mach_o::UnsafeHeader::forEachSection(void (mach_o::UnsafeHeader::SectionInfo const&, bool&) block_pointer) const","34","other"
+"time-profile","invocation function for block in dyld4::Loader::findAndRunAllInitializers(dyld4::RuntimeState&) const::$_0::operator()() const","33","other"
+"time-profile","FSE_writeNCount_generic","33","io"
+"time-profile","-[NSConcreteFileHandle readDataUpToLength:error:]","33","io"
+"time-profile","__isPlatformOrVariantPlatformVersionAtLeast","33","other"
+"time-profile","write","32","io"
+"time-profile","specialized Data.init(referencing:)","32","other"
+"time-profile","mach_o::UnsafeHeader::forEachSection(void (mach_o::UnsafeHeader::SectionInfo const&, bool&) block_pointer) const","32","other"
+"time-profile","mach_o::UnsafeHeader::forEachLoadCommand(void (load_command const*, bool&) block_pointer) const","32","other"
+"time-profile","libSystem_initializer","32","other"
+"time-profile","_malloc_zone_realloc","32","other"
+"time-profile","specialized ArraySlice._copyToContiguousArray()","31","swift_array"
+"time-profile","reallocf","31","other"
+"time-profile","NSFileHandle.write<A>(contentsOf:)","31","io"
+"time-profile","invocation function for block in dyld3::MachOAnalyzer::forEachInitializer(Diagnostics&, dyld3::MachOAnalyzer::VMAddrConverter const&, void (unsigned int) block_pointer, void const*) const","31","other"
+"time-profile","dyld4::PrebuiltLoader::runInitializers(dyld4::RuntimeState&) const","31","other"
+"time-profile","dyld4::Loader::findAndRunAllInitializers(dyld4::RuntimeState&) const","31","other"
+"time-profile","dyld3::MachOAnalyzer::forEachInitializer(Diagnostics&, dyld3::MachOAnalyzer::VMAddrConverter const&, void (unsigned int) block_pointer, void const*) const","31","other"
+"time-profile","_xzm_xzone_malloc_small_freelist","31","other"
+"time-profile","lzfseBackendMatch","30","other"
+"time-profile","swift_initStackObject","29","swift_runtime"
+"time-profile","objc_msgSend","29","other"
+"time-profile","dyld4::APIs::runAllInitializersForMain()","29","other"
+"time-profile","_pthread_wqthread","29","io"
+"time-profile","__DataStorage.replaceBytes(in:with:length:)","29","other"
+"time-profile","specialized static UnsafeMutablePointer.allocate(capacity:)","28","other"
+"time-profile","specialized Array._reserveCapacityImpl(minimumCapacity:growForAppend:)","28","swift_array"
+"time-profile","Data._copyContents(initializing:)","28","other"
+"time-profile","+[NSData(NSData) dataWithBytesNoCopy:length:]","28","other"
+"time-profile","ZSTD_splitBlock","27","external_tool"
+"time-profile","thunk for @escaping @callee_guaranteed @Sendable () -> ()","27","other"
+"time-profile","dyld4::Loader::runInitializersBottomUpPlusUpwardLinks(dyld4::RuntimeState&) const","27","other"
+"time-profile","_xzm_xzone_malloc_freelist_outlined","27","other"
+"time-profile","_xzm_reclaim_mark_used_locked","27","other"
+"time-profile","_dispatch_client_callout","27","other"
+"time-profile","__DataStorage.init(bytes:length:)","27","other"
+"time-profile","xzm_reclaim_mark_free_locked","26","other"
+"time-profile","specialized UnsafeBufferPointer.makeIterator()","26","other"
+"time-profile","specialized NSFileHandle.write<A>(contentsOf:)","26","io"
+"time-profile","mach_vm_reclaim_try_enter","26","other"
+"time-profile","dyld4::Loader::runInitializersBottomUpPlusUpwardLinks(dyld4::RuntimeState&) const::$_0::operator()() const","26","other"
+"time-profile","Data.InlineSlice.append(contentsOf:)","26","other"
+"time-profile","Data._Representation.append(contentsOf:)","26","other"
+"time-profile","_xzm_reclaim_mark_used","26","other"
+"time-profile","_xzm_free_outlined","26","other"
+"time-profile","_dispatch_root_queue_drain","26","other"
+"time-profile","_dispatch_call_block_and_release","26","other"
+"time-profile","_dispatch_async_redirect_invoke","26","other"
+"time-profile","fstat","25","other"
+"time-profile","0x19d11b41c","25","other"
+"time-profile","_xzm_reclaim_mark_free","25","other"
+"time-profile","_platform_memcmp","25","other"
+"time-profile","_dispatch_continuation_pop","25","other"
+"time-profile","specialized UnsafeRawPointer.loadUnaligned<A>(fromByteOffset:as:)","24","other"
+"time-profile","specialized UnsafeMutablePointer.moveInitialize(from:count:)","24","other"
+"time-profile","specialized Data.InlineSlice.init(_:)","24","other"
+"time-profile","specialized Data.init<A>(_:)","24","other"
+"time-profile","specialized closure #1 in Array.withUnsafeBytes<A>(_:)","24","swift_array"
+"time-profile","specialized _allocateUninitializedArray<A>(_:)","24","other"
+"time-profile","Data.InlineSlice.init(_:)","24","other"
+"time-profile","closure #1 in writeSingleRegion #1 <A><A1>(_:) in NSFileHandle.write<A>(contentsOf:)","24","io"
+"time-profile","_dispatch_worker_thread2","24","io"
+"time-profile","ZSTD_row_update","22","external_tool"
+"time-profile","std::__1::pair<swift::HashMapElementWrapper<swift::GenericCacheEntry>*, unsigned int> swift::ConcurrentReadableHashMap<swift::HashMapElementWrapper<swift::GenericCacheEntry>, swift::Mutex>::find<swift::MetadataCacheKey>(swift::MetadataCacheKey const&, swift::ConcurrentReadableHashMap<swift::HashMapElementWrapper<swift::GenericCacheEntry>, swift::Mutex>::IndexStorage, unsigned long, swift::HashMapElementWrapper<swift::GenericCacheEntry>*)","22","other"
+"time-profile","specialized UnsafeMutablePointer.deallocate()","22","other"
+"time-profile","_xzm_segment_group_span_mark_free","22","other"
+"time-profile","swift_slowAlloc","21","swift_runtime"
+"time-profile","specialized _SliceBuffer.getElement(_:)","21","other"
+"time-profile","closure #1 in OutputFilter.write<A>(_:)","21","io"
+"time-profile","archive_write_pax_header","21","io"
+"time-profile","_xzm_segment_group_span_mark_used","21","other"
+"time-profile","ZSTD_buildSequencesStatistics","20","external_tool"
+"time-profile","swift_getCanonicalPrespecializedGenericMetadata","20","swift_runtime"
+"time-profile","swift_bridgeObjectRelease","20","swift_runtime"
+"time-profile","static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","20","parse"
+"time-profile","specialized _SliceBuffer._checkValidSubscript(_:)","20","other"
+"time-profile","malloc_type_posix_memalign","20","other"
+"time-profile","malloc_type_malloc","20","other"
+"time-profile","HUF_compress_internal","20","external_tool"
+"time-profile","dSym #1 (_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","20","parse"
+"time-profile","static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","19","encode"
+"time-profile","specialized _ContiguousArrayBuffer.beginCOWMutation()","19","swift_array"
+"time-profile","next_entry","19","other"
+"time-profile","invocation function for block in dyld4::Loader::forEachBindTarget(Diagnostics&, dyld4::RuntimeState&, void (unsigned int, unsigned int, dyld4::Loader::ResolvedSymbol const&) block_pointer, bool, void (dyld4::Loader::ResolvedSymbol const&, bool&) block_pointer, void (dyld4::Loader::ResolvedSymbol const&, bool&) block_pointer) const","19","other"
+"time-profile","HIST_count_simple","19","other"
+"time-profile","getContiguousArrayStorageType<A>(for:)","19","swift_array"
+"time-profile","copyfile","19","other"
+"time-profile","-[NSData(NSData) initWithBytes:length:copy:freeWhenDone:bytesAreVM:]","19","other"
+"time-profile","libdispatch_init","18","other"
+"time-profile","DYLD-STUB$$log2","18","other"
+"time-profile","_xzm_xzone_free_freelist","18","other"
+"time-profile","_os_object_init","18","other"
+"time-profile","_objc_init","18","other"
+"time-profile","_availability_version_check","18","other"
+"time-profile","ZSTD_seqToCodes","17","external_tool"
+"time-profile","qos_class_main","17","other"
+"time-profile","OS_dispatch_queue.asyncUnsafe(group:qos:flags:execute:)","17","other"
+"time-profile","0x19d11a49c","17","other"
+"time-profile","__DataStorage.__deallocating_deinit","17","other"
+"time-profile","ZSTD_XXH64_update","16","external_tool"
+"time-profile","specialized Array.init(repeating:count:)","16","swift_array"
+"time-profile","lzfseEncodeTranslateState","16","apple_lzfse"
+"time-profile","invocation function for block in dyld4::RuntimeState::setObjCNotifiers(dyld4::ReadOnlyCallback<void (*)(char const*, mach_header const*)>, dyld4::ReadOnlyCallback<void (*)(mach_header const*, void*, mach_header const*, void const*)>, dyld4::ReadOnlyCallback<void (*)(_dyld_objc_notify_mapped_info const*)>, dyld4::ReadOnlyCallback<void (*)(unsigned int, _dyld_objc_notify_mapped_info const*, void (unsigned int) block_pointer)>)::$_0::operator()() const","16","other"
+"time-profile","dyld4::RuntimeState::setObjCNotifiers(dyld4::ReadOnlyCallback<void (*)(char const*, mach_header const*)>, dyld4::ReadOnlyCallback<void (*)(mach_header const*, void*, mach_header const*, void const*)>, dyld4::ReadOnlyCallback<void (*)(_dyld_objc_notify_mapped_info const*)>, dyld4::ReadOnlyCallback<void (*)(unsigned int, _dyld_objc_notify_mapped_info const*, void (unsigned int) block_pointer)>)","16","other"
+"time-profile","dyld4::RuntimeLocks::withLoadersReadLock(void () block_pointer)","16","other"
+"time-profile","dyld4::PrebuiltLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","16","other"
+"time-profile","dyld4::APIs::_dyld_objc_register_callbacks(dyld4::ObjCCallbacks const*)","16","other"
+"time-profile","-[NSConcreteData _copyWillRetain]","16","other"
+"time-profile","-[NSConcreteData _bridgingCopy:length:]","16","other"
+"time-profile","-[_NSPlaceholderData initWithBytes:length:copy:deallocator:]","16","other"
+"time-profile","_dyld_objc_register_callbacks","16","other"
+"time-profile","swift::MetadataCacheEntryBase<swift::GenericCacheEntry, void const*>::awaitSatisfyingState(swift::ConcurrencyControl&, swift::MetadataRequest)","15","other"
+"time-profile","map_images_nolock","15","other"
+"time-profile","map_images","15","other"
+"time-profile","lookUpImpOrForward","15","other"
+"time-profile","dispatch_once_f","15","other"
+"time-profile","default argument 2 of OS_dispatch_queue.async(group:qos:flags:execute:)","15","other"
+"time-profile","closure #6 in","15","other"
+"time-profile","0x19d1163e0","15","other"
+"time-profile","_xzm_segment_group_alloc_segment","15","other"
+"time-profile","_swift_dispatch_async","15","swift_runtime"
+"time-profile","_dispatch_once_callout","15","other"
+"time-profile","ZSTDMT_compressionJob","14","apple_compression"
+"time-profile","ZSTD_selectEncodingType","14","external_tool"
+"time-profile","ZSTD_recordFingerprint_5","14","external_tool"
+"time-profile","swift::Demangle::__runtime::TypeDecoder<(anonymous namespace)::DecodedMetadataBuilder>::decodeMangledType(swift::Demangle::__runtime::Node*, unsigned int, bool)","14","other"
+"time-profile","specialized static LZFSEv1.releaseScratch(_:)","14","other"
+"time-profile","specialized _ProcessInfo.processorCount.getter","14","other"
+"time-profile","SetAlgebra.init<A>(_:)","14","other"
+"time-profile","DYLD-STUB$$swift_bridgeObjectRelease","14","swift_runtime"
+"time-profile","archive_read_disk_entry_from_file","14","io"
+"time-profile","_dispatch_root_queue_poke_slow","14","other"
+"time-profile","ZSTDMT_compressStream_generic","13","external_tool"
+"time-profile","specialized UnsafeMutablePointer.assign(repeating:count:)","13","other"
+"time-profile","specialized max<A>(_:_:)","13","other"
+"time-profile","dyld4::JustInTimeLoader::applyFixups(Diagnostics&, dyld4::RuntimeState&, dyld4::DyldCacheDataConstLazyScopedWriter&, bool, lsl::Vector<std::__1::pair<dyld4::Loader const*, char const*>>*) const","13","other"
+"time-profile","@objc _NSFileManagerBridge.createFile(atPath:contents:attributes:)","13","other"
+"time-profile","_NSFileManagerBridge.createFile(atPath:contents:attributes:)","13","other"
+"time-profile","_Block_release","13","other"
+"time-profile","__sysctl","13","other"
+"time-profile","__open","13","other"
+"time-profile","swift_getTypeByMangledNameImpl(swift::MetadataRequest, __swift::__runtime::llvm::StringRef, void const* const*, std::__1::function<void const* (unsigned int, unsigned int)>, std::__1::function<swift::TargetWitnessTable<swift::InProcess> const* (swift::TargetMetadata<swift::InProcess> const*, unsigned int)>)","12","swift_runtime"
+"time-profile","swift_getTypeByMangledName","12","swift_runtime"
+"time-profile","static LZFSEv1.lzParseStrong(_:maxL:maxM:maxDist:)","12","parse"
+"time-profile","static LZFSEv1.acquireScratch(_:)","12","other"
+"time-profile","specialized ArraySlice.subscript.getter","12","swift_array"
+"time-profile","specialized Array.subscript.getter","12","swift_array"
+"time-profile","specialized _SliceBuffer.nativeBuffer.getter","12","other"
+"time-profile","NSAllocateObject","12","other"
+"time-profile","DYLD-STUB$$swift_initStackObject","12","swift_runtime"
+"time-profile","Data._Representation.init(capacity:)","12","other"
+"time-profile","archive_entry_clear","12","other"
+"time-profile","0x19d115ea0","12","other"
+"time-profile","(anonymous namespace)::DecodedMetadataBuilder::createBoundGenericType(swift::TargetContextDescriptor<swift::InProcess> const*, __swift::__runtime::llvm::ArrayRef<swift::MetadataPackOrValue>, swift::MetadataPackOrValue) const","12","other"
+"time-profile","_utf8_to_unicode","12","other"
+"time-profile","_pthread_workqueue_addthreads","12","io"
+"time-profile","_objc_msgSend_uncached","12","other"
+"time-profile","_archive_read_data_block","12","io"
+"time-profile","__workq_kernreturn","12","other"
+"time-profile","swift_getTypeByMangledNode","11","swift_runtime"
+"time-profile","initializeNonMetaClass","11","other"
+"time-profile","FSE_normalizeCount","11","external_tool"
+"time-profile","FSE_compress_usingCTable_generic","11","external_tool"
+"time-profile","dyld4::Loader::hasExportedSymbol(Diagnostics&, dyld4::RuntimeState&, char const*, dyld4::Loader::ExportedSymbolMode, dyld4::Loader::ResolverMode, dyld4::Loader::ResolvedSymbol*, dyld3::Array<dyld4::Loader const*>*) const","11","other"
+"time-profile","class_createInstance","11","other"
+"time-profile","_CFExecutableLinkedOnOrAfter","11","other"
+"time-profile","__sfvwrite","11","io"
+"time-profile","ZSTD_entropyCompressSeqStore_internal","10","external_tool"
+"time-profile","ZSTD_compressContinue_internal","10","external_tool"
+"time-profile","ZSTD_buildCTable","10","external_tool"
+"time-profile","write_hierarchy","10","io"
+"time-profile","utf8_to_unicode","10","other"
+"time-profile","tree_next","10","other"
+"time-profile","swift_retain","10","swift_runtime"
+"time-profile","swift_getTypeByMangledNodeImpl(swift::MetadataRequest, swift::Demangle::__runtime::Demangler&, swift::Demangle::__runtime::Node*, void const* const*, std::__1::function<void const* (unsigned int, unsigned int)>, std::__1::function<swift::TargetWitnessTable<swift::InProcess> const* (swift::TargetMetadata<swift::InProcess> const*, unsigned int)>)","10","swift_runtime"
+"time-profile","swift_getTypeByMangledNameInContextImpl(char const*, unsigned long, swift::TargetContextDescriptor<swift::InProcess> const*, void const* const*)","10","swift_runtime"
+"time-profile","specialized Array.formIndex(after:)","10","swift_array"
+"time-profile","specialized Array._reserveCapacityAssumingUniqueBuffer(oldCount:)","10","swift_array"
+"time-profile","specialized _ArrayBuffer._consumeAndCreateNew()","10","swift_array"
+"time-profile","setup_sparse","10","other"
+"time-profile","semaphore_signal_trap","10","other"
+"time-profile","objc_msgSend$setCompletedUnitCount:","10","other"
+"time-profile","mach_o::Fixups::forEachBindTarget_ChainedFixups(Diagnostics&, void (mach_o::Fixups::BindTargetInfo const&, bool&) block_pointer) const","10","other"
+"time-profile","HUF_writeCTable_wksp","10","io"
+"time-profile","dyld4::Loader::forEachBindTarget(Diagnostics&, dyld4::RuntimeState&, void (unsigned int, unsigned int, dyld4::Loader::ResolvedSymbol const&) block_pointer, bool, void (dyld4::Loader::ResolvedSymbol const&, bool&) block_pointer, void (dyld4::Loader::ResolvedSymbol const&, bool&) block_pointer) const","10","other"
+"time-profile","dyld3::MachOFile::forEachChainedFixupTarget(Diagnostics&, dyld_chained_fixups_header const*, linkedit_data_command const*, void (int, char const*, unsigned long long, bool, bool&) block_pointer)","10","other"
+"time-profile","dyld3::MachOAnalyzer::withVMLayout(Diagnostics&, void (mach_o::Layout const&) block_pointer) const","10","other"
+"time-profile","DYLD-STUB$$bzero","10","other"
+"time-profile","archive_entry_clone","10","other"
+"time-profile","-[NSData(NSData) enumerateByteRangesUsingBlock:]","10","other"
+"time-profile","_xzm_xzone_find_and_malloc_from_freelist_chunk","10","other"
+"time-profile","_dispatch_semaphore_wait_slow","10","other"
+"time-profile","_dispatch_semaphore_signal_slow","10","other"
+"time-profile","__DataStorage.init(capacity:)","10","other"
+"time-profile","ZSTD_compressLiterals","9","external_tool"
+"time-profile","xzm_malloc_zone_malloc_type_malloc","9","other"
+"time-profile","sysctl","9","other"
+"time-profile","static LZFSEv1.releaseScratch(_:)","9","other"
+"time-profile","specialized Collection.map<A, B>(_:)","9","swift_array"
+"time-profile","setup_mac_metadata","9","other"
+"time-profile","semaphore_wait_trap","9","other"
+"time-profile","POOL_thread","9","io"
+"time-profile","LZFSEv1.d3ExtraBits.unsafeMutableAddressor","9","other"
+"time-profile","load_images","9","other"
+"time-profile","invocation function for block in mach_o::Fixups::forEachBindTarget_ChainedFixups(Diagnostics&, void (mach_o::Fixups::BindTargetInfo const&, bool&) block_pointer) const","9","other"
+"time-profile","HUF_compress4X_usingCTable_internal","9","external_tool"
+"time-profile","freqCostBits #1 (_:) in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","9","encode"
+"time-profile","FIO_compressFilename_internal","9","other"
+"time-profile","dyld4::RuntimeState::notifyObjCInit(dyld4::Loader const*)","9","other"
+"time-profile","dyld4::Loader::resolveSymbol(Diagnostics&, dyld4::RuntimeState&, int, char const*, bool, bool, void (unsigned int, unsigned int, dyld4::Loader::ResolvedSymbol const&) block_pointer, bool) const","9","other"
+"time-profile","dyld4::JustInTimeLoader::loadDependents(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&)","9","other"
+"time-profile","closure #1 in writeToFileAux(path:buffer:options:attributes:reportProgress:)","9","io"
+"time-profile","closure #1 in writeToFile(path:data:options:attributes:reportProgress:)","9","io"
+"time-profile","archive_strncat","9","other"
+"time-profile","0x19d11b318","9","other"
+"time-profile","_xzm_segment_group_segment_span_mark_allocated","9","other"
+"time-profile","_NSInitializePlatform","9","other"
+"time-profile","_dispatch_sema4_wait","9","other"
+"time-profile","_dispatch_sema4_signal","9","other"
+"time-profile","_call_dispose_helpers_excp","9","other"
+"time-profile","xzm_segment_group_try_realloc_large_chunk","8","other"
+"time-profile","tree_dir_next_posix","8","other"
+"time-profile","repsAfter #1 (_:_:_:_:) in closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:)","8","parse"
+"time-profile","objc_msgSend$isCancelled","8","other"
+"time-profile","LZ4_XXH32_update","8","external_tool"
+"time-profile","dyld3::MachOFile::trieWalk(Diagnostics&, unsigned char const*, unsigned char const*, char const*)","8","other"
+"time-profile","0x5","8","other"
+"time-profile","0x4","8","other"
+"time-profile","0x3","8","other"
+"time-profile","_xzm_free_large_huge","8","other"
+"time-profile","_swift_stdlib_malloc_size","8","swift_runtime"
+"time-profile","_swift_isClassOrObjCExistentialType","8","swift_runtime"
+"time-profile","_pthread_cond_wait","8","io"
+"time-profile","__fread","8","io"
+"time-profile","swift_cvw_destroyImpl(swift::OpaqueValue*, swift::TargetMetadata<swift::InProcess> const*)","7","swift_runtime"
+"time-profile","swift_checkMetadataState","7","swift_runtime"
+"time-profile","specialized static Array.+ infix(_:_:)","7","swift_array"
+"time-profile","specialized Dictionary._Variant.setValue(_:forKey:)","7","other"
+"time-profile","specialized ContiguousArray._createNewBuffer(bufferIsUnique:minimumCapacity:growForAppend:)","7","swift_array"
+"time-profile","specialized autoreleasepool<A, B>(invoking:)","7","other"
+"time-profile","pthread_cond_signal","7","io"
+"time-profile","lsl::Allocator::aligned_alloc(unsigned long long, unsigned long long)","7","other"
+"time-profile","initializeAndMaybeRelock(objc_class*, objc_object*, locker_mixin<lockdebug::lock_mixin<objc_lock_base_t>>&, bool)","7","other"
+"time-profile","HUF_simpleQuickSort","7","external_tool"
+"time-profile","dyld4::RuntimeState::notifyDtrace(std::__1::span<dyld4::Loader const*, 18446744073709551615ul> const&)","7","other"
+"time-profile","dyld4::JustInTimeLoader::parseSectionLocations(mach_o::UnsafeHeader const*, dyld4::SectionLocations&)","7","other"
+"time-profile","DYLD-STUB$$malloc_size","7","other"
+"time-profile","Data._Representation.withUnsafeBytes<A>(_:)","7","other"
+"time-profile","archive_string_ensure","7","other"
+"time-profile","archive_mstring_clean","7","other"
+"time-profile","-[NSConcreteData dealloc]","7","other"
+"time-profile","_xzm_segment_group_init_segment","7","other"
+"time-profile","_NSWriteToFileDescriptorWithProgress","7","other"
+"time-profile","_archive_read_next_header2","7","io"
+"time-profile","__34-[NSConcreteFileHandle writeData:]_block_invoke","7","io"
+"time-profile","swift::MetadataResponse performOnMetadataCache<swift::MetadataResponse, swift_checkMetadataState::CheckStateCallbacks>(swift::TargetMetadata<swift::InProcess> const*, swift_checkMetadataState::CheckStateCallbacks&&)","6","swift_runtime"
+"time-profile","static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:)","6","parse"
+"time-profile","static LZFSEv1.encodeBlock(triplets:literals:rawBytes:)","6","encode"
+"time-profile","specialized UnsafeMutablePointer.deinitialize(count:)","6","other"
+"time-profile","specialized _SwiftURL.__allocating_init(fileURLWithPath:)","6","swift_runtime"
+"time-profile","specialized _ArrayBuffer.withUnsafeBufferPointer<A, B>(_:)","6","swift_array"
+"time-profile","protocol witness for Hashable._rawHashValue(seed:) in conformance Int","6","other"
+"time-profile","protocol witness for ContiguousBytes.withUnsafeBytes<A>(_:) in conformance Data","6","other"
+"time-profile","partial apply for closure #1 in OutputFilter.write<A>(_:)","6","io"
+"time-profile","objc_autoreleasePoolPop","6","other"
+"time-profile","mvm_deallocate_plat","6","other"
+"time-profile","malloc_type_realloc","6","other"
+"time-profile","mach_vm_deallocate","6","other"
+"time-profile","LZ4IO_compressFilename_extRess_MT","6","external_tool"
+"time-profile","lsl::Allocator::AllocationMetadata::AllocationMetadata(lsl::Allocator::AllocationMetadata*, unsigned long long, unsigned long long, unsigned long long)","6","other"
+"time-profile","HUF_validateCTable","6","external_tool"
+"time-profile","fread","6","io"
+"time-profile","dyld4::ProcessConfig::ProcessConfig(dyld4::KernelArgs const*, dyld4::SyscallDelegate&, lsl::Allocator&)","6","other"
+"time-profile","dyld4::APIs::_dyld_lookup_section_info(mach_header const*, _dyld_section_location_info_s*, _dyld_section_location_kind)","6","other"
+"time-profile","DYLD-STUB$$free","6","other"
+"time-profile","DYLD-STUB$$_availability_version_check","6","other"
+"time-profile","dispatch thunk of OutputFilter.write<A>(_:)","6","io"
+"time-profile","dispatch thunk of ContiguousBytes.withUnsafeBytes<A>(_:)","6","other"
+"time-profile","Data.withUnsafeBytes<A>(_:)","6","other"
+"time-profile","compression_stream_process","6","apple_compression"
+"time-profile","AutoreleasePoolPage::releaseUntil(objc_object**)","6","other"
+"time-profile","archive_write_pax_finish_entry","6","io"
+"time-profile","0xf","6","other"
+"time-profile","0xe","6","other"
+"time-profile","0xd","6","other"
+"time-profile","0xc","6","other"
+"time-profile","0xb","6","other"
+"time-profile","0xa","6","other"
+"time-profile","0x9","6","other"
+"time-profile","0x8","6","other"
+"time-profile","0x7","6","other"
+"time-profile","0x6","6","other"
+"time-profile","0x14","6","other"
+"time-profile","0x12","6","other"
+"time-profile","0x11","6","other"
+"time-profile","0x10","6","other"
+"time-profile","-[NSConcreteFileHandle writeData:]","6","io"
+"time-profile","_xzm_segment_group_segment_deallocate","6","other"
+"time-profile","_xzm_segment_group_cache_mark_free","6","other"
+"time-profile","_SwiftURL.init(filePath:pathStyle:directoryHint:relativeTo:)","6","swift_runtime"
+"time-profile","_os_unfair_lock_lock_slow","6","other"
+"time-profile","_libxpc_initializer","6","other"
+"time-profile","_kernelrpc_mach_vm_deallocate_trap","6","other"
+"time-profile","_archive_write_header","6","io"
+"time-profile","__ulock_wait2","6","other"
+"time-profile","__read_nocancel","6","io"
+"time-profile","__DataStorage.withUnsafeBytes<A>(in:apply:)","6","other"
+"time-profile","__archive_check_magic","6","other"
+"time-profile","void multiPayloadEnumFN<&handleRefCountsInitWithCopy(swift::TargetMetadata<swift::InProcess> const*, swift::LayoutStringReader1&, unsigned long&, unsigned char*, unsigned char*)>(swift::TargetMetadata<swift::InProcess> const*, swift::LayoutStringReader1&, unsigned long&, unsigned char*, unsigned char*)","5","other"
+"time-profile","type metadata accessor for __ContiguousArrayStorageBase","5","swift_array"
+"time-profile","TPool_thread","5","io"
+"time-profile","swift::TargetMetadata<swift::InProcess>::isCanonicalStaticallySpecializedGenericMetadata() const","5","other"
+"time-profile","swift_once","5","swift_runtime"
+"time-profile","swift_arrayInitWithCopy","5","swift_runtime"
+"time-profile","specialized freqCostBits #1 (_:) in static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:)","5","encode"
+"time-profile","setup_xattrs","5","other"
+"time-profile","open_with_subsystem","5","other"
+"time-profile","objc_release","5","other"
+"time-profile","mach_o::UnsafeHeader::forEachSection(void (mach_o::UnsafeHeader::SegmentInfo const&, mach_o::UnsafeHeader::SectionInfo const&, bool&) block_pointer) const","5","other"
+"time-profile","LZ4IO_readAndProcess","5","io"
+"time-profile","LZ4IO_checkWriteOrder","5","external_tool"
+"time-profile","lsl::Allocator::Pool::aligned_alloc(unsigned long long, unsigned long long)","5","other"
+"time-profile","invocation function for block in mach_o::UnsafeHeader::forEachSection(void (mach_o::UnsafeHeader::SegmentInfo const&, mach_o::UnsafeHeader::SectionInfo const&, bool&) block_pointer) const","5","other"
+"time-profile","fwrite","5","io"
+"time-profile","FIO_compressFilename_srcFile","5","other"
+"time-profile","dyld4::RuntimeState::add(dyld4::Loader const*)","5","other"
+"time-profile","dyld4::PrebuiltLoader::map(Diagnostics&, dyld4::RuntimeState&, dyld4::Loader::LoadOptions const&, bool) const","5","other"
+"time-profile","dyld4::APIs::dyld_get_active_platform()","5","other"
+"time-profile","dyld3::open(char const*, int, int)","5","other"
+"time-profile","dyld3::MachOFile::forEachDOFSection(Diagnostics&, void (unsigned int) block_pointer) const","5","other"
+"time-profile","DYLD-STUB$$realloc","5","other"
+"time-profile","DYLD-STUB$$dispatch_once_f","5","other"
+"time-profile","CollectionOfOne.Iterator.next()","5","other"
+"time-profile","closure #3 in closure #1 in writeToFileAux(path:buffer:options:attributes:reportProgress:)","5","io"
+"time-profile","closure #1 in closure #3 in closure #1 in writeToFileAux(path:buffer:options:attributes:reportProgress:)","5","io"
+"time-profile","_xzm_reclaim_is_reusable","5","other"
+"time-profile","_xpc_collect_images","5","other"
+"time-profile","_pthread_exit","5","io"
+"time-profile","_kernelrpc_mach_vm_map_trap","5","other"
+"time-profile","_archive_write_data","5","io"
+"time-profile","__swift_instantiateGenericMetadata","5","swift_runtime"
+"time-profile","__rename","5","other"
