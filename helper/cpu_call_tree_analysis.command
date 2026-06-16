@@ -130,8 +130,11 @@ contains_text() {
 
 {
     printf '\357\273\277file,kind,dataset,algorithm,n,total_rows,symbol_status,unique_symbols,lzfse_profile_seen,lzfse_symbol_hits,parse_hits,encode_hits,fse_hits,swift_array_hits,swift_runtime_hits,memory_copy_hits,io_hits,apple_compression_hits,external_tool_hits,top_symbol,top_count,top_category\n' > "$SUMMARY_OUT"
+    printf '檔案,種類,資料夾,演算法,N,row總數,symbol狀態,唯一symbol數,看到lzfse-profile,lzfse symbol命中,parse命中,encode命中,FSE命中,Swift Array命中,Swift runtime命中,memory copy命中,IO命中,Apple Compression命中,外部工具命中,最高symbol,最高命中數,最高分類\n' >> "$SUMMARY_OUT"
     printf '\357\273\277file,kind,dataset,algorithm,n,rank,symbol,count,category\n' > "$HOT_BY_FILE_OUT"
+    printf '檔案,種類,資料夾,演算法,N,排名,symbol,命中數,分類\n' >> "$HOT_BY_FILE_OUT"
     printf '\357\273\277kind,symbol,count,category\n' > "$HOT_GLOBAL_OUT"
+    printf '種類,symbol,命中數,分類\n' >> "$HOT_GLOBAL_OUT"
 
     tmp_global="$OUT_DIR/.global_symbols.tmp"
     : > "$tmp_global"

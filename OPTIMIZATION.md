@@ -5,6 +5,73 @@
 
 ---
 
+# 第二十九輪：R26①② + R28 合併 DOE 結果 + 首次 power/energy 量測（2026-06-16）/ Round 29: Combined DOE + First Power Measurement
+
+> 本輪在 R27（tag-packing）基礎上合併三組 **output-identical** 變更一起量測：R28（`encodeBlockV3` LMD `withUnsafeBufferPointer`）、R26①（`lzParseOptimal` 的 `localHead` 外提、per-call 配置）、R26②（3-rep 展開）。並首次納入 `powerResults/` 的 CPU/GPU/DRAM 功率與能耗。只動 `lzfse-cli.swift` 與 `OPTIMIZATION.md`。
+
+## DOE 結果（claw-code / llama.cpp，n40，raw bytes/ns）
+
+| 格式 | claw R27 | claw R29 | 變化 | llama R27 | llama R29 | 變化 | 壓縮比 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **Optimal** | 34.36 | **34.93** | +1.7% | 60.24 | **60.67** | +0.7% | 0.8590 / 0.9416 不變 |
+| **BVX3** | 634.82 | **672.71** | +6.0% | 398.70 | **448.98** | +12.6% | 0.9515 / 0.9816 不變 |
+| Other3 | ~ | 618.34 | ↑ | ~ | 455.40 | ↑ | 0.9872 / 0.9979 不變 |
+| Lazy2 | 55.30 | 66.46 | ↑* | ~173.9 | 193.22 | ↑* | 0.9016 / 0.9588 不變 |
+
+- **壓縮比逐格式 byte 級不變**（0.8590 / 0.9515 / 0.9016 / 0.9872 …）→ 三組變更皆確認 output-identical，無回歸。
+- **R28（BVX3）是本輪最大贏家**：claw +6.0%、llama +12.6%，證實 LMD 去 bounds-check 對 encode-bound 的 bvx3/other3 有效。
+- **R26①②（Optimal）只小幅 +0.7–1.7%**，**未達 ≥10% 目標**：因為它們省的是 DP *周邊*開銷（prescreen 的 `localHead` 配置、rep transform 迴圈），而 top symbol 仍是 `lzParseOptimal` 的 **DP 核心 closure**——要再快必須動 DP 本身或做段層級 gating。
+- `*` Lazy2 本輪無新變更（R6 已在 R27 基準內），數值上升屬整機/排程噪音，不歸因於本輪。
+
+## powerResult 區段總結 / Power & Energy Summary（首次納入）
+
+量測方式：`helper/power_benchmark.command` 以 macOS `powermetrics` 取每個 (格式, encode/decode, n) 的 CPU/GPU/ANE/DRAM 功率(mW)與能耗(J)，整合於 `powerResults/power_summary.csv`、best_points 亦帶入 CPU power/energy 欄位。
+
+**① Encode 能耗（claw-code，J；能耗 ≈ 功率 × 時間）**
+
+| 格式 | 能耗(J) | CPU 功率(mW) | 說明 |
+| --- | ---: | ---: | --- |
+| tar.lz4 | **36.4** | 17570 | 高功率但極短 → 最省能 |
+| Other3 (n40) | 39.1 | 17986 | 與外部工具同級 |
+| BVX3 (n40) | 46.9 | 18857 | 滿載核心、快收 → 能耗可接受 |
+| ZSTD | 50.8 | 14647 | — |
+| Apple (n40) | 65.3 | 6951 | — |
+| TGZ | 137.6 | 4471 | 低功率但 30s → 能耗偏高 |
+| **Lazy2 (n40)** | **204.7** | 7212 | 長時間主導 |
+| **Optimal (n40)** | **567.2** | 13633 | ≈12× BVX3、15× tar.lz4 |
+
+**② Decode 能耗（claw-code，n40，J）——LZFSE 家族是強項**
+
+Optimal **0.85**、Lazy2 1.45、BVX3 2.06 J，**低於** ZSTD 4.08、TGZ 5.40 J。LZFSE 解碼又快又省能。
+
+**③ 三點結論**
+
+1. **Optimal/Lazy2 的能耗問題 = 時間問題**：它們功率其實偏低（7–13.6W，比滿載的 bvx3/zstd 18–19W 低），但 DP/chain 太慢 → 能耗暴衝。**降能耗的槓桿與降時間相同**（段層級 gating 可近似等比例砍能耗）。
+2. **BVX3 / Other3 encode 能耗已與 zstd/tar.lz4 同級**（39–47 J vs 36–51 J），不需另做能耗優化;decode 全家族都很省，亦無須處理。
+3. ⚠️ **量測限制**：多個極短的 decode 出現 `POWER_NO_SAMPLES`（other3 n40 decode、llama 的 bvx3/lazy2/optimal n40 decode），因解壓 <~0.3–0.5s 短於 powermetrics 取樣間隔。這些 decode 能耗為空,需用較長批次或較小 `-n` 才取得;不影響 encode 能耗結論。
+
+## power 成因解釋（對照最新程式碼）/ Why the Power Numbers Look This Way
+
+心智模型：**能耗 J = 平均功率 W × 時間 s**；而**功率 ≈ 核心忙碌程度（IPC）**。計算密集且資料在快取 → 核心滿載 → 高功率；記憶體密集（cache miss / 指標追逐）→ 核心停在等記憶體 → 低功率，但要跑很久。
+
+**Optimal / Lazy2 = 低功率、高能耗（memory-bound）。** 對照 `lzParseOptimal` DP 前向迴圈（每段 ≤128K 位置）：`hashAndTag(i)`→`head[qh]`/`chain[c]` 是隨機記憶體存取（hash 桶 + 鏈結指標追逐）；`matchLength(...)` 與候選 `load32(c)` 的 `c` 是歷史中的隨機 offset，在 4MiB chunk 頻繁 cache miss；relaxation 又把價格分散寫到 `cPrice[t+ll]`。核心常停在等記憶體 → IPC 低 → 功率僅 7–13.6W，但工作量極大 → 時間爆長 → 能耗暴衝（claw optimal n40 41.6s / 567 J；lazy2 7W / 28s / 205 J）。
+
+**BVX3 / Other3 / tlz4 / zstd = 高功率、低能耗（compute-bound）。** `encodeBlockV3` 核心是 FSE 編碼（緊湊狀態轉移 + bit packing，查表小且常駐快取）→ 核心滿載 → 功率 15–19W，但快 → 2–3.5s → 能耗 39–51 J。tar.lz4 功率最高卻最短 → 最省能（36 J）。
+
+**Decode 全家族省能。** 表驅動 FSE 解碼 + memcpy，循序、快取友善、又平行且短 → 低功率 + 短時間。Optimal 解碼能耗最低（0.85 J），因為它解的是標準 bvx3 串流，路徑與一般 bvx3 相同且快。
+
+**能耗隨 -n 下降（慢路徑）。** `runParallelEncode` 用 N chunk 並行；對 DP 慢路徑，提高 N 縮短時間的幅度大於功率上升 → 能耗反降：claw optimal encode n4 720J → n8 613J → n40 567J；llama optimal n4 505J → n8 386J → n40 337J。故 optimal/lazy2 用較大 `-n` 不只更快、也更省能（代價是 RSS 上升）；bvx3 近滿載，n 對能耗影響不大。
+
+**優化含義。** Optimal 是 memory-bound，微優化（SIMD / 去 bounds-check）對「功率」幫助有限（它本來就沒滿載）；真正砍能耗的是**做更少 DP**——段層級 cheap-probe gating 會近似等比例砍時間與能耗，與「降速度」是同一槓桿。BVX3/Other3 encode 能耗已與 zstd/tlz4 同級、decode 全家族都省 → 能耗面不需再投入。
+
+## 下一步
+
+1. **Optimal 段層級 cheap-probe gating**（會改輸出/壓縮比的較大變更）:把低收益段改走 lazy2/greedy。這是目前 Optimal **速度與能耗**雙重的最大 ROI（尤其 llama optimal 只比 lazy2 小 1.8% 卻耗 ≈337–505 J）。需可編譯/benchmark 驗 ratio 取捨。
+2. BVX3:R28 既然有效,可續查 `fseEncode` / `FSEOutStream.push/flush` 的同類 output-identical 加速。
+3. power 量測硬化:對過短的 decode 改成多次重複或固定最短取樣時間,補齊 `NO_SAMPLES`。
+
+---
+
 # 第二十八輪：encodeBlockV3 LMD 熱迴圈去 bounds-check 驗收（2026-06-16）
 
 > 只動 `lzfse-cli.swift`。承 R26/R27 trace 確認 `encodeBlockV3` 仍是 BVX3 家族 top symbol（含 `fseEncode`、`FSEOutStream.push/flush` 與 Swift Array/COW）。本輪做一個 **output-identical** 的 encode 加速，已完成 benchmark / memProbe / trace / cpu_call_tree / CSV rebuild 驗收。

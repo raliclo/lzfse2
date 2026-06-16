@@ -72,6 +72,29 @@ FIELDS = [
     "最高 Decode RSS 來源",
 ]
 
+EN_FIELDS = [
+    "dataset",
+    "format",
+    "best_ratio",
+    "best_ratio_source",
+    "best_encode_mb_s",
+    "best_encode_source",
+    "worst_encode_mb_s",
+    "worst_encode_source",
+    "best_decode_mb_s",
+    "best_decode_source",
+    "worst_decode_mb_s",
+    "worst_decode_source",
+    "min_encode_rss_mb",
+    "min_encode_rss_source",
+    "max_encode_rss_mb",
+    "max_encode_rss_source",
+    "min_decode_rss_mb",
+    "min_decode_rss_source",
+    "max_decode_rss_mb",
+    "max_decode_rss_source",
+]
+
 
 def fnum(row: dict[str, str], key: str) -> float:
     value = row.get(key, "")
@@ -89,7 +112,12 @@ def metric_cell(row: dict[str, str], metric: str, suffix: str) -> str:
     return f"{row[metric]} {suffix} (`{source_label(row)}`)"
 
 
-rows = list(csv.DictReader(csv_in.open(encoding="utf-8-sig", newline="")))
+with csv_in.open(encoding="utf-8-sig", newline="") as handle:
+    raw_rows = list(csv.reader(handle))
+if len(raw_rows) >= 2 and raw_rows[0] and raw_rows[0][0].lstrip("\ufeff") == "dataset" and raw_rows[1] and raw_rows[1][0] == "資料夾":
+    rows = [dict(zip(raw_rows[1], row)) for row in raw_rows[2:] if row]
+else:
+    rows = list(csv.DictReader(csv_in.open(encoding="utf-8-sig", newline="")))
 if not rows:
     raise SystemExit(f"no rows in {csv_in}")
 
@@ -142,9 +170,11 @@ for dataset in datasets:
         })
 
 with csv_out.open("w", encoding="utf-8-sig", newline="") as handle:
-    writer = csv.DictWriter(handle, fieldnames=FIELDS, lineterminator="\n")
-    writer.writeheader()
-    writer.writerows(records)
+    writer = csv.writer(handle, lineterminator="\n")
+    writer.writerow(EN_FIELDS)
+    writer.writerow(FIELDS)
+    for record in records:
+        writer.writerow([record.get(field, "") for field in FIELDS])
 
 lines: list[str] = []
 lines.append("# Best Points Analysis / 最佳點分析")

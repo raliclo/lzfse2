@@ -3635,10 +3635,10 @@ if useOptimal && useLazy2 {
 //   encode = runParallelEncode 的在途分塊數（sem 上限）；實際同時壓縮的執行緒仍由 GCD 池
 //            約束 ≈ 核心數，故較大 N 主要加深讀寫管線、較小 N 直接降低同時佔用的 parser/DP
 //            scratch → 降 encode RSS。
-// 預設 = 核心數 × 2；上限須「小於」核心數 × 4；下限 1。
+// 預設 = 核心數 × 2；上限為核心數 × 4；下限 1。
 let inflightN: Int = {
     let cores = max(1, ProcessInfo.processInfo.activeProcessorCount)
-    let cap = cores * 4            // N 必須小於此值
+    let cap = cores * 4            // N 可等於此值
     var n = cores * 2             // 預設：核心數 × 2
     if let index = args.firstIndex(of: "-n"), index + 1 < args.count {
         guard let v = Int(args[index + 1]) else {
@@ -3648,9 +3648,9 @@ let inflightN: Int = {
         n = v
     }
     if n < 1 { n = 1 }
-    if n >= cap {
-        eprint("Note: -n clamped to < \(cap) (4× cores=\(cores)). / 提示：-n 已限制為小於核心數×4（上限 \(cap)）。")
-        n = cap - 1
+    if n > cap {
+        eprint("Note: -n clamped to <= \(cap) (4× cores=\(cores)). / 提示：-n 已限制為小於等於核心數×4（上限 \(cap)）。")
+        n = cap
     }
     return n
 }()

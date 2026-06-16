@@ -144,6 +144,20 @@ lzfseX() {
 ```sh
 source ~/.zshrc
 ```
+## powermetrics
+
+修改步驟
+開啟 visudo：
+```
+sudo visudo
+```
+
+新增一行如下：
+```
+raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true
+```
+
+儲存並離開（同樣按下 Ctrl + O -> Enter -> Ctrl + X）。
 
 ## 基準測試
 

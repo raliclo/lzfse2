@@ -103,7 +103,17 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "TRACER_DONE"
 
-# Step.7 匯出並分析 trace / Export and analyze traces.
+# Step.7 執行 powermetrics power benchmark / Run powermetrics power benchmark.
+roundStatus "RUNNING_POWER_BENCHMARK"
+./helper/power_benchmark.command >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "POWER_BENCHMARK_FAILED $rc"
+    exit $rc
+fi
+roundStatus "POWER_BENCHMARK_DONE"
+
+# Step.8 匯出並分析 trace / Export and analyze traces.
 roundStatus "RUNNING_TRACE_ANALYSIS"
 ./helper/trace_analysis.command
 rc=$?
@@ -113,7 +123,7 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "TRACE_ANALYSIS_DONE"
 
-# Step.8 彙整 CPU call tree 熱點 / Summarize CPU call tree hotspots.
+# Step.9 彙整 CPU call tree 熱點 / Summarize CPU call tree hotspots.
 roundStatus "RUNNING_CPU_CALL_TREE_ANALYSIS"
 ./helper/cpu_call_tree_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
@@ -123,7 +133,7 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "CPU_CALL_TREE_ANALYSIS_DONE"
 
-# Step.9 壓縮 Git 物件，降低大量 trace 產物後的 repo 體積 / Compact Git objects after trace outputs.
+# Step.10 壓縮 Git 物件，降低大量 trace 產物後的 repo 體積 / Compact Git objects after trace outputs.
 roundStatus "RUNNING_GIT_GC"
 git gc --prune=now --aggressive >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
@@ -133,7 +143,7 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "GIT_GC_DONE"
 
-# Step.10 由 benchmark/memProbe/trace 重建 BenchMarkResult.csv / Rebuild BenchMarkResult.csv.
+# Step.11 由 benchmark/memProbe/trace 重建 BenchMarkResult.csv / Rebuild BenchMarkResult.csv.
 roundStatus "RUNNING_BENCHMARK_RESULT_REBUILD"
 ./helper/benchmark_result_rebuild.command --write >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
@@ -143,7 +153,7 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "BENCHMARK_RESULT_REBUILD_DONE"
 
-# Step.11 產生 Best Points 分析，輸出至 best_points/ / Generate Best Points analysis into best_points/.
+# Step.12 產生 Best Points 分析，輸出至 best_points/ / Generate Best Points analysis into best_points/.
 roundStatus "RUNNING_BEST_POINTS_ANALYSIS"
 ./helper/best_points_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
@@ -152,5 +162,15 @@ if [[ $rc -ne 0 ]]; then
     exit $rc
 fi
 roundStatus "BEST_POINTS_ANALYSIS_DONE"
+
+# Step.13 整合 powermetrics CPU power 到 CSV / Integrate CPU power into CSV outputs.
+roundStatus "RUNNING_POWER_SUMMARY_INTEGRATE"
+./helper/power_summary_integrate.command >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "POWER_SUMMARY_INTEGRATE_FAILED $rc"
+    exit $rc
+fi
+roundStatus "POWER_SUMMARY_INTEGRATE_DONE"
 
 echo "Done."

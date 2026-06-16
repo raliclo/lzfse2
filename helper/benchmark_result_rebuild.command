@@ -83,6 +83,34 @@ FIELDS = [
     "CPU Swift Array Hits",
 ]
 
+EN_FIELDS = [
+    "dataset",
+    "n",
+    "format",
+    "raw_size_mib",
+    "compressed_size_mib",
+    "encode_seconds",
+    "decode_seconds",
+    "encode_mb_s",
+    "decode_mb_s",
+    "compression_ratio",
+    "encode_time_ratio",
+    "decode_time_ratio",
+    "encode_rss_mb",
+    "decode_rss_mb",
+    "trace_wall_seconds",
+    "trace_timeout",
+    "trace_target_seen",
+    "cpu_symbol_status",
+    "cpu_top_symbol",
+    "cpu_top_count",
+    "cpu_top_category",
+    "cpu_parse_hits",
+    "cpu_encode_hits",
+    "cpu_fse_hits",
+    "cpu_swift_array_hits",
+]
+
 
 def require_match(pattern: str, text: str, source: str) -> re.Match[str]:
     match = re.search(pattern, text)
@@ -282,9 +310,11 @@ rows.sort(key=lambda row: (
 if not rows:
     raise RuntimeError("no benchmark rows parsed")
 
-writer = csv.DictWriter(sys.stdout, fieldnames=FIELDS, lineterminator="\n")
-writer.writeheader()
-writer.writerows(rows)
+writer = csv.writer(sys.stdout, lineterminator="\n")
+writer.writerow(EN_FIELDS)
+writer.writerow(FIELDS)
+for row in rows:
+    writer.writerow([row.get(field, "") for field in FIELDS])
 PY
 
 python3 - <<'PY' "$tmp_out"
@@ -292,7 +322,12 @@ import csv
 import sys
 
 path = sys.argv[1]
-rows = list(csv.DictReader(open(path, encoding="utf-8-sig", newline="")))
+with open(path, encoding="utf-8-sig", newline="") as handle:
+    raw_rows = list(csv.reader(handle))
+if len(raw_rows) >= 2 and raw_rows[0] and raw_rows[0][0].lstrip("\ufeff") == "dataset" and raw_rows[1] and raw_rows[1][0] == "資料夾":
+    rows = [dict(zip(raw_rows[1], row)) for row in raw_rows[2:]]
+else:
+    rows = list(csv.DictReader(open(path, encoding="utf-8-sig", newline="")))
 expected_fields = {
     "資料夾", "N", "格式", "壓縮 MB/s", "解壓 MB/s", "Encode RSS(MB)", "Decode RSS(MB)"
 }

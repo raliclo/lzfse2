@@ -109,6 +109,7 @@ export_trace_table() {
 
 {
     printf '\357\273\277trace,timeout,size_mb,modified,duration_sec,launched_arguments,expected_target,target_seen,has_corespace,has_instrument_data,has_shared_data,has_symbols,toc_status,time_profile_status,time_sample_status,contains_lzfse_profile,contains_zsh,contains_tar,contains_zstd,contains_lz4,table_count,schemas\n' > "$SUMMARY_OUT"
+    printf 'trace檔案,是否timeout,大小(MB),修改時間,trace耗時(秒),啟動參數,預期目標程序,是否看到目標程序,是否有corespace,是否有instrument_data,是否有shared_data,是否有symbols,TOC狀態,time-profile狀態,time-sample狀態,包含lzfse-profile,包含zsh,包含tar,包含zstd,包含lz4,table數量,schema清單\n' >> "$SUMMARY_OUT"
 
     trace_path=""
     failures=0

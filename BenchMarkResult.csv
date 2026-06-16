@@ -1,49 +1,50 @@
-﻿資料夾,N,格式,原始大小(M),壓縮後(M),壓縮耗時(秒),解壓耗時(秒),壓縮 MB/s,解壓 MB/s,壓縮比,壓縮時間比,解壓時間比,Encode RSS(MB),Decode RSS(MB),Trace wall time(秒),Trace timeout,Trace target seen,CPU Symbol Status,CPU Top Symbol,CPU Top Count,CPU Top Category,CPU Parse Hits,CPU Encode Hits,CPU FSE Hits,CPU Swift Array Hits
-claw-code,4,TGZ,1351M,469M,29.13,2.26,48.62,625.32,1.0000,1.00,1.00,4.1,3.6,28.82,no,yes,ok,0x19d117bac,86,other,,,,
-claw-code,4,LZFSE (Other3),1351M,463M,3.52,2.04,402.43,693.05,0.9872,0.12,0.90,139.6,69.0,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),51,encode,96,71,,62
-claw-code,4,LZFSE (Lazy2),1351M,423M,29.12,2.39,48.64,593.43,0.9016,1.00,1.06,199.7,68.0,300.63,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),148,parse,343,81,,67
-claw-code,4,LZFSE (Optimal),1351M,403M,55.21,2.54,25.65,558.10,0.8590,1.90,1.12,202.9,64.9,300.66,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),692,parse,1013,75,,125
-claw-code,4,LZFSE (BVX3),1351M,446M,3.49,2.76,405.68,512.86,0.9515,0.12,1.22,141.6,69.5,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),41,encode,97,84,,73
-claw-code,4,LZFSE (Apple),1351M,463M,8.89,2.02,159.34,702.24,0.9877,0.31,0.89,1356.3,473.0,300.65,yes,yes,ok,lzfseEncodeMatches,81,apple_lzfse,,,,
-claw-code,4,TLZ4,1351M,553M,2.20,1.54,642.28,922.35,1.1796,0.08,0.68,83.4,33.8,2.71,no,yes,ok,LZ4HC_compress_generic_noDictCtx,284,external_tool,,,,
-claw-code,4,ZSTD,1351M,387M,3.03,1.39,467.22,1019.30,0.8255,0.10,0.62,403.4,9.2,3.84,no,yes,ok,ZSTD_compressBlock_lazy2_row,168,external_tool,,,,
-claw-code,8,TGZ,1351M,469M,29.09,2.35,48.69,602.03,1.0000,1.00,1.00,4.1,3.6,28.82,no,yes,ok,0x19d117bac,86,other,,,,
-claw-code,8,LZFSE (Other3),1351M,463M,2.38,1.96,595.69,723.60,0.9872,0.08,0.83,205.9,106.2,300.64,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),73,encode,100,95,,73
-claw-code,8,LZFSE (Lazy2),1351M,423M,24.51,2.00,57.78,707.86,0.9016,0.84,0.85,316.8,107.7,300.61,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),153,parse,358,109,,91
-claw-code,8,LZFSE (Optimal),1351M,403M,43.49,2.37,32.56,596.67,0.8590,1.50,1.01,367.3,103.7,300.63,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),752,parse,1158,110,,182
-claw-code,8,LZFSE (BVX3),1351M,446M,2.41,2.66,588.41,532.46,0.9515,0.08,1.13,216.1,104.4,300.62,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),58,encode,105,120,,104
-claw-code,8,LZFSE (Apple),1351M,463M,8.91,2.66,158.91,533.35,0.9877,0.31,1.13,1356.3,473.0,300.63,yes,yes,ok,lzfseEncodeMatches,77,apple_lzfse,,,,
-claw-code,8,TLZ4,1351M,553M,2.20,1.69,643.55,838.12,1.1796,0.08,0.72,80.2,33.8,2.71,no,yes,ok,LZ4HC_compress_generic_noDictCtx,284,external_tool,,,,
-claw-code,8,ZSTD,1351M,387M,3.06,1.75,462.17,808.80,0.8255,0.11,0.74,402.3,9.0,3.84,no,yes,ok,ZSTD_compressBlock_lazy2_row,168,external_tool,,,,
-claw-code,40,TGZ,1351M,469M,27.04,2.33,52.37,607.17,1.0000,1.00,1.00,4.1,3.6,28.82,no,yes,ok,0x19d117bac,86,other,,,,
-claw-code,40,LZFSE (Other3),1351M,463M,2.29,1.86,618.34,763.42,0.9872,0.08,0.80,354.1,303.6,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),73,encode,100,98,,78
-claw-code,40,LZFSE (Lazy2),1351M,423M,21.31,1.86,66.46,760.30,0.9016,0.79,0.80,497.6,316.0,300.64,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),152,parse,367,121,,100
-claw-code,40,LZFSE (Optimal),1351M,403M,40.54,2.36,34.93,601.02,0.8590,1.50,1.01,558.6,312.9,300.63,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),756,parse,1160,117,,183
-claw-code,40,LZFSE (BVX3),1351M,446M,2.11,2.14,672.71,663.05,0.9515,0.08,0.92,366.3,315.3,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),64,encode,104,130,,106
-claw-code,40,LZFSE (Apple),1351M,463M,9.03,2.21,156.76,640.58,0.9877,0.33,0.95,1356.4,473.1,300.66,yes,yes,ok,lzfseEncodeMatches,79,apple_lzfse,,,,
-claw-code,40,TLZ4,1351M,553M,2.23,1.70,635.73,830.67,1.1796,0.08,0.73,84.9,33.8,2.71,no,yes,ok,LZ4HC_compress_generic_noDictCtx,284,external_tool,,,,
-claw-code,40,ZSTD,1351M,387M,3.04,1.61,465.74,877.82,0.8255,0.11,0.69,403.2,9.0,3.84,no,yes,ok,ZSTD_compressBlock_lazy2_row,168,external_tool,,,,
-llama.cpp,4,TGZ,1261M,583M,20.20,5.01,65.48,263.95,1.0000,1.00,1.00,4.2,3.7,21.20,no,yes,ok,0x19d117bac,72,other,,,,
-llama.cpp,4,LZFSE (Other3),1261M,582M,3.67,4.99,360.64,265.29,0.9979,0.18,1.00,129.4,67.2,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),42,encode,96,63,,58
-llama.cpp,4,LZFSE (Lazy2),1261M,559M,9.39,4.57,140.80,289.56,0.9588,0.46,0.91,196.7,71.1,300.63,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),121,parse,270,77,,66
-llama.cpp,4,LZFSE (Optimal),1261M,549M,34.61,5.22,38.21,253.18,0.9416,1.71,1.04,219.1,70.3,300.64,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),598,parse,934,77,,131
-llama.cpp,4,LZFSE (BVX3),1261M,572M,3.93,5.35,336.25,247.42,0.9816,0.19,1.07,136.3,77.5,300.63,yes,yes,ok,static LZFSEv1.fseEncode(state:_:_:),42,fse,92,74,,71
-llama.cpp,4,LZFSE (Apple),1261M,583M,7.78,5.01,170.09,263.82,1.0008,0.39,1.00,1197.8,593.8,300.64,yes,yes,ok,lzfseEncodeMatches,78,apple_lzfse,,,,
-llama.cpp,4,TLZ4,1261M,615M,3.60,4.61,367.12,286.89,1.0547,0.18,0.92,87.8,33.8,2.73,no,yes,ok,LZ4HC_compress_generic_noDictCtx,294,external_tool,,,,
-llama.cpp,4,ZSTD,1261M,532M,2.79,4.77,473.90,277.15,0.9124,0.14,0.95,497.5,9.7,2.35,no,yes,ok,ZSTD_RowFindBestMatch_noDict_5_4,141,external_tool,,,,
-llama.cpp,8,TGZ,1261M,583M,20.23,5.07,65.38,260.70,1.0000,1.00,1.00,4.2,3.7,21.20,no,yes,ok,0x19d117bac,72,other,,,,
-llama.cpp,8,LZFSE (Other3),1261M,582M,3.11,5.11,425.07,258.93,0.9979,0.15,1.01,219.8,103.8,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),67,encode,99,91,,74
-llama.cpp,8,LZFSE (Lazy2),1261M,559M,8.10,4.66,163.30,283.83,0.9588,0.40,0.92,354.3,110.5,300.63,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),123,parse,303,109,,91
-llama.cpp,8,LZFSE (Optimal),1261M,549M,24.93,6.07,53.06,217.76,0.9416,1.23,1.20,390.6,105.3,300.64,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),652,parse,1057,114,,178
-llama.cpp,8,LZFSE (BVX3),1261M,572M,3.19,5.95,414.69,222.35,0.9816,0.16,1.17,218.3,109.1,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),53,encode,101,115,,105
-llama.cpp,8,LZFSE (Apple),1261M,583M,7.76,5.37,170.34,246.27,1.0008,0.38,1.06,1197.8,593.8,300.64,yes,yes,ok,lzfseEncodeMatches,86,apple_lzfse,,,,
-llama.cpp,8,TLZ4,1261M,615M,3.55,4.61,372.37,287.12,1.0547,0.18,0.91,85.2,33.8,2.73,no,yes,ok,LZ4HC_compress_generic_noDictCtx,294,external_tool,,,,
-llama.cpp,8,ZSTD,1261M,532M,2.83,4.83,467.78,274.04,0.9124,0.14,0.95,507.9,9.8,2.35,no,yes,ok,ZSTD_RowFindBestMatch_noDict_5_4,141,external_tool,,,,
-llama.cpp,40,TGZ,1261M,583M,19.98,4.69,66.20,281.93,1.0000,1.00,1.00,4.2,3.7,21.20,no,yes,ok,0x19d117bac,72,other,,,,
-llama.cpp,40,LZFSE (Other3),1261M,582M,2.90,4.89,455.40,270.46,0.9979,0.15,1.04,385.1,341.5,300.64,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),72,encode,105,96,,75
-llama.cpp,40,LZFSE (Lazy2),1261M,559M,6.84,4.49,193.22,294.54,0.9588,0.34,0.96,515.8,341.1,300.64,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),135,parse,307,134,,95
-llama.cpp,40,LZFSE (Optimal),1261M,549M,21.80,5.63,60.67,235.02,0.9416,1.09,1.20,581.1,341.5,300.65,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),669,parse,1086,131,,177
-llama.cpp,40,LZFSE (BVX3),1261M,572M,2.95,5.89,448.98,224.37,0.9816,0.15,1.26,380.2,343.2,300.61,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),57,encode,101,122,,101
-llama.cpp,40,LZFSE (Apple),1261M,583M,7.73,6.12,170.98,216.12,1.0008,0.39,1.30,1197.9,593.9,300.64,yes,yes,ok,lzfseEncodeMatches,79,apple_lzfse,,,,
-llama.cpp,40,TLZ4,1261M,615M,3.51,4.54,376.35,291.31,1.0547,0.18,0.97,86.2,33.8,2.73,no,yes,ok,LZ4HC_compress_generic_noDictCtx,294,external_tool,,,,
-llama.cpp,40,ZSTD,1261M,532M,2.78,4.73,475.68,279.33,0.9124,0.14,1.01,507.2,9.8,2.35,no,yes,ok,ZSTD_RowFindBestMatch_noDict_5_4,141,external_tool,,,,
+﻿dataset,n,format,raw_size_mib,compressed_size_mib,encode_seconds,decode_seconds,encode_mb_s,decode_mb_s,compression_ratio,encode_time_ratio,decode_time_ratio,encode_rss_mb,decode_rss_mb,trace_wall_seconds,trace_timeout,trace_target_seen,cpu_symbol_status,cpu_top_symbol,cpu_top_count,cpu_top_category,cpu_parse_hits,cpu_encode_hits,cpu_fse_hits,cpu_swift_array_hits,encode_cpu_power_mw,decode_cpu_power_mw,encode_cpu_energy_j,decode_cpu_energy_j
+資料夾,N,格式,原始大小(M),壓縮後(M),壓縮耗時(秒),解壓耗時(秒),壓縮 MB/s,解壓 MB/s,壓縮比,壓縮時間比,解壓時間比,Encode RSS(MB),Decode RSS(MB),Trace wall time(秒),Trace timeout,Trace target seen,CPU Symbol Status,CPU Top Symbol,CPU Top Count,CPU Top Category,CPU Parse Hits,CPU Encode Hits,CPU FSE Hits,CPU Swift Array Hits,Encode CPU Power(mW),Decode CPU Power(mW),Encode CPU Energy(J),Decode CPU Energy(J)
+claw-code,4,TGZ,1351M,469M,29.13,2.26,48.62,625.32,1.0000,1.00,1.00,4.1,3.6,28.82,no,yes,ok,0x19d117bac,86,other,,,,,4471.275,3775.636,136.671965,5.395316
+claw-code,4,LZFSE (Other3),1351M,463M,3.52,2.04,402.43,693.05,0.9872,0.12,0.90,139.6,69.0,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),51,encode,96,71,,62,15872.613,9061.400,57.662412,6.790850
+claw-code,4,LZFSE (Lazy2),1351M,423M,29.12,2.39,48.64,593.43,0.9016,1.00,1.06,199.7,68.0,300.63,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),148,parse,343,81,,67,5826.177,10324.667,171.671375,9.133914
+claw-code,4,LZFSE (Optimal),1351M,403M,55.21,2.54,25.65,558.10,0.8590,1.90,1.12,202.9,64.9,300.66,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),692,parse,1013,75,,125,13009.325,10705.833,720.431036,9.578596
+claw-code,4,LZFSE (BVX3),1351M,446M,3.49,2.76,405.68,512.86,0.9515,0.12,1.22,141.6,69.5,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),41,encode,97,84,,73,16486.125,11044.571,61.233623,10.906800
+claw-code,4,LZFSE (Apple),1351M,463M,8.89,2.02,159.34,702.24,0.9877,0.31,0.89,1356.3,473.0,300.65,yes,yes,ok,lzfseEncodeMatches,81,apple_lzfse,,,,,6090.444,4006.800,53.977784,3.298234
+claw-code,4,TLZ4,1351M,553M,2.20,1.54,642.28,922.35,1.1796,0.08,0.68,83.4,33.8,2.71,no,yes,ok,LZ4HC_compress_generic_noDictCtx,284,external_tool,,,,,17556.312,2194.000,36.324026,1.103920
+claw-code,4,ZSTD,1351M,387M,3.03,1.39,467.22,1019.30,0.8255,0.10,0.62,403.4,9.2,3.84,no,yes,ok,ZSTD_compressBlock_lazy2_row,168,external_tool,,,,,14553.000,4156.286,50.456171,4.064515
+claw-code,8,TGZ,1351M,469M,29.09,2.35,48.69,602.03,1.0000,1.00,1.00,4.1,3.6,28.82,no,yes,ok,0x19d117bac,86,other,,,,,4471.275,3775.636,136.671965,5.395316
+claw-code,8,LZFSE (Other3),1351M,463M,2.38,1.96,595.69,723.60,0.9872,0.08,0.83,205.9,106.2,300.64,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),73,encode,100,95,,73,17455.000,6114.333,47.817083,3.628075
+claw-code,8,LZFSE (Lazy2),1351M,423M,24.51,2.00,57.78,707.86,0.9016,0.84,0.85,316.8,107.7,300.61,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),153,parse,358,109,,91,5926.346,8058.500,157.410866,5.314582
+claw-code,8,LZFSE (Optimal),1351M,403M,43.49,2.37,32.56,596.67,0.8590,1.50,1.01,367.3,103.7,300.63,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),752,parse,1158,110,,182,13245.563,8143.750,608.653806,5.390853
+claw-code,8,LZFSE (BVX3),1351M,446M,2.41,2.66,588.41,532.46,0.9515,0.08,1.13,216.1,104.4,300.62,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),58,encode,105,120,,104,18105.000,10204.500,42.647126,7.469204
+claw-code,8,LZFSE (Apple),1351M,463M,8.91,2.66,158.91,533.35,0.9877,0.31,1.13,1356.3,473.0,300.63,yes,yes,ok,lzfseEncodeMatches,77,apple_lzfse,,,,,5701.061,3468.500,50.659372,2.850608
+claw-code,8,TLZ4,1351M,553M,2.20,1.69,643.55,838.12,1.1796,0.08,0.72,80.2,33.8,2.71,no,yes,ok,LZ4HC_compress_generic_noDictCtx,284,external_tool,,,,,17556.312,2194.000,36.324026,1.103920
+claw-code,8,ZSTD,1351M,387M,3.06,1.75,462.17,808.80,0.8255,0.11,0.74,402.3,9.0,3.84,no,yes,ok,ZSTD_compressBlock_lazy2_row,168,external_tool,,,,,14553.000,4156.286,50.456171,4.064515
+claw-code,40,TGZ,1351M,469M,27.04,2.33,52.37,607.17,1.0000,1.00,1.00,4.1,3.6,28.82,no,yes,ok,0x19d117bac,86,other,,,,,4471.275,3775.636,136.671965,5.395316
+claw-code,40,LZFSE (Other3),1351M,463M,2.29,1.86,618.34,763.42,0.9872,0.08,0.80,354.1,303.6,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),73,encode,100,98,,78,17953.867,,39.064042,
+claw-code,40,LZFSE (Lazy2),1351M,423M,21.31,1.86,66.46,760.30,0.9016,0.79,0.80,497.6,316.0,300.64,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),152,parse,367,121,,100,7071.359,1799.000,200.665164,1.337064
+claw-code,40,LZFSE (Optimal),1351M,403M,40.54,2.36,34.93,601.02,0.8590,1.50,1.01,558.6,312.9,300.63,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),756,parse,1160,117,,183,13497.380,1175.000,561.578849,0.746398
+claw-code,40,LZFSE (BVX3),1351M,446M,2.11,2.14,672.71,663.05,0.9515,0.08,0.92,366.3,315.3,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),64,encode,104,130,,106,18640.632,2492.000,46.373344,2.027048
+claw-code,40,LZFSE (Apple),1351M,463M,9.03,2.21,156.76,640.58,0.9877,0.33,0.95,1356.4,473.1,300.66,yes,yes,ok,lzfseEncodeMatches,79,apple_lzfse,,,,,6912.558,6789.400,64.911173,5.839644
+claw-code,40,TLZ4,1351M,553M,2.23,1.70,635.73,830.67,1.1796,0.08,0.73,84.9,33.8,2.71,no,yes,ok,LZ4HC_compress_generic_noDictCtx,284,external_tool,,,,,17556.312,2194.000,36.324026,1.103920
+claw-code,40,ZSTD,1351M,387M,3.04,1.61,465.74,877.82,0.8255,0.11,0.69,403.2,9.0,3.84,no,yes,ok,ZSTD_compressBlock_lazy2_row,168,external_tool,,,,,14553.000,4156.286,50.456171,4.064515
+llama.cpp,4,TGZ,1261M,583M,20.20,5.01,65.48,263.95,1.0000,1.00,1.00,4.2,3.7,21.20,no,yes,ok,0x19d117bac,72,other,,,,,4850.304,3514.500,100.358358,3.129160
+llama.cpp,4,LZFSE (Other3),1261M,582M,3.67,4.99,360.64,265.29,0.9979,0.18,1.00,129.4,67.2,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),42,encode,96,63,,58,15125.667,5425.667,42.824407,2.955827
+llama.cpp,4,LZFSE (Lazy2),1261M,559M,9.39,4.57,140.80,289.56,0.9588,0.46,0.91,196.7,71.1,300.63,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),121,parse,270,77,,66,7691.885,5027.500,73.227321,2.808829
+llama.cpp,4,LZFSE (Optimal),1261M,549M,34.61,5.22,38.21,253.18,0.9416,1.71,1.04,219.1,70.3,300.64,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),598,parse,934,77,,131,14134.561,8202.333,497.834110,4.949714
+llama.cpp,4,LZFSE (BVX3),1261M,572M,3.93,5.35,336.25,247.42,0.9816,0.19,1.07,136.3,77.5,300.63,yes,yes,ok,static LZFSEv1.fseEncode(state:_:_:),42,fse,92,74,,71,15897.792,7336.250,45.025534,4.774087
+llama.cpp,4,LZFSE (Apple),1261M,583M,7.78,5.01,170.09,263.82,1.0008,0.39,1.00,1197.8,593.8,300.64,yes,yes,ok,lzfseEncodeMatches,78,apple_lzfse,,,,,5953.984,3431.333,40.188357,2.867575
+llama.cpp,4,TLZ4,1261M,615M,3.60,4.61,367.12,286.89,1.0547,0.18,0.92,87.8,33.8,2.73,no,yes,ok,LZ4HC_compress_generic_noDictCtx,294,external_tool,,,,,18817.188,152.000,40.142219,0.056888
+llama.cpp,4,ZSTD,1261M,532M,2.79,4.77,473.90,277.15,0.9124,0.14,0.95,497.5,9.7,2.35,no,yes,ok,ZSTD_RowFindBestMatch_noDict_5_4,141,external_tool,,,,,15961.538,7230.000,29.026792,3.965792
+llama.cpp,8,TGZ,1261M,583M,20.23,5.07,65.38,260.70,1.0000,1.00,1.00,4.2,3.7,21.20,no,yes,ok,0x19d117bac,72,other,,,,,4850.304,3514.500,100.358358,3.129160
+llama.cpp,8,LZFSE (Other3),1261M,582M,3.11,5.11,425.07,258.93,0.9979,0.15,1.01,219.8,103.8,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),67,encode,99,91,,74,16037.571,8107.000,29.369971,3.640715
+llama.cpp,8,LZFSE (Lazy2),1261M,559M,8.10,4.66,163.30,283.83,0.9588,0.40,0.92,354.3,110.5,300.63,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),123,parse,303,109,,91,7832.600,6883.000,60.786998,2.835618
+llama.cpp,8,LZFSE (Optimal),1261M,549M,24.93,6.07,53.06,217.76,0.9416,1.23,1.20,390.6,105.3,300.64,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),652,parse,1057,114,,178,15214.515,4060.500,385.524201,1.871188
+llama.cpp,8,LZFSE (BVX3),1261M,572M,3.19,5.95,414.69,222.35,0.9816,0.16,1.17,218.3,109.1,300.63,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),53,encode,101,115,,105,17185.214,7424.333,32.871637,4.082604
+llama.cpp,8,LZFSE (Apple),1261M,583M,7.76,5.37,170.34,246.27,1.0008,0.38,1.06,1197.8,593.8,300.64,yes,yes,ok,lzfseEncodeMatches,86,apple_lzfse,,,,,5829.557,3916.800,39.059821,3.240624
+llama.cpp,8,TLZ4,1261M,615M,3.55,4.61,372.37,287.12,1.0547,0.18,0.91,85.2,33.8,2.73,no,yes,ok,LZ4HC_compress_generic_noDictCtx,294,external_tool,,,,,18817.188,152.000,40.142219,0.056888
+llama.cpp,8,ZSTD,1261M,532M,2.83,4.83,467.78,274.04,0.9124,0.14,0.95,507.9,9.8,2.35,no,yes,ok,ZSTD_RowFindBestMatch_noDict_5_4,141,external_tool,,,,,15961.538,7230.000,29.026792,3.965792
+llama.cpp,40,TGZ,1261M,583M,19.98,4.69,66.20,281.93,1.0000,1.00,1.00,4.2,3.7,21.20,no,yes,ok,0x19d117bac,72,other,,,,,4850.304,3514.500,100.358358,3.129160
+llama.cpp,40,LZFSE (Other3),1261M,582M,2.90,4.89,455.40,270.46,0.9979,0.15,1.04,385.1,341.5,300.64,yes,yes,ok,specialized static LZFSEv1.encodeBlock(triplets:literals:rawBytes:),72,encode,105,96,,75,17108.600,,27.512151,
+llama.cpp,40,LZFSE (Lazy2),1261M,559M,6.84,4.49,193.22,294.54,0.9588,0.34,0.96,515.8,341.1,300.64,yes,yes,ok,bestMatch #1 (_:) in closure #1 in static LZFSEv1.lzParseChain(_:maxL:maxM:maxDist:),135,parse,307,134,,95,7681.536,,50.731560,
+llama.cpp,40,LZFSE (Optimal),1261M,549M,21.80,5.63,60.67,235.02,0.9416,1.09,1.20,581.1,341.5,300.65,yes,yes,ok,specialized closure #1 in static LZFSEv1.lzParseOptimal(_:maxL:maxM:maxDist:),669,parse,1086,131,,177,15605.101,,336.916503,
+llama.cpp,40,LZFSE (BVX3),1261M,572M,2.95,5.89,448.98,224.37,0.9816,0.15,1.26,380.2,343.2,300.61,yes,yes,ok,specialized static LZFSEv1.encodeBlockV3(triplets:literals:rawBytes:),57,encode,101,122,,101,17476.091,,29.202931,
+llama.cpp,40,LZFSE (Apple),1261M,583M,7.73,6.12,170.98,216.12,1.0008,0.39,1.30,1197.9,593.9,300.64,yes,yes,ok,lzfseEncodeMatches,79,apple_lzfse,,,,,5785.492,4153.400,38.593050,3.432137
+llama.cpp,40,TLZ4,1261M,615M,3.51,4.54,376.35,291.31,1.0547,0.18,0.97,86.2,33.8,2.73,no,yes,ok,LZ4HC_compress_generic_noDictCtx,294,external_tool,,,,,18817.188,152.000,40.142219,0.056888
+llama.cpp,40,ZSTD,1261M,532M,2.78,4.73,475.68,279.33,0.9124,0.14,1.01,507.2,9.8,2.35,no,yes,ok,ZSTD_RowFindBestMatch_noDict_5_4,141,external_tool,,,,,15961.538,7230.000,29.026792,3.965792
