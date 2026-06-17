@@ -5,6 +5,39 @@
 
 ---
 
+# 第三十一輪：revert R30-2 literal UBP 後重測（2026-06-17）
+
+> 本輪目的不是新增演算法改動，而是用已 revert `literal UBP` 的 source 重新跑完整 benchmark，確認 R30 觀察到的 BVX3 / Other3 退步是否來自 #30-2，而不是 #30-1 `Optimal cheap-probe gating`。
+
+## benchmark 結果（claw-code n40，raw bytes/ns）
+
+| 格式 | R31 MB/s | R29 MB/s | 變化 | 判定 |
+| --- | ---: | ---: | ---: | --- |
+| **Optimal** | **36.95** | 34.93 | +5.8% | #30-1 gating 保留 |
+| BVX3 | 657.59 | 672.71 | -2.2% | 已回復正常水位，R30 退步主因確認為 #30-2 |
+| Other3 | 637.91 | 618.34 | +3.2% | 已回復正常水位 |
+| Lazy2 | 68.73 | 66.46 | +3.4% | 無直接改動，視為整機/排程浮動 |
+
+- **Optimal CPU 能耗**: 511.53 J vs R29 567.2 J → **-9.8%**。速度與能耗皆改善，但仍未達下一輪 ≥10% 單點改善門檻。
+- **壓縮比維持不變**: Optimal `0.8590`、BVX3 `0.9516`、Other3 `0.9871`、Lazy2 `0.9013`，表示 #30-1 gating 沒有破壞輸出品質。
+- **R30-2 驗證結論**: R30 的 BVX3 `589.03 MB/s` / Other3 `513.14 MB/s` 是含 `litEnc.withUnsafeBufferPointer` binary 的污染結果。R31 revert 後 BVX3 回到 `657.59 MB/s`、Other3 回到 `637.91 MB/s`，確認 literal UBP 應維持 revert。
+
+## trace / power / RSS 觀察
+
+- LZFSE 家族 trace 多數仍是 `trace_timeout=yes`，因此 trace wall time 不作速度比較，只看 target seen 與 CPU symbol 分布。
+- Optimal n40 top symbol 仍落在 `lzParseOptimal` closure，`cpu_parse_hits=1129`，表示 cheap-probe gating 只避開低收益段，主要熱點仍是 DP 核心。
+- BVX3 n40 encode RSS `355.0 MB`、decode RSS `322.4 MB`，仍明顯高於 TLZ4 / ZSTD，是下一輪需要處理的記憶體問題。
+- BVX3 n40 encode CPU energy `35.67 J`，已接近 TLZ4 `34.86 J`，所以 BVX3 下一輪優先順序應是 RSS 與 throughput 穩定性，而不是 encode 能耗。
+
+## 下一步
+
+- 保留 #30-1 `optDPSkipAvgMatchLen = 256`，不要回退。
+- 維持 #30-2 literal UBP revert，不再把 `litEnc` literal 熱迴圈包進 `withUnsafeBufferPointer` closure。
+- 下一輪若要繼續 Optimal，應直接針對 `lzParseOptimal` DP 核心做 profiling-guided 單點改動，成功條件仍是同輪 ≥10% 改善且壓縮比不退步。
+- 下一輪若轉向 BVX3 family，優先調查 encode/decode RSS 偏高原因，特別是 n40 下的 buffer、chunk in-flight、暫存陣列生命週期。
+
+---
+
 # 第三十輪：Optimal cheap-probe gating + literal UBP DOE 結果（2026-06-16）/ Round 30: Cheap-Probe Gating + Literal UBP DOE
 
 > 只動 `lzfse-cli.swift`。本輪同時實驗 **#1**（cheap-probe gating）與 **#2**（literal UBP）。benchmark 結果:#1 有效、**#2 造成 BVX3 退步 −12.4%**。**兩者皆已 commit**（見 lzfse-cli.swift 差分）；#2 的 revert 排入 **R31**。#3（power 量測硬化）屬 harness,未動。
