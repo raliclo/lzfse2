@@ -105,7 +105,7 @@ roundStatus "TRACER_DONE"
 
 # Step.7 執行 powermetrics power benchmark / Run powermetrics power benchmark.
 roundStatus "RUNNING_POWER_BENCHMARK"
-./helper/power_benchmark.command >> "$ROUND_STATUS_FILE" 2>&1
+sudo ./helper/power_benchmark.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
 if [[ $rc -ne 0 ]]; then
     roundStatus "POWER_BENCHMARK_FAILED $rc"

@@ -5,6 +5,33 @@
 
 ---
 
+# 第三十三輪計畫：Optimal 壓縮率提升（literal 4-context price，2026-06-18）
+
+> 目的：參考 XZ/LZMA optimal parser 的核心精神，不先改 bvx3 bitstream，而是先讓 `lzParseOptimal` 的 parser price 更貼近實際 encoder。第一步已實作「Optimal literal price 4-context」：只改 parser 的 literal 計價，不改格式、不改 decoder。
+
+## 已實作：Optimal literal price 4-context
+
+- bvx3 encode 端在 literal 數達門檻且 entropy gain 足夠時，會啟用 4 張 literal FSE table；context 來自「上一個已發射 literal」的高 2 bits。
+- 舊 `lzParseOptimal` 使用單一全域 literal histogram 計價，DP 只知道 `literal byte`，不知道這個 literal 在實際 literal stream 中的 context。這會讓 match/literal 取捨和 encodeBlockV3 的真實成本不一致。
+- 本輪在 DP cell 新增 `lastLiteral` 狀態，literal step 使用 `lastLiteral >> 6` 選 4-context price；match step 沿用來源 cell 的 `lastLiteral`，因為 match 本身不發射 literal。
+- parser 的自適應統計也改成 4-context literal count：每次 `emitSteps` / `emitGreedy` 真正補發 literal run 時，用目前已提交 literal stream 的 `lastLiteralByte` 更新 `(ctx, byte)` count。
+- 此改動只影響 `-algo bvx3 -optimal` 的 parse decision；輸出格式、literal FSE table 選擇、decoder 與 lazy2/BVX3/Other3 路徑不變。
+
+## 風險與驗證重點
+
+- 這不是 output-identical 改動，Optimal 壓縮後 bytes 可能變小或變大；必須用完整 benchmark 判斷。
+- 因 parser 目前仍是每個位置單一最佳 state，4-context price 只能讓「已保留路徑」的 literal 成本更準；它還不能解決「稍貴但 rep history 更好」的路徑被過早剪掉。
+- 驗收標準建議：`claw-code` / `llama.cpp` Optimal 壓縮 bytes 明確下降，或壓縮比至少改善約 `0.1%`；若壓縮比未改善，encode time/RSS 不應顯著退步。
+- 已完成基本驗證：`swiftc -O lzfse-cli.swift -o lzfse` 編譯通過，`./lzfse -test` round-trip 全通過。
+
+## 後續壓縮率計畫
+
+1. **literal + rep0 / match + literal + rep0 transition**：借鏡 LZMA optimal parser 顯式測試「先發一個 literal，再接 rep0」的組合路徑，彌補單狀態 DP 對局部組合的剪枝。
+2. **小型 beam DP**：每個位置保留 2 條不同 rep-history / last-literal state 的候選，優先用於 text/structured 段；目標是避免單一最低 price 路徑提前淘汰後續更便宜的 rep path。
+3. **Optimal-only hash4 補償**：R27 tag-packing 對速度有利，但可能濾掉少量 length-4 match。若 4-context price 有正向結果，再評估只在 `-optimal` 補少量 hash4 候選以換取壓縮率。
+
+---
+
 # 第三十二輪：power benchmark 重跑與 CPU power 整合（2026-06-18）
 
 > 本輪在 rollback 最近兩個 commit 後重跑 `helper/power_benchmark.command`，並執行 `helper/power_summary_integrate.command` 將 CPU power / energy 欄位整合回 `BenchMarkResult.csv` 與 `best_points/`。本輪重點是 power harness 與 R31 後狀態驗收，不視為新的演算法 DOE。
