@@ -106,6 +106,62 @@ parsePowerLog() {
     ' "$raw_log"
 }
 
+stopPowermetrics() {
+    local pm_pid="$1"
+    local waited=0 signal_name
+    local -a targets
+
+    # powermetrics 透過 sudo 啟動；$! 通常是 sudo，真正 sampler 是 root child。
+    # macOS sudo 可能形成 sudo -> sudo -> powermetrics，多層 descendant 都要 signal。
+    for signal_name in INT TERM KILL; do
+        targets=("${(@f)$(powermetricsTargets "$pm_pid")}")
+        (( ${#targets[@]} == 0 )) && break
+
+        sudo -n kill "-${signal_name}" "${targets[@]}" >/dev/null 2>&1
+        waited=0
+        while [[ -n "$(powermetricsTargets "$pm_pid")" && $waited -lt 20 ]]; do
+            sleep 0.1
+            waited=$((waited + 1))
+        done
+    done
+
+    if [[ -n "$(powermetricsTargets "$pm_pid")" ]]; then
+        echo "POWER_STOP_FAILED ${pm_pid} $(date +%H:%M:%S)" >> "$POWER_STATUS"
+        powerRoundStatus "POWER_STOP_FAILED ${pm_pid}"
+        return 1
+    fi
+
+    wait "$pm_pid" >/dev/null 2>&1 || true
+}
+
+powermetricsTargets() {
+    local root="$1"
+    local -a targets
+    targets=("$root" "${(@f)$(descendantPids "$root")}")
+    typeset -U targets
+    for target in "${targets[@]}"; do
+        sudo -n kill -0 "$target" >/dev/null 2>&1 && print -r -- "$target"
+    done
+}
+
+descendantPids() {
+    local root="$1"
+    local child
+    for child in "${(@f)$(pgrep -P "$root" 2>/dev/null)}"; do
+        [[ -n "$child" ]] || continue
+        print -r -- "$child"
+        descendantPids "$child"
+    done
+}
+
+anyPidAlive() {
+    local pid
+    for pid in "$@"; do
+        kill -0 "$pid" >/dev/null 2>&1 && return 0
+    done
+    return 1
+}
+
 fileSize() {
     if [[ -f "$1" ]]; then
         stat -f%z "$1" 2>/dev/null || stat -c%s "$1"
@@ -118,7 +174,7 @@ measurePower() {
     local dataset="$1" n="$2" phase="$3" algo="$4" label="$5" raw_bytes="$6" compressed_file="$7"
     shift 7
     local raw_log="${POWER_RAW_DIR}/${label}.powermetrics.txt"
-    local start_real end_real duration_ns rc compressed_bytes mbps parsed samples cpu cpu_energy gpu ane dram combined energy result_status
+    local start_real end_real duration_ns rc stop_rc compressed_bytes mbps parsed samples cpu cpu_energy gpu ane dram combined energy result_status
 
     rm -f "$raw_log"
     echo "RUNNING_POWER ${label} $(date +%H:%M:%S)" >> "$POWER_STATUS"
@@ -132,8 +188,8 @@ measurePower() {
     rc=$?
     end_real="$EPOCHREALTIME"
     sleep 0.2
-    kill -INT "$pm_pid" >/dev/null 2>&1
-    wait "$pm_pid" >/dev/null 2>&1
+    stopPowermetrics "$pm_pid"
+    stop_rc=$?
 
     duration_ns=$(awk -v start="$start_real" -v end="$end_real" 'BEGIN { printf "%.0f", (end - start) * 1000000000.0 }')
     compressed_bytes=$(fileSize "$compressed_file")
@@ -141,7 +197,11 @@ measurePower() {
     parsed="$(parsePowerLog "$raw_log" "$duration_ns")"
     IFS='|' read -r samples cpu cpu_energy gpu ane dram combined energy <<< "$parsed"
 
-    if [[ $rc -eq 0 && ( -z "$samples" || "$samples" == "0" ) ]]; then
+    if [[ $stop_rc -ne 0 ]]; then
+        result_status="failed:powermetrics_stop"
+        echo "POWER_FAILED ${label} powermetrics_stop $(date +%H:%M:%S)" >> "$POWER_STATUS"
+        powerRoundStatus "POWER_FAILED ${label} powermetrics_stop"
+    elif [[ $rc -eq 0 && ( -z "$samples" || "$samples" == "0" ) ]]; then
         result_status="ok:no_samples"
         echo "POWER_NO_SAMPLES ${label} $(date +%H:%M:%S)" >> "$POWER_STATUS"
         powerRoundStatus "POWER_NO_SAMPLES ${label}"
@@ -155,6 +215,7 @@ measurePower() {
         powerRoundStatus "POWER_FAILED ${label} ${rc}"
     fi
     appendCsv "$dataset" "$n" "$phase" "$algo" "$duration_ns" "$cpu" "$cpu_energy" "$gpu" "$ane" "$dram" "$combined" "$energy" "$result_status"
+    [[ $stop_rc -eq 0 ]] || return "$stop_rc"
     return "$rc"
 }
 

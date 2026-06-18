@@ -5,6 +5,71 @@
 
 ---
 
+# 第三十二輪：power benchmark 重跑與 CPU power 整合（2026-06-18）
+
+> 本輪在 rollback 最近兩個 commit 後重跑 `helper/power_benchmark.command`，並執行 `helper/power_summary_integrate.command` 將 CPU power / energy 欄位整合回 `BenchMarkResult.csv` 與 `best_points/`。本輪重點是 power harness 與 R31 後狀態驗收，不視為新的演算法 DOE。
+
+## 資料狀態
+
+- `powerResults/power_status.txt` 已完整跑到 `POWER_BENCHMARK_DONE 07:22:23`；前次卡在 `claw-code-tgz-encode` 的 `powermetrics` 停止問題本輪未重現。
+- `powerResults/power_summary.csv` 共 72 筆資料，72/72 `status=ok`，沒有 `POWER_NO_SAMPLES` 或 failed row。
+- `BenchMarkResult.csv` 共 48 rows，全部都有 `Encode CPU Power(mW)`、`Decode CPU Power(mW)`、`Encode CPU Energy(J)`、`Decode CPU Energy(J)` 欄位。
+- `best_points/best_points.md` 已同步新增 power / energy 最低與最高欄位，來源改為 `best_points/best_points.csv`。
+
+## R32 結果摘要
+
+`claw-code` n40 代表值：
+
+| 格式 | 壓縮 MB/s | 解壓 MB/s | 壓縮比 | Encode RSS(MB) | Encode CPU Power(mW) | Encode CPU Energy(J) | CPU top |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Other3 | 502.96 | 705.81 | 0.9871 | 349.5 | 17434.857 | 41.832219 | encode / 71 |
+| BVX3 | 642.06 | 427.47 | 0.9516 | 364.7 | 16548.312 | 34.563284 | encode / 62 |
+| Lazy2 | 67.68 | 435.97 | 0.9013 | 485.1 | 5603.386 | 115.000515 | parse / 149 |
+| Optimal | 36.98 | 416.81 | 0.8605 | 544.2 | 13398.034 | 513.399386 | parse / 730 |
+
+`llama.cpp` n40 代表值：
+
+| 格式 | 壓縮 MB/s | 解壓 MB/s | 壓縮比 | Encode RSS(MB) | Encode CPU Power(mW) | Encode CPU Energy(J) | CPU top |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Other3 | 281.67 | 257.14 | 0.9978 | 389.5 | 15633.500 | 25.293345 | encode / 67 |
+| BVX3 | 301.70 | 204.91 | 0.9816 | 376.8 | 16332.727 | 27.401693 | encode / 59 |
+| Lazy2 | 177.50 | 296.45 | 0.9583 | 500.4 | 7570.696 | 49.178915 | parse / 123 |
+| Optimal | 59.66 | 217.65 | 0.9421 | 577.3 | 15351.469 | 329.643690 | parse / 654 |
+
+Best-points 層級觀察：
+
+- `Other3` 是 Apple-compatible standard LZFSE baseline。`claw-code` n40 代表值為 `502.96 MB/s / 41.832219 J`，但同輪最佳壓縮在 n8 為 `586.02 MB/s / 38.429289 J`；`llama.cpp` n40 代表值為 `281.67 MB/s / 25.293345 J`，同輪最佳壓縮在 n8 為 `420.31 MB/s / 28.528759 J`。因此 R32 評比應同時保留 n40 代表值與 best-points，不可只用 n40 判定 Other3。
+- `claw-code` BVX3 最佳壓縮為 `642.06 MB/s`（n40），encode energy 最低同為 n40 的 `34.563284 J`，已接近 TLZ4 `33.225059 J`。
+- `claw-code` Lazy2 最佳壓縮為 `67.68 MB/s`（n40），encode energy `115.000515 J`，比 n4 `159.438967 J` 低，維持「提高 n 可同時降時間與能耗」的慢路徑結論。
+- `claw-code` Optimal 最佳壓縮為 `36.98 MB/s`（n40），encode energy `513.399386 J`。相對 R31 記錄 `36.95 MB/s / 511.53 J`，速度約 `+0.1%`、能耗約 `+0.4%`，可視為同水位，沒有新的明確改善。
+- `llama.cpp` Optimal 最佳壓縮為 `59.66 MB/s`（n40），encode energy `329.643690 J`；Lazy2 n40 為 `177.50 MB/s / 49.178915 J`，再次顯示 Optimal 的能耗主因仍是長時間 DP，而不是高平均功率。
+
+R32 n40 評比：
+
+- 壓縮速度：`claw-code` 為 BVX3 `642.06` > Other3 `502.96` >> Lazy2 `67.68` > Optimal `36.98`；`llama.cpp` 為 BVX3 `301.70` > Other3 `281.67` > Lazy2 `177.50` > Optimal `59.66`。
+- 壓縮比：`claw-code` 為 Optimal `0.8605` > Lazy2 `0.9013` > BVX3 `0.9516` > Other3 `0.9871`；`llama.cpp` 為 Optimal `0.9421` > Lazy2 `0.9583` > BVX3 `0.9816` > Other3 `0.9978`。
+- Encode energy：`claw-code` 為 BVX3 `34.563284 J` < Other3 `41.832219 J` < Lazy2 `115.000515 J` << Optimal `513.399386 J`；`llama.cpp` 為 Other3 `25.293345 J` < BVX3 `27.401693 J` < Lazy2 `49.178915 J` << Optimal `329.643690 J`。
+- 解壓速度：`claw-code` Other3 `705.81 MB/s` 明顯快於 Lazy2 `435.97`、BVX3 `427.47`、Optimal `416.81`；`llama.cpp` 則 Lazy2 `296.45` > Other3 `257.14` > Optimal `217.65` > BVX3 `204.91`。
+
+## 和 R31 的比較與判定
+
+- `claw-code Optimal n40`：`36.95 → 36.98 MB/s`，CPU energy `511.53 → 513.40 J`，屬量測噪音範圍；R31 保留的 cheap-probe gating 判定不變。
+- `claw-code BVX3 n40`：`657.59 → 642.06 MB/s`（約 `-2.4%`），encode energy `35.67 → 34.56 J`，速度小退但能耗仍低，沒有指向新回歸。
+- `claw-code Lazy2 n40`：`68.73 → 67.68 MB/s`（約 `-1.5%`），基本同水位。
+- `claw-code Other3 n40`：`637.91 → 502.96 MB/s`（約 `-21.2%`），但本輪 Other3 最佳壓縮在 n8 為 `586.02 MB/s`，且同輪 BVX3 / Lazy2 / Optimal 沒有同幅退步。這更像批次噪音、熱狀態或 power 量測穿插造成的 n40 異常，不應單獨歸因於 source 變更；下輪需重複驗證 Other3 n40。
+
+## power harness 結論
+
+本輪 power 量測輸出完整，`power_summary_integrate.command` 已把 power 欄位整合進報表，因此 R29 以來「短 decode 可能 no samples」的限制在本輪資料中暫時解除。不過 decode power 數字仍容易受取樣相位影響，例如部分極短 decode 顯示非常低的平均 CPU power；分析時仍以 encode energy 作為主要能耗結論，decode energy 僅作輔助。
+
+## 下一步
+
+1. 下輪若繼續做演算法 DOE，仍以 `claw-code Optimal n40 36.98 MB/s / 513.40 J` 與 `llama.cpp Optimal n40 59.66 MB/s / 329.64 J` 作 R32 energy-aware baseline。
+2. 針對 `Other3 n40` 速度異常，下一輪先重複量測或固定熱狀態，再決定是否需要查 encode path；不要只用本輪單點判定回歸。
+3. power benchmark 已能完整跑完，但若再次卡在 `powermetrics` 停止流程，應優先檢查 `helper/power_benchmark.command` 的 sudo / child process cleanup，而不是壓縮器本身。
+
+---
+
 # 第三十一輪：revert R30-2 literal UBP 後重測（2026-06-17）
 
 > 本輪目的不是新增演算法改動，而是用已 revert `literal UBP` 的 source 重新跑完整 benchmark，確認 R30 觀察到的 BVX3 / Other3 退步是否來自 #30-2，而不是 #30-1 `Optimal cheap-probe gating`。

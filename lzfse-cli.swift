@@ -520,7 +520,15 @@ public enum LZFSEv1 {
             /// 8 位元組寬比較的最長相同前綴（XOR 後以 trailing zero 定位首個相異位元組）
             @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
                 var m = 0
-                while m + 8 <= limit {
+                // R32: 16-byte 展開——兩個 8-byte XOR 批次，長 match 迭代次數減半。
+                while m + 16 <= limit {
+                    let x0 = load64(a + m) ^ load64(b + m)
+                    let x1 = load64(a + m + 8) ^ load64(b + m + 8)
+                    if x0 != 0 { return m + (x0.trailingZeroBitCount >> 3) }
+                    if x1 != 0 { return m + 8 + (x1.trailingZeroBitCount >> 3) }
+                    m += 16
+                }
+                if m + 8 <= limit {
                     let x = load64(a + m) ^ load64(b + m)
                     if x != 0 { return m + (x.trailingZeroBitCount >> 3) }
                     m += 8
@@ -635,7 +643,15 @@ public enum LZFSEv1 {
             }
             @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
                 var m = 0
-                while m + 8 <= limit {
+                // R32: 16-byte 展開——兩個 8-byte XOR 批次，長 match 迭代次數減半。
+                while m + 16 <= limit {
+                    let x0 = load64(a + m) ^ load64(b + m)
+                    let x1 = load64(a + m + 8) ^ load64(b + m + 8)
+                    if x0 != 0 { return m + (x0.trailingZeroBitCount >> 3) }
+                    if x1 != 0 { return m + 8 + (x1.trailingZeroBitCount >> 3) }
+                    m += 16
+                }
+                if m + 8 <= limit {
                     let x = load64(a + m) ^ load64(b + m)
                     if x != 0 { return m + (x.trailingZeroBitCount >> 3) }
                     m += 8
@@ -857,7 +873,15 @@ public enum LZFSEv1 {
             }
             @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
                 var m = 0
-                while m + 8 <= limit {
+                // R32: 16-byte 展開——兩個 8-byte XOR 批次，長 match 迭代次數減半。
+                while m + 16 <= limit {
+                    let x0 = load64(a + m) ^ load64(b + m)
+                    let x1 = load64(a + m + 8) ^ load64(b + m + 8)
+                    if x0 != 0 { return m + (x0.trailingZeroBitCount >> 3) }
+                    if x1 != 0 { return m + 8 + (x1.trailingZeroBitCount >> 3) }
+                    m += 16
+                }
+                if m + 8 <= limit {
                     let x = load64(a + m) ^ load64(b + m)
                     if x != 0 { return m + (x.trailingZeroBitCount >> 3) }
                     m += 8
@@ -1192,7 +1216,15 @@ public enum LZFSEv1 {
             }
             @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
                 var m = 0
-                while m + 8 <= limit {
+                // R32: 16-byte 展開——兩個 8-byte XOR 批次，長 match 迭代次數減半。
+                while m + 16 <= limit {
+                    let x0 = load64(a + m) ^ load64(b + m)
+                    let x1 = load64(a + m + 8) ^ load64(b + m + 8)
+                    if x0 != 0 { return m + (x0.trailingZeroBitCount >> 3) }
+                    if x1 != 0 { return m + 8 + (x1.trailingZeroBitCount >> 3) }
+                    m += 16
+                }
+                if m + 8 <= limit {
                     let x = load64(a + m) ^ load64(b + m)
                     if x != 0 { return m + (x.trailingZeroBitCount >> 3) }
                     m += 8
@@ -1439,6 +1471,10 @@ public enum LZFSEv1 {
                     let candPacked = UInt32(bitPattern: head[qh])
                     insert(i)
                     let v = load32(i)
+                    // R32：第二 4-byte 閘預算值——load32(c) 已把 c..c+63 拉進 L1，
+                    // 進一步比對 bytes 4-7（bl≥4 時 4-byte chain match 不更優）。
+                    // i+8>n 或 c+8>n 時跳過此閘（邊界位置，極少發生）。
+                    let v4 = i + 8 <= n ? load32(i + 4) : 0
                     let cap = segEnd - i
                     // ── ① rep 候選（去重；含巨型 match 提交檢查）──
                     // R26：3-rep 展開——消除外層迴圈、三元選擇 r0/r1/r2、repsAfter() 呼叫；
@@ -1604,10 +1640,13 @@ public enum LZFSEv1 {
                             let dd = i - c
                             if dd > maxDist { break }
                             // R27：tag 先行純暫存器過濾——不符直接跳過，免去 p[c]/p[c+bl] 隨機讀取
+                            // R32：load32(c) 通過後同 cache line 額外比對 bytes 4-7；
+                            //      bl≥4 且 bytes 4-7 不符 → 只有 4-byte match，無法超越 bl → 省 matchLength。
                             if (packed >> chainTagShift) == qtag,
                                Int32(dd) != r0 && Int32(dd) != r1 && Int32(dd) != r2,
                                (i + bl >= n || p[c + bl] == p[i + bl]),
-                               load32(c) == v {
+                               load32(c) == v,
+                               bl < 4 || c + 8 > n || i + 8 > n || load32(c + 4) == v4 {
                                 let l = 4 + matchLength(c + 4, i + 4, limit: n - i - 4)
                                 if l > bl {
                                     bl = l
