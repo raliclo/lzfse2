@@ -37,7 +37,7 @@ swiftc -O lzfse-cli.swift -o lzfse
 ```
 
 ```text
-Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-si|-i input] [-so|-o output] [-test] [-h]
+Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal] [-si|-i input] [-so|-o output] [-test] [-h]
 ```
 
 使用預設 `other3` 引擎壓縮檔案：
@@ -53,10 +53,29 @@ Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-si|-i input] [-so|-o ou
 ./lzfse -encode -algo bvx3 -i input_file -o output_file.lzfse.bvx3
 ```
 
+使用 `bvx3` 較高壓縮率 parser 模式壓縮 tar 串流：
+
+```sh
+tar -cf - input_dir | ./lzfse -encode -si -o input_dir.lazy2.lzfse -algo bvx3 -lazy2
+tar -cf - input_dir | ./lzfse -encode -si -o input_dir.optimal.lzfse -algo bvx3 -optimal
+```
+
 解壓檔案：
 
 ```sh
 ./lzfse -decode -i input_file.lzfse -o output_file
+```
+
+解壓 `bvx3` 產物：
+
+```sh
+./lzfse -decode -i file.lzfse -o out.tar -algo bvx3
+```
+
+同一個工具內建解碼路徑也能解 `-algo apple` 或 Apple Compression 產生的標準 LZFSE 串流：
+
+```sh
+./lzfse -decode -i file.lzfse.apple -o out.tar -algo bvx3
 ```
 
 透過 stdin/stdout 串流處理：
@@ -65,6 +84,26 @@ Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-si|-i input] [-so|-o ou
 cat input_file | ./lzfse -encode -si -so > output_file.lzfse
 ./lzfse -decode -i input_file.lzfse -so > output_file
 ```
+
+`-lazy2` 和 `-optimal` 只是 **bvx3 encoder 的 parser / match selection 模式**，不改 `bvx3` bitstream 格式。壓出來的檔案仍是 `bvx3` 私有格式，所以解壓時只需要指定 `-algo bvx3`：
+
+```bash
+./lzfse -decode -i file.lzfse -o out.tar -algo bvx3
+```
+
+也就是：
+
+```bash
+./lzfse -encode -si -o a.lazy2.lzfse -algo bvx3 -lazy2
+./lzfse -decode -i a.lazy2.lzfse -so -algo bvx3
+```
+
+```bash
+./lzfse -encode -si -o a.optimal.lzfse -algo bvx3 -optimal
+./lzfse -decode -i a.optimal.lzfse -so -algo bvx3
+```
+
+解壓端不需要、也不應該加 `-lazy2` 或 `-optimal`。這兩個 flag 對 decode 沒有格式意義。
 
 執行內建測試：
 
@@ -79,6 +118,10 @@ cat input_file | ./lzfse -encode -si -so > output_file.lzfse
 | `other3` | 標準 LZFSE | 預設。多核心、lazy matching，輸出可由 Apple 解碼。 |
 | `apple` | 標準 LZFSE | 使用 Apple Compression framework。 |
 | `bvx3` | 本工具私有格式 | 較大的視窗與字母表可提升壓縮率；Apple 無法解碼。 |
+
+`bvx3` 編碼時，`-lazy2` 與 `-optimal` 會選擇較慢但可能提升壓縮率的 parser 模式。它們不會建立不同的解碼格式；一般 `bvx3`、`bvx3 -lazy2`、`bvx3 -optimal` 產物都使用 `-algo bvx3` 解碼。
+
+解碼時，`-algo other3` 與 `-algo bvx3` 使用同一個內建區塊解碼器。這個解碼器接受所有支援的 LZFSE 區塊型別，包含 `-algo apple` 或 Apple Compression 產生的標準串流。`-algo apple` 則會改用 Apple framework decoder。
 
 
 ## zsh 輔助函式

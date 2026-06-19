@@ -19,7 +19,6 @@ roundStatus() {
 
 # Step.2 清理前輪暫存檔 / Clean temporary artifacts from previous rounds.
 cleanTempFiles
-sleep 60
 
 # Step.3 設定 benchmark 掃描參數 / Configure benchmark sweep parameters.
 # 下一輪啟用記憶體峰值量測（probe）：正式壓縮/解壓 benchmark 完成後，才量所有格式 encode+decode peak RSS。
@@ -73,35 +72,74 @@ run_lz4bench_sweep() {
     done
 }
 
-# Step.4 執行 claw-code benchmark 掃描 / Run claw-code benchmark sweep.
-run_lz4bench_sweep claw-code
+# Step.7 執行 powermetrics power benchmark / Run powermetrics power benchmark.
+roundStatus "RUNNING_POWER_BENCHMARK"
+./helper/power_benchmark.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
 if [[ $rc -ne 0 ]]; then
+    roundStatus "POWER_BENCHMARK_FAILED $rc"
     exit $rc
 fi
-cleanTempFiles
+roundStatus "POWER_BENCHMARK_DONE"
 
-sleep 60
-
-# Step.5 執行 llama.cpp benchmark 掃描 / Run llama.cpp benchmark sweep.
-run_lz4bench_sweep llama.cpp
+# Step.8 匯出並分析 trace / Export and analyze traces.
+roundStatus "RUNNING_TRACE_ANALYSIS"
+./helper/trace_analysis.command
 rc=$?
 if [[ $rc -ne 0 ]]; then
+    roundStatus "TRACE_ANALYSIS_FAILED $rc"
     exit $rc
 fi
-cleanTempFiles
+roundStatus "TRACE_ANALYSIS_DONE"
 
-unset LZFSE_BENCH_N
-unset LZFSE_BENCH_SUFFIX
-
-# Step.6 執行 Time Profiler trace / Run Time Profiler traces.
-roundStatus "RUNNING_TRACER"
-./helper/tracer.command
+# Step.9 彙整 CPU call tree 熱點 / Summarize CPU call tree hotspots.
+roundStatus "RUNNING_CPU_CALL_TREE_ANALYSIS"
+./helper/cpu_call_tree_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
 if [[ $rc -ne 0 ]]; then
-    roundStatus "TRACER_FAILED $rc"
+    roundStatus "CPU_CALL_TREE_ANALYSIS_FAILED $rc"
     exit $rc
 fi
-roundStatus "TRACER_DONE"
+roundStatus "CPU_CALL_TREE_ANALYSIS_DONE"
 
-echo "Step1. Done. Please run sudo ./benchmark2.sh to continue the benchmark process."
+# Step.10 壓縮 Git 物件，降低大量 trace 產物後的 repo 體積 / Compact Git objects after trace outputs.
+roundStatus "RUNNING_GIT_GC"
+git gc --prune=now --aggressive >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "GIT_GC_FAILED $rc"
+    exit $rc
+fi
+roundStatus "GIT_GC_DONE"
+
+# Step.11 由 benchmark/memProbe/trace 重建 BenchMarkResult.csv / Rebuild BenchMarkResult.csv.
+roundStatus "RUNNING_BENCHMARK_RESULT_REBUILD"
+./helper/benchmark_result_rebuild.command --write >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "BENCHMARK_RESULT_REBUILD_FAILED $rc"
+    exit $rc
+fi
+roundStatus "BENCHMARK_RESULT_REBUILD_DONE"
+
+# Step.12 產生 Best Points 分析，輸出至 best_points/ / Generate Best Points analysis into best_points/.
+roundStatus "RUNNING_BEST_POINTS_ANALYSIS"
+./helper/best_points_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "BEST_POINTS_ANALYSIS_FAILED $rc"
+    exit $rc
+fi
+roundStatus "BEST_POINTS_ANALYSIS_DONE"
+
+# Step.13 整合 powermetrics CPU power 到 CSV / Integrate CPU power into CSV outputs.
+roundStatus "RUNNING_POWER_SUMMARY_INTEGRATE"
+./helper/power_summary_integrate.command >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "POWER_SUMMARY_INTEGRATE_FAILED $rc"
+    exit $rc
+fi
+roundStatus "POWER_SUMMARY_INTEGRATE_DONE"
+
+echo "Done."

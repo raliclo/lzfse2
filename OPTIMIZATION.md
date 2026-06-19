@@ -5,6 +5,63 @@
 
 ---
 
+# 第三十五輪：R34 修復重測與 R35 baseline（2026-06-19）
+
+> 本輪目的不是新增 ratio DOE，而是回退 R34 失敗路徑、清理未使用 DP macro transition，並重跑完整 benchmark / memProbe / trace / power，確認 `llama.cpp-n40 optimal` correctness 回復。
+
+## 修復內容
+
+- 移除 R34 `tag-less length-4 recovery` active path：`lzParseOptimal` 不再用 `optLen4ProbeDepth` 回收被 tag-packing 濾掉的 length-4 candidate。
+- 清理先前失敗實驗殘留的未使用 macro transition 狀態：`relaxLiteralRep0` / `relaxMatchLiteralRep0`、`cLitBefore/cLen2/cDist2`、`stepLitBefore/stepLen2/stepDist2` 全部移除。
+- `emitSteps` 與 optimal backtrack 回到單一 match/literal step：每個 DP cell 只記錄 `cLen/cDist/cR0/cR1/cR2`，避免下一輪 DOE 混入未使用欄位與額外記憶體成本。
+
+## 資料狀態
+
+- `round_status.txt` 已跑到 `Done`，並完成 `BENCHMARK_RESULT_REBUILD_DONE`、`BEST_POINTS_ANALYSIS_DONE`、`POWER_SUMMARY_INTEGRATE_DONE`。
+- `claw-code` 與 `llama.cpp` 的 n40 / n8 / n4 完整 compare 通過；未再出現 R34 的 `tar: Write error`、半成品 `.lzfse.bvx3.optimal`、`Truncated tar archive`。
+- `BenchMarkResult.csv` 已重建 48 rows，速度以實際 bytes/ns 換算；本輪 raw size 為 `claw-code 1351M`、`llama.cpp 1261M`，資料集/封存大小與舊輪次可能有浮動，因此主要看本輪同碼同資料內的相對排序。
+- power 資料唯一瑕疵是 `llama.cpp-lazy2 n40 decode` 為 `ok:no_samples`；這是短 decode 取樣不足，不影響 correctness，也不影響 encode energy 結論。
+
+## n40 代表結果
+
+`claw-code`：
+
+| 格式 | 壓縮 MB/s | 解壓 MB/s | 壓縮比 | Encode RSS(MB) | Decode RSS(MB) | Encode CPU Energy(J) | CPU top |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Other3 | 365.75 | 343.16 | 0.9865 | 271.0 | 300.1 | 36.113226 | encode / 70 |
+| BVX3 | 310.37 | 352.72 | 0.9492 | 233.1 | 324.9 | 35.059268 | encode / 61 |
+| Lazy2 | 64.37 | 303.39 | 0.8998 | 495.8 | 320.5 | 119.950248 | parse / 152 |
+| Optimal | 34.70 | 295.47 | 0.8590 | 578.1 | 308.0 | 545.694678 | parse / 737 |
+| ZSTD | 352.87 | 475.22 | 0.8245 | 377.2 | 9.3 | 49.168387 | external_tool / 174 |
+| TLZ4 | 408.54 | 408.78 | 1.1793 | 82.9 | 33.7 | 33.854015 | external_tool / 288 |
+
+`llama.cpp`：
+
+| 格式 | 壓縮 MB/s | 解壓 MB/s | 壓縮比 | Encode RSS(MB) | Decode RSS(MB) | Encode CPU Energy(J) | CPU top |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Other3 | 95.29 | 87.79 | 0.9957 | 348.3 | 349.1 | 30.003544 | encode / 75 |
+| BVX3 | 95.53 | 87.54 | 0.9787 | 347.0 | 351.4 | 27.975481 | encode / 60 |
+| Lazy2 | 85.25 | 89.38 | 0.9551 | 497.0 | 348.8 | 59.204837 | parse / 126 |
+| Optimal | 49.89 | 88.28 | 0.9393 | 587.2 | 349.3 | 371.502908 | parse / 660 |
+| ZSTD | 98.53 | 90.55 | 0.9100 | 473.9 | 9.0 | 30.805776 | external_tool / 141 |
+| TLZ4 | 91.68 | 88.98 | 1.0537 | 80.6 | 33.8 | 42.736587 | external_tool / 285 |
+
+## 判定
+
+- **R34 correctness regression 已修復**：最重要的 `llama.cpp-n40 optimal` 已完成 encode/decode/compare，R34 的截斷失敗未重現。
+- R35 是 clean baseline，不是新的壓縮率改善。`Optimal` 壓縮比仍最佳（`claw-code 0.8590`、`llama.cpp 0.9393`），但 encode energy 仍最高（`545.69 J` / `371.50 J`），CPU top 仍集中在 `lzParseOptimal` parse closure。
+- `BVX3` fast path 在本輪能耗仍接近 TLZ4：`claw-code n40` 為 `35.06 J` vs TLZ4 `33.85 J`；`llama.cpp n40` 為 `27.98 J`，甚至低於 ZSTD `30.81 J`。但 BVX3 family 的 RSS 仍偏高，尤其 n40 decode 約 `325~351 MB`，遠高於 TLZ4 `33~34 MB` 與 ZSTD `9 MB`。
+- `-n` 的速度/RSS取捨仍明顯：`claw-code BVX3` 最佳壓縮速度在 n8 (`414.50 MB/s`)，n40 反而降到 `310.37 MB/s` 且 RSS 升到 `233.1/324.9 MB`；`Lazy2/Optimal` 則 n40 明顯降低 encode energy，但 RSS 上升到約 `496~578 MB`。
+- trace 仍多數 timeout，但 `target_seen=yes`、`time-profile/time-sample ok`，CPU call tree summary 可用；`Optimal` 的 `cpu_parse_hits` 仍約 `1100+`，表示下一個 ratio DOE 若增加 DP state，必須先限制啟用區段，否則很容易把時間與 RSS 再推高。
+
+## 下一步
+
+- 不再直接重試 length-4 recovery。若要研究 tag-packing 是否傷害壓縮比，先做 instrumentation counter：被 tag 濾掉但 `load32(c)==v` 的數量、實際成為最佳 DP edge 的比例、以及資料集/段落分布；預設仍關閉。
+- 下一個真正的 Optimal ratio 候選仍是小型 2-state / small beam，但只能先在 rep-heavy 或 high-coverage 段啟用；成功條件需同時包含壓縮比改善、`claw-code/llama.cpp` compare 全通過、encode RSS 不失控、encode energy 不明顯惡化。
+- 若優先處理 BVX3 family，下一輪應查 n40 encode/decode RSS：chunk in-flight、解碼 group buffering、輸出側暫存陣列生命週期。這比繼續追 BVX3 encode energy 更重要。
+
+---
+
 # 第三十四輪：Codex #4 — tag-less length-4 補檢（2026-06-19）/ Round 34: Recover length-4 matches filtered by tag-packing
 
 > 只動 `lzfse-cli.swift`。承 Codex 對 xz 的研究四點。**先釐清狀態**再做。

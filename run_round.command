@@ -17,6 +17,7 @@ fi
 echo "TEST_OK $(date +%H:%M:%S)" >> round_status.txt
 echo "RUNNING benchmark $(date +%H:%M:%S)" >> round_status.txt
 ./benchmark.sh >> round_status.txt 2>&1
+sudo ./benchmark2.sh >> round_status.txt 2>&1
 rc=$?
 if [[ $rc -eq 0 ]]; then
     echo "BENCH_DONE $(date +%H:%M:%S)" >> round_status.txt
@@ -24,4 +25,5 @@ else
     echo "BENCH_FAILED $rc $(date +%H:%M:%S)" >> round_status.txt
 fi
 git gc --prune=now --aggressive >> round_status.txt 2>&1
+chown -R raliclo .
 exit $rc

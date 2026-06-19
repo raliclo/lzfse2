@@ -1049,10 +1049,6 @@ public enum LZFSEv1 {
     // 仍付滿額鏈走訪成本。以「搜尋預算」上限（區塊大小的倍數）監控累計鏈走訪
     // 步數，超支即把剩餘搜尋深度砍半，確保不會「為 0.1% 比率燒 50% 時間」。
     static let optBudgetMultiplier = 2        // 預算 = segLen × 此倍數（zstd 式成本上界）
-    // R34（Codex #4）：tag-packing 會濾掉「前 4 bytes 同、第 5 byte 異」的 length-4 候選。
-    //   僅在本位置完全找不到 ≥4 match 時，對 bucket 前幾項做 tag-less 補檢，回收一個 length-4 match。
-    //   只給 -optimal 的 ratio mode 用;設 0 即關閉。
-    static let optLen4ProbeDepth = 4
     // R9：每段熵預篩——以輕量 greedy 掃描估重複率。低於門檻者整段直接 greedy 發射、
     // 不啟動 DP（二進位/隨機資料在第一階段就被判定「不值得深究」）。
     static let optPrescreenMinCoverage = 28   // greedy match 覆蓋率（%）門檻；以下跳過 DP
@@ -1120,29 +1116,19 @@ public enum LZFSEv1 {
         let cR0    = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
         let cR1    = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
         let cR2    = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
-        let cLitBefore = UnsafeMutablePointer<UInt8>.allocate(capacity: segCap + 1)
-        let cLen2  = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
-        let cDist2 = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
         cPrice.initialize(repeating: INF, count: segCap + 1)
         cLen.initialize(repeating: 0, count: segCap + 1)
         cDist.initialize(repeating: 0, count: segCap + 1)
         cR0.initialize(repeating: 0, count: segCap + 1)
         cR1.initialize(repeating: 0, count: segCap + 1)
         cR2.initialize(repeating: 0, count: segCap + 1)
-        cLitBefore.initialize(repeating: 0, count: segCap + 1)
-        cLen2.initialize(repeating: 0, count: segCap + 1)
-        cDist2.initialize(repeating: 0, count: segCap + 1)
         defer {
             cPrice.deallocate(); cLen.deallocate(); cDist.deallocate()
             cR0.deallocate(); cR1.deallocate(); cR2.deallocate()
-            cLitBefore.deallocate(); cLen2.deallocate(); cDist2.deallocate()
         }
         // 回溯步驟緩衝（stepLen==0 表 literal 步）；frontier 緩衝（≤ 深度 項）
         let stepLen  = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
         let stepDist = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
-        let stepLitBefore = UnsafeMutablePointer<UInt8>.allocate(capacity: segCap + 1)
-        let stepLen2 = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
-        let stepDist2 = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
         let frCap = optSearchDepth + 1
         let frLen   = UnsafeMutablePointer<Int32>.allocate(capacity: frCap)
         let frDist  = UnsafeMutablePointer<Int32>.allocate(capacity: frCap)
@@ -1150,7 +1136,6 @@ public enum LZFSEv1 {
         let frMin   = UnsafeMutablePointer<Int32>.allocate(capacity: frCap)
         defer {
             stepLen.deallocate(); stepDist.deallocate()
-            stepLitBefore.deallocate(); stepLen2.deallocate(); stepDist2.deallocate()
             frLen.deallocate(); frDist.deallocate(); frPrice.deallocate(); frMin.deallocate()
         }
 
@@ -1263,49 +1248,6 @@ public enum LZFSEv1 {
                 if d == r2 { return (r2, r0, r1) }
                 return (d, r0, r1)
             }
-            @inline(__always) func mPriceForLen(_ len: Int) -> Int32 {
-                var s = 4
-                while s + 1 < lm3Symbols && Int32(len) >= lmBaseP[s + 1] { s += 1 }
-                return mPriceTab[s]
-            }
-            @inline(__always) func relaxLiteralRep0(t: Int, i: Int, base: Int32,
-                                                    r0: Int32, r1: Int32, r2: Int32,
-                                                    segEnd: Int) {
-                let rd = Int(r0)
-                let repStart = i + 1
-                if rd <= 0 || rd > repStart || repStart + 4 > segEnd { return }
-                if load32(repStart - rd) != load32(repStart) { return }
-                let cap = segEnd - repStart
-                let l = 4 + matchLength(repStart - rd + 4, repStart + 4, limit: cap - 4)
-                let dest = t + 1 + l
-                let c2 = base + litPrice[Int(p[i])] + matchConst + mPriceForLen(l) + dPriceTab[0]
-                if c2 < cPrice[dest] {
-                    cPrice[dest] = c2; cLen[dest] = Int32(l); cDist[dest] = r0
-                    cR0[dest] = r0; cR1[dest] = r1; cR2[dest] = r2
-                    cLitBefore[dest] = 1; cLen2[dest] = 0; cDist2[dest] = 0
-                }
-            }
-            @inline(__always) func relaxMatchLiteralRep0(t: Int, i: Int, baseCost: Int32,
-                                                         firstLen: Int, firstDist: Int32,
-                                                         nextR0: Int32, nextR1: Int32, nextR2: Int32,
-                                                         segEnd: Int) {
-                let litPos = i + firstLen
-                let repStart = litPos + 1
-                let rd = Int(nextR0)
-                if firstLen < 4 || litPos >= segEnd || repStart + 4 > segEnd { return }
-                if rd <= 0 || rd > repStart { return }
-                if load32(repStart - rd) != load32(repStart) { return }
-                let cap = segEnd - repStart
-                let l2 = 4 + matchLength(repStart - rd + 4, repStart + 4, limit: cap - 4)
-                let dest = t + firstLen + 1 + l2
-                let c2 = baseCost + litPrice[Int(p[litPos])] + matchConst + mPriceForLen(l2) + dPriceTab[0]
-                if c2 < cPrice[dest] {
-                    cPrice[dest] = c2; cLen[dest] = Int32(firstLen); cDist[dest] = firstDist
-                    cR0[dest] = nextR0; cR1[dest] = nextR1; cR2[dest] = nextR2
-                    cLitBefore[dest] = 0; cLen2[dest] = Int32(l2); cDist2[dest] = nextR0
-                }
-            }
-
             /// 發射一段已回溯的最佳路徑（stepLen/stepDist 由回溯「反向」填入，
             /// 故由 count-1 往 0 走即為正序）。含統計更新與 rep 歷史推進。
             func emitSteps(_ count: Int, from start: Int) -> Int {
@@ -1334,27 +1276,14 @@ public enum LZFSEv1 {
                         i += 1
                     } else {
                         let sd = Int(stepDist[k])
-                        let litBefore = Int(stepLitBefore[k])
-                        let matchStart = i + litBefore
                         literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
-                                                                        count: matchStart - litStart))
+                                                                        count: i - litStart))
                         var j = litStart
-                        while j < matchStart { litCount[Int(p[j])] &+= 1; j += 1 }
-                        pushRun(l: matchStart - litStart, m: sl, d: sd)
+                        while j < i { litCount[Int(p[j])] &+= 1; j += 1 }
+                        pushRun(l: i - litStart, m: sl, d: sd)
                         noteMatch(sl, sd)
-                        i = matchStart + sl
+                        i += sl
                         litStart = i
-
-                        let sl2 = Int(stepLen2[k])
-                        if sl2 > 0 {
-                            let sd2 = Int(stepDist2[k])
-                            literals.append(p[i])
-                            litCount[Int(p[i])] &+= 1
-                            pushRun(l: 1, m: sl2, d: sd2)
-                            noteMatch(sl2, sd2)
-                            i += 1 + sl2
-                            litStart = i
-                        }
                     }
                     k -= 1
                 }
@@ -1520,8 +1449,6 @@ public enum LZFSEv1 {
                 cPrice.update(repeating: INF, count: segLen + 1)
                 cPrice[0] = 0
                 cR0[0] = Int32(rep0); cR1[0] = Int32(rep1); cR2[0] = Int32(rep2)
-                cLitBefore[0] = 0; cLen2[0] = 0; cDist2[0] = 0
-
                 var cutT = -1, cutLen = 0, cutDist = 0
                 var barren = 0          // 連續無 match 的位置數（荒漠偵測，R3）
                 // R9：搜尋預算——累計鏈走訪步數；超支即砍半剩餘深度
@@ -1537,7 +1464,6 @@ public enum LZFSEv1 {
                     if litStep < cPrice[t + 1] {
                         cPrice[t + 1] = litStep; cLen[t + 1] = 0; cDist[t + 1] = 0
                         cR0[t + 1] = r0; cR1[t + 1] = r1; cR2[t + 1] = r2
-                        cLitBefore[t + 1] = 0; cLen2[t + 1] = 0; cDist2[t + 1] = 0
                     }
                     if i + 5 > n { t += 1; continue }   // R4：hash5 需 idx ≤ n-5
                     // R27：先取候選再插入（避免自我參照）。head 為封裝值，
@@ -1578,7 +1504,6 @@ public enum LZFSEv1 {
                                             for q in ll...(ll + 3) where c2 < cPrice[t + q] {
                                                 cPrice[t + q] = c2; cLen[t + q] = Int32(q)
                                                 cDist[t + q] = r; cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
-                                                cLitBefore[t + q] = 0; cLen2[t + q] = 0; cDist2[t + q] = 0
                                             }
                                         }
                                         ll += 4
@@ -1588,7 +1513,6 @@ public enum LZFSEv1 {
                                         if c2 < cPrice[dest] {
                                             cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
                                             cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
-                                            cLitBefore[dest] = 0; cLen2[dest] = 0; cDist2[dest] = 0
                                         }
                                         ll += 1
                                     }
@@ -1598,7 +1522,6 @@ public enum LZFSEv1 {
                                 if c2 < cPrice[dest] {
                                     cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
                                     cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
-                                    cLitBefore[dest] = 0; cLen2[dest] = 0; cDist2[dest] = 0
                                 }
                                 if ll == lim { break }
                                 ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
@@ -1628,7 +1551,6 @@ public enum LZFSEv1 {
                                             for q in ll...(ll + 3) where c2 < cPrice[t + q] {
                                                 cPrice[t + q] = c2; cLen[t + q] = Int32(q)
                                                 cDist[t + q] = r; cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
-                                                cLitBefore[t + q] = 0; cLen2[t + q] = 0; cDist2[t + q] = 0
                                             }
                                         }
                                         ll += 4
@@ -1638,7 +1560,6 @@ public enum LZFSEv1 {
                                         if c2 < cPrice[dest] {
                                             cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
                                             cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
-                                            cLitBefore[dest] = 0; cLen2[dest] = 0; cDist2[dest] = 0
                                         }
                                         ll += 1
                                     }
@@ -1648,7 +1569,6 @@ public enum LZFSEv1 {
                                 if c2 < cPrice[dest] {
                                     cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
                                     cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
-                                    cLitBefore[dest] = 0; cLen2[dest] = 0; cDist2[dest] = 0
                                 }
                                 if ll == lim { break }
                                 ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
@@ -1678,7 +1598,6 @@ public enum LZFSEv1 {
                                             for q in ll...(ll + 3) where c2 < cPrice[t + q] {
                                                 cPrice[t + q] = c2; cLen[t + q] = Int32(q)
                                                 cDist[t + q] = r; cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
-                                                cLitBefore[t + q] = 0; cLen2[t + q] = 0; cDist2[t + q] = 0
                                             }
                                         }
                                         ll += 4
@@ -1688,7 +1607,6 @@ public enum LZFSEv1 {
                                         if c2 < cPrice[dest] {
                                             cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
                                             cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
-                                            cLitBefore[dest] = 0; cLen2[dest] = 0; cDist2[dest] = 0
                                         }
                                         ll += 1
                                     }
@@ -1698,7 +1616,6 @@ public enum LZFSEv1 {
                                 if c2 < cPrice[dest] {
                                     cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r
                                     cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
-                                    cLitBefore[dest] = 0; cLen2[dest] = 0; cDist2[dest] = 0
                                 }
                                 if ll == lim { break }
                                 ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
@@ -1747,29 +1664,6 @@ public enum LZFSEv1 {
                         // R9：把本次實際走訪步數計入預算
                         searchBudget -= (depth0 - depth)
                         if searchBudget <= 0 { budgetExhausted = true }
-                        // R34（Codex #4）：本位置完全沒找到 ≥4 match（bl < 4）時，對 bucket 前 optLen4ProbeDepth
-                        //   項做 tag-less 補檢，回收被 tag-packing 濾掉的 length-4 match（前 4 bytes 同、第 5 異）。
-                        //   只加一個合法 length-4 候選（load32(c)==v 確認）→ 正確性 safe;⚠️ 會改壓縮比/速度。
-                        if bl < 4 && optLen4ProbeDepth > 0 && frCount < frCap {
-                            var pk = candPacked
-                            var d4 = optLen4ProbeDepth
-                            while d4 > 0 {
-                                let c = Int(pk & chainIndexMask)
-                                if c == chainNullIndex || c >= i { break }
-                                let dd = i - c
-                                if dd > maxDist { break }
-                                if Int32(dd) != r0 && Int32(dd) != r1 && Int32(dd) != r2, load32(c) == v {
-                                    frLen[frCount] = 4
-                                    frDist[frCount] = Int32(dd)
-                                    frPrice[frCount] = dPriceTab[dSym(dd)]
-                                    frCount += 1
-                                    bl = 4
-                                    break
-                                }
-                                pk = UInt32(bitPattern: chain[c])
-                                d4 -= 1
-                            }
-                        }
                         if frCount > 0 {
                             if Int(frLen[frCount - 1]) >= optSufficientLen {
                                 cutT = t
@@ -1813,7 +1707,6 @@ public enum LZFSEv1 {
                                                 cDist[t + q] = dd
                                                 let (n0, n1, n2) = repsAfter(dd, r0, r1, r2)
                                                 cR0[t + q] = n0; cR1[t + q] = n1; cR2[t + q] = n2
-                                                cLitBefore[t + q] = 0; cLen2[t + q] = 0; cDist2[t + q] = 0
                                             }
                                         }
                                         ll += 4
@@ -1825,7 +1718,6 @@ public enum LZFSEv1 {
                                             cDist[dest] = dd
                                             let (n0, n1, n2) = repsAfter(dd, r0, r1, r2)
                                             cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
-                                            cLitBefore[dest] = 0; cLen2[dest] = 0; cDist2[dest] = 0
                                         }
                                         ll += 1
                                     }
@@ -1838,7 +1730,6 @@ public enum LZFSEv1 {
                                     cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = dd
                                     let (n0, n1, n2) = repsAfter(dd, r0, r1, r2)
                                     cR0[dest] = n0; cR1[dest] = n1; cR2[dest] = n2
-                                    cLitBefore[dest] = 0; cLen2[dest] = 0; cDist2[dest] = 0
                                 }
                                 if ll == maxLen { break }
                                 // R3：≥ optDenseLen 後 stride-4；R5：≥ optHugeLen 後 stride-16
@@ -1861,14 +1752,10 @@ public enum LZFSEv1 {
                     let sl = cLen[tt]
                     if sl == 0 {
                         stepLen[sc] = 0; stepDist[sc] = 0
-                        stepLitBefore[sc] = 0; stepLen2[sc] = 0; stepDist2[sc] = 0
                         tt -= 1
                     } else {
-                        let lb = cLitBefore[tt]
-                        let sl2 = cLen2[tt]
                         stepLen[sc] = sl; stepDist[sc] = cDist[tt]
-                        stepLitBefore[sc] = lb; stepLen2[sc] = sl2; stepDist2[sc] = cDist2[tt]
-                        tt -= Int(sl) + Int(lb) + (sl2 > 0 ? 1 + Int(sl2) : 0)
+                        tt -= Int(sl)
                     }
                     sc += 1
                 }

@@ -37,7 +37,7 @@ Or run the helper script:
 ```
 
 ```text
-Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-si|-i input] [-so|-o output] [-test] [-h]
+Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal] [-si|-i input] [-so|-o output] [-test] [-h]
 ```
 
 Compress a file with the default `other3` engine:
@@ -53,10 +53,29 @@ Compress with a specific engine:
 ./lzfse -encode -algo bvx3 -i input_file -o output_file.lzfse.bvx3
 ```
 
+Compress a tar stream with `bvx3` higher-ratio parser modes:
+
+```sh
+tar -cf - input_dir | ./lzfse -encode -si -o input_dir.lazy2.lzfse -algo bvx3 -lazy2
+tar -cf - input_dir | ./lzfse -encode -si -o input_dir.optimal.lzfse -algo bvx3 -optimal
+```
+
 Decompress a file:
 
 ```sh
 ./lzfse -decode -i input_file.lzfse -o output_file
+```
+
+Decode `bvx3` output:
+
+```sh
+./lzfse -decode -i file.lzfse -o out.tar -algo bvx3
+```
+
+The same tool decoder path can also decode standard LZFSE streams produced by `-algo apple` or Apple Compression:
+
+```sh
+./lzfse -decode -i file.lzfse.apple -o out.tar -algo bvx3
 ```
 
 Stream through stdin/stdout:
@@ -65,6 +84,26 @@ Stream through stdin/stdout:
 cat input_file | ./lzfse -encode -si -so > output_file.lzfse
 ./lzfse -decode -i input_file.lzfse -so > output_file
 ```
+
+`-lazy2` and `-optimal` are only **parser / match selection modes for the `bvx3` encoder**. They do not change the `bvx3` bitstream format. The encoded file is still a private `bvx3` stream, so decode it with `-algo bvx3`:
+
+```bash
+./lzfse -decode -i file.lzfse -o out.tar -algo bvx3
+```
+
+For example:
+
+```bash
+./lzfse -encode -si -o a.lazy2.lzfse -algo bvx3 -lazy2
+./lzfse -decode -i a.lazy2.lzfse -so -algo bvx3
+```
+
+```bash
+./lzfse -encode -si -o a.optimal.lzfse -algo bvx3 -optimal
+./lzfse -decode -i a.optimal.lzfse -so -algo bvx3
+```
+
+The decoder does not need, and should not use, `-lazy2` or `-optimal`. These flags have no decode-side format meaning.
 
 Run built-in tests:
 
@@ -79,6 +118,10 @@ Run built-in tests:
 | `other3` | Standard LZFSE | Default. Multi-core, lazy matching, Apple-decodable output. |
 | `apple` | Standard LZFSE | Uses Apple's Compression framework. |
 | `bvx3` | Private to this tool | Larger window and alphabets for better ratio; not Apple-decodable. |
+
+For `bvx3` encoding, `-lazy2` and `-optimal` select slower parser modes that can improve compression ratio. They do not create separate decode formats; all `bvx3`, `bvx3 -lazy2`, and `bvx3 -optimal` outputs are decoded with `-algo bvx3`.
+
+For decoding, `-algo other3` and `-algo bvx3` use the same built-in block decoder. That decoder accepts all supported LZFSE block types, including standard streams produced by `-algo apple` or Apple Compression. `-algo apple` uses Apple's framework decoder instead.
 
 ## zsh Helpers
 
