@@ -3,6 +3,88 @@
 
 ## Note : 找到IO跟磁碟容量會銳減的原因,是因為沒有設定.gitignore,所以VS CODE會自動將這些檔案列入git的暫存區,導致磁碟IO競爭與容量銳減,所以以後的測試暫存檔案的檔案都需要藉由.gitignore排除
 
+## 驗收術語
+
+- **output-identical**：以解壓／extract 後的內容 compare 為準；只要解壓結果與原始資料完全一致即通過，不要求壓縮檔位元組相同。
+- **bitstream-identical**：壓縮產物的位元組與 baseline 完全相同，這是比 output-identical 更嚴格且獨立的條件。
+- 壓縮檔大小或壓縮比變動應另行記錄，不得單獨用來判定 output-identical 失敗。
+
+---
+
+# 第三十六輪：Optimal 能耗/速度 — rep1/rep2 支配跳過（output-identical 通過）（2026-06-19）/ Round 36: rep1/rep2 Dominated-Range Skip
+
+> 方向轉向：ratio 路線（#1/R33、#3、#4）已耗盡，本輪改做 Optimal 能耗／時間優化。兩個資料集全部解壓 compare 通過，因此 **output-identical 驗收成立**；壓縮 bitstream 與大小有微小變動，另列為非 bitstream-identical。只動 `lzfse-cli.swift`。
+
+## 改動：rep1/rep2 relaxation 跳過被支配長度段
+
+- `lzParseOptimal` 每位置會跑 rep0 / rep1 / rep2 三個 relaxation 迴圈,各自把 `cPrice[t+4 … t+l]` 鬆弛。
+- 觀察:同一長度 q,rep1 的成本 = rep0 成本 + (`dPriceTab[1] − dPriceTab[0]`)。當 `dPriceTab[1] ≥ dPriceTab[0]`（rep0 距離較便宜,實務上幾乎恆成立,因 rep0 最常用）時,rep1 在 `4 … min(repLen0,cap)` 這段的價格**必然 ≥ rep0 已寫入的價格** → `if c2 < cPrice[dest]` 恆 false → **這段 rep1 是純 no-op**。rep2 同理被 rep0/rep1 中較便宜者支配。
+- 因此加上價格守衛後,rep1/rep2 的 relaxation **直接從被支配段之後開始**(`ll` 起點上移),跳過必為 no-op 的 SIMD/scalar 迴圈。
+- 原始假設是被跳過的 `c2 ≥ cPrice` 寫入皆為 no-op，因而壓縮 bitstream 不變；後續實測否定 bitstream-identical 假設，但解壓輸出仍完全一致，詳見「判定」。
+- 預期 rep-heavy 段可省下 rep1/rep2 relaxation，讓 Optimal 壓縮時間／能耗下降；實測 benchmark 速度小幅改善，但最新 power 重測未顯示能耗改善。output-identical 通過，嚴格壓縮比中立未成立。
+
+## 實測結果
+
+- `swiftc -O`、內建 `-test` 與兩個資料集 n40 / n8 / n4 的 encode、decode、compare 全部通過，未出現截斷或內容不一致。
+- 本輪 raw size 為 `claw-code 1,416,220,672 bytes`、`llama.cpp 1,322,553,344 bytes`；MB/s 均以 raw bytes / ns 原始計算。
+
+| 資料集 | n | Optimal 壓縮 MB/s | 解壓 MB/s | Encode RSS(MB) | Decode RSS(MB) | Encode CPU Energy(J) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 40 | 36.22 | 394.35 | 572.3 | 308.9 | 602.633383 |
+| claw-code | 8 | 32.00 | 388.13 | 378.2 | 105.2 | 755.991824 |
+| claw-code | 4 | 25.05 | 331.14 | 212.8 | 68.5 | 1103.015427 |
+| llama.cpp | 40 | 50.42 | 84.65 | 563.5 | 348.9 | 407.283755 |
+| llama.cpp | 8 | 42.22 | 85.99 | 392.5 | 102.8 | 500.817190 |
+| llama.cpp | 4 | 33.62 | 81.55 | 232.1 | 71.1 | 737.546883 |
+
+相對 R35 n40 baseline：
+
+- `claw-code`：`34.70 → 36.22 MB/s`（約 `+4.4%`），但最新 encode CPU energy 為 `545.694678 → 602.633383 J`（約 `+10.4%`）。
+- `llama.cpp`：`49.89 → 50.42 MB/s`（約 `+1.1%`），但最新 encode CPU energy 為 `371.502908 → 407.283755 J`（約 `+9.6%`）。
+- 最新 power run 的 duration / 平均功率均與前次不同，因此不能把能耗上升完全歸因於 R36 程式碼；但依「採最新有效資料」原則，本輪不再宣稱 encode energy 改善，需以固定熱狀態重複量測才能做因果判定。
+- n40 仍是 Optimal 的最佳速度／同輪最低能耗點，但也是 RSS 最高點。相對 n4，n40 將 encode CPU energy 從 `1103.02 / 737.55 J` 降到 `602.63 / 407.28 J`（約 `-45%`），代價是 encode RSS 從 `212.8 / 232.1 MB` 升到 `572.3 / 563.5 MB`。這確認 chunk in-flight 數量是 RSS 主因之一，也顯示降低 concurrency 雖省記憶體，卻因執行時間拉長而增加總能耗。
+
+### Profiling 重建結果
+
+- 第二批 profiling 已完整完成：共 36 個 trace package，6 個外部工具 trace 正常結束，30 個 LZFSE family trace 在 300 秒達 time limit；所有 trace 均 `target_seen=yes`，且 `time-profile` / `time-sample` schema 匯出成功。
+- CPU call tree 共分析 72 個 XML。summary 寫完後才執行清理，狀態為 `CPU_CALL_TREE_TRACE_CLEANED before=36 after=0`；證明修正後不再於分析前遺失來源 trace。`BenchMarkResult.csv` 已重建 48 rows，power 72/72 為 `status=ok`，best-points 與 power 欄位均完成整合。
+- R35 → R36 的 Optimal n40 directional sample：`claw-code` parse hits `1170 → 1191`、top `lzParseOptimal` closure `737 → 769`；`llama.cpp` parse hits `1101 → 1133`、top closure `660 → 696`。`matchLength` 為 `71 → 82` / `72 → 77`，`rebuildPrices` 為 `36 → 42` / `34 → 44`。
+- 以上是固定 300 秒 timeout trace 的 symbol occurrence，不是精確 CPU 百分比；但兩個資料集都沒有呈現 parse / top closure sample 明顯下降，因此 profiling 不支持「rep1/rep2 skip 已降低主要 CPU hotspot」的強結論。主熱點仍是 `lzParseOptimal` closure，其次為 entropy prescreen、`matchLength`、`emitSteps`、`rebuildPrices` 與 Swift Array/COW。
+
+### RSS 與 CPU 能耗取捨
+
+- 依 `LPDDR_power_estimation/LPDDR_power_info.md` 的連續存取估算，LPDDR4X / LPDDR5 約為 `150 / 120 mW/GB`。RSS 從約 `60 MB` 增至 `300 MB`，增量約 `240 MB`（`0.234 GB`），對應 DRAM 額外功率約 `35 / 28 mW`。
+- 若再納入 memory controller / PHY 約 20–40% 的額外成本，記憶體子系統增量約 `34–49 mW`。即使把這視為整段持續活動的保守上限，執行 40 秒約增加 `1.4–2.0 J`；若只有約 4 秒，則約 `0.14–0.20 J`。
+- 同輪 decode n4 → n40 時，RSS 約由 `68.5 / 71.1 MB` 升至 `308.9 / 348.9 MB`，但 CPU energy 由 `17.13 / 11.33 J` 降至 `8.39 / 5.86 J`（約 `-51% / -48%`）。這個 CPU 節省量級遠高於不到 1 秒期間約數百分之一焦耳的估算記憶體增量。因此在目前桌面測試與約 `300 MB` RSS 範圍內，**優先降低 CPU 執行時間／總能耗是較佳整體取捨，300 MB RSS 可接受**。
+- 這是依 active-memory 單位功耗建立的模型估算，不是本輪 DRAM 實測；RSS 也不等於所有頁面都持續讀寫。結論應用於能源取捨，不代表可忽略記憶體容量、系統 memory pressure 或多工作負載併行問題。Optimal encode n40 仍達約 `563–572 MB`，超過此處 300 MB 的可接受基準，仍應繼續調查 DP buffer 與 chunk in-flight 生命週期。
+
+### 適用場景：伺服器端更新包壓縮
+
+- Optimal compression 適合「伺服器端壓縮一次、client 端下載與解壓多次」的分發模型，例如大型 server-side code update、App 或遊戲更新包、CDN 靜態資產。高成本 encode 可在發布端離線完成，並由大量下載次數攤提，不應只用單次 encode energy 判斷整體效率。
+- 本輪 Optimal 相對 BVX3 / Other3 產物更小；在大規模分發時，每個 client 都能減少下載 bytes，因而降低網路傳輸時間與 radio / Wi-Fi 活動時間。累積到大量 iPhone 或其他 client 後，傳輸端節省通常比伺服器增加的一次性壓縮成本更重要。
+- client 端只執行 decode。R36 n40 的 Optimal decode 與同一 BVX3 family 其他模式使用相同格式與 decoder，解壓速度維持可用水位；約 `300 MB` RSS 的能源成本依前述 LPDDR 模型仍小於 CPU／傳輸節省，因此在記憶體容量允許的裝置上，整體方向有利於 client-side energy。
+- 系統層評估應使用：`一次 encode energy + 所有 client 的傳輸 energy + 所有 client 的 decode energy`。下載次數越多、壓縮大小差距越大，Optimal 的 server-side 高 encode 成本越容易被攤平；若只是單次本機壓縮，則未必划算。
+- App Store 僅作應用場景類比：目前 `bvx3` 是私有格式，實際部署需要 client 端整合對應 decoder，並符合平台更新、簽章與封裝流程；本報告不宣稱現有格式可直接替換 App Store 的正式更新格式。
+
+## 判定
+
+- **正確性與 output-identical 驗收通過。**兩個資料集的 n40 / n8 / n4 全部成功解壓，且 extract 後內容 compare 一致。只有 Optimal 壓縮產物大小改變；Other3 / BVX3 / Lazy2 大小維持 R35。`claw-code optimal` 為 `422,948,093 → 422,948,018 bytes`（改善 75 bytes），`llama.cpp optimal` 為 `577,863,623 → 577,864,898 bytes`（退步 1,275 bytes）。因此本輪不是 bitstream-identical，也不是嚴格 ratio-neutral，但不影響 output-identical 判定；四位小數壓縮比仍約 `0.8590 / 0.9393`。
+- 原先「較貴 rep relaxation 必為 no-op」的論證不夠完整：DP cell 不只包含 `price`，還包含 `cR0/cR1/cR2` rep history；跳過 relaxation 會改變後續可見狀態或 tie path，實測已證明 bitstream 會改變。因此 R36 應視為近似剪枝 DOE，而不是純實作微優化。
+- benchmark 速度改善只有 `1.1~4.4%`，未達單點 `>=10%` 成功條件；最新 power 重測反而約 `+9.6~10.4%` encode CPU energy，profiling 也沒有看到主要 parse hotspot 下降。雖然 output-identical 通過，`llama.cpp` 壓縮大小仍微退，因此 R36 尚不構成明確可保留的成功結果。
+- 能源權衡上，約 `300 MB` RSS 的估算記憶體成本低於同輪 decode n4→n40 的 CPU energy 節省，故不應為了把 RSS 壓回約 `60 MB` 而接受更長 CPU 執行時間；但 `500 MB` 以上的 Optimal encode RSS 仍超出本項可接受結論的範圍。
+- 應用層面上，Optimal 的主要價值是 server/CDN 離線壓縮後的大量 client 分發：encode 成本只付一次，較小更新包帶來的傳輸與 client-side 能源節省可重複累積。下一步除單機 benchmark 外，應加入不同下載次數下的 energy break-even 分析。
+
+
+## TODO（依優先序）/ Backlog
+
+1. R36 驗收結論為「correctness/output-identical 通過，但性能成功條件未達」。下一輪先以 feature switch 或 revert 建立同輪 A/B，固定熱狀態重測 n40 benchmark + power；若速度仍低於 `+10%` 且 energy 無改善，則不保留 rep1/rep2 skip。
+2. （中）Optimal 進一步 output-identical 微優化：仍須維持 extract/compare 全通過；若另要求 bitstream-identical，需明確列為獨立驗收條件。profiling 已確認主要方向仍是 `lzParseOptimal`、`matchLength`、`rebuildPrices` 與 Swift Array/COW，下一個單點應從其中一項做可歸因改動。
+3. （中）Optimal 段層級能耗:`optDPSkipAvgMatchLen`(R30 gating)可再 DOE,但會改 ratio,需獨立輪。
+4. **（最低 / Lowest priority）盲做 beam-2(#2 per-position 2-state)**：
+   - 可行性結論:**沒有對正確性安全的捷徑**。現行 literal step `cR0[t+1]=r0` 讓「最近一次 match 的 rep0」穿過後續 literal 一路攜帶,cell 的 reps 本就不舊;「match-ended 第二狀態」經 literal 傳播後會與 cell 狀態收斂,給不出新的 rep 集合。要真正保住「價格相近但 rep 不同」的第二條路,**只能做完整 beam-2**:每 cell 存 2 條 (price,reps)、**每個 SIMD relaxation 寫入點(~11 處)改 2-best 合併** + backtrace 記錄每格選哪條狀態。
+   - 風險/ROI:這正是 **#4 截斷 bug 的同一塊 SIMD 區**,沙箱無法編譯/驗證,大機率多輪修編譯;且 ROI 偏低(rep-carry 使 #2 收益本就窄,且前三個 ratio 想法全敗)。
+   - 結論:**列為最低優先**,僅在「能 compile/test loop 的環境、逐步加 beam 並每步 `-test`+benchmark」時才做。
+
 ---
 
 # 第三十五輪：R34 修復重測與 R35 baseline（2026-06-19）

@@ -15,9 +15,8 @@ TIME_SAMPLE_DIR="$CPU_CALL_TREE_DIR/time-sample"
 LOG_OUT="$ANALYSIS_DIR/trace_analysis.log"
 SUMMARY_OUT="$ANALYSIS_DIR/trace_summary.csv"
 STATUS_OUT="$TRACE_DIR/trace_analysis_status.txt"
+PACKAGE_COUNT_FILE="$TRACE_DIR/.trace_package_count"
 
-rm -rf "$ANALYSIS_DIR"
-mkdir -p "$TOC_DIR" "$TIME_PROFILE_DIR" "$TIME_SAMPLE_DIR"
 echo "RUNNING trace_analysis $(date +%H:%M:%S)" > "$STATUS_OUT"
 
 analysisRoundStatus() {
@@ -25,6 +24,37 @@ analysisRoundStatus() {
         echo "$@ $(date +%H:%M:%S)" >> "$ROUND_STATUS_FILE"
     fi
 }
+
+tracePackageCount() {
+    local packages=( "$TRACE_DIR"/*.trace(N) "$TRACE_DIR"/*.trace.timeout(N) )
+    echo "${#packages[@]}"
+}
+
+package_count="$(tracePackageCount)"
+expected_count="unknown"
+if [[ -s "$PACKAGE_COUNT_FILE" ]]; then
+    expected_count="$(<"$PACKAGE_COUNT_FILE")"
+fi
+echo "TRACE_PACKAGE_COUNT_ANALYSIS_START ${package_count} expected=${expected_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+analysisRoundStatus "TRACE_PACKAGE_COUNT_ANALYSIS_START ${package_count} expected=${expected_count}"
+if [[ $package_count -eq 0 ]]; then
+    echo "TRACE_ANALYSIS_FAILED no_trace_found $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "TRACE_ANALYSIS_FAILED no_trace_found"
+    exit 1
+fi
+if [[ "$expected_count" != "unknown" && "$expected_count" != <-> ]]; then
+    echo "TRACE_ANALYSIS_FAILED invalid_expected_count value=${expected_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "TRACE_ANALYSIS_FAILED invalid_expected_count value=${expected_count}"
+    exit 1
+fi
+if [[ "$expected_count" != "unknown" && "$package_count" -ne "$expected_count" ]]; then
+    echo "TRACE_ANALYSIS_FAILED package_count_mismatch actual=${package_count} expected=${expected_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "TRACE_ANALYSIS_FAILED package_count_mismatch actual=${package_count} expected=${expected_count}"
+    exit 1
+fi
+
+rm -rf "$ANALYSIS_DIR"
+mkdir -p "$TOC_DIR" "$TIME_PROFILE_DIR" "$TIME_SAMPLE_DIR"
 
 csv_escape() {
     local value="${1:-}"
@@ -240,7 +270,9 @@ export_trace_table() {
         } >> "$SUMMARY_OUT"
     done
 
-    if [[ ! -s "$SUMMARY_OUT" || "$(wc -l < "$SUMMARY_OUT" | tr -d ' ')" == "1" ]]; then
+    # CSV 固定有英文與中文兩列標題；兩列以下表示沒有任何 trace 資料列。
+    # The CSV always has English and Chinese header rows; <=2 lines means no trace data.
+    if [[ ! -s "$SUMMARY_OUT" || "$(wc -l < "$SUMMARY_OUT" | tr -d ' ')" -le 2 ]]; then
         echo "[Error] no trace packages found in ${TRACE_DIR}"
         echo "TRACE_ANALYSIS_FAILED no_trace_found $(date +%H:%M:%S)" >> "$STATUS_OUT"
         analysisRoundStatus "TRACE_ANALYSIS_FAILED no_trace_found"

@@ -1481,6 +1481,7 @@ public enum LZFSEv1 {
                     // R26：3-rep 展開——消除外層迴圈、三元選擇 r0/r1/r2、repsAfter() 呼叫；
                     // n0/n1/n2 依 repsAfter 語意硬編碼；dpr 直接索引。
                     var bestRep = 0
+                    var repLen0 = 0, repLen1 = 0   // R36：rep0/rep1 命中長度，供 rep1/rep2 跳過被支配段
                     // ── rep0 ──
                     do {
                         let r = r0; let rd = Int(r)
@@ -1489,7 +1490,7 @@ public enum LZFSEv1 {
                             if l > bestRep { bestRep = l }
                             if l >= optSufficientLen { cutT = t; cutLen = min(l, n - i); cutDist = rd; break posLoop }
                             let dpr = dPriceTab[0]
-                            let n0 = r0; let n1 = r1; let n2 = r2
+                            let n0 = r0; let n1 = r1; let n2 = r2; repLen0 = l
                             var msym = 4; var ll = 4; let lim = min(l, cap)
                             while ll <= lim {
                                 while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] { msym += 1 }
@@ -1536,8 +1537,11 @@ public enum LZFSEv1 {
                             if l > bestRep { bestRep = l }
                             if l >= optSufficientLen { cutT = t; cutLen = min(l, n - i); cutDist = rd; break posLoop }
                             let dpr = dPriceTab[1]
-                            let n0 = r1; let n1 = r0; let n2 = r2
-                            var msym = 4; var ll = 4; let lim = min(l, cap)
+                            let n0 = r1; let n1 = r0; let n2 = r2; repLen1 = l
+                            // R36：rep0 以更便宜（或相等）距離價已覆蓋 4..min(repLen0,cap) → rep1 該段必 no-op，跳過
+                            var msym = 4
+                            var ll = (dPriceTab[1] >= dPriceTab[0] && repLen0 >= 4) ? max(4, min(repLen0, cap) + 1) : 4
+                            let lim = min(l, cap)
                             while ll <= lim {
                                 while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] { msym += 1 }
                                 let c2 = base + matchConst + mPriceTab[msym] + dpr
@@ -1584,7 +1588,13 @@ public enum LZFSEv1 {
                             if l >= optSufficientLen { cutT = t; cutLen = min(l, n - i); cutDist = rd; break posLoop }
                             let dpr = dPriceTab[2]
                             let n0 = r2; let n1 = r0; let n2 = r1
-                            var msym = 4; var ll = 4; let lim = min(l, cap)
+                            // R36：rep0/rep1 已覆蓋的長度段 rep2 必 no-op，跳過（取較便宜 rep 覆蓋的較遠點）
+                            var msym = 4
+                            var rep2Dom = 4
+                            if dPriceTab[2] >= dPriceTab[0] && repLen0 >= 4 { rep2Dom = max(rep2Dom, min(repLen0, cap) + 1) }
+                            if dPriceTab[2] >= dPriceTab[1] && repLen1 >= 4 { rep2Dom = max(rep2Dom, min(repLen1, cap) + 1) }
+                            var ll = rep2Dom
+                            let lim = min(l, cap)
                             while ll <= lim {
                                 while msym + 1 < lm3Symbols && Int32(ll) >= lmBaseP[msym + 1] { msym += 1 }
                                 let c2 = base + matchConst + mPriceTab[msym] + dpr

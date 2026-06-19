@@ -19,6 +19,7 @@ SUMMARY_OUT="$OUT_DIR/cpu_call_tree_summary.csv"
 HOT_BY_FILE_OUT="$OUT_DIR/hot_symbols_by_file.csv"
 HOT_GLOBAL_OUT="$OUT_DIR/hot_symbols_global.csv"
 NOTES_OUT="$OUT_DIR/notes.md"
+PACKAGE_COUNT_FILE="$TRACE_DIR/.trace_package_count"
 CPU_CALL_TREE_GLOBAL_TOP_N="${CPU_CALL_TREE_GLOBAL_TOP_N:-500}"
 
 if ! [[ "$CPU_CALL_TREE_GLOBAL_TOP_N" == <-> ]]; then
@@ -26,8 +27,6 @@ if ! [[ "$CPU_CALL_TREE_GLOBAL_TOP_N" == <-> ]]; then
     exit 2
 fi
 
-rm -rf "$OUT_DIR"
-mkdir -p "$OUT_DIR"
 echo "RUNNING cpu_call_tree_analysis $(date +%H:%M:%S)" > "$STATUS_OUT"
 
 analysisRoundStatus() {
@@ -35,6 +34,37 @@ analysisRoundStatus() {
         echo "$@ $(date +%H:%M:%S)" >> "$ROUND_STATUS_FILE"
     fi
 }
+
+tracePackageCount() {
+    local packages=( "$TRACE_DIR"/*.trace(N) "$TRACE_DIR"/*.trace.timeout(N) )
+    echo "${#packages[@]}"
+}
+
+trace_count_start="$(tracePackageCount)"
+expected_trace_count="unknown"
+if [[ -s "$PACKAGE_COUNT_FILE" ]]; then
+    expected_trace_count="$(<"$PACKAGE_COUNT_FILE")"
+fi
+echo "CPU_CALL_TREE_TRACE_COUNT_START ${trace_count_start} expected=${expected_trace_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+analysisRoundStatus "CPU_CALL_TREE_TRACE_COUNT_START ${trace_count_start} expected=${expected_trace_count}"
+if [[ $trace_count_start -eq 0 ]]; then
+    echo "CPU_CALL_TREE_ANALYSIS_FAILED source_trace_missing $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_FAILED source_trace_missing"
+    exit 1
+fi
+if [[ "$expected_trace_count" != "unknown" && "$expected_trace_count" != <-> ]]; then
+    echo "CPU_CALL_TREE_ANALYSIS_FAILED invalid_expected_count value=${expected_trace_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_FAILED invalid_expected_count value=${expected_trace_count}"
+    exit 1
+fi
+if [[ "$expected_trace_count" != "unknown" && "$trace_count_start" -ne "$expected_trace_count" ]]; then
+    echo "CPU_CALL_TREE_ANALYSIS_FAILED package_count_mismatch actual=${trace_count_start} expected=${expected_trace_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_FAILED package_count_mismatch actual=${trace_count_start} expected=${expected_trace_count}"
+    exit 1
+fi
+
+rm -rf "$OUT_DIR"
+mkdir -p "$OUT_DIR"
 
 csv_escape() {
     local value="${1:-}"
@@ -298,10 +328,27 @@ contains_text() {
         echo "- \`hot_symbols_global.csv\`"
     } > "$NOTES_OUT"
 
+    # 所有 summary 成功寫完後才清除大型來源 trace。
+    # Remove large source traces only after every summary has been written successfully.
+    if [[ ! -s "$SUMMARY_OUT" || ! -s "$HOT_BY_FILE_OUT" || ! -s "$HOT_GLOBAL_OUT" || ! -s "$NOTES_OUT" ]]; then
+        echo "CPU_CALL_TREE_ANALYSIS_FAILED incomplete_summary $(date +%H:%M:%S)" >> "$STATUS_OUT"
+        analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_FAILED incomplete_summary"
+        exit 1
+    fi
+    trace_count_before="$(tracePackageCount)"
+    echo "CPU_CALL_TREE_TRACE_COUNT_BEFORE_CLEANUP ${trace_count_before} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "CPU_CALL_TREE_TRACE_COUNT_BEFORE_CLEANUP ${trace_count_before}"
     rm -rf "$TRACE_DIR"/*.trace(N)
     rm -rf "$TRACE_DIR"/*.trace.timeout(N)
-    echo "CPU_CALL_TREE_TRACE_CLEANED $(date +%H:%M:%S)" >> "$STATUS_OUT"
-    analysisRoundStatus "CPU_CALL_TREE_TRACE_CLEANED"
+    rm -f "$TRACE_DIR/.trace_package_count"
+    trace_count_after="$(tracePackageCount)"
+    echo "CPU_CALL_TREE_TRACE_CLEANED before=${trace_count_before} after=${trace_count_after} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "CPU_CALL_TREE_TRACE_CLEANED before=${trace_count_before} after=${trace_count_after}"
+    if [[ $trace_count_after -ne 0 ]]; then
+        echo "CPU_CALL_TREE_ANALYSIS_FAILED trace_cleanup_remaining=${trace_count_after} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+        analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_FAILED trace_cleanup_remaining=${trace_count_after}"
+        exit 1
+    fi
 
     echo "CPU_CALL_TREE_ANALYSIS_DONE $(date +%H:%M:%S)" >> "$STATUS_OUT"
     analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_DONE"

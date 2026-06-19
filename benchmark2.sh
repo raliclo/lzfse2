@@ -71,7 +71,6 @@ run_lz4bench_sweep() {
         sleep 60
     done
 }
-
 # Step.7 執行 powermetrics power benchmark / Run powermetrics power benchmark.
 roundStatus "RUNNING_POWER_BENCHMARK"
 ./helper/power_benchmark.command >> "$ROUND_STATUS_FILE" 2>&1

@@ -7,6 +7,7 @@ TRACE_DIR="./trace"
 PROFILE_BIN="$TRACE_DIR/lzfse-profile"
 LOG_OUT="$TRACE_DIR/tracer.log"
 STATUS_OUT="$TRACE_DIR/tracer_status.txt"
+PACKAGE_COUNT_FILE="$TRACE_DIR/.trace_package_count"
 TRACE_TIMEOUT_SECONDS="${TRACE_TIMEOUT_SECONDS:-300}"
 XCTRACE_TIME_LIMIT="${XCTRACE_TIME_LIMIT:-5m}"
 
@@ -17,6 +18,11 @@ traceRoundStatus() {
     if [[ -n "${ROUND_STATUS_FILE:-}" ]]; then
         echo "$@ $(date +%H:%M:%S)" >> "$ROUND_STATUS_FILE"
     fi
+}
+
+tracePackageCount() {
+    local packages=( "$TRACE_DIR"/*.trace(N) "$TRACE_DIR"/*.trace.timeout(N) )
+    echo "${#packages[@]}"
 }
 
 run_xctrace_record() {
@@ -125,6 +131,7 @@ trace_one() {
     traceRoundStatus "CLEAN_OLD_TRACES"
     rm -rf "$TRACE_DIR"/*.trace(N)
     rm -rf "$TRACE_DIR"/*.trace.timeout(N)
+    rm -f "$PACKAGE_COUNT_FILE"
 
     echo "[Info] Build profile binary / 建立 profiling binary"
     swiftc -O -g lzfse-cli.swift -o "$PROFILE_BIN"
@@ -194,6 +201,15 @@ trace_one() {
 
 rc=$?
 rm -f "$TRACE_DIR/claw-code.tar" "$TRACE_DIR/llama.cpp.tar"
+package_count="$(tracePackageCount)"
+echo "$package_count" > "$PACKAGE_COUNT_FILE"
+echo "TRACE_PACKAGE_COUNT_TRACER_END ${package_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
+traceRoundStatus "TRACE_PACKAGE_COUNT_TRACER_END ${package_count}"
+if [[ $rc -eq 0 && $package_count -eq 0 ]]; then
+    rc=1
+    echo "TRACE_FAILED no_trace_packages $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    traceRoundStatus "TRACER_TRACE_FAILED no_trace_packages"
+fi
 echo "EXIT $rc $(date +%H:%M:%S)" >> "$STATUS_OUT"
 if [[ $rc -eq 0 ]]; then
     echo "TRACE_DONE $(date +%H:%M:%S)" >> "$STATUS_OUT"
