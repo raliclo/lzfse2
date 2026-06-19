@@ -5,30 +5,42 @@
 
 ---
 
-# 第三十三輪計畫：Optimal 壓縮率提升（literal 4-context price，2026-06-18）
+# 第三十四輪：Codex #4 — tag-less length-4 補檢（2026-06-19）/ Round 34: Recover length-4 matches filtered by tag-packing
 
-> 目的：參考 XZ/LZMA optimal parser 的核心精神，不先改 bvx3 bitstream，而是先讓 `lzParseOptimal` 的 parser price 更貼近實際 encoder。第一步已實作「Optimal literal price 4-context」：只改 parser 的 literal 計價，不改格式、不改 decoder。
+> 只動 `lzfse-cli.swift`。承 Codex 對 xz 的研究四點。**先釐清狀態**再做。
 
-## 已實作：Optimal literal price 4-context
+## 狀態釐清（重要）
 
-- bvx3 encode 端在 literal 數達門檻且 entropy gain 足夠時，會啟用 4 張 literal FSE table；context 來自「上一個已發射 literal」的高 2 bits。
-- 舊 `lzParseOptimal` 使用單一全域 literal histogram 計價，DP 只知道 `literal byte`，不知道這個 literal 在實際 literal stream 中的 context。這會讓 match/literal 取捨和 encodeBlockV3 的真實成本不一致。
-- 本輪在 DP cell 新增 `lastLiteral` 狀態，literal step 使用 `lastLiteral >> 6` 選 4-context price；match step 沿用來源 cell 的 `lastLiteral`，因為 match 本身不發射 literal。
-- parser 的自適應統計也改成 4-context literal count：每次 `emitSteps` / `emitGreedy` 真正補發 literal run 時，用目前已提交 literal stream 的 `lastLiteralByte` 更新 `(ctx, byte)` count。
-- 此改動只影響 `-algo bvx3 -optimal` 的 parse decision；輸出格式、literal FSE table 選擇、decoder 與 lazy2/BVX3/Other3 路徑不變。
+- **Codex #1（context-aware literal price）= 已是 R33,且失敗**：HEAD `R33: Optimal literal price 4-context DOE -> failed to improve compress ratio.` 已用「前一個 **literal** 位元組 >> 6」(比逐輸入位元組更精確) 實作並 benchmark,結論無法改善壓縮比。本輪一度重做了一份更粗的版本,發現撞 R33 後**已全部還原**（工作樹回到單表）。
+- **Codex #3（literal+rep0 / match+literal+rep0 組合邊）= 已存在**：`lzParseOptimal` 的 `relaxLiteralRep0` / `relaxMatchLiteralRep0` 即是,先前已實作。
+- 故本輪只做**真正未探索**的 **#4**;**#2（per-position 2-state / small beam）留待下一輪**——它是較大的 DP 重構,且為避免再現 R30/R33「一輪綁兩個 ratio 變數→難歸因→拆 revert」的亂局,**一次只動一個 ratio DOE 變數**。
 
-## 風險與驗證重點
+## 本輪改動：#4 tag-less length-4 recovery
 
-- 這不是 output-identical 改動，Optimal 壓縮後 bytes 可能變小或變大；必須用完整 benchmark 判斷。
-- 因 parser 目前仍是每個位置單一最佳 state，4-context price 只能讓「已保留路徑」的 literal 成本更準；它還不能解決「稍貴但 rep history 更好」的路徑被過早剪掉。
-- 驗收標準建議：`claw-code` / `llama.cpp` Optimal 壓縮 bytes 明確下降，或壓縮比至少改善約 `0.1%`；若壓縮比未改善，encode time/RSS 不應顯著退步。
-- 已完成基本驗證：`swiftc -O lzfse-cli.swift -o lzfse` 編譯通過，`./lzfse -test` round-trip 全通過。
+- R27 tag-packing 以 hash5/tag 過濾鏈候選,會漏掉「前 4 bytes 相同、第 5 byte 不同」→ tag 不同 → 被略過的 **length-4 match**。
+- 新增（`lzParseOptimal` 鏈走訪後）：**僅當本位置完全沒找到 ≥4 的 match（`bl < 4`）時**,對 bucket 前 `optLen4ProbeDepth`(=4) 項做 **tag-less 補檢**,用 `load32(c)==v` 確認後回收**一個** length-4 候選進 frontier。
+- 觸發條件嚴格（無 rep、主走訪也沒找到任何 ≥4 match 才啟動）→ 成本上界 = 4 次 `load32`/位置,且只在「原本完全沒 match」的位置。
+- **正確性 safe**：只加入經 `load32(c)==v`、`dd≤maxDist`、`dd≠rep` 驗證過的合法 length-4 match → round-trip 不受影響。**會改壓縮比/速度**（預期 ratio 微升、速度可能微降）。設 `optLen4ProbeDepth = 0` 即關閉。
 
-## 後續壓縮率計畫
+## 實測結果：R34 correctness failed
 
-1. **literal + rep0 / match + literal + rep0 transition**：借鏡 LZMA optimal parser 顯式測試「先發一個 literal，再接 rep0」的組合路徑，彌補單狀態 DP 對局部組合的剪枝。
-2. **小型 beam DP**：每個位置保留 2 條不同 rep-history / last-literal state 的候選，優先用於 text/structured 段；目標是避免單一最低 price 路徑提前淘汰後續更便宜的 rep path。
-3. **Optimal-only hash4 補償**：R27 tag-packing 對速度有利，但可能濾掉少量 length-4 match。若 4-context price 有正向結果，再評估只在 `-optimal` 補少量 hash4 候選以換取壓縮率。
+- `run_round.command` 編譯與 `-test` 通過，完整 benchmark 進入 lz4bench。
+- `claw-code` n40 / n8 / n4 全部通過 compare，包含 `optimal`。
+- `llama.cpp-n40 optimal` 在 encode 階段即出現 `tar: Write error` 與 `[Error] lzfseX failed to create llama.cpp.lzfse.bvx3.optimal`；殘留半成品大小 `465,196,260 bytes`，後續 decode 顯示 `Truncated tar archive`，compare 於 `13:12:24` 失敗。
+- 本輪應判定為 **R34 correctness failed**；`tag-less length-4 recovery` 不能保留為有效結果，後續 MB/s / RSS / power 都不可採用。
+- `claw-code` 通過但 `llama.cpp` 失敗，表示這不是格式通用 decode 問題，而是 Optimal parser 在特定資料/段上選出會讓 encode pipeline 提前中止或產生截斷輸出的路徑。
+
+## harness 修正
+
+- `zshrc.sh` 的 compare fail-fast 已生效：本輪在 `llama.cpp-n40 optimal` compare 失敗後停止，未繼續跑 trace / power。
+- 另修正 `nanoTimeElapsed`：現在會回傳被測 command 的 exit code；`lz4bench` 壓縮階段改為同時檢查 `encode_rc == 0` 與產物存在。下次若 encode 已失敗但半成品存在，會在 encode 階段寫 `ENCODE_FAILED ... <rc>` 並停止，不會誤記為 `ENCODED`。
+- `cpu_call_tree_analysis.command` 已在所有 summary 寫完後清除 `trace/*.trace` 與 `trace/*.trace.timeout`，並寫入 `CPU_CALL_TREE_TRACE_CLEANED`，避免分析後保留大型 trace 佔空間。
+
+## 下一輪
+
+- 先將 `optLen4ProbeDepth` 關閉或回退 R34，重跑 baseline 確認 `llama.cpp-n40 optimal` 回復 byte-identical。
+- 清理目前未被呼叫的 `relaxLiteralRep0` / `relaxMatchLiteralRep0` 與相關 macro-step 欄位，避免下一輪 DOE 混入無用成本與不相關變數。
+- 每位置保留 2 條 state（或只在 rep-heavy 段啟用 small beam），讓「目前稍貴但 rep history 更好」的路徑不被單狀態 DP 提前剪掉。CPU/RSS 會上升,需小範圍 DOE,且為獨立一輪以利歸因。
 
 ---
 

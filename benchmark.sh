@@ -68,7 +68,8 @@ run_lz4bench_sweep() {
             return $rc
         fi
         roundStatus "LZ4BENCH_OK ${dataset}${suffix}"
-
+        echo "[Info] Completed ${dataset} benchmark with -n ${n}; output=${out} ,Sleeping 60s before next sweep."
+        sleep 60
     done
 }
 
@@ -105,7 +106,7 @@ roundStatus "TRACER_DONE"
 
 # Step.7 執行 powermetrics power benchmark / Run powermetrics power benchmark.
 roundStatus "RUNNING_POWER_BENCHMARK"
-sudo ./helper/power_benchmark.command >> "$ROUND_STATUS_FILE" 2>&1
+./helper/power_benchmark.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
 if [[ $rc -ne 0 ]]; then
     roundStatus "POWER_BENCHMARK_FAILED $rc"

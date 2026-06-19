@@ -298,6 +298,11 @@ contains_text() {
         echo "- \`hot_symbols_global.csv\`"
     } > "$NOTES_OUT"
 
+    rm -rf "$TRACE_DIR"/*.trace(N)
+    rm -rf "$TRACE_DIR"/*.trace.timeout(N)
+    echo "CPU_CALL_TREE_TRACE_CLEANED $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "CPU_CALL_TREE_TRACE_CLEANED"
+
     echo "CPU_CALL_TREE_ANALYSIS_DONE $(date +%H:%M:%S)" >> "$STATUS_OUT"
     analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_DONE"
 } > "$LOG_OUT" 2>&1

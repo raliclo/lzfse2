@@ -16,7 +16,7 @@ if grep -q "✗" lzfse-test.txt; then
 fi
 echo "TEST_OK $(date +%H:%M:%S)" >> round_status.txt
 echo "RUNNING benchmark $(date +%H:%M:%S)" >> round_status.txt
-sudo ./benchmark.sh >> round_status.txt 2>&1
+./benchmark.sh >> round_status.txt 2>&1
 rc=$?
 if [[ $rc -eq 0 ]]; then
     echo "BENCH_DONE $(date +%H:%M:%S)" >> round_status.txt

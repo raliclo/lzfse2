@@ -438,6 +438,7 @@ function nanoTimeElapsed() {
         start_time=$EPOCHREALTIME
         # 執行目標命令 / Execute target command
         "$@"
+        local rc=$?
         end_time=$EPOCHREALTIME
     else
         # Fallback for Bash: use date command instead
@@ -445,6 +446,7 @@ function nanoTimeElapsed() {
         start_time=$(date +%s%N 2>/dev/null || date +%s)
         # 執行目標命令 / Execute target command
         "$@"
+        local rc=$?
         end_time=$(date +%s%N 2>/dev/null || date +%s)
     fi
     
@@ -460,6 +462,7 @@ function nanoTimeElapsed() {
         elapsed_ns=$((end_time - start_time))
     fi
     echo "==> Process $@ took: ${elapsed_ns} 奈秒/nanoseconds"
+    return "$rc"
 }
 
 
@@ -697,35 +700,43 @@ function lz4bench() {
     # --------------------------------------------------------------------------
     echo $'\n[Info] 測試 getar 壓縮 / Testing getar compression:'
     nanoTimeElapsed getar $1
-    [[ -f "$1.tgz" ]] && benchStatus "ENCODED ${1}${status_suffix} tgz" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} tgz"; return 1; }
+    local encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.tgz" ]] && benchStatus "ENCODED ${1}${status_suffix} tgz" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} tgz ${encode_rc}"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX other3 壓縮 / Testing lzfseX other3 compression:'
     nanoTimeElapsed lzfseX $1 other3
-    [[ -f "$1.lzfse.other3" ]] && benchStatus "ENCODED ${1}${status_suffix} other3" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} other3"; return 1; }
+    encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.lzfse.other3" ]] && benchStatus "ENCODED ${1}${status_suffix} other3" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} other3 ${encode_rc}"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX bvx3_lazy2 壓縮 / Testing lzfseX bvx3_lazy2 compression:'
     nanoTimeElapsed lzfseX $1 lazy2
-    [[ -f "$1.lzfse.bvx3.lazy2" ]] && benchStatus "ENCODED ${1}${status_suffix} lazy2" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} lazy2"; return 1; }
+    encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.lzfse.bvx3.lazy2" ]] && benchStatus "ENCODED ${1}${status_suffix} lazy2" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} lazy2 ${encode_rc}"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX bvx3_optimal 壓縮 / Testing lzfseX bvx3_optimal compression:'
     nanoTimeElapsed lzfseX $1 optimal
-    [[ -f "$1.lzfse.bvx3.optimal" ]] && benchStatus "ENCODED ${1}${status_suffix} optimal" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} optimal"; return 1; }
+    encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.lzfse.bvx3.optimal" ]] && benchStatus "ENCODED ${1}${status_suffix} optimal" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} optimal ${encode_rc}"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX bvx3 壓縮 / Testing lzfseX bvx3 compression:'
     nanoTimeElapsed lzfseX $1 bvx3
-    [[ -f "$1.lzfse.bvx3" ]] && benchStatus "ENCODED ${1}${status_suffix} bvx3" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} bvx3"; return 1; }
+    encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.lzfse.bvx3" ]] && benchStatus "ENCODED ${1}${status_suffix} bvx3" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} bvx3 ${encode_rc}"; return 1; }
 
     echo $'\n[Info] 測試 lzfseX apple 壓縮 / Testing lzfseX apple compression:'
     nanoTimeElapsed lzfseX $1 apple
-    [[ -f "$1.lzfse.apple" ]] && benchStatus "ENCODED ${1}${status_suffix} apple" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} apple"; return 1; }
+    encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.lzfse.apple" ]] && benchStatus "ENCODED ${1}${status_suffix} apple" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} apple ${encode_rc}"; return 1; }
 
     echo $'\n[Info] 測試 tlz4  壓縮 / Testing tlz4 compression:'
     nanoTimeElapsed tlz4 $1
-    [[ -f "$1.tar.lz4" ]] && benchStatus "ENCODED ${1}${status_suffix} tar.lz4" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} tar.lz4"; return 1; }
+    encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.tar.lz4" ]] && benchStatus "ENCODED ${1}${status_suffix} tar.lz4" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} tar.lz4 ${encode_rc}"; return 1; }
 
     echo $'\n[Info] 測試 zstd  壓縮 / Testing zstd compression:'
     nanoTimeElapsed getzstd $1
-    [[ -f "$1.zst" ]] && benchStatus "ENCODED ${1}${status_suffix} zstd" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} zstd"; return 1; }
+    encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.zst" ]] && benchStatus "ENCODED ${1}${status_suffix} zstd" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} zstd ${encode_rc}"; return 1; }
 
     # --------------------------------------------------------------------------
     # 1b. 壓縮產物精確大小摘要（lazy2/optimal 等的壓縮比以此為準）
@@ -804,6 +815,8 @@ function lz4bench() {
             else
                 echo "[Warning] $target 解壓內容與 tgz 不一致！"
                 benchStatus "COMPARED_WITH_TGZ_FAILED ${1}${status_suffix} ${target_algo}"
+                rm -rf "$test_dir"
+                return 1
             fi
             rm -rf "$test_dir"   # 立即釋放此格式的解壓空間
         fi
