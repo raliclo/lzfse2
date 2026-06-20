@@ -11,6 +11,74 @@
 
 ---
 
+# Round 37: R36 rep1/rep2 Dominance skips the same code retest (performance gains are not reproduced) (2026-06-20) / Round 37: Same-Code Retest of R36
+
+> The compression kernel has not been modified in this round, the purpose is to retest the rep1/rep2 dominated-range skip of R36. Both data sets have completed encode, decode and extract compare in n40 / n8 / n4, and **output-identical passed**; however, the speed and energy consumption improvement relative to R35 have not reached the acceptance threshold of `>=10%`, so the performance benefits of R36 have not been confirmed.
+
+## Test the completeness and output stability
+
+- The whole round was completed in `2026-06-20 10:35:56`, and no benchmark, compare, memProbe, power or trace analysis failure were found.
+- Power has a total of 72 strokes, all of which are `status=ok`; profiling generates 36 trace packages, and the CPU call tree analyzes a total of 72 XMLs. After all the summary is written, the source trace is cleaned up, and the status is `before=36 after=0`.
+- `BenchMarkResult.csv` has rebuilt 48 rows, and best-points, power and trace summary have been integrated.
+- Optimal compression size is exactly the same as n40 / n8 / n4, and the same as R36: `claw-code 422,948,018 bytes`, `llama.cpp 577,864,898 bytes`. This proves that R36 bitstream can be reappeared stably across thread count and retesting with the same code.
+- Relative to R35, `claw-code` is 75 bytes small, and `llama.cpp` is 1,275 bytes large; bitstream is different from R35, but the content after extract is exactly the same, so it does not constitute output-identical failure.
+
+## n40 represents the result
+
+MB/s is still calculated by the actual raw bytes / duration ns, and does not use the display value to push back.
+
+| Data Set | Optimal Compression MB/s | Decompression MB/s | Compression Ratio | Encode RSS(MB) | Decode RSS(MB) | Encode CPU Energy(J) | top closure | parse hits |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 35.85 | 437.10 | 0.8590 | 564.4 | 328.4 | 526.295590 | 763 | 1187 |
+| llama.cpp | 49.85 | 89.25 | 0.9393 | 600.6 | 348.8 | 364.600403 | 681 | 1101 |
+
+## Compare with R36 / R35
+
+Relative to the previous result of R36 with the same code:
+
+- `claw-code` Optimal n40 encode: `36.22 → 35.85 MB/s` (about `-1.0%`); encode CPU energy: `602.633383 → 526.295590 J` (about `-12.7%`).
+- `llama.cpp` Optimal n40 encode: `50.42 → 49.85 MB/s` (about `-1.1%`); encode CPU energy: `407.283755 → 364.600403 J` (about `-10.5%`).
+- The speed changes by only about 1% under the same program code, but the power difference is more than 10%, showing that the energy results are highly sensitive to the system's thermal state, background load and measurement time point; the decrease of R36 → R37 cannot be directly attributed to the algorithm.
+
+Relative R35 baseline:
+
+- `claw-code` Optimal n40 encode: `34.70 → 35.85 MB/s` (about `+3.3%`); encode CPU energy: `545.694678 → 526.295590 J` (about `-3.6%`).
+- `llama.cpp` Optimal n40 encode: `49.89 → 49.85 MB/s` (about `-0.1%`); encode CPU energy: `371.502908 → 364.600403 J` (about `-1.9%`).
+- For the original baseline, the speed improvement only appears in `claw-code`, and `llama.cpp` remains almost unchanged; the energy consumption improvement is only about 2–4%, both of which are lower than the success conditions of a single point `>=10%`.
+
+## Energy Ratio Analysis (TGZ = 1 in the same round)
+
+- `Energy Ratio = The algorithm CPU Energy / the same round and the same data set TGZ CPU Energy`; the lower the value, the more energy saving. `<1` represents energy saving compared with TGZ, and `>1` represents energy consumption compared with TGZ. The minimum/maximum value is taken from the minimum/maximum value of the same algorithm in n4 / n8 / n40 respectively.
+- The lowest ratio of Optimal appears in n40, and the highest ratio appears in n4; this is consistent with the direction of "improving concurrency increases RSS, but shortens the running time and reduces CPU energy".
+
+| Data Set | Encode Minimum R36→R37 | Encode Maximum R36→R37 | Decode Minimum R36→R37 | Decode Maximum R36→R37 |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code | `1.0950 → 2.8967` ( `+164.5%`) | `2.0042 → 3.9605` ( `+97.6%`) | `0.2938 → 0.3685` ( `+25.4%`) | `0.6001 → 1.1535` ( `+92.2%`) |
+| llama.cpp | `0.6304 → 2.1391` ( `+239.3%`) | `1.1417 → 2.9996` ( `+162.7%`) | `0.2467 → 0.3162` ( `+28.2%`) | `0.4771 → 0.8746` ( `+83.3%`) |
+
+- **Relative to R36, the lowest and highest Energy Ratio of Optimal's Encode / Decode have all increased without any improvement. **The lowest value of Encode still reaches `2.8967 / 2.1391` at R37, indicating that even if the best n40 is taken, the Optimal encode still consumes about TGZ about `2.90x / 2.14x` CPU energy; the highest value reaches `3.96x / 3.00x`.
+- The minimum value of Decode has a clear advantage: Optimal n40 only uses TGZ's `36.85% / 31.62%` CPU energy. However, in terms of the highest value, `claw-code` n4 is `1.1535`, which is about `15.4%` more than TGZ; `llama.cpp` n4 is `0.8746`, which is still about `12.5%` less than TGZ. Therefore, the energy saving of client-side decode was founded in n40, and low concurrency is not the advantage of both data sets.
+- The maximum Encode ratio of other LZFSE families in the same round is still lower than 1: Other3 `0.3054 / 0.2613`, BVX3 `0.3140 / 0.2678`, Lazy2 `0.8754 / 0.4195`, indicating that they save CPU energy than TGZ encode in all n values. Optimal is the only LZFSE mode in which the lowest Encode value is still greater than 1.
+- The TGZ encode baseline of R36 → R37 itself has been greatly reduced by `550.363047 → 181.690929 J` (claw-code) and `646.035081 → 170.447736 J` (llama.cpp); Although the absolute energy consumption of Optimal has also decreased, the decrease is much smaller than that of TGZ, so the normalized ratio has deteriorated. This proves that only the absolute J across the wheel is easily affected by the system state; in the future, the absolute energy consumption and the TGZ Energy Ratio of the same round should be reported at the same time, and the performance judgment shall be subject to the consistency of the two or controlled A/B.
+
+## Profiling and RSS
+
+- Among the 36 traces, 6 external tools end normally, and 30 LZFSE family traces reach the time limit in 300 seconds; both target and `time-profile` / `time-sample` schema exist. The symbol occurrence under the fixed timeout is only for direction comparison and does not represent the exact CPU percentage.
+- R35 → R37's Optimal n40 directional sample: `claw-code` top closure `737 → 763` (about `+3.5%`), parse hits `1170 → 1187` (about `+1.5%`); `llama.cpp` top closure `660 → 681` (about `+3.2%`), parse hits `1101 → 1101` (unchanged). Profiling does not show that the main parse hotspot declines due to domination skipping.
+- The sample of R36 → R37 only fluctuates slightly: `claw-code` top `769 → 763`, parse `1191 → 1187`; `llama.cpp` top `696 → 681`, parse `1133 → 1101`. This is not enough to establish a stable causal relationship.
+- R35 → R37's n40 RSS: `claw-code` encode `578.1 → 564.4 MB`, decode `308.0 → 328.4 MB`; `llama.cpp` encode `587.2 → 600.6 MB`, decode `349.3 → 348.8 MB`. If the direction is inconsistent, it should be regarded as running fluctuations, and there is no proof that rep1/rep2 skip improves or worsens RSS.
+- Optimal n40 encode RSS is still about `564–601 MB`, decode about `328–349 MB`. R36's energy trade-off judgment of server/CDN offline compression and about 300 MB client decode RSS is not invalidated by this round, but the encode buffer, chunk in-flight and the life cycle of the temporary array still need to be investigated.
+
+## Judgment
+
+- **Correcty and output-identical pass. ** Two data sets and three n values have been successfully decompressed and compared through extract; the Optimal compression size of R36 can also be stably reproduced.
+- **Performance acceptance failed. ** Relative to R35, the speed is `+3.3% / -0.1%`, the encode CPU energy is `-3.6% / -1.9%`, and the profiling does not see the main hotspot reduction, which does not meet the success condition of `>=10%`.
+- **Energy Ratio has not improved either. **Relative to R36, the lowest and highest ratios of Optimal's Encode / Decode have all increased; R37 Optimal encode is still TGZ's `2.14–2.90x` even at the lowest point. Only n40 decode maintains the `0.32–0.37x` advantage, which is clearly lower than TGZ.
+- R36 rep1/rep2 dominated-range skip should be classified as "output-identical passed, but the performance benefits have not been confirmed", and cannot be claimed to be stable acceleration or energy saving. It will still change DP state/tie path and bitstream, not the pure realization of ratio-neutral.
+- The next round should be a feature switch or revert to establish **co-round controlled A/B**, fixed power supply, hot state and background load, at least compare n40 benchmark, power and trace. If there is still no reprodible `>=10%` improvement in the two data sets, you should go back or not keep this pruning and turn to `lzParseOptimal` DP expansion, `matchLength`, `rebuildPrices` or Swift Array/COW and other confirmed hotspots.
+
+---
+
 # Round 36: Optimal Energy Consumption/Speed — rep1/rep2 Output-identical Pass (2026-06-19)/ Round 36: rep1/rep2 Dominated-Range Skip
 
 > Directional: The ratio route (#1/R33, #3, #4) has been exhausted, and this round will be changed to Optimal energy consumption/time optimization. The two data sets are all decompressed and compared, so **output-identical acceptance is established**; there is a slight change in the size of the compressed bitstream, which is also listed as non-bitstream-identical. Only move `lzfse-cli.swift`.

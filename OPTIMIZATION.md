@@ -11,6 +11,74 @@
 
 ---
 
+# 第三十七輪：R36 rep1/rep2 支配跳過同碼重測（性能收益未重現）（2026-06-20）/ Round 37: Same-Code Retest of R36
+
+> 本輪未修改壓縮核心，目的為重測 R36 的 rep1/rep2 dominated-range skip。兩個資料集在 n40 / n8 / n4 均完成 encode、decode 與 extract compare，**output-identical 通過**；但相對 R35 的速度、能耗改善都未達 `>=10%` 驗收門檻，因此 R36 的性能收益仍未獲證實。
+
+## 測試完整度與輸出穩定性
+
+- 整輪於 `2026-06-20 10:35:56` 完成，未發現 benchmark、compare、memProbe、power 或 trace analysis failure。
+- power 共 72 筆，全部為 `status=ok`；profiling 產生 36 個 trace package，CPU call tree 共分析 72 個 XML，所有 summary 寫完後才清理來源 trace，狀態為 `before=36 after=0`。
+- `BenchMarkResult.csv` 已重建 48 rows，best-points、power 與 trace summary 均完成整合。
+- Optimal 壓縮大小在 n40 / n8 / n4 完全一致，且與 R36 相同：`claw-code 422,948,018 bytes`、`llama.cpp 577,864,898 bytes`。這證明 R36 bitstream 可跨 thread count 與同碼重測穩定重現。
+- 相對 R35，`claw-code` 小 75 bytes，`llama.cpp` 大 1,275 bytes；bitstream 與 R35 不同，但 extract 後內容完全一致，因此不構成 output-identical 失敗。
+
+## n40 代表結果
+
+MB/s 仍以實際 raw bytes / duration ns 計算，不使用顯示值反推。
+
+| 資料集 | Optimal 壓縮 MB/s | 解壓 MB/s | 壓縮比 | Encode RSS(MB) | Decode RSS(MB) | Encode CPU Energy(J) | top closure | parse hits |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 35.85 | 437.10 | 0.8590 | 564.4 | 328.4 | 526.295590 | 763 | 1187 |
+| llama.cpp | 49.85 | 89.25 | 0.9393 | 600.6 | 348.8 | 364.600403 | 681 | 1101 |
+
+## 與 R36 / R35 比較
+
+相對 R36 同碼前次結果：
+
+- `claw-code` Optimal n40 encode：`36.22 → 35.85 MB/s`（約 `-1.0%`）；encode CPU energy：`602.633383 → 526.295590 J`（約 `-12.7%`）。
+- `llama.cpp` Optimal n40 encode：`50.42 → 49.85 MB/s`（約 `-1.1%`）；encode CPU energy：`407.283755 → 364.600403 J`（約 `-10.5%`）。
+- 同一程式碼下速度只變動約 1%，但 power 差異達 10% 以上，顯示 energy 結果對系統熱狀態、背景負載與量測時點高度敏感；不可把 R36 → R37 的降幅直接歸因於演算法。
+
+相對 R35 baseline：
+
+- `claw-code` Optimal n40 encode：`34.70 → 35.85 MB/s`（約 `+3.3%`）；encode CPU energy：`545.694678 → 526.295590 J`（約 `-3.6%`）。
+- `llama.cpp` Optimal n40 encode：`49.89 → 49.85 MB/s`（約 `-0.1%`）；encode CPU energy：`371.502908 → 364.600403 J`（約 `-1.9%`）。
+- 對原始 baseline 而言，速度改善只在 `claw-code` 出現，`llama.cpp` 幾乎不變；能耗改善也僅約 2–4%，均低於單點 `>=10%` 成功條件。
+
+## Energy Ratio 分析（同輪 TGZ = 1）
+
+- `Energy Ratio = 該算法 CPU Energy / 同輪、同資料集 TGZ CPU Energy`；數值越低越省能，`<1` 代表比 TGZ 省能，`>1` 代表比 TGZ 耗能。最低／最高值分別取同一算法在 n4 / n8 / n40 的最小／最大值。
+- Optimal 的最低 ratio 均出現在 n40，最高 ratio 均出現在 n4；這與「提高 concurrency 雖增加 RSS，但縮短執行時間並降低 CPU energy」的方向一致。
+
+| 資料集 | Encode 最低 R36→R37 | Encode 最高 R36→R37 | Decode 最低 R36→R37 | Decode 最高 R36→R37 |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code | `1.0950 → 2.8967`（`+164.5%`） | `2.0042 → 3.9605`（`+97.6%`） | `0.2938 → 0.3685`（`+25.4%`） | `0.6001 → 1.1535`（`+92.2%`） |
+| llama.cpp | `0.6304 → 2.1391`（`+239.3%`） | `1.1417 → 2.9996`（`+162.7%`） | `0.2467 → 0.3162`（`+28.2%`） | `0.4771 → 0.8746`（`+83.3%`） |
+
+- **相對 R36，Optimal 的 Encode / Decode 最低與最高 Energy Ratio 全部上升，沒有任何一項改善。**Encode 最低值在 R37 仍達 `2.8967 / 2.1391`，表示即使採最佳 n40，Optimal encode 仍消耗 TGZ 約 `2.90x / 2.14x` CPU energy；最高值則達 `3.96x / 3.00x`。
+- Decode 的最低值有明確優勢：Optimal n40 只使用 TGZ 的 `36.85% / 31.62%` CPU energy。但最高值方面，`claw-code` n4 為 `1.1535`，比 TGZ 多約 `15.4%`；`llama.cpp` n4 為 `0.8746`，仍比 TGZ 少約 `12.5%`。因此 client-side decode 的節能成立於 n40，低 concurrency 並非兩個資料集都能保持優勢。
+- 同輪其他 LZFSE family 的 Encode ratio 最高值仍低於 1：Other3 `0.3054 / 0.2613`、BVX3 `0.3140 / 0.2678`、Lazy2 `0.8754 / 0.4195`，表示它們在所有 n 值都比 TGZ encode 省 CPU energy。Optimal 是唯一 Encode 最低值仍大於 1 的 LZFSE 模式。
+- R36 → R37 的 TGZ encode baseline 本身由 `550.363047 → 181.690929 J`（claw-code）及 `646.035081 → 170.447736 J`（llama.cpp）大幅下降；Optimal 絕對能耗雖也下降，但降幅遠小於 TGZ，因此 normalized ratio 反而惡化。這證明跨輪只看絕對 J 容易受系統狀態影響；往後應同時報告絕對能耗與同輪 TGZ Energy Ratio，性能判定以兩者一致或受控 A/B 為準。
+
+## Profiling 與 RSS
+
+- 36 個 trace 中，6 個外部工具正常結束，30 個 LZFSE family trace 在 300 秒達 time limit；target 與 `time-profile` / `time-sample` schema 均存在。固定 timeout 下的 symbol occurrence 只供方向比較，不代表精確 CPU 百分比。
+- R35 → R37 的 Optimal n40 directional sample：`claw-code` top closure `737 → 763`（約 `+3.5%`）、parse hits `1170 → 1187`（約 `+1.5%`）；`llama.cpp` top closure `660 → 681`（約 `+3.2%`）、parse hits `1101 → 1101`（不變）。profiling 未顯示主要 parse hotspot 因支配跳過而下降。
+- R36 → R37 的 sample 僅小幅波動：`claw-code` top `769 → 763`、parse `1191 → 1187`；`llama.cpp` top `696 → 681`、parse `1133 → 1101`。這不足以建立穩定因果關係。
+- R35 → R37 的 n40 RSS：`claw-code` encode `578.1 → 564.4 MB`、decode `308.0 → 328.4 MB`；`llama.cpp` encode `587.2 → 600.6 MB`、decode `349.3 → 348.8 MB`。方向不一致，應視為執行波動，沒有證明 rep1/rep2 skip 改善或惡化 RSS。
+- Optimal n40 encode RSS 仍約 `564–601 MB`，decode 約 `328–349 MB`。R36 對 server/CDN 離線壓縮與約 300 MB client decode RSS 的能源取捨判斷不因本輪失效，但 encode buffer、chunk in-flight 與暫存陣列生命週期仍需調查。
+
+## 判定
+
+- **正確性與 output-identical 通過。**兩個資料集、三種 n 值均成功解壓並通過 extract compare；R36 的 Optimal 壓縮大小亦可穩定重現。
+- **性能驗收未通過。**相對 R35，速度為 `+3.3% / -0.1%`，encode CPU energy 為 `-3.6% / -1.9%`，且 profiling 沒有看到主要 hotspot 降低，均未達 `>=10%` 成功條件。
+- **Energy Ratio 亦未改善。**相對 R36，Optimal 的 Encode / Decode 最低與最高 ratio 全數上升；R37 Optimal encode 即使在最低點仍為 TGZ 的 `2.14–2.90x`。只有 n40 decode 維持明確低於 TGZ 的 `0.32–0.37x` 優勢。
+- R36 rep1/rep2 dominated-range skip 應分類為「output-identical 通過，但性能收益未證實」，不可宣稱穩定加速或節能。它仍會改變 DP state/tie path 與 bitstream，不是 ratio-neutral 的純實作優化。
+- 下一輪應以 feature switch 或 revert 建立**同輪受控 A/B**，固定電源、熱狀態與背景負載，至少比較 n40 benchmark、power 與 trace。若兩個資料集仍未出現可重現的 `>=10%` 改善，應回退或不保留此剪枝，轉向 `lzParseOptimal` DP 展開、`matchLength`、`rebuildPrices` 或 Swift Array/COW 等已確認熱點。
+
+---
+
 # 第三十六輪：Optimal 能耗/速度 — rep1/rep2 支配跳過（output-identical 通過）（2026-06-19）/ Round 36: rep1/rep2 Dominated-Range Skip
 
 > 方向轉向：ratio 路線（#1/R33、#3、#4）已耗盡，本輪改做 Optimal 能耗／時間優化。兩個資料集全部解壓 compare 通過，因此 **output-identical 驗收成立**；壓縮 bitstream 與大小有微小變動，另列為非 bitstream-identical。只動 `lzfse-cli.swift`。

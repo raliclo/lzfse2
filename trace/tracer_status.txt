@@ -1,112 +1,113 @@
-RUNNING tracer 23:15:00
-CLEAN_OLD_TRACES 23:15:00
-RUNNING trace claw-code tgz 23:15:17
-TRACE_OUTPUT_CLEANED claw-code tgz 23:16:00
-TRACE_OK claw-code tgz 23:16:00
-RUNNING trace claw-code zstd 23:16:00
-TRACE_OUTPUT_CLEANED claw-code zstd 23:16:08
-TRACE_OK claw-code zstd 23:16:08
-RUNNING trace claw-code tar.lz4 23:16:08
-TRACE_OUTPUT_CLEANED claw-code tar.lz4 23:16:14
-TRACE_OK claw-code tar.lz4 23:16:14
-RUNNING trace claw-code other3 -n 4 23:16:14
-TRACE_OUTPUT_CLEANED claw-code other3-n4 23:21:25
-TRACE_TIMEOUT claw-code other3 -n 4 300s 23:21:25
-RUNNING trace claw-code apple -n 4 23:21:25
-TRACE_OUTPUT_CLEANED claw-code apple-n4 23:26:30
-TRACE_TIMEOUT claw-code apple -n 4 300s 23:26:30
-RUNNING trace claw-code bvx3 -n 4 23:26:30
-TRACE_OUTPUT_CLEANED claw-code bvx3-n4 23:31:36
-TRACE_TIMEOUT claw-code bvx3 -n 4 300s 23:31:36
-RUNNING trace claw-code lazy2 -n 4 23:31:36
-TRACE_OUTPUT_CLEANED claw-code lazy2-n4 23:36:43
-TRACE_TIMEOUT claw-code lazy2 -n 4 300s 23:36:43
-RUNNING trace claw-code optimal -n 4 23:36:43
-TRACE_OUTPUT_CLEANED claw-code optimal-n4 23:41:53
-TRACE_TIMEOUT claw-code optimal -n 4 300s 23:41:53
-RUNNING trace claw-code other3 -n 8 23:41:53
-TRACE_OUTPUT_CLEANED claw-code other3-n8 23:47:00
-TRACE_TIMEOUT claw-code other3 -n 8 300s 23:47:00
-RUNNING trace claw-code apple -n 8 23:47:00
-TRACE_OUTPUT_CLEANED claw-code apple-n8 23:52:08
-TRACE_TIMEOUT claw-code apple -n 8 300s 23:52:08
-RUNNING trace claw-code bvx3 -n 8 23:52:08
-TRACE_OUTPUT_CLEANED claw-code bvx3-n8 23:57:16
-TRACE_TIMEOUT claw-code bvx3 -n 8 300s 23:57:16
-RUNNING trace claw-code lazy2 -n 8 23:57:16
-TRACE_OUTPUT_CLEANED claw-code lazy2-n8 00:02:25
-TRACE_TIMEOUT claw-code lazy2 -n 8 300s 00:02:25
-RUNNING trace claw-code optimal -n 8 00:02:25
-TRACE_OUTPUT_CLEANED claw-code optimal-n8 00:07:38
-TRACE_TIMEOUT claw-code optimal -n 8 300s 00:07:38
-RUNNING trace claw-code other3 -n 40 00:07:38
-TRACE_OUTPUT_CLEANED claw-code other3-n40 00:12:45
-TRACE_TIMEOUT claw-code other3 -n 40 300s 00:12:45
-RUNNING trace claw-code apple -n 40 00:12:45
-TRACE_OUTPUT_CLEANED claw-code apple-n40 00:17:52
-TRACE_TIMEOUT claw-code apple -n 40 300s 00:17:52
-RUNNING trace claw-code bvx3 -n 40 00:17:52
-TRACE_OUTPUT_CLEANED claw-code bvx3-n40 00:23:00
-TRACE_TIMEOUT claw-code bvx3 -n 40 300s 00:23:00
-RUNNING trace claw-code lazy2 -n 40 00:23:00
-TRACE_OUTPUT_CLEANED claw-code lazy2-n40 00:28:08
-TRACE_TIMEOUT claw-code lazy2 -n 40 300s 00:28:08
-RUNNING trace claw-code optimal -n 40 00:28:08
-TRACE_OUTPUT_CLEANED claw-code optimal-n40 00:33:23
-TRACE_TIMEOUT claw-code optimal -n 40 300s 00:33:23
-RUNNING trace llama.cpp tgz 00:33:40
-TRACE_OUTPUT_CLEANED llama.cpp tgz 00:34:22
-TRACE_OK llama.cpp tgz 00:34:23
-RUNNING trace llama.cpp zstd 00:34:23
-TRACE_OUTPUT_CLEANED llama.cpp zstd 00:34:28
-TRACE_OK llama.cpp zstd 00:34:28
-RUNNING trace llama.cpp tar.lz4 00:34:29
-TRACE_OUTPUT_CLEANED llama.cpp tar.lz4 00:34:34
-TRACE_OK llama.cpp tar.lz4 00:34:34
-RUNNING trace llama.cpp other3 -n 4 00:34:34
-TRACE_OUTPUT_CLEANED llama.cpp other3-n4 00:39:41
-TRACE_TIMEOUT llama.cpp other3 -n 4 300s 00:39:41
-RUNNING trace llama.cpp apple -n 4 00:39:41
-TRACE_OUTPUT_CLEANED llama.cpp apple-n4 00:44:48
-TRACE_TIMEOUT llama.cpp apple -n 4 300s 00:44:48
-RUNNING trace llama.cpp bvx3 -n 4 00:44:48
-TRACE_OUTPUT_CLEANED llama.cpp bvx3-n4 00:49:55
-TRACE_TIMEOUT llama.cpp bvx3 -n 4 300s 00:49:55
-RUNNING trace llama.cpp lazy2 -n 4 00:49:55
-TRACE_OUTPUT_CLEANED llama.cpp lazy2-n4 00:55:03
-TRACE_TIMEOUT llama.cpp lazy2 -n 4 300s 00:55:03
-RUNNING trace llama.cpp optimal -n 4 00:55:03
-TRACE_OUTPUT_CLEANED llama.cpp optimal-n4 01:00:16
-TRACE_TIMEOUT llama.cpp optimal -n 4 300s 01:00:16
-RUNNING trace llama.cpp other3 -n 8 01:00:16
-TRACE_OUTPUT_CLEANED llama.cpp other3-n8 01:05:24
-TRACE_TIMEOUT llama.cpp other3 -n 8 300s 01:05:24
-RUNNING trace llama.cpp apple -n 8 01:05:24
-TRACE_OUTPUT_CLEANED llama.cpp apple-n8 01:10:32
-TRACE_TIMEOUT llama.cpp apple -n 8 300s 01:10:32
-RUNNING trace llama.cpp bvx3 -n 8 01:10:32
-TRACE_OUTPUT_CLEANED llama.cpp bvx3-n8 01:15:39
-TRACE_TIMEOUT llama.cpp bvx3 -n 8 300s 01:15:39
-RUNNING trace llama.cpp lazy2 -n 8 01:15:39
-TRACE_OUTPUT_CLEANED llama.cpp lazy2-n8 01:20:47
-TRACE_TIMEOUT llama.cpp lazy2 -n 8 300s 01:20:47
-RUNNING trace llama.cpp optimal -n 8 01:20:47
-TRACE_OUTPUT_CLEANED llama.cpp optimal-n8 01:25:59
-TRACE_TIMEOUT llama.cpp optimal -n 8 300s 01:25:59
-RUNNING trace llama.cpp other3 -n 40 01:25:59
-TRACE_OUTPUT_CLEANED llama.cpp other3-n40 01:31:10
-TRACE_TIMEOUT llama.cpp other3 -n 40 300s 01:31:10
-RUNNING trace llama.cpp apple -n 40 01:31:10
-TRACE_OUTPUT_CLEANED llama.cpp apple-n40 01:36:20
-TRACE_TIMEOUT llama.cpp apple -n 40 300s 01:36:20
-RUNNING trace llama.cpp bvx3 -n 40 01:36:20
-TRACE_OUTPUT_CLEANED llama.cpp bvx3-n40 01:41:29
-TRACE_TIMEOUT llama.cpp bvx3 -n 40 300s 01:41:29
-RUNNING trace llama.cpp lazy2 -n 40 01:41:29
-TRACE_OUTPUT_CLEANED llama.cpp lazy2-n40 01:46:38
-TRACE_TIMEOUT llama.cpp lazy2 -n 40 300s 01:46:38
-RUNNING trace llama.cpp optimal -n 40 01:46:38
-TRACE_OUTPUT_CLEANED llama.cpp optimal-n40 01:51:50
-TRACE_TIMEOUT llama.cpp optimal -n 40 300s 01:51:50
-EXIT 0 01:51:50
-TRACE_DONE 01:51:50
+RUNNING tracer 07:46:14
+CLEAN_OLD_TRACES 07:46:14
+RUNNING trace claw-code tgz 07:46:28
+TRACE_OUTPUT_CLEANED claw-code tgz 07:47:09
+TRACE_OK claw-code tgz 07:47:09
+RUNNING trace claw-code zstd 07:47:09
+TRACE_OUTPUT_CLEANED claw-code zstd 07:47:16
+TRACE_OK claw-code zstd 07:47:16
+RUNNING trace claw-code tar.lz4 07:47:16
+TRACE_OUTPUT_CLEANED claw-code tar.lz4 07:47:21
+TRACE_OK claw-code tar.lz4 07:47:21
+RUNNING trace claw-code other3 -n 4 07:47:21
+TRACE_OUTPUT_CLEANED claw-code other3-n4 07:52:25
+TRACE_TIMEOUT claw-code other3 -n 4 300s 07:52:25
+RUNNING trace claw-code apple -n 4 07:52:25
+TRACE_OUTPUT_CLEANED claw-code apple-n4 07:57:29
+TRACE_TIMEOUT claw-code apple -n 4 300s 07:57:29
+RUNNING trace claw-code bvx3 -n 4 07:57:29
+TRACE_OUTPUT_CLEANED claw-code bvx3-n4 08:02:33
+TRACE_TIMEOUT claw-code bvx3 -n 4 300s 08:02:33
+RUNNING trace claw-code lazy2 -n 4 08:02:33
+TRACE_OUTPUT_CLEANED claw-code lazy2-n4 08:07:38
+TRACE_TIMEOUT claw-code lazy2 -n 4 300s 08:07:38
+RUNNING trace claw-code optimal -n 4 08:07:38
+TRACE_OUTPUT_CLEANED claw-code optimal-n4 08:12:44
+TRACE_TIMEOUT claw-code optimal -n 4 300s 08:12:44
+RUNNING trace claw-code other3 -n 8 08:12:44
+TRACE_OUTPUT_CLEANED claw-code other3-n8 08:17:48
+TRACE_TIMEOUT claw-code other3 -n 8 300s 08:17:48
+RUNNING trace claw-code apple -n 8 08:17:48
+TRACE_OUTPUT_CLEANED claw-code apple-n8 08:22:51
+TRACE_TIMEOUT claw-code apple -n 8 300s 08:22:51
+RUNNING trace claw-code bvx3 -n 8 08:22:51
+TRACE_OUTPUT_CLEANED claw-code bvx3-n8 08:27:55
+TRACE_TIMEOUT claw-code bvx3 -n 8 300s 08:27:55
+RUNNING trace claw-code lazy2 -n 8 08:27:55
+TRACE_OUTPUT_CLEANED claw-code lazy2-n8 08:33:00
+TRACE_TIMEOUT claw-code lazy2 -n 8 300s 08:33:00
+RUNNING trace claw-code optimal -n 8 08:33:00
+TRACE_OUTPUT_CLEANED claw-code optimal-n8 08:38:09
+TRACE_TIMEOUT claw-code optimal -n 8 300s 08:38:09
+RUNNING trace claw-code other3 -n 40 08:38:09
+TRACE_OUTPUT_CLEANED claw-code other3-n40 08:43:13
+TRACE_TIMEOUT claw-code other3 -n 40 300s 08:43:13
+RUNNING trace claw-code apple -n 40 08:43:13
+TRACE_OUTPUT_CLEANED claw-code apple-n40 08:48:18
+TRACE_TIMEOUT claw-code apple -n 40 300s 08:48:18
+RUNNING trace claw-code bvx3 -n 40 08:48:18
+TRACE_OUTPUT_CLEANED claw-code bvx3-n40 08:53:23
+TRACE_TIMEOUT claw-code bvx3 -n 40 300s 08:53:23
+RUNNING trace claw-code lazy2 -n 40 08:53:23
+TRACE_OUTPUT_CLEANED claw-code lazy2-n40 08:58:29
+TRACE_TIMEOUT claw-code lazy2 -n 40 300s 08:58:29
+RUNNING trace claw-code optimal -n 40 08:58:29
+TRACE_OUTPUT_CLEANED claw-code optimal-n40 09:03:38
+TRACE_TIMEOUT claw-code optimal -n 40 300s 09:03:38
+RUNNING trace llama.cpp tgz 09:03:54
+TRACE_OUTPUT_CLEANED llama.cpp tgz 09:04:30
+TRACE_OK llama.cpp tgz 09:04:30
+RUNNING trace llama.cpp zstd 09:04:30
+TRACE_OUTPUT_CLEANED llama.cpp zstd 09:04:35
+TRACE_OK llama.cpp zstd 09:04:35
+RUNNING trace llama.cpp tar.lz4 09:04:35
+TRACE_OUTPUT_CLEANED llama.cpp tar.lz4 09:04:41
+TRACE_OK llama.cpp tar.lz4 09:04:41
+RUNNING trace llama.cpp other3 -n 4 09:04:41
+TRACE_OUTPUT_CLEANED llama.cpp other3-n4 09:09:45
+TRACE_TIMEOUT llama.cpp other3 -n 4 300s 09:09:45
+RUNNING trace llama.cpp apple -n 4 09:09:45
+TRACE_OUTPUT_CLEANED llama.cpp apple-n4 09:14:50
+TRACE_TIMEOUT llama.cpp apple -n 4 300s 09:14:50
+RUNNING trace llama.cpp bvx3 -n 4 09:14:50
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n4 09:19:55
+TRACE_TIMEOUT llama.cpp bvx3 -n 4 300s 09:19:55
+RUNNING trace llama.cpp lazy2 -n 4 09:19:55
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n4 09:25:00
+TRACE_TIMEOUT llama.cpp lazy2 -n 4 300s 09:25:00
+RUNNING trace llama.cpp optimal -n 4 09:25:00
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n4 09:30:07
+TRACE_TIMEOUT llama.cpp optimal -n 4 300s 09:30:07
+RUNNING trace llama.cpp other3 -n 8 09:30:07
+TRACE_OUTPUT_CLEANED llama.cpp other3-n8 09:35:13
+TRACE_TIMEOUT llama.cpp other3 -n 8 300s 09:35:13
+RUNNING trace llama.cpp apple -n 8 09:35:13
+TRACE_OUTPUT_CLEANED llama.cpp apple-n8 09:40:18
+TRACE_TIMEOUT llama.cpp apple -n 8 300s 09:40:18
+RUNNING trace llama.cpp bvx3 -n 8 09:40:18
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n8 09:45:24
+TRACE_TIMEOUT llama.cpp bvx3 -n 8 300s 09:45:24
+RUNNING trace llama.cpp lazy2 -n 8 09:45:24
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n8 09:50:29
+TRACE_TIMEOUT llama.cpp lazy2 -n 8 300s 09:50:29
+RUNNING trace llama.cpp optimal -n 8 09:50:29
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n8 09:55:36
+TRACE_TIMEOUT llama.cpp optimal -n 8 300s 09:55:36
+RUNNING trace llama.cpp other3 -n 40 09:55:36
+TRACE_OUTPUT_CLEANED llama.cpp other3-n40 10:00:41
+TRACE_TIMEOUT llama.cpp other3 -n 40 300s 10:00:41
+RUNNING trace llama.cpp apple -n 40 10:00:41
+TRACE_OUTPUT_CLEANED llama.cpp apple-n40 10:05:47
+TRACE_TIMEOUT llama.cpp apple -n 40 300s 10:05:47
+RUNNING trace llama.cpp bvx3 -n 40 10:05:47
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n40 10:10:52
+TRACE_TIMEOUT llama.cpp bvx3 -n 40 300s 10:10:52
+RUNNING trace llama.cpp lazy2 -n 40 10:10:52
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n40 10:15:58
+TRACE_TIMEOUT llama.cpp lazy2 -n 40 300s 10:15:58
+RUNNING trace llama.cpp optimal -n 40 10:15:58
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n40 10:21:06
+TRACE_TIMEOUT llama.cpp optimal -n 40 300s 10:21:06
+TRACE_PACKAGE_COUNT_TRACER_END 36 10:21:06
+EXIT 0 10:21:06
+TRACE_DONE 10:21:06

@@ -192,12 +192,12 @@ source ~/.zshrc
 修改步驟
 開啟 visudo：
 ```
-sudo visudo
+sudo EDITOR=nano visudo
 ```
 
 新增一行如下：
 ```
-raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true
+raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true, /Users/raliclo/proj/lzfse2/benchmark.sh, /Users/raliclo/proj/lzfse2/benchmark2.sh, /Users/raliclo/proj/lzfse2/run_round.command, /Users/raliclo/proj/lzfse2/helper/reboot.command,/Users/raliclo/proj/lzfse2/gitOwner.sh
 ```
 
 儲存並離開（同樣按下 Ctrl + O -> Enter -> Ctrl + X）。

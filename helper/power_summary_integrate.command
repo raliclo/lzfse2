@@ -1,8 +1,8 @@
 #!/bin/zsh
 set -euo pipefail
 
-# Integrate CPU power from powerResults/power_summary.csv into benchmark CSVs.
-# 將 powerResults/power_summary.csv 的 cpu_power_mw 整合進 benchmark CSV。
+# Integrate CPU power/energy and TGZ-relative energy ratios into benchmark CSVs.
+# 將 powerResults/power_summary.csv 的 CPU 功率、能耗與 TGZ 相對能耗比整合進 benchmark CSV。
 
 cd /Users/raliclo/proj/lzfse2
 export LANG=en_US.UTF-8
@@ -54,6 +54,8 @@ BENCH_POWER_FIELDS = [
     "Decode CPU Power(mW)",
     "Encode CPU Energy(J)",
     "Decode CPU Energy(J)",
+    "Encode CPU Energy Ratio (TGZ=1)",
+    "Decode CPU Energy Ratio (TGZ=1)",
 ]
 
 BENCH_FIELD_ENGLISH = {
@@ -86,6 +88,8 @@ BENCH_FIELD_ENGLISH = {
     "Decode CPU Power(mW)": "decode_cpu_power_mw",
     "Encode CPU Energy(J)": "encode_cpu_energy_j",
     "Decode CPU Energy(J)": "decode_cpu_energy_j",
+    "Encode CPU Energy Ratio (TGZ=1)": "encode_cpu_energy_ratio_tgz",
+    "Decode CPU Energy Ratio (TGZ=1)": "decode_cpu_energy_ratio_tgz",
 }
 
 BEST_POWER_FIELDS = [
@@ -105,6 +109,10 @@ BEST_POWER_FIELDS = [
     "最低 Decode CPU Energy 來源",
     "最高 Decode CPU Energy(J)",
     "最高 Decode CPU Energy 來源",
+    "最低 Encode CPU Energy Ratio (TGZ=1)",
+    "最高 Encode CPU Energy Ratio (TGZ=1)",
+    "最低 Decode CPU Energy Ratio (TGZ=1)",
+    "最高 Decode CPU Energy Ratio (TGZ=1)",
 ]
 
 BEST_FIELD_ENGLISH = {
@@ -144,6 +152,10 @@ BEST_FIELD_ENGLISH = {
     "最低 Decode CPU Energy 來源": "min_decode_cpu_energy_source",
     "最高 Decode CPU Energy(J)": "max_decode_cpu_energy_j",
     "最高 Decode CPU Energy 來源": "max_decode_cpu_energy_source",
+    "最低 Encode CPU Energy Ratio (TGZ=1)": "min_encode_cpu_energy_ratio_tgz",
+    "最高 Encode CPU Energy Ratio (TGZ=1)": "max_encode_cpu_energy_ratio_tgz",
+    "最低 Decode CPU Energy Ratio (TGZ=1)": "min_decode_cpu_energy_ratio_tgz",
+    "最高 Decode CPU Energy Ratio (TGZ=1)": "max_decode_cpu_energy_ratio_tgz",
 }
 
 
@@ -291,6 +303,34 @@ def integrate_benchmark(power: dict[tuple[str, str, str, str], dict[str, str]]) 
         row.pop("Encode Power Status", None)
         row.pop("Decode Power Status", None)
 
+    tgz_energy: dict[tuple[str, str], tuple[float, float]] = {}
+    for row in rows:
+        if row.get("格式") != "TGZ":
+            continue
+        try:
+            tgz_energy[(row.get("資料夾", ""), row.get("N", ""))] = (
+                float(row["Encode CPU Energy(J)"]),
+                float(row["Decode CPU Energy(J)"]),
+            )
+        except (KeyError, ValueError):
+            continue
+
+    for row in rows:
+        row["Encode CPU Energy Ratio (TGZ=1)"] = ""
+        row["Decode CPU Energy Ratio (TGZ=1)"] = ""
+        baseline = tgz_energy.get((row.get("資料夾", ""), row.get("N", "")))
+        if not baseline:
+            continue
+        for value_field, ratio_field, baseline_value in (
+            ("Encode CPU Energy(J)", "Encode CPU Energy Ratio (TGZ=1)", baseline[0]),
+            ("Decode CPU Energy(J)", "Decode CPU Energy Ratio (TGZ=1)", baseline[1]),
+        ):
+            try:
+                if baseline_value > 0:
+                    row[ratio_field] = f"{float(row[value_field]) / baseline_value:.4f}"
+            except (KeyError, ValueError):
+                pass
+
     write_csv_rows(benchmark_csv, fieldnames, rows)
     return rows
 
@@ -326,6 +366,8 @@ def integrate_best_points(benchmark_rows: list[dict[str, str]]) -> None:
         decode_rows = value_rows(group, "Decode CPU Power(mW)")
         encode_energy_rows = value_rows(group, "Encode CPU Energy(J)")
         decode_energy_rows = value_rows(group, "Decode CPU Energy(J)")
+        encode_energy_ratio_rows = value_rows(group, "Encode CPU Energy Ratio (TGZ=1)")
+        decode_energy_ratio_rows = value_rows(group, "Decode CPU Energy Ratio (TGZ=1)")
 
         if encode_rows:
             min_encode = min(encode_rows, key=lambda item: float(item["Encode CPU Power(mW)"]))
@@ -359,6 +401,38 @@ def integrate_best_points(benchmark_rows: list[dict[str, str]]) -> None:
             row["最高 Decode CPU Energy(J)"] = power_cell(max_decode_energy, "Decode CPU Energy(J)")
             row["最高 Decode CPU Energy 來源"] = source_label(max_decode_energy)
 
+        if encode_energy_ratio_rows:
+            min_encode_ratio = min(
+                encode_energy_ratio_rows,
+                key=lambda item: float(item["Encode CPU Energy Ratio (TGZ=1)"]),
+            )
+            max_encode_ratio = max(
+                encode_energy_ratio_rows,
+                key=lambda item: float(item["Encode CPU Energy Ratio (TGZ=1)"]),
+            )
+            row["最低 Encode CPU Energy Ratio (TGZ=1)"] = power_cell(
+                min_encode_ratio, "Encode CPU Energy Ratio (TGZ=1)"
+            ) + f" ({source_label(min_encode_ratio)})"
+            row["最高 Encode CPU Energy Ratio (TGZ=1)"] = power_cell(
+                max_encode_ratio, "Encode CPU Energy Ratio (TGZ=1)"
+            ) + f" ({source_label(max_encode_ratio)})"
+
+        if decode_energy_ratio_rows:
+            min_decode_ratio = min(
+                decode_energy_ratio_rows,
+                key=lambda item: float(item["Decode CPU Energy Ratio (TGZ=1)"]),
+            )
+            max_decode_ratio = max(
+                decode_energy_ratio_rows,
+                key=lambda item: float(item["Decode CPU Energy Ratio (TGZ=1)"]),
+            )
+            row["最低 Decode CPU Energy Ratio (TGZ=1)"] = power_cell(
+                min_decode_ratio, "Decode CPU Energy Ratio (TGZ=1)"
+            ) + f" ({source_label(min_decode_ratio)})"
+            row["最高 Decode CPU Energy Ratio (TGZ=1)"] = power_cell(
+                max_decode_ratio, "Decode CPU Energy Ratio (TGZ=1)"
+            ) + f" ({source_label(max_decode_ratio)})"
+
     write_csv_rows(best_points_csv, fieldnames, rows)
     write_best_points_md(rows)
 
@@ -370,6 +444,14 @@ def md_cell(record: dict[str, str], value_key: str, source_key: str, suffix: str
         return ""
     suffix_text = f" {suffix}" if suffix else ""
     return f"{value}{suffix_text} (`{source}`)" if source else f"{value}{suffix_text}"
+
+
+def md_ratio_cell(record: dict[str, str], key: str) -> str:
+    value = record.get(key, "")
+    if value.endswith(")") and " (" in value:
+        ratio, source = value.rsplit(" (", 1)
+        return f"{ratio} (`{source[:-1]}`)"
+    return value
 
 
 def write_best_points_md(records: list[dict[str, str]]) -> None:
@@ -385,8 +467,8 @@ def write_best_points_md(records: list[dict[str, str]]) -> None:
     for dataset in datasets:
         lines.append(f"## {dataset}")
         lines.append("")
-        lines.append("| 格式 | 最佳壓縮比 | 最佳壓縮 MB/s | 最差壓縮 MB/s | 最佳解壓 MB/s | 最差解壓 MB/s | 最低 Encode RSS | 最高 Encode RSS | 最低 Decode RSS | 最高 Decode RSS | 最低 Encode CPU Power | 最高 Encode CPU Power | 最低 Decode CPU Power | 最高 Decode CPU Power | 最低 Encode CPU Energy | 最高 Encode CPU Energy | 最低 Decode CPU Energy | 最高 Decode CPU Energy |")
-        lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+        lines.append("| 格式 | 最佳壓縮比 | 最佳壓縮 MB/s | 最差壓縮 MB/s | 最佳解壓 MB/s | 最差解壓 MB/s | 最低 Encode RSS | 最高 Encode RSS | 最低 Decode RSS | 最高 Decode RSS | 最低 Encode CPU Power | 最高 Encode CPU Power | 最低 Decode CPU Power | 最高 Decode CPU Power | 最低 Encode CPU Energy | 最高 Encode CPU Energy | 最低 Decode CPU Energy | 最高 Decode CPU Energy | 最低 Encode Energy Ratio | 最高 Encode Energy Ratio | 最低 Decode Energy Ratio | 最高 Decode Energy Ratio |")
+        lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
         for record in [row for row in records if row["資料夾"] == dataset]:
             lines.append(
                 "| {fmt} | {best_ratio} (`{best_ratio_src}`) | "
@@ -395,7 +477,9 @@ def write_best_points_md(records: list[dict[str, str]]) -> None:
                 "{min_enc_rss} MB (`{min_enc_rss_src}`) | {max_enc_rss} MB (`{max_enc_rss_src}`) | "
                 "{min_dec_rss} MB (`{min_dec_rss_src}`) | {max_dec_rss} MB (`{max_dec_rss_src}`) | "
                 "{min_enc_power} | {max_enc_power} | {min_dec_power} | {max_dec_power} | "
-                "{min_enc_energy} | {max_enc_energy} | {min_dec_energy} | {max_dec_energy} |".format(
+                "{min_enc_energy} | {max_enc_energy} | {min_dec_energy} | {max_dec_energy} | "
+                "{min_enc_energy_ratio} | {max_enc_energy_ratio} | "
+                "{min_dec_energy_ratio} | {max_dec_energy_ratio} |".format(
                     fmt=record["格式"],
                     best_ratio=record["最佳壓縮比"],
                     best_ratio_src=record["最佳壓縮比來源"],
@@ -423,6 +507,10 @@ def write_best_points_md(records: list[dict[str, str]]) -> None:
                     max_enc_energy=md_cell(record, "最高 Encode CPU Energy(J)", "最高 Encode CPU Energy 來源", "J"),
                     min_dec_energy=md_cell(record, "最低 Decode CPU Energy(J)", "最低 Decode CPU Energy 來源", "J"),
                     max_dec_energy=md_cell(record, "最高 Decode CPU Energy(J)", "最高 Decode CPU Energy 來源", "J"),
+                    min_enc_energy_ratio=md_ratio_cell(record, "最低 Encode CPU Energy Ratio (TGZ=1)"),
+                    max_enc_energy_ratio=md_ratio_cell(record, "最高 Encode CPU Energy Ratio (TGZ=1)"),
+                    min_dec_energy_ratio=md_ratio_cell(record, "最低 Decode CPU Energy Ratio (TGZ=1)"),
+                    max_dec_energy_ratio=md_ratio_cell(record, "最高 Decode CPU Energy Ratio (TGZ=1)"),
                 )
             )
         lines.append("")
@@ -433,7 +521,7 @@ def write_best_points_md(records: list[dict[str, str]]) -> None:
 power = load_power()
 benchmark_rows = integrate_benchmark(power)
 integrate_best_points(benchmark_rows)
-print(f"[Info] integrated cpu_power_mw into {benchmark_csv}")
-print(f"[Info] integrated cpu_power_mw into {best_points_csv}")
+print(f"[Info] integrated CPU power/energy and TGZ energy ratios into {benchmark_csv}")
+print(f"[Info] integrated CPU power/energy extrema and TGZ energy ratios into {best_points_csv}")
 print(f"[Info] wrote {best_points_md}")
 PY
