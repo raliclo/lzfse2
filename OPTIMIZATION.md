@@ -9,6 +9,144 @@
 - **bitstream-identical**：壓縮產物的位元組與 baseline 完全相同，這是比 output-identical 更嚴格且獨立的條件。
 - 壓縮檔大小或壓縮比變動應另行記錄，不得單獨用來判定 output-identical 失敗。
 
+# R38 ：R35 code 重測（2026-06-20）/ R38 Revert Baseline Retest
+
+> R37 判定 rep1/rep2 dominated-range skip 無可重現性能收益後，將 `lzfse-cli.swift` revert 至 R35 code（移除 R36 的 `repLen0/repLen1` 宣告及 rep1/rep2 跳過邏輯），並觸發完整 benchmark（15:08 開始，18:51 BENCH_DONE）。目的為確認 revert 後壓縮輸出回到 R35 bitstream、encode 速度恢復 R35 水位。
+
+## 代碼狀態確認
+
+- 現行 `lzfse-cli.swift` 已移除 R36 新增的 `var repLen0 = 0, repLen1 = 0` 與 rep1/rep2 跳過 guard，恢復為 `var msym = 4; var ll = 4; let lim = min(l, cap)` 原始迴圈起點。
+- Optimal 壓縮 bytes：`claw-code 422,948,093`（= R35 committed）、`llama.cpp 577,863,623`（= R35 committed）。與 R36/R37 的 `422,948,018 / 577,864,898` 不同，確認 revert 後 bitstream 完全回到 R35 狀態。
+
+## n40 Optimal 結果對比（R35 committed vs 本次重測）
+
+| 指標 | R35 committed | 本次重測（R35 code）| 差距 |
+| --- | ---: | ---: | ---: |
+| claw-code encode MB/s | 34.70 | 36.21 | +4.4% |
+| llama.cpp encode MB/s | 49.89 | 50.42 | +1.1% |
+| claw-code encode power mW | 13,279 | 13,290 | +0.1% |
+| llama.cpp encode power mW | 15,731 | 15,523 | −1.3% |
+| claw-code encode energy J | 545.7 | 517.8 | −5.1% |
+| llama.cpp encode energy J | 371.5 | 359.2 | −3.3% |
+| claw-code encode RSS MB | 578.1 | 561.2 | −2.9% |
+| llama.cpp encode RSS MB | 587.2 | 597.2 | +1.7% |
+
+- encode power（mW）兩輪幾乎相同（+0.1% / −1.3%），確認 CPU 頻率與功率狀態穩定。
+- encode speed：`llama.cpp` +1.1% 屬噪音；`claw-code` +4.4% 略高，可能為系統暖機差異或 cache 效應，未超過 10% 門檻，仍視為噪音範圍。
+- encode energy −3.3 ~ −5.1%：方向一致，但幅度不足以宣稱改善；R35 committed 時系統熱狀態較高，本次重測能耗較低屬合理波動。
+- **decode power / energy**：本次重測 decode power 僅 499 / 169 mW（vs 一般 5,000–7,000 mW），明顯偏低，推測 powermetrics 採樣窗未對齊 decode 執行期，decode energy 結果不可採用。
+
+## Decode energy 量測可靠性分析（R35 / R36 / R37 / R38 四輪比對）
+
+### 現象一：TGZ / TLZ4 / ZSTD decode energy 在同 run 的 n=4 / 8 / 40 完全相同
+
+| run | claw-code TGZ n4 | n8 | n40 |
+| --- | ---: | ---: | ---: |
+| R35 | 8.828 J | 8.828 J | 8.828 J |
+| R36 | 28.553 J | 28.553 J | 28.553 J |
+| R37 | 10.605 J | 10.605 J | 10.605 J |
+| R38 | 5.280 J | 5.280 J | 5.280 J |
+
+→ 這三種格式的 decode energy 與 n 值無關，power_benchmark 對它們只執行一次量測，結果被複製到 n=4 / 8 / 40 三列。**TGZ/TLZ4/ZSTD decode energy 不能用於 per-n 比較，也不應作為同輪 decode ratio 分母。**
+
+### 現象二：LZFSE Optimal decode 採樣窗極短（implied active ≈ 0.4–1.0 s）
+
+`implied_active = decode_energy_J / (decode_power_mW / 1000)` 代表 powermetrics 實際捕捉到 CPU 活動的持續時間。
+
+| | R35 | R36 | R37 | R38 | 實際 decode_sec |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code n4  | 0.98 s | 1.01 s | 1.00 s | 0.88 s | ~4.2 s/iter |
+| claw-code n8  | 0.65 s | 0.68 s | 0.66 s | 0.63 s | ~3.8 s/iter |
+| claw-code n40 | 0.52 s | 0.56 s | 0.59 s | 0.51 s | ~4.0 s/iter |
+| llama.cpp n4  | 0.67 s | 0.70 s | 0.67 s | 0.63 s | ~15.6 s/iter |
+| llama.cpp n8  | 0.49 s | 0.52 s | 0.50 s | 0.47 s | ~15.0 s/iter |
+| llama.cpp n40 | 0.39 s | 0.38 s | 0.40 s | 0.36 s | ~15.4 s/iter |
+
+powermetrics 每次 decode 量測只捕捉約 0.5–1.0 秒，但實際每 iteration decode 為 4–16 秒（n40 總時長達 160–620 秒）。**採樣窗覆蓋率極低（<5%），捕捉到的只是 decode 開頭一小段的 CPU 狀態，不代表整體能耗。**
+
+### 現象三：R36 decode power 異常偏高，R38 n40 異常偏低
+
+| run | claw-code Optimal n40 power | llama.cpp Optimal n40 power |
+| --- | ---: | ---: |
+| R35 | 558 mW | 6,445 mW |
+| R36 | **15,070 mW**（異常高）| **15,287 mW**（異常高）|
+| R37 | 6,655 mW | 6,863 mW |
+| R38 | **499 mW**（異常低）| **169 mW**（異常低）|
+
+- R36 decode power 與 encode 相當（13,000–15,000 mW），顯示 R36 benchmark 期間系統處於高負載，採樣窗恰好捕捉到背景活動，造成 decode power 虛高。
+- R35 / R38 claw-code n40 decode power 僅 500–560 mW，與 llama.cpp 同輪（6,445 / 169 mW）差距巨大，顯示採樣窗極短且時機隨機。
+
+### 結論：decode energy 量測不可用於跨輪比較
+
+1. 採樣窗僅 0.4–1.0 s，遠短於實際 decode 時間，無法代表總能耗。
+2. TGZ/TLZ4/ZSTD decode energy 對 n 值為常數（單次量測），無法與 LZFSE 格式做 n-consistent ratio 比較。
+3. R36 decode power 受系統高負載污染，R38 n40 受採樣時機偏移影響，兩輪絕對值均不可信。
+4. 唯一可靠的能耗指標為 **encode CPU energy**：encode 時間長（25–55 s/iter × n），powermetrics 採樣覆蓋率高，跨輪 power 數值穩定（±1–2%）。
+
+**後續 decode energy 若需可靠量測，應改用 `powermetrics -i 500` 連續取樣並覆蓋完整 n-iteration decode 執行期，而非現行單次短窗採樣。**
+
+## Encode energy 四輪比對分析（R35 / R36 / R37 / R38）
+
+### 量測可靠性：encode energy 覆蓋率高
+
+encode 的 implied_active（energy/power）與實際 encode_seconds 幾乎相符（95–107%），確認 powermetrics 採樣窗完整覆蓋整個 encode 執行期。encode energy 為可信量測，與 decode 根本不同。
+
+但 **TGZ / TLZ4 / ZSTD encode energy 在同一 run 的 n=4/8/40 仍完全相同**（單次量測），無法做 per-n 比較；LZFSE 格式則正確地依 n 遞增。
+
+### R36 encode energy 全格式系統性偏高
+
+R36 的能耗膨脹不只在 Optimal，**所有格式**都升高，且膨脹幅度與 encode 時長成反比：
+
+| 格式（claw-code n40） | R35 | R36 | R37 | R38 |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ（~3 s） | 192 J | **550 J（+187%）** | 182 J | 167 J |
+| LZFSE (Apple)（~7 s） | 56 J | **157 J（+180%）** | 52 J | 46 J |
+| LZFSE (Lazy2)（~14 s） | 120 J | **163 J（+36%）** | 114 J | 109 J |
+| LZFSE (Optimal)（~40 s） | 546 J | **603 J（+10%）** | 526 J | 518 J |
+
+TGZ（最快，採樣窗最短）膨脹 +187%，Optimal（最慢，採樣窗最長）僅膨脹 +10%。這是典型的**系統高負載污染**：encode 時長越短，背景功耗佔測量比例越高。**R36 的非 Optimal 格式 encode energy 數值不可採用。**
+
+### Optimal encode energy 四輪數值（相對 R35）
+
+| 資料集 / n | R35 | R36 | R37（R36-code）| R38（R35-code）|
+| --- | ---: | ---: | ---: | ---: |
+| claw-code n4 | 736 J（100%）| 1103 J（+50%）| 720 J（**98%**）| 723 J（**98%**）|
+| claw-code n8 | 590 J（100%）| 756 J（+28%）| 585 J（**99%**）| 578 J（**98%**）|
+| claw-code n40 | 546 J（100%）| 603 J（+10%）| 526 J（**96%**）| 518 J（**95%**）|
+| llama.cpp n4 | 544 J（100%）| 738 J（+36%）| 511 J（**94%**）| 519 J（**95%**）|
+| llama.cpp n8 | 416 J（100%）| 501 J（+20%）| 402 J（**97%**）| 403 J（**97%**）|
+| llama.cpp n40 | 372 J（100%）| 407 J（+10%）| 365 J（**98%**）| 359 J（**97%**）|
+
+- R37（R36-code）與 R38（R35-code）均比 R35 committed 低 2–5%，但差距方向一致，顯示系統熱狀態在 R37/R38 期間略低於 R35 committed 時。
+- 排除 R36 後，三輪（R35 / R37 / R38）的 Optimal encode energy 在同 n 值下差距不超過 5%，屬系統狀態波動範圍。
+
+### R37（R36-code）vs R38（R35-code）Optimal 直接比較
+
+| n | claw-code ΔE | claw-code Δspeed | llama.cpp ΔE | llama.cpp Δspeed |
+| --- | ---: | ---: | ---: | ---: |
+| n=4 | +0.4% | +2.1% | +1.6% | −3.1% |
+| n=8 | −1.2% | −2.2% | 0.0% | −3.1% |
+| n=40 | −1.6% | +1.0% | −1.5% | +1.1% |
+
+（正值 = R38 比 R37 更高；能耗正值 = R35-code 更耗能）
+
+n40 下，R38（R35-code）比 R37（R36-code）能耗低 1.5–1.6%、速度高 1.0–1.1%；n4/n8 下方向不一致。差距均在 ±2–3% 以內，無法排除系統狀態解釋。**目前無法從能耗數據確認 R36 code（rep1/rep2 skip）對 Optimal encode 有可重現的正負影響。**
+
+### Encode energy 結論
+
+1. **量測可靠**：LZFSE 格式 encode energy 的 powermetrics 覆蓋率 ≈ 95–107%，為本 benchmark 中最可信的能耗指標。
+2. **R36 全格式系統性偏高**（系統高負載），排除後 R35/R37/R38 Optimal 差距 ≤ 5%（系統熱狀態波動）。
+3. **R36 code vs R35 code（R37 vs R38）**：n40 下 R35-code 略省 1.5%，但 n4/n8 方向不一致，整體在噪音範圍內，rep1/rep2 skip 無可重現能耗改善。
+4. TGZ/TLZ4/ZSTD encode energy 單次量測、n-constant，不得用於跨 n ratio 分析。
+
+## 結論
+
+- **Revert 正確**：bitstream 完整回到 R35，encode 速度與功率水位與 R35 committed 一致（噪音範圍）。
+- **R35 code 可作為下一輪 DOE 的 clean baseline**，不攜帶 R36 rep1/rep2 skip 的 DP state 干擾。
+- **Decode energy 量測存在根本性問題**，歷史 R35–R38 的 decode energy 數值均不可用於跨輪性能判定。
+- **Encode energy 可靠但 R36 受系統負載污染**；R37/R38 顯示 rep1/rep2 skip 無可重現能耗收益。
+- 下一步依 R37 TODO：以此 revert baseline 搭配 feature switch，建立同輪受控 A/B，或進行新的 Optimal 熱點優化（`matchLength`、`rebuildPrices`、Swift Array/COW）。
+
 ---
 
 # 第三十七輪：R36 rep1/rep2 支配跳過同碼重測（性能收益未重現）（2026-06-20）/ Round 37: Same-Code Retest of R36

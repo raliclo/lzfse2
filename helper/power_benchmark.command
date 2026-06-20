@@ -11,8 +11,9 @@ POWER_TMP_DIR="${POWER_TMP_DIR:-${POWER_DIR}/tmp}"
 POWER_TAR_DIR="${POWER_TAR_DIR:-${TMPDIR:-/tmp}/lzfse2-power-tar.$$}"
 POWER_CSV="${POWER_CSV:-${POWER_DIR}/power_summary.csv}"
 POWER_STATUS="${POWER_STATUS:-${POWER_DIR}/power_status.txt}"
-# Decode often finishes in 0.5-0.9s; 1000ms sampling leaves header-only logs.
-POWER_INTERVAL_MS="${POWER_INTERVAL_MS:-100}"
+# 500ms 間隔：每個 powermetrics period 覆蓋更完整的能量積分，
+# 避免短窗口在 CPU 負載驟升瞬間只取到極少樣本，確保覆蓋完整 decode 執行期。
+POWER_INTERVAL_MS="${POWER_INTERVAL_MS:-500}"
 POWER_SAMPLERS="${POWER_SAMPLERS:-cpu_power,gpu_power}"
 
 mkdir -p "$POWER_DIR" "$POWER_RAW_DIR" "$POWER_TMP_DIR" "$POWER_TAR_DIR"
@@ -187,7 +188,8 @@ measurePower() {
     "$@"
     rc=$?
     end_real="$EPOCHREALTIME"
-    sleep 0.2
+    # 等待超過一個完整 500ms 採樣窗口，確保最後一個 period 的數據被寫入日誌。
+    sleep 0.6
     stopPowermetrics "$pm_pid"
     stop_rc=$?
 

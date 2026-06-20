@@ -9,6 +9,144 @@
 - **bitstream-identical**: The byte of the compressed product is exactly the same as the baseline, which is a stricter and more independent condition than output-identical.
 - The size of the compressed file or the change of the compression ratio should be recorded separately and shall not be used to determine the output-identical failure alone.
 
+# R38: R35 code retest (2026-06-20)/ R38 Revert Baseline Retest
+
+> R37 After determining that rep1/rep2 dominated-range skip has no reproducible performance gains, revert the `lzfse-cli.swift` to R35 code (remove the `repLen0/repLen1` declaration of R36 and the rep1/rep2 skip logic), and trigger the complete benchmark (starting at 15:08, 18:51 BENCH_DONE). The purpose is to confirm that the compressed output after revert returns to R35 bitstream, and the encoding speed restores the R35 water level.
+
+## Code status confirmation
+
+- The current `lzfse-cli.swift` has removed the `var repLen0 = 0, repLen1 = 0` added by R36 and rep1/rep2 skip guard and restored to the original cycle starting point of `var msym = 4; var ll = 4; let lim = min(l, cap)`.
+- Optimal compression bytes: `claw-code 422,948,093` (= R35 committed), `llama.cpp 577,863,623` (= R35 committed). Unlike `422,948,018 / 577,864,898` of R36/R37, bitstream completely returns to the R35 state after confirming the revert.
+
+## n40 Optimal Result Comparison (R35 committed vs this retest)
+
+| Indicator | R35 committed | This retest (R35 code) | Gap |
+|---|---:|---:|---:|---:|
+| claw-code encode MB/s | 34.70 | 36.21 | +4.4% |
+| llama.cpp encode MB/s | 49.89 | 50.42 | +1.1% |
+| claw-code encode power mW | 13,279 | 13,290 | +0.1% |
+| llama.cpp encode power mW | 15,731 | 15,523 | −1.3% |
+| claw-code encode energy J | 545.7 | 517.8 | −5.1% |
+| llama.cpp encode energy J | 371.5 | 359.2 | −3.3% |
+| claw-code encode RSS MB | 578.1 | 561.2 | −2.9% |
+| llama.cpp encode RSS MB | 587.2 | 597.2 | +1.7% |
+
+- The two rounds of encode power (mW) are almost the same (+0.1% / −1.3%), confirming that the CPU frequency and power status are stable.
+- encode speed: `llama.cpp` +1.1% is noise; `claw-code` +4.4% is slightly higher, which may be due to system warm-up difference or cache effect. If it does not exceed the 10% threshold, it is still considered a noise range.
+- encode energy −3.3 ~ −5.1%: the direction is the same, but the magnitude is not enough to claim improvement; when R35 committed, the heat state of the system is high, and the low energy consumption of this retest is a reasonable fluctuation.
+- **decode power / energy**: This retest decode power is only 499 / 169 mW (vs. general 5,000–7,000 mW), which is obviously low. It is speculated that the powermetrics sampling window is not aligned with the decode execution period, and the decode energy results cannot be used.
+
+## Decode energy measurement reliability analysis (R35 / R36 / R37 / R38 four-wheel comparison)
+
+### Phenomenon 1: TGZ / TLZ4 / ZSTD decode energy is exactly the same as the same n=4 / 8 / 40 of the same run
+
+| run | claw-code TGZ n4 | n8 | n40 |
+|---|---:|---:|---:|---:|
+| R35 | 8.828 J | 8.828 J | 8.828 J |
+| R36 | 28.553 J | 28.553 J | 28.553 J |
+|R37|10.605J|10.605J|10.605J|
+| R38 | 5.280 J | 5.280 J | 5.280 J |
+
+→ The decode energy of these three formats has nothing to do with the n value. power_benchmark only performs one measurement on them, and the results are copied to the three columns of n=4 / 8 / 40. **TGZ/TLZ4/ZSTD decode energy cannot be used for per-n comparison, nor should it be used as the denominator of the same round of decode ratio. **
+
+### Phenomenon 2: LZFSE Optimal decode sampling window is extremely short (implied active ≈ 0.4–1.0 s)
+
+`implied_active = decode_energy_J / (decode_power_mW / 1000)` represents the duration of CPU activity that powermetrics actually captures.
+
+| | R35 | R36 | R37 | R38 | Actual decode_sec |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code n4 | 0.98 s | 1.01 s | 1.00 s | 0.88 s | ~4.2 s/iter |
+| claw-code n8 | 0.65 s | 0.68 s | 0.66 s | 0.63 s | ~3.8 s/iter |
+| claw-code n40 | 0.52 s | 0.56 s | 0.59 s | 0.51 s | ~4.0 s/iter |
+| llama.cpp n4 | 0.67 s | 0.70 s | 0.67 s | 0.63 s | ~15.6 s/iter |
+| llama.cpp n8 | 0.49 s | 0.52 s | 0.50 s | 0.47 s | ~15.0 s/iter |
+| llama.cpp n40 | 0.39 s | 0.38 s | 0.40 s | 0.36 s | ~15.4 s/iter |
+
+Each decode measurement of powermetrics only captures about 0.5–1.0 seconds, but the actual decode per iteration is 4–16 seconds (n40 total time is up to 160–620 seconds). ** The sampling window coverage rate is extremely low (<5%), and only captures a small part of the CPU state at the beginning of decode, which does not represent the overall energy consumption. **
+
+### Phenomenon 3: R36 decode power is abnormally high, R38 n40 is abnormally low
+
+| run | claw-code Optimal n40 power | llama.cpp Optimal n40 power |
+| --- | ---: | ---: |
+| R35 | 558 mW | 6,445 mW |
+| R36 | **15,070 mW** (abnormally high) | **15,287 mW** (abnormally high) |
+| R37 | 6,655 mW | 6,863 mW |
+| R38 | **499 mW** (abnormally low) | **169 mW** (abnormally low) |
+
+- R36 decode power is equivalent to encode (13,000–15,000 mW), showing that the system is under high load during R36 benchmark, and the sampling window just captures the background activity, resulting in decode power to be high.
+- R35 / R38 claw-code n40 decode power is only 500–560 mW, which is a huge gap with llama.cpp in the same round (6,445 / 169 mW), showing that the sampling window is extremely short and the timing is random.
+
+### Conclusion: Decode energy measurement cannot be used for cross-wheel comparison
+
+1. The sampling window is only 0.4–1.0 s, which is much shorter than the actual decode time and cannot represent the total energy consumption.
+2. TGZ/TLZ4/ZSTD decode energy is constant for n values (single measurement), which cannot be compared with the LZFSE format in n-consistent ratio.
+3. R36 decode power is polluted by the high load of the system, and R38 n40 is affected by the sampling timing offset. The absolute value of both rounds is unreliable.
+4. The only reliable energy consumption indicator is **encode CPU energy**: long encoding time (25–55 s/iter × n), high powermetrics sampling coverage, and stable cross-wheel power value (±1–2%).
+
+** If the subsequent decode energy needs to be measured reliably, it should be changed to `powermetrics -i 500` continuous sampling and cover the entire n-iteration decode execution period, instead of the current single short window sampling. **
+
+## Encode energy four-wheel comparison analysis (R35 / R36 / R37 / R38)
+
+### Measurement reliability: high encode energy coverage
+
+The implied_active (energy/power) of encode is almost consistent with the actual encode_seconds (95–107%), confirming that the powermetrics sampling window completely covers the entire encode execution period. Encode energy is a reliable measurement, which is fundamentally different from decode.
+
+However, **TGZ / TLZ4 / ZSTD encode energy in the same run n=4/8/40 is still exactly the same** (single measurement), and the per-n comparison cannot be done; the LZFSE format is correctly incremented according to n.
+
+### R36 encode energy full format systematic high
+
+The energy consumption expansion of R36 is not only in Optimal, **all formats** are increased, and the expansion amplitude is inversely proportional to the duration of the encode:
+
+| Format (claw-code n40) | R35 | R36 | R37 | R38 |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ (~3 s) | 192 J | **550 J (+187%)** | 182 J | 167 J |
+| LZFSE (Apple) (~7 s) | 56 J | **157 J (+180%)** | 52 J | 46 J |
+| LZFSE (Lazy2) (~14 s) | 120 J | **163 J (+36%)** | 114 J | 109 J |
+| LZFSE (Optimal) (~40 s) | 546 J | **603 J (+10%)** | 526 J | 518 J |
+
+TGZ (the fastest, the shortest sampling window) expands +187%, and Optimal (the slowest, the longest sampling window) only expands +10%. This is a typical **system high-load pollution**: the shorter the encoding time, the higher the measurement ratio of background power consumption. **R36's non-Optimal format encode energy value cannot be used. **
+
+### Optimal encode energy four-wheel value (relative to R35)
+
+| Data set / n | R35 | R36 | R37 (R36-code)| R38 (R35-code) |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code n4 | 736 J (100%) | 1103 J (+50%) | 720 J (**98%**) | 723 J (**98%**) |
+| claw-code n8 | 590 J (100%) | 756 J (+28%) | 585 J (**99%**) | 578 J (**98%**) |
+| claw-code n40 | 546 J (100%) | 603 J (+10%) | 526 J (**96%**) | 518 J (**95%**) |
+| llama.cpp n4 | 544 J (100%) | 738 J (+36%) | 511 J (**94%**) | 519 J (**95%**) |
+| llama.cpp n8 | 416 J (100%) | 501 J (+20%) | 402 J (**97%**) | 403 J (**97%**) |
+| llama.cpp n40 | 372 J (100%) | 407 J (+10%) | 365 J (**98%**) | 359 J (**97%**) |
+
+- R37 (R36-code) and R38 (R35-code) are both 2–5% lower than R35 committed, but the gap direction is the same, showing that the system heat status is slightly lower than R35 committed during R37/R38.
+- After excluding R36, the gap between the Optimal encode energy of the three rounds (R35 / R37 / R38) does not exceed 5% under the same n value, which is within the fluctuation range of the system state.
+
+### R37 (R36-code) vs R38 (R35-code) Optimal Direct Comparison
+
+| n | claw-code ΔE | claw-code Δspeed | llama.cpp ΔE | llama.cpp Δspeed |
+| --- | ---: | ---: | ---: | ---: |
+| n=4 | +0.4% | +2.1% | +1.6% | −3.1% |
+| n=8 | −1.2% | −2.2% | 0.0% | −3.1% |
+| n=40 | −1.6% | +1.0% | −1.5% | +1.1% |
+
+(The positive value = R38 is higher than R37; the positive value of energy consumption = R35-code is more energy-consuming)
+
+Under n40, R38 (R35-code) consumes 1.5–1.6% lower energy than R37 (R36-code) and 1.0–1.1% faster; the direction is inconsistent under n4/n8. The gap is within ±2–3%, and the explanation of the system state cannot be ruled out. ** At present, it is impossible to confirm from the energy consumption data that R36 code (rep1/rep2 skip) has a reprodible positive and negative impact on Optimal encode. **
+
+### Encode energy Conclusion
+
+1. **Reliable measurement**: The powermetrics coverage of LZFSE format encode energy is ≈ 95–107%, which is the most reliable energy consumption indicator in this benchmark.
+2. **R36 full-format systematic high** (system high load), after excluding R35/R37/R38 Optimal gap ≤ 5% (system hot state fluctuation).
+3. **R36 code vs R35 code (R37 vs R38)**: R35-code under n40 is slightly saved by 1.5%, but the direction of n4/n8 is inconsistent, and the whole is within the noise range, and rep1/rep2 skip can't reproduce the improvement in energy consumption.
+4. TGZ/TLZ4/ZSTD encode energy single measurement, n-constant, shall not be used for cross-n ratio analysis.
+
+## Conclusion
+
+- **Revert correct**: bitstream completely returns to R35, and the encode speed and power water level are consistent with R35 committed (noise range).
+- **R35 code can be used as the clean baseline of the next round of DOE** and does not carry the DP state interference of R36 rep1/rep2 skip.
+- **There is a fundamental problem in Decode energy measurement**, and the decode energy values of historical R35–R38 cannot be used for cross-wheel performance determination.
+- **Encode energy is reliable but R36 is polluted by system load**; R37/R38 shows that rep1/rep2 skip can't reproduce the energy consumption gain.
+- The next step is according to R37 TODO: use this revert baseline with feature switch to create a controlled A/B in the same round, or carry out new Optimal hotspot optimization ( `matchLength`, `rebuildPrices`, Swift Array/COW).
+
 ---
 
 # Round 37: R36 rep1/rep2 Dominance skips the same code retest (performance gains are not reproduced) (2026-06-20) / Round 37: Same-Code Retest of R36
