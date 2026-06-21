@@ -1,6 +1,5 @@
 # lzfse2 優化報告 / Optimization Report
 
-
 ## Note : 找到IO跟磁碟容量會銳減的原因,是因為沒有設定.gitignore,所以VS CODE會自動將這些檔案列入git的暫存區,導致磁碟IO競爭與容量銳減,所以以後的測試暫存檔案的檔案都需要藉由.gitignore排除
 
 ## 驗收術語
@@ -8,6 +7,36 @@
 - **output-identical**：以解壓／extract 後的內容 compare 為準；只要解壓結果與原始資料完全一致即通過，不要求壓縮檔位元組相同。
 - **bitstream-identical**：壓縮產物的位元組與 baseline 完全相同，這是比 output-identical 更嚴格且獨立的條件。
 - 壓縮檔大小或壓縮比變動應另行記錄，不得單獨用來判定 output-identical 失敗。
+
+---
+
+# R41-Mac：Tag-packed Hash Chain 導入（2026-06-22）/ R41-Mac: Tag-packed Hash Chain
+
+> 將 R27 的 Tag-packed hash chain（hashAndTag / chainIndexMask / chainTagShift / chainNullIndex）重新導入 R40 代碼基礎。  
+> lzParseChain（BVX3 / Lazy2）與 lzParseOptimal（Optimal）均同步更新。  
+> 本輪為 Mac 正式跑分，待結果後更新此節。
+
+## 優化策略 / Optimization Strategy
+
+| 項目 | 說明 |
+| --- | --- |
+| **核心變更** | `head[h]` 與 `chain[c]` 改為 `(tag<<24)\|index` packed Int32 格式 |
+| **hashAndTag** | 同一 Fibonacci 乘法 `×0x9E3779B185EBCA87`，高 17 bits → bucket，次 8 bits → tag |
+| **鏈走訪** | 每個候選先比 `(packed>>24)==qtag`，不符直接跳下一個（純暫存器操作）|
+| **Sentinel** | `chainNullIndex=0x00FF_FFFF`（head 初始 -1 → UInt32 高位 = tag=0xFF，低位 = index=0xFFFFFF）|
+| **Greedy path** | 僅解包 index（`&chainIndexMask`），不套 tag filter（只看 1 個候選，cost 不值得）|
+| **assert guard** | `assert(n <= Int(chainIndexMask))`，確保 chunk 不超 16 MiB 索引上限 |
+
+## 預期效益 / Expected Gain
+
+| 維度 | 預測 | 最受益格式 |
+| --- | --- | --- |
+| Encode MB/s | Optimal +5–20%；Lazy2 不穩定；BVX3/Other3 無關 | Optimal |
+| Decode MB/s | 零影響 | — |
+| 壓縮比 | 實測持平（hash 函數不變） | — |
+| CPU Energy | 與 Encode 速度正相關，Optimal 最顯著 | Optimal |
+
+> 正式結果待 R41-Mac benchmark 完成後更新。
 
 ---
 

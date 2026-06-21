@@ -712,6 +712,9 @@ public enum LZFSEv1 {
 
     static let chainHashBits = 17                 // R4：hash5 搭配 17 bits（131072 桶）
     static let chainHashSize = 1 << chainHashBits
+    static let chainIndexMask: UInt32 = 0x00FF_FFFF  // R41：tag-packed 低 24 位為 index
+    static let chainTagShift: UInt32  = 24            // R41：tag 佔位 31..24
+    static let chainNullIndex         = 0x00FF_FFFF   // R41：sentinel（head 初始化 -1 → index=0xFFFFFF）
     static let chainSearchDepth = 32              // btlazy2 級候選嘗試數
     static let chainGoodEnough = 1024             // 找到 ≥ 此長度即停止搜尋（zstd sufficient_len）
                                                   // R3 調參：512 太傷比率、4096 太慢（claw 34.5s）
@@ -822,12 +825,14 @@ public enum LZFSEv1 {
             @inline(__always) func load64(_ idx: Int) -> UInt64 {
                 var v: UInt64 = 0; memcpy(&v, p + idx, 8); return UInt64(littleEndian: v)
             }
-            @inline(__always) func hash4(_ idx: Int) -> Int {
-                // R4：5-byte 乘法 hash（zstd 高等級 h5）——高頻 4-gram 不再共桶，
-                // 鏈更短、深度配額花在真正可能更長的候選上。呼叫端保證 idx ≤ n-5。
-                // 5-byte multiplicative hash (zstd h5); callers ensure idx ≤ n-5.
+            // R41：hashAndTag — 同一 Fibonacci 乘法同時產生 bucket 和 8-bit tag，
+            // tag 存入 head/chain 高 8 位，走訪時暫存在暫存器過濾，免 cache-miss 跳追指標。
+            @inline(__always) func hashAndTag(_ idx: Int) -> (h: Int, tag: UInt32) {
                 let v = UInt64(load32(idx)) | (UInt64(p[idx + 4]) << 32)
-                return Int((v &* 0x9E3779B185EBCA87) >> (64 - chainHashBits))
+                let prod = v &* 0x9E3779B185EBCA87
+                let h = Int(prod >> (64 - LZFSEv1.chainHashBits))
+                let tag = UInt32(truncatingIfNeeded: prod >> (64 - LZFSEv1.chainHashBits - 8)) & 0xFF
+                return (h, tag)
             }
             @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
                 var m = 0
@@ -840,9 +845,9 @@ public enum LZFSEv1 {
                 return m
             }
             @inline(__always) func insert(_ idx: Int) {
-                let h = hash4(idx)
+                let (h, tag) = hashAndTag(idx)
                 chain[idx] = head[h]
-                head[h] = Int32(idx)
+                head[h] = Int32(bitPattern: (tag << LZFSEv1.chainTagShift) | UInt32(idx))
             }
             @inline(__always) func repLen(_ idx: Int, _ r: Int) -> Int {
                 guard r > 0, r <= idx, load32(idx - r) == load32(idx) else { return 0 }
@@ -868,12 +873,16 @@ public enum LZFSEv1 {
                 //    （所有位置同雜湊、鏈最稠密）正是靠這個避開病態成本
                 if bl < chainGoodEnough {
                     let v = load32(idx)
-                    var c = Int(head[hash4(idx)])
+                    let (qh, qtag) = hashAndTag(idx)
+                    var packed = UInt32(bitPattern: head[qh])
                     var depth = chainSearchDepth
-                    while c >= 0 && depth > 0 {
+                    while depth > 0 {
+                        let c = Int(packed & LZFSEv1.chainIndexMask)
+                        if c == LZFSEv1.chainNullIndex { break }
                         let d = idx - c
                         if d > maxDist { break }   // 鏈愈走愈舊，超距即停
-                        if (bl == 0 || (idx + bl < n && p[c + bl] == p[idx + bl])),
+                        if (packed >> LZFSEv1.chainTagShift) == qtag,
+                           (bl == 0 || (idx + bl < n && p[c + bl] == p[idx + bl])),
                            load32(c) == v {
                             let l = 4 + matchLength(c + 4, idx + 4, limit: n - idx - 4)
                             if l > bl || (l == bl && d < bd) {
@@ -885,7 +894,7 @@ public enum LZFSEv1 {
                                 }
                             }
                         }
-                        c = Int(chain[c])
+                        packed = UInt32(bitPattern: chain[c])
                         depth -= 1
                     }
                 }
@@ -1037,6 +1046,7 @@ public enum LZFSEv1 {
             pushRun(l: n, m: 0, d: 1)
             return (triplets, literals)
         }
+        assert(n <= Int(LZFSEv1.chainIndexMask), "chunk too large for tag-packed chain")
 
         // ---- 雜湊鏈（head/chain 結構同 lzParseChain）----
         // R4：scratch pool 重用——免每塊 malloc/memset（chain 零初始化安全）
@@ -1134,12 +1144,13 @@ public enum LZFSEv1 {
             @inline(__always) func load64(_ idx: Int) -> UInt64 {
                 var v: UInt64 = 0; memcpy(&v, p + idx, 8); return UInt64(littleEndian: v)
             }
-            @inline(__always) func hash4(_ idx: Int) -> Int {
-                // R4：5-byte 乘法 hash（zstd 高等級 h5）——高頻 4-gram 不再共桶，
-                // 鏈更短、深度配額花在真正可能更長的候選上。呼叫端保證 idx ≤ n-5。
-                // 5-byte multiplicative hash (zstd h5); callers ensure idx ≤ n-5.
+            // R41：hashAndTag — 同一 Fibonacci 乘法同時產生 bucket 和 8-bit tag。
+            @inline(__always) func hashAndTag(_ idx: Int) -> (h: Int, tag: UInt32) {
                 let v = UInt64(load32(idx)) | (UInt64(p[idx + 4]) << 32)
-                return Int((v &* 0x9E3779B185EBCA87) >> (64 - chainHashBits))
+                let prod = v &* 0x9E3779B185EBCA87
+                let h = Int(prod >> (64 - LZFSEv1.chainHashBits))
+                let tag = UInt32(truncatingIfNeeded: prod >> (64 - LZFSEv1.chainHashBits - 8)) & 0xFF
+                return (h, tag)
             }
             @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
                 var m = 0
@@ -1152,9 +1163,9 @@ public enum LZFSEv1 {
                 return m
             }
             @inline(__always) func insert(_ idx: Int) {
-                let h = hash4(idx)
+                let (h, tag) = hashAndTag(idx)
                 chain[idx] = head[h]
-                head[h] = Int32(idx)
+                head[h] = Int32(bitPattern: (tag << LZFSEv1.chainTagShift) | UInt32(idx))
             }
             @inline(__always) func dSym(_ d: Int) -> Int {
                 symbol(forValue: Int32(d) + 2, base: d3BaseValue)
@@ -1257,8 +1268,8 @@ public enum LZFSEv1 {
                         // 沿用 DP 的 rep 歷史與統計累計（emitGreedy 內含），維持跨段一致。
                         var i = segStart
                         while i + 4 <= segEnd {
-                            let h = hash4(min(i, n - 5))
-                            let cand = Int(head[h])
+                            let (gh, _) = hashAndTag(min(i, n - 5))
+                            let cand = Int(UInt32(bitPattern: head[gh]) & LZFSEv1.chainIndexMask)
                             insert(i)
                             var bl = 0, bd = 0
                             // rep 優先
@@ -1272,7 +1283,7 @@ public enum LZFSEv1 {
                                 }
                             }
                             // 單一最近候選（greedy，僅 1 深度——預篩段不值得深搜）
-                            if bl < 4, cand >= 0, i - cand <= maxDist, load32(cand) == load32(i) {
+                            if bl < 4, cand != LZFSEv1.chainNullIndex, i - cand <= maxDist, load32(cand) == load32(i) {
                                 let l = 4 + matchLength(cand + 4, i + 4,
                                                         limit: segEnd - i - 4)
                                 if l >= 4 { bl = l; bd = i - cand }
@@ -1321,7 +1332,8 @@ public enum LZFSEv1 {
                         cR0[t + 1] = r0; cR1[t + 1] = r1; cR2[t + 1] = r2
                     }
                     if i + 5 > n { t += 1; continue }   // R4：hash5 需 idx ≤ n-5
-                    let candHead = Int(head[hash4(i)])  // 先取候選再插入（避免自我參照）
+                    let (qi, qtag) = hashAndTag(i)
+                    let candPacked = UInt32(bitPattern: head[qi])  // 先取候選再插入（避免自我參照）
                     insert(i)
                     let v = load32(i)
                     let cap = segEnd - i
@@ -1394,7 +1406,7 @@ public enum LZFSEv1 {
                     if bestRep < optSufficientLen {
                         var frCount = 0
                         var bl = max(3, bestRep)   // rep 已涵蓋 ≤ bestRep 的長度
-                        var c = candHead
+                        var packed = candPacked
                         // R3：荒漠區段（連續無 match）降深度——llama 類二進位資料的主要成本
                         var depth = barren >= optBarrenStreak ? optBarrenDepth : optSearchDepth
                         // R5：強 rep 在 DP 價格下幾乎必勝 → 鏈走訪降深度
@@ -1402,11 +1414,14 @@ public enum LZFSEv1 {
                         // R9：搜尋預算超支 → 剩餘段強制砍半深度（含荒漠下限保護）
                         if budgetExhausted { depth = max(optBarrenDepth, depth >> 1) }
                         let depth0 = depth
-                        while c >= 0 && depth > 0 {
+                        while depth > 0 {
+                            let c = Int(packed & LZFSEv1.chainIndexMask)
+                            if c == LZFSEv1.chainNullIndex { break }
                             if c >= i { break }
                             let dd = i - c
                             if dd > maxDist { break }
-                            if Int32(dd) != r0 && Int32(dd) != r1 && Int32(dd) != r2,
+                            if (packed >> LZFSEv1.chainTagShift) == qtag,
+                               Int32(dd) != r0 && Int32(dd) != r1 && Int32(dd) != r2,
                                (i + bl >= n || p[c + bl] == p[i + bl]),
                                load32(c) == v {
                                 let l = 4 + matchLength(c + 4, i + 4, limit: n - i - 4)
@@ -1419,7 +1434,7 @@ public enum LZFSEv1 {
                                     if l >= optSufficientLen { break }
                                 }
                             }
-                            c = Int(chain[c])
+                            packed = UInt32(bitPattern: chain[c])
                             depth -= 1
                         }
                         // R9：把本次實際走訪步數計入預算
