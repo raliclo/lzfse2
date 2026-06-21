@@ -9,6 +9,260 @@
 - **bitstream-identical**: The byte of the compressed product is exactly the same as the baseline, which is a stricter and more independent condition than output-identical.
 - The size of the compressed file or the change of the compression ratio should be recorded separately and shall not be used to determine the output-identical failure alone.
 
+---
+
+# R40-Mac: macOS Complete Benchmark Results (2026-06-22) / R40-Mac: Full macOS Benchmark Results
+
+> Run three batches of `-n 40 / 8 / 4` full benchmarks on claw-code / llama.cpp with R40 code (3652 lines), covering encode/decode speed, RSS peak value, CPU energy ratio, and compare the encode speed with R40-Win.
+
+## 1a. Encode speed vs Windows (claw-code, n=40)/ Encode MB/s — Win/Mac Comparison
+
+| Format | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 48.64 | 1.00 | 25.33 | 1.00 | 0.52 |
+| Other3 | 380.73 | 7.83 | 275.20 | 10.86 | 0.72 |
+| BVX3 | 421.51 | 8.67 | 273.66 | 10.80 | 0.65 |
+| TLZ4 | 424.74 | 8.73 | 228.94 | 9.04 | 0.54 |
+| ZSTD | 363.63 | 7.48 | 139.17 | 5.49 | 0.38 |
+| Lazy2 | 57.84 | 1.19 | 38.75 | 1.53 | 0.67 |
+| Optimal | 29.90 | 0.61 | 17.56 | 0.69 | 0.59 |
+
+Mac is significantly faster than Win (0.38–0.72×) in all formats. ZSTD Win/Mac ratio is the lowest (0.38), which may come from ZSTD. The degree of Apple Silicon vector instruction is higher than x86.
+
+## 1b. Decode speed (Mac only, claw-code n=40)/ Decode MB/s
+
+| Format | Mac MB/s | Mac/TGZ |
+| --- | ---: | ---: |
+|TGZ|380.35|1.00|
+| TLZ4 | 420.76 | 1.11 |
+| ZSTD | 427.91 | 1.13 |
+| Other3 | 414.82 | 1.09 |
+| Lazy2 | 401.28 | 1.06 |
+| BVX3 | 355.84 | 0.94 |
+| Optimal | 355.61 | 0.94 |
+
+## two RSS peak (Mac only, claw-code n=40)/ Peak RSS
+
+| Format | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 4.2MB | 1.00 | 3.7MB | 1.00 |
+| TLZ4 | 83.0 MB | 19.8 | 33.8 MB | 9.1 |
+| Other3 | 252.0 MB | 60.0 | 301.1 MB | 81.4 |
+| BVX3 | 252.3MB | 60.1 | 323.6 MB | 87.5 |
+| ZSTD | 373.4 MB | 88.9 | 9.0 MB | 2.4 |
+| Lazy2 | 490.6 MB | 116.8 | 320.2 MB | 86.5 |
+| Optimal | 561.2 MB | 133.6 | 307.4 MB | 83.1 |
+
+> `-n 40` Encode RSS is a peak with inflight buffer; Decode RSS is mainly driven by the decompression output size.
+
+## three. CPU Energy (Mac only, claw-code n=40)/ CPU Energy Ratio vs TGZ
+
+> ⚠ Decode energy n=40 is not reliable due to the sampling coverage rate <5%, for reference only (standard `*`).
+
+| Format | Enc J | Enc/TGZ | Dec J | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 182.61 | 1.000 | 12.75 | 1.000 |
+| TLZ4 | 32.74 | 0.179 | 3.67* | 0.288* |
+| **Other3** | **30.91** | **0.169** | **3.29*** | **0.258*** |
+| BVX3 | 35.23 | 0.193 | 5.76* | 0.452* |
+| ZSTD | 43.23 | 0.237 | 7.74* | 0.608* |
+| Lazy2 | 135.09 | 0.740 | 4.58* | 0.359* |
+| Optimal | 537.44 | 2.943 | 4.51* | 0.354* |
+
+## four. Best Points All n / Best Points Across All n
+
+### claw-code
+
+| Format | Best Compression Ratio | Enc MB/s Best/Worst | Dec MB/s Best/Worst | Enc RSS Lowest/Highest | Dec RSS Low/Highest | Enc Energy Ratio Range | Dec Energy Ratio Range |
+| --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| TGZ | 1.0000 | 49 / 48 | 380 / 362 | 4.2 / 4.3 MB | 3.7 / 3.7 MB | 1.000 | 1.000 |
+| Other3 | 0.9865 | 408 / 347 | 415 / 396 | 139 / 252 MB | 70 / 301 MB | 0.169–0.308 | 0.258–0.666 |
+| BVX3 | 0.9492 | 422 / 339 | 356 / 292 | 129 / 252 MB | 71 / 324 MB | 0.193–0.304 | 0.452–1.007 |
+| TLZ4 | 1.1793 | 431 / 425 | 421 / 332 | 76 / 83 MB | 34 / 34 MB | 0.179 | 0.288 |
+| ZSTD | 0.8245 | 366 / 360 | 428 / 406 | 373 / 376 MB | 9 / 9 MB | 0.237 | 0.608 |
+| Apple | 0.9873 | 143 / 141 | 357 / 301 | 1368 / 1368 MB | 474 / 474 MB | 0.294–0.341 | 0.525–0.552 |
+| Lazy2 | 0.8998 | 58 / 41 | 405 / 387 | 180 / 491 MB | 66 / 320 MB | 0.740–1.006 | 0.359–0.842 |
+| Optimal | 0.8574 | 30 / 21 | 363 / 326 | 198 / 561 MB | 68 / 307 MB | 2.943–4.137 | 0.354–0.924 |
+
+### llama.cpp
+
+| Format | Best Compression Ratio | Enc MB/s Best/Worst | Dec MB/s Best/Worst | Enc RSS Lowest/Highest | Dec RSS Low/Highest | Enc Energy Ratio Range | Dec Energy Ratio Range |
+| --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| TGZ | 1.0000 | 42 / 41 | 86 / 84 | 4.3 / 4.4 MB | 3.8 / 3.8 MB | 1.000 | 1.000 |
+| Other3 | 0.9958 | 97 / 87 | 81 / 73 | 135 / 362 MB | 67 / 349 MB | 0.177–0.256 | 0.223–0.703 |
+| BVX3 | 0.9787 | 93 / 89 | 81 / 77 | 142 / 356 MB | 67 / 351 MB | 0.195–0.227 | 0.259–1.023 |
+| TLZ4 | 1.0537 | 89 / 85 | 82 / 79 | 80 / 82 MB | 34 / 34 MB | 0.209 | 0.257 |
+| ZSTD | 0.9100 | 95 / 90 | 85 / 80 | 474 / 474 MB | 9 / 9 MB | **0.140** | 0.444 |
+| Apple | 0.9988 | 69 / 66 | 80 / 78 | 1286 / 1286 MB | 596 / 596 MB | 0.289–0.314 | 0.585–0.598 |
+| Lazy2 | 0.9551 | 85 / 73 | 84 / 83 | 244 / 497 MB | 67 / 349 MB | 0.325–0.457 | 0.225–0.499 |
+| Optimal | 0.9387 | 47 / 33 | 79 / 78 | 243 / 821 MB | 71 / 349 MB | 2.018–2.951 | 0.281–0.789 |
+
+---
+
+# R40-Win: Optimal Cross-Segment Match OOB Fix (2026-06-21) / R40-Win: Optimal Cross-Segment Match OOB Fix
+
+> When Windows tested the R40 code, it was found that the low-repetition greedy fast path of the Optimal encoder had a memory cross-boundary bug, causing the Release version to crash with `VCRUNTIME140.dll 0xc0000005` (access violation), and the Debug version clearly returned `Fatal error: UnsafeBufferPointer with negative count`. In theory, this problem also exists in macOS, but the behavior under Release compilation is not defined and does not necessarily crash immediately.
+
+## Root Cause Analysis / Root Cause
+
+When calculating the match length of the low-repetition segment greedy path of Optimal (in `lzParseOptimal`, `coverage < optPrescreenMinCoverage` branch), the `limit` parameter uses the global input length `n - i - 4`, which is not limited by the `segEnd` of the current segment.
+
+**Cause and effect chain:**
+
+| Steps | Instructions |
+|---|---|
+| 1 | greedy match take `limit = n - i - 4`, match cross `segEnd` |
+| 2 | `emitGreedy` advances `litStart` to `i + matchLen`, may > `segEnd` |
+| 3 | Next paragraph `segStart = segEnd`, when entering `posLoop` `i = segStart < litStart` |
+| 4 | `emitGreedy(at: i, ...)` EXECUTION `UnsafeBufferPointer(start: p + litStart, count: i - litStart)` |
+| 5 | `i - litStart < 0` → `count` is negative → Debug: Fatal error; Release: Access violation crash |
+
+**Other supporting evidence:**
+- `-n 1` can also be reproduced (non- `-n 40` has a special problem)
+- Windows event records multiple crash records of the same module and the same fault offset
+- Some of the output before the crash is stopped at the legal block boundary, but the `bvx$` end mark is missing (truncated stream)
+
+## Fix / Fix
+
+**File: `lzfse-cli.swift` about 1264 line** (Optimal greedy quick path match limit)
+
+| | Before repair | After repair |
+|---|---|---|
+| rep path limit | `limit: n - i - 4` (global) | `limit: segEnd - i - 4` (within the limited section) |
+| cand path limit | `limit: n - i - 4` (whole area) | `limit: segEnd - i - 4` (within the limited section) |
+
+Both match calculations are stopped at `segEnd` to prevent `litStart` from crossing the segment boundary.
+
+## Validation / Validation
+
+| Project | Result |
+|---|---|
+| `swiftc -O` COMPILE | ✅ SUCCESS |
+| Built-in `-test` (including new cross-segment match return test) | ✅ All passed |
+| `claw-code -algo bvx3 -optimal -n 40` COMPLETE COMPRESSION | ✅ SUCCESS, ABOUT **73.3 SECONDS** |
+| Output size | **406,284,948 bytes** |
+| `bvx$` Ending Mark | ✅ Exist |
+| After decompression `tar -tf` | ✅ Success, output-identical |
+
+> Note: The difference between the compressed output of 406,284,948 bytes and macOS R39 baseline (407,098,957 bytes) is 814,009 bytes. The reason is that the match of the greedy segment no longer crosses the segment after repair, resulting in some matches being slightly shorter. Bitstream is legal but not bitstream-identical. Output-identical acceptance passed.
+
+## Windows Benchmark Test (Run C, 2026-06-21) / Windows Baseline
+
+Perform a complete benchmark test on `claw-code` (n=40 inflight) with the repaired binary ( `lzfse.exe`) with R40-Win. The subsequent R{N}-Win takes this as a comparison benchmark.
+
+| Format | Time consumption (seconds) | Encode MB/s | Compression ratio (/TGZ) |
+|---|---:|---:|---:|
+| TGZ | 55.92 | 25.33 | 1.0000 |
+| LZFSE (Other3) | 5.15 | 275.17 | 0.9818 |
+| LZFSE (BVX3) | 5.18 | 273.65 | 0.9254 |
+| TLZ4 | 6.19 | 228.93 | 1.1739 |
+| LZFSE (Lazy2) | 36.56 | 38.75 | 0.8704 |
+| ZSTD | 10.18 | 139.17 | 0.7813 |
+| LZFSE (Optimal) | 80.67 | 17.56 | 0.8273 |
+
+MB/s is based on 1351 MiB × 1.048576 = 1416.63 MB (consistent with macOS format). Windows does not measure decode speed, RSS and CPU energy (macOS powermetrics is required).
+
+## Win/Mac Comparison Report Structure / Comparison Report Structure
+
+Each round process: run **R{N}-Mac** first, then **R{N}-Win**, and finally run `comparison_win.py` to generate a three-section comparison report:
+
+| Segment | Win | Mac | Description |
+|---|---|---|---|
+|1a. Encode MB/s + ratio/TGZ | ✅ | ✅ | Win/Mac comparison + relative TGZ speed ratio of each platform |
+| one b. Decode MB/s + ratio/TGZ | — | ✅ | Windows unmeasured decode |
+| two. RSS MB + ratio/TGZ | — | ✅ | Windows Unmeasured RSS |
+| three. CPU Energy J + ratio/TGZ | — | ✅ | Windows does not measure energy consumption; n=40 decode energy is not reliable |
+
+---
+
+# R40: Streaming decode Recovery and Encode Pipeline Correction (2026-06-21) / R40: Restore Streaming Decode & Fix Encode Pipeline
+
+> Take R39 (3379 lines) as the starting point, make up for the streaming decode path removed by R39, and correct the two regressions of `runParallelEncode` introduced by R39. No algorithm change, encode / decode output should be R39 bitstream-identical.
+
+## Code status (3652 lines)
+
+### Recovery: Streaming decode ( `decodeStreamFromFile` / `decodeStreamToHandle`)
+
+R39 change decode CLI to `readToEnd()` (whole-buffer), peak RSS ≈ whole compression input (~500 MB). Add three functions in this round:
+
+| Function / Type | Description |
+|---|---|
+| `enum StreamDecodeResult` | `.ok` / `.fallback` / `.error` Three-way results |
+| `decodeStreamFromFile(path:chunkRaw:inflight:output:)` | Block-by-block read compressed streaming (1 MB readChunk), self-block streaming directly parallel decoding; non-own streaming return `.fallback` |
+| `decodeStreamToHandle(_:parallel:chunkRaw:inflight:output:)` | whole-buffer fallback's streaming writing and publishing: `scanBlocks → grouping → DispatchQueue.concurrentPerform → written in order` |
+
+CLI decode path ( `-i <file>`): First, try `decodeStreamFromFile` → `.fallback` to read the whole file to go to `decodeStreamToHandle`; stdin path directly to `decodeStreamToHandle`. The whole process does not hold the whole decompression output to reduce decode peak RSS.
+
+### Correction: `runParallelEncode` two regressions (R39 introduction)
+
+| Project | R33/R35 | R39 (regression) | R40 (revision) |
+|---|---|---|---|
+| PARALLELITY SOURCE | `inflight: Int` PARAMETER, `maxTasks = max(2, inflight)` | HARD WRITE `maxTasks = max(2, activeProcessorCount)`, IGNORE `-n` | ADD BACK `inflight: Int`, CALL END FAX `inflightN` |
+| Encode RSS | `autoreleasepool { ... }` wrap read loop, prevent autorelease Data accumulation | No `autoreleasepool`, encode RSS ≈ whole input | Add back `try autoreleasepool { ... }` |
+
+`FileHandle.read` is returned to autoreleased `Data` in macOS; if there is no pool in the main thread read loop, the autorelease temporary storage accumulates until the end of the process before being released, resulting in encode RSS ≈ whole input size (the RSS upper limit unrelated to `-n`).
+
+### Streaming Status Overview
+
+| | Encode streaming | Decode streaming | `-n` encode | `-n` decode |
+|---|---|---|---|---|
+| R33/R35 | ✅ | ✅ | ✅ | ✅ |
+| R39 | ✅ | ❌ (whole-buffer) | ❌ (activeProcessorCount) | N/A |
+| **R40** | ✅ | ✅ | ✅ | ✅ |
+
+## n40 represents the result (Encode / Decode CPU Energy Ratio vs TGZ)
+
+| Format | claw enc ratio | claw enc MB/s | claw dec ratio | claw dec MB/s | llama enc ratio | llama enc MB/s | llama dec ratio | llama dec MB/s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 1.000 | 49 | 1.000 | 380 | 1.000 | 41 | 1.000 | 86 |
+| TLZ4 | 0.179 | 425 | 0.288 | 421 | 0.209 | 86 | 0.257 | 79 |
+| **Other3** | **0.169** | **381** | **0.258** | **415** | **0.177** | **87** | **0.223** | **81** |
+| BVX3 | 0.193 | 422 | 0.452 | 356 | 0.198 | 89 | 0.259 | 81 |
+| ZSTD | 0.237 | 364 | 0.608 | 428 | **0.140** | 92 | 0.444 | 80 |
+| Apple | 0.341 | 143 | 0.552 | 320 | 0.314 | 66 | 0.585 | 79 |
+| Lazy2 | 0.740 | 58 | 0.359 | 401 | 0.325 | 85 | 0.225 | 84 |
+| Optimal | 2.943 | 30 | 0.354 | 356 | 2.018 | 47 | 0.281 | 79 |
+
+Other3 The encode of the two data sets is the most energy-saving in its own format (claw 0.169, llama 0.177), and decode is also the most energy-saving (claw 0.258, llama 0.223). ZSTD encode (0.140) on llama.cpp is the lowest of all formats. BVX3 encode energy consumption (claw 0.193, llama 0.198) is slightly higher than Other3, and decode is significantly higher (0.452 / 0.259).
+
+Compared with R39 (regressive version), the `-n` modification of R40 reduces the claw-code Other3 encode energy ratio from 0.190 to 0.169, and the BVX3 increases from 0.179 to 0.193; the difference in llama.cpp is also similar, mainly due to the change in parallelism and chunk cutting method after the correct transmission of inflight parameters.
+
+## R33/R34 BVX3/Other3 encode "peak" survey
+
+The Trend Chart Shows That The BVX3 Greed And Other3 Encode Speed Of R33/R34 Is Much Higher Than That Of The Neighboring Round; The Root Cause Of This Round Of Investigation.
+
+### Conclusion: Measure the illusion, non-code improvement
+
+All functions related to BVX3 greedy / Other3 encode are exactly the same as the Swift source code md5 in R33 and R35:
+
+| Function | Call path of BVX3 / Other3 | R33 vs R35 md5 |
+|---|---|---|
+| `lzParseStrong` | BVX3 greedy, Other3 ( `strong=true`) actual caller | Same |
+| `lzParseChain` | BVX3 lazy2 | Same |
+| `compressBody` | Assipay Entrance | Same |
+| `runParallelEncode` | Parallel Frame | Same |
+
+The only code difference between R33 → R35 is that `lzParseOptimal` shortens 40 lines (removes 4-context literal pricing), resulting in binary from 351,992 → 335,576 bytes (−16 KB). BVX3 greedy and Other3 **not call** `lzParseOptimal`.
+
+### The difference in system status is the root cause.
+
+In the same benchmark log, even the external code (lz4, tar extract) also slows down:
+
+| Algorithm / Program | R33 | R35 | Magnification |
+|---|---:|---:|---:|
+| bvx3 greedy | 2.08 s | 4.56 s | 2.20× |
+| other3 | 2.64 s | 3.87 s | 1.47× |
+| lz4 (external) | 2.18 s | 3.47 s | **1.59×** |
+| tar extract (external) | 2.23 s | 3.56 s | **1.59×** |
+| lazy2 | 21.27 s | 22.00 s | 1.03× |
+| optimal | 39.03 s | 40.81 s | 1.05× |
+
+The magnification of BVX3 greedy (2.20×) is much greater than lazy2/optimal (~1.04×) because: BVX3 greedy each chunk is only ~5 ms, and the cache miss of OS scheduler grabbing and hash table random-access accounts for a large proportion of total time; lazy2 each chunk ~530 ms, and the impact of scheduling noise can be ignored. **R35 benchmark Runtime system background load is high, which has a disproportionate amplification effect on short tasks. **
+
+**R33/R34 BVX3/Other3 encode peak value is not an optimized result, but a measurement noise when the system conditions are better. **
+
+---
+
 # R39: 92221a02 encode Retest (2026-06-21) / R39 Encode-Optimization Revert Retest
 
 > Replace R35 code (3957 lines) with 92221a02 ( `lzfse-cli.swift` 3379 lines) and execute the complete benchmark. This version removes all advanced encode optimizations in R35 (R6/R10/R17/R18/R26/R27/R28/R30/R32), and the decode core algorithm is exactly the same as R35, but the decode CLI path is changed from streaming ( `decodeStreamFromFile`) back to whole-buffer `readToEnd()`. The same benchmark run also supplemented the original log analysis of decode energy corrected by powermetrics `-i 500ms`.

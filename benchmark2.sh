@@ -141,4 +141,18 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "POWER_SUMMARY_INTEGRATE_DONE"
 
+# Step.14 產生 Win/Mac 比較報告 / Generate Win/Mac comparison report.
+roundStatus "RUNNING_COMPARISON"
+python3 ./helper_windows/comparison_win.py >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "COMPARISON_FAILED $rc"
+    exit $rc
+fi
+roundStatus "COMPARISON_DONE"
+
+# Step.15 翻譯文件為英文版（繁中 → 英文；輸出檔名加 -en）
+echo "RUNNING md-translate $(date +%H:%M:%S)" >> round_status.txt
+./helper/md-translate.sh >> round_status.txt 2>&1
+
 echo "Done."

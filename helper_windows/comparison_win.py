@@ -37,7 +37,15 @@ FORMAT_MAP = {
     "encodeLZ4":     "TLZ4",
     "encodeZSTD":    "ZSTD",
 }
-FORMAT_ORDER   = list(FORMAT_MAP.values())
+FORMAT_ORDER = [
+    "TGZ",
+    "LZFSE (Other3)",
+    "LZFSE (BVX3)",
+    "LZFSE (Lazy2)",
+    "LZFSE (Optimal)",
+    "TLZ4",
+    "ZSTD",
+]
 SUMMARY_RE     = re.compile(r"^(?P<token>encode\w+?)(?:-n(?P<n>\d+))?$")
 SUSPICIOUS_MBS = 1000
 BAR_WIDTH      = 20

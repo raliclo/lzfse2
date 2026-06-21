@@ -9,6 +9,96 @@
 - **bitstream-identical**：壓縮產物的位元組與 baseline 完全相同，這是比 output-identical 更嚴格且獨立的條件。
 - 壓縮檔大小或壓縮比變動應另行記錄，不得單獨用來判定 output-identical 失敗。
 
+---
+
+# R40-Mac：macOS 完整 Benchmark 結果（2026-06-22）/ R40-Mac: Full macOS Benchmark Results
+
+> 以 R40 代碼（3652 行）對 claw-code / llama.cpp 執行 `-n 40 / 8 / 4` 三批次完整 benchmark，涵蓋 encode/decode 速度、RSS 峰值、CPU energy ratio，並與 R40-Win 比較 encode 速度。
+
+## 1a. Encode 速度 vs Windows（claw-code, n=40）/ Encode MB/s — Win/Mac Comparison
+
+| 格式 | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 48.64 | 1.00 | 25.33 | 1.00 | 0.52 |
+| Other3 | 380.73 | 7.83 | 275.20 | 10.86 | 0.72 |
+| BVX3 | 421.51 | 8.67 | 273.66 | 10.80 | 0.65 |
+| TLZ4 | 424.74 | 8.73 | 228.94 | 9.04 | 0.54 |
+| ZSTD | 363.63 | 7.48 | 139.17 | 5.49 | 0.38 |
+| Lazy2 | 57.84 | 1.19 | 38.75 | 1.53 | 0.67 |
+| Optimal | 29.90 | 0.61 | 17.56 | 0.69 | 0.59 |
+
+Mac 在所有格式均顯著快於 Win（0.38–0.72×）。ZSTD Win/Mac 比最低（0.38），可能來自 ZSTD 對 Apple Silicon 向量指令優化程度高於 x86。
+
+## 1b. Decode 速度（Mac only, claw-code n=40）/ Decode MB/s
+
+| 格式 | Mac MB/s | Mac/TGZ |
+| --- | ---: | ---: |
+| TGZ | 380.35 | 1.00 |
+| TLZ4 | 420.76 | 1.11 |
+| ZSTD | 427.91 | 1.13 |
+| Other3 | 414.82 | 1.09 |
+| Lazy2 | 401.28 | 1.06 |
+| BVX3 | 355.84 | 0.94 |
+| Optimal | 355.61 | 0.94 |
+
+## 2. RSS 峰值（Mac only, claw-code n=40）/ Peak RSS
+
+| 格式 | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 4.2 MB | 1.00 | 3.7 MB | 1.00 |
+| TLZ4 | 83.0 MB | 19.8 | 33.8 MB | 9.1 |
+| Other3 | 252.0 MB | 60.0 | 301.1 MB | 81.4 |
+| BVX3 | 252.3 MB | 60.1 | 323.6 MB | 87.5 |
+| ZSTD | 373.4 MB | 88.9 | 9.0 MB | 2.4 |
+| Lazy2 | 490.6 MB | 116.8 | 320.2 MB | 86.5 |
+| Optimal | 561.2 MB | 133.6 | 307.4 MB | 83.1 |
+
+> `-n 40` Encode RSS 為含 inflight 緩衝的峰值；Decode RSS 主要受解壓輸出大小驅動。
+
+## 3. CPU Energy（Mac only, claw-code n=40）/ CPU Energy Ratio vs TGZ
+
+> ⚠ Decode energy n=40 因取樣覆蓋率 <5% 不可信，僅供參考（標 `*`）。
+
+| 格式 | Enc J | Enc/TGZ | Dec J | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 182.61 | 1.000 | 12.75 | 1.000 |
+| TLZ4 | 32.74 | 0.179 | 3.67* | 0.288* |
+| **Other3** | **30.91** | **0.169** | **3.29*** | **0.258*** |
+| BVX3 | 35.23 | 0.193 | 5.76* | 0.452* |
+| ZSTD | 43.23 | 0.237 | 7.74* | 0.608* |
+| Lazy2 | 135.09 | 0.740 | 4.58* | 0.359* |
+| Optimal | 537.44 | 2.943 | 4.51* | 0.354* |
+
+## 4. Best Points 全 n 彙整 / Best Points Across All n
+
+### claw-code
+
+| 格式 | 最佳壓縮比 | Enc MB/s 最佳/最差 | Dec MB/s 最佳/最差 | Enc RSS 最低/最高 | Dec RSS 最低/最高 | Enc Energy Ratio 範圍 | Dec Energy Ratio 範圍 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TGZ | 1.0000 | 49 / 48 | 380 / 362 | 4.2 / 4.3 MB | 3.7 / 3.7 MB | 1.000 | 1.000 |
+| Other3 | 0.9865 | 408 / 347 | 415 / 396 | 139 / 252 MB | 70 / 301 MB | 0.169–0.308 | 0.258–0.666 |
+| BVX3 | 0.9492 | 422 / 339 | 356 / 292 | 129 / 252 MB | 71 / 324 MB | 0.193–0.304 | 0.452–1.007 |
+| TLZ4 | 1.1793 | 431 / 425 | 421 / 332 | 76 / 83 MB | 34 / 34 MB | 0.179 | 0.288 |
+| ZSTD | 0.8245 | 366 / 360 | 428 / 406 | 373 / 376 MB | 9 / 9 MB | 0.237 | 0.608 |
+| Apple | 0.9873 | 143 / 141 | 357 / 301 | 1368 / 1368 MB | 474 / 474 MB | 0.294–0.341 | 0.525–0.552 |
+| Lazy2 | 0.8998 | 58 / 41 | 405 / 387 | 180 / 491 MB | 66 / 320 MB | 0.740–1.006 | 0.359–0.842 |
+| Optimal | 0.8574 | 30 / 21 | 363 / 326 | 198 / 561 MB | 68 / 307 MB | 2.943–4.137 | 0.354–0.924 |
+
+### llama.cpp
+
+| 格式 | 最佳壓縮比 | Enc MB/s 最佳/最差 | Dec MB/s 最佳/最差 | Enc RSS 最低/最高 | Dec RSS 最低/最高 | Enc Energy Ratio 範圍 | Dec Energy Ratio 範圍 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TGZ | 1.0000 | 42 / 41 | 86 / 84 | 4.3 / 4.4 MB | 3.8 / 3.8 MB | 1.000 | 1.000 |
+| Other3 | 0.9958 | 97 / 87 | 81 / 73 | 135 / 362 MB | 67 / 349 MB | 0.177–0.256 | 0.223–0.703 |
+| BVX3 | 0.9787 | 93 / 89 | 81 / 77 | 142 / 356 MB | 67 / 351 MB | 0.195–0.227 | 0.259–1.023 |
+| TLZ4 | 1.0537 | 89 / 85 | 82 / 79 | 80 / 82 MB | 34 / 34 MB | 0.209 | 0.257 |
+| ZSTD | 0.9100 | 95 / 90 | 85 / 80 | 474 / 474 MB | 9 / 9 MB | **0.140** | 0.444 |
+| Apple | 0.9988 | 69 / 66 | 80 / 78 | 1286 / 1286 MB | 596 / 596 MB | 0.289–0.314 | 0.585–0.598 |
+| Lazy2 | 0.9551 | 85 / 73 | 84 / 83 | 244 / 497 MB | 67 / 349 MB | 0.325–0.457 | 0.225–0.499 |
+| Optimal | 0.9387 | 47 / 33 | 79 / 78 | 243 / 821 MB | 71 / 349 MB | 2.018–2.951 | 0.281–0.789 |
+
+---
+
 # R40-Win：Optimal 跨段 match 越界修復（2026-06-21）/ R40-Win: Optimal Cross-Segment Match OOB Fix
 
 > 在 Windows 驗測 R40 code 時發現：Optimal 編碼器的低重複段 greedy 快路徑存在記憶體越界 bug，導致 Release 版本以 `VCRUNTIME140.dll 0xc0000005`（存取違規）崩潰，Debug 版本明確回報 `Fatal error: UnsafeBufferPointer with negative count`。此問題理論上在 macOS 同樣存在，但 Release 編譯下行為未定義，不一定立即崩潰。
@@ -119,6 +209,23 @@ CLI decode 路徑（`-i <file>`）：先嘗試 `decodeStreamFromFile` → `.fall
 | R33/R35 | ✅ | ✅ | ✅ | ✅ |
 | R39 | ✅ | ❌ (whole-buffer) | ❌ (activeProcessorCount) | N/A |
 | **R40** | ✅ | ✅ | ✅ | ✅ |
+
+## n40 代表結果（Encode / Decode CPU Energy Ratio vs TGZ）
+
+| 格式 | claw enc ratio | claw enc MB/s | claw dec ratio | claw dec MB/s | llama enc ratio | llama enc MB/s | llama dec ratio | llama dec MB/s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 1.000 | 49 | 1.000 | 380 | 1.000 | 41 | 1.000 | 86 |
+| TLZ4 | 0.179 | 425 | 0.288 | 421 | 0.209 | 86 | 0.257 | 79 |
+| **Other3** | **0.169** | **381** | **0.258** | **415** | **0.177** | **87** | **0.223** | **81** |
+| BVX3 | 0.193 | 422 | 0.452 | 356 | 0.198 | 89 | 0.259 | 81 |
+| ZSTD | 0.237 | 364 | 0.608 | 428 | **0.140** | 92 | 0.444 | 80 |
+| Apple | 0.341 | 143 | 0.552 | 320 | 0.314 | 66 | 0.585 | 79 |
+| Lazy2 | 0.740 | 58 | 0.359 | 401 | 0.325 | 85 | 0.225 | 84 |
+| Optimal | 2.943 | 30 | 0.354 | 356 | 2.018 | 47 | 0.281 | 79 |
+
+Other3 在兩個資料集的 encode 均為自家格式中最省能（claw 0.169、llama 0.177），decode 也最省（claw 0.258、llama 0.223）。llama.cpp 上 ZSTD encode（0.140）是所有格式最低。BVX3 encode 能耗（claw 0.193、llama 0.198）略高於 Other3，decode 則顯著較高（0.452 / 0.259）。
+
+與 R39（回退版）相比，R40 的 `-n` 修正使 claw-code Other3 encode energy ratio 從 0.190 降至 0.169，BVX3 從 0.179 升至 0.193；llama.cpp 差異亦類似，主要來自 inflight 參數正確傳遞後並行度與 chunk 切割方式的變化。
 
 ## R33/R34 BVX3/Other3 encode「峰值」調查
 
