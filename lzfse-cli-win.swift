@@ -21,9 +21,13 @@
 //  授權：BSD-3-Clause（衍生自 Apple lzfse 參考實作之格式定義）
 //
 
+// #R40 Source code
 import Foundation
 #if canImport(Compression)
 import Compression
+#endif
+#if os(Windows)
+import WinSDK
 #endif
 #if !canImport(ObjectiveC)
 @discardableResult @inline(__always)
@@ -2600,205 +2604,6 @@ public enum LZFSEv1 {
         return decodeStream(input, parallel: true, chunkRaw: chunkRaw)
     }
 
-    static func decodeStreamToHandle(_ src: [UInt8], parallel: Bool, chunkRaw: Int,
-                                     inflight: Int, output: FileHandle) -> Bool {
-        guard let blocks = scanBlocks(src) else { return false }
-        let total = blocks.reduce(0) { $0 + $1.rawBytes }
-        if total == 0 { return true }
-
-        var groups: [[BlockInfo]] = []
-        if parallel && chunkRaw > 0 {
-            var current: [BlockInfo] = []
-            var cum = 0
-            for b in blocks {
-                current.append(b)
-                cum += b.rawBytes
-                if cum % chunkRaw == 0 && b.rawBytes > 0 { groups.append(current); current = [] }
-            }
-            if !current.isEmpty { groups.append(current) }
-        } else {
-            groups = [blocks]
-        }
-
-        if groups.count <= 1 {
-            guard let d = decodeStream(Data(src), parallel: false, chunkRaw: chunkRaw) else { return false }
-            output.write(d)
-            return true
-        }
-
-        let groupRaw = groups.map { g in g.reduce(0) { $0 + $1.rawBytes } }
-        let n0 = max(1, inflight)
-        var gi = 0
-        while gi < groups.count {
-            let hi = min(gi + n0, groups.count)
-            var offs = [0]
-            for k in gi..<hi { offs.append(offs.last! + groupRaw[k]) }
-            let batchTotal = max(offs.last!, 1)
-            let buf = UnsafeMutableRawPointer.allocate(byteCount: batchTotal, alignment: 16)
-            let dp = buf.bindMemory(to: UInt8.self, capacity: batchTotal)
-            var failed = false
-            let lock = NSLock()
-            let n = hi - gi
-
-            DispatchQueue.concurrentPerform(iterations: n) { j in
-                let regionBase = offs[j]
-                let regionEnd = offs[j + 1]
-                var cursor = regionBase
-                let litScratch = UnsafeMutablePointer<UInt8>.allocate(capacity: literalsPerBlockV3 + 8)
-                defer { litScratch.deallocate() }
-                for b in groups[gi + j] {
-                    guard decodeOneBlock(src: src, at: b.start, magic: b.magic,
-                                         dp: dp, regionBase: regionBase, regionEnd: regionEnd,
-                                         cursor: &cursor, litScratch: litScratch) != nil
-                    else { lock.lock(); failed = true; lock.unlock(); return }
-                }
-                if cursor != regionEnd { lock.lock(); failed = true; lock.unlock() }
-            }
-
-            if failed {
-                buf.deallocate()
-                guard let d = decodeStream(Data(src), parallel: false, chunkRaw: chunkRaw) else { return false }
-                output.write(d)
-                return true
-            }
-
-            output.write(Data(bytesNoCopy: buf, count: batchTotal, deallocator: .none))
-            buf.deallocate()
-            gi = hi
-        }
-        return true
-    }
-
-    enum StreamDecodeResult { case ok, fallback, error }
-
-    static func decodeStreamFromFile(path: String, chunkRaw: Int, inflight: Int,
-                                     output: FileHandle) -> StreamDecodeResult {
-        guard chunkRaw > 0, let fh = FileHandle(forReadingAtPath: path) else { return .fallback }
-        defer { try? fh.close() }
-
-        let readChunk = 1 << 20
-        var buf = [UInt8]()
-        var pos = 0
-        var eof = false
-        let N = max(1, inflight)
-        var wroteAny = false
-        var streamEnded = false
-        var misaligned = false
-
-        func ensure(_ need: Int) -> Bool {
-            while buf.count - pos < need {
-                if eof { return false }
-                var emptyRead = false
-                autoreleasepool {
-                    let chunk = (try? fh.read(upToCount: readChunk)) ?? nil
-                    guard let dd = chunk, !dd.isEmpty else { emptyRead = true; return }
-                    if pos > readChunk { buf.removeFirst(pos); pos = 0 }
-                    buf.append(contentsOf: dd)
-                }
-                if emptyRead { eof = true; return buf.count - pos >= need }
-            }
-            return true
-        }
-
-        struct Blk { let off: Int; let magic: UInt32; let raw: Int }
-
-        func nextGroup() -> (comp: [UInt8], blks: [Blk], raw: Int)? {
-            var comp = [UInt8]()
-            var blks = [Blk]()
-            var cumRaw = 0
-            while true {
-                guard ensure(4) else {
-                    if comp.isEmpty { return nil }
-                    misaligned = true; return nil
-                }
-                let magic = get32(buf, pos)
-                if magic == magicEndOfStream {
-                    pos += 4; streamEnded = true
-                    return comp.isEmpty ? nil : (comp, blks, cumRaw)
-                }
-                var size = 0, raw = 0
-                switch magic {
-                case magicUncompressed:
-                    guard ensure(8) else { misaligned = true; return nil }
-                    raw = Int(get32(buf, pos + 4)); size = 8 + raw
-                case magicCompressedV1:
-                    guard ensure(v1HeaderSize) else { misaligned = true; return nil }
-                    raw = Int(get32(buf, pos + 4)); size = v1HeaderSize + Int(get32(buf, pos + 8))
-                case magicCompressedV2:
-                    guard ensure(32) else { misaligned = true; return nil }
-                    raw = Int(get32(buf, pos + 4))
-                    let v0 = get64(buf, pos + 8), v1f = get64(buf, pos + 16), v2f = get64(buf, pos + 24)
-                    let hdr = Int(v2f & 0xFFFF_FFFF)
-                    guard hdr >= 32 else { misaligned = true; return nil }
-                    size = hdr + Int((v0 >> 20) & 0xFFFFF) + Int((v1f >> 40) & 0xFFFFF)
-                case magicLZVN:
-                    guard ensure(12) else { misaligned = true; return nil }
-                    raw = Int(get32(buf, pos + 4)); size = 12 + Int(get32(buf, pos + 8))
-                case magicBVX3:
-                    guard ensure(v3FixedHeaderSize) else { misaligned = true; return nil }
-                    raw = Int(get32(buf, pos + 4))
-                    let hdr = Int(get16(buf, pos + 52))
-                    guard hdr >= v3FixedHeaderSize else { misaligned = true; return nil }
-                    size = hdr + Int(get32(buf, pos + 8))
-                default:
-                    misaligned = true; return nil
-                }
-                guard size > 0, ensure(size) else { misaligned = true; return nil }
-                blks.append(Blk(off: comp.count, magic: magic, raw: raw))
-                comp.append(contentsOf: buf[pos ..< pos + size])
-                pos += size
-                cumRaw += raw
-                if cumRaw > chunkRaw { misaligned = true; return nil }
-                if cumRaw == chunkRaw { return (comp, blks, cumRaw) }
-            }
-        }
-
-        func decodeGroup(_ comp: [UInt8], _ blks: [Blk], _ raw: Int) -> [UInt8]? {
-            if raw == 0 { return [] }
-            var out = [UInt8](repeating: 0, count: raw)
-            let ok = out.withUnsafeMutableBufferPointer { ob -> Bool in
-                let dp = ob.baseAddress!
-                var cursor = 0
-                let lit = UnsafeMutablePointer<UInt8>.allocate(capacity: literalsPerBlockV3 + 8)
-                defer { lit.deallocate() }
-                for b in blks {
-                    guard decodeOneBlock(src: comp, at: b.off, magic: b.magic,
-                                         dp: dp, regionBase: 0, regionEnd: raw,
-                                         cursor: &cursor, litScratch: lit) != nil else { return false }
-                }
-                return cursor == raw
-            }
-            return ok ? out : nil
-        }
-
-        while !streamEnded {
-            var batch: [(comp: [UInt8], blks: [Blk], raw: Int)] = []
-            while batch.count < N && !streamEnded {
-                guard let g = nextGroup() else { break }
-                batch.append(g)
-            }
-            if misaligned { return wroteAny ? .error : .fallback }
-            if batch.isEmpty { break }
-
-            var outs = [[UInt8]?](repeating: nil, count: batch.count)
-            var failed = false
-            let lock = NSLock()
-            DispatchQueue.concurrentPerform(iterations: batch.count) { i in
-                let o = decodeGroup(batch[i].comp, batch[i].blks, batch[i].raw)
-                lock.lock()
-                if let o = o { outs[i] = o } else { failed = true }
-                lock.unlock()
-            }
-            if failed { return wroteAny ? .error : .fallback }
-            for o in outs {
-                guard let o = o else { return wroteAny ? .error : .fallback }
-                if !o.isEmpty { output.write(Data(o)) }
-            }
-            wroteAny = true
-        }
-        return .ok
-    }
-
     /// 統一解碼管線：scan 取得各區塊大小 → 一次 malloc 全部輸出 →
     /// （平行模式）各組寫入自己的不相交區段 → Data(bytesNoCopy:) 零複製交付。
     /// 消除了舊管線的三個全量記憶體 pass：零填充預配置、組緩衝組裝、最終複製。
@@ -3355,6 +3160,14 @@ func printUsage() {
 enum Algo: String { case apple, other3, bvx3 }
 
 // ---------------------------------------------------------------------
+// 0. Windows UTF-8 輸出初始化 / Windows UTF-8 stdout init
+// ---------------------------------------------------------------------
+#if os(Windows)
+SetConsoleOutputCP(65001)   // 讓 CMD > 重導向時也輸出 UTF-8
+SetConsoleCP(65001)
+#endif
+
+// ---------------------------------------------------------------------
 // 1. 解析參數 / Parse arguments
 // ---------------------------------------------------------------------
 let args = CommandLine.arguments
@@ -3412,29 +3225,11 @@ if algo == .apple {
 // ---------------------------------------------------------------------
 // 2. 設定輸入源 / Set up input source
 // ---------------------------------------------------------------------
-let inflightN: Int = {
-    let cores = max(1, ProcessInfo.processInfo.activeProcessorCount)
-    let cap = cores * 4
-    var n = cores * 2
-    if let index = args.firstIndex(of: "-n"), index + 1 < args.count {
-        guard let v = Int(args[index + 1]) else {
-            eprint("Error: -n expects an integer. / 錯誤：-n 需要整數。")
-            exit(1)
-        }
-        n = v
-    }
-    if n < 1 { n = 1 }
-    if n > cap { n = cap }
-    return n
-}()
-
 let inputHandle: FileHandle
-var inputPath: String? = nil
 if args.contains("-si") {
     inputHandle = .standardInput
 } else if let index = args.firstIndex(of: "-i"), index + 1 < args.count {
     let path = args[index + 1]
-    inputPath = path
     do {
         inputHandle = try FileHandle(forReadingFrom: URL(fileURLWithPath: path))
     } catch {
@@ -3485,24 +3280,20 @@ if args.contains("-so") {
 ///   5. 結果在鎖內按 writeIndex 順序排水寫出，保證輸出順序正確；
 ///      所有分塊寫完後才補上唯一一個 bvx$。
 func runParallelEncode(input: FileHandle, output: FileHandle,
-                       inflight: Int,
                        chunkSize: Int = LZFSEv1.parallelChunkSize,
                        strong: Bool = false, bvx3: Bool = false, lazy2: Bool = false,
                        optimal: Bool = false) {
-    // 在途數由 -n 決定（與核心數解耦）。實際同時壓縮的執行緒仍由 GCD 並行佇列約束 ≈ 核心數，
-    // 故較大 N 主要加深讀寫管線；較小 N 直接降低同時佔用的 parser/DP scratch → 降 encode RSS。
-    let maxTasks = max(2, inflight)
-    // 有界緩衝：sem 限制「已讀但尚未寫出」的 chunk 數 ≤ maxTasks。
-    // sem.signal() 綁定在「該 chunk 被寫出」而非「task 完成」，
-    // 否則慢 chunk 在前時，其後已壓完的 body 會在 results 無界堆積（→ OOM）。
+    let maxTasks = max(2, ProcessInfo.processInfo.activeProcessorCount)
     let sem = DispatchSemaphore(value: maxTasks)
     let lock = NSLock()
-    final class ParallelEncodeState: @unchecked Sendable {
+    // 所有跨執行緒共享的可變狀態集中在此；存取皆在 lock 內——故標記 @unchecked Sendable。
+    // All shared mutable state is accessed exclusively under `lock` — @unchecked Sendable is safe.
+    final class _State: @unchecked Sendable {
         var results: [Int: Data] = [:]
         var writeIndex = 0
         var failure: String? = nil
     }
-    let state = ParallelEncodeState()
+    let shared = _State()
     var readIndex = 0
     let queue = DispatchQueue(label: "lzfse.parallel", qos: .userInitiated,
                               attributes: .concurrent)
@@ -3512,16 +3303,12 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
         // R4：pipe（tar | lzfse）可能短讀——累積讀滿 chunkSize 再派工。
         // 滿塊保證：比率（視窗滿 4MiB）、每塊固定開銷、平行解碼分組都依賴它。
         // Pipes may return short reads; accumulate a full chunk before dispatch.
-        // autoreleasepool：FileHandle.read 在 macOS 會回傳 autoreleased Data 暫存；主執行緒讀取
-        // 迴圈若無 pool，這些暫存會累積到「整份輸入大小」才在程序結束時釋放（encode RSS 爆增根因）。
         var data = Data(capacity: chunkSize)
         do {
-            try autoreleasepool {
-                while data.count < chunkSize,
-                      let part = try input.read(upToCount: chunkSize - data.count),
-                      !part.isEmpty {
-                    data.append(part)
-                }
+            while data.count < chunkSize,
+                  let part = try input.read(upToCount: chunkSize - data.count),
+                  !part.isEmpty {
+                data.append(part)
             }
         } catch {
             eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
@@ -3529,29 +3316,30 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
         }
         if data.isEmpty { break }
 
-        sem.wait()                    // 流量控制：限制在途分塊數
+        sem.wait()                    // 流量控制：已讀未寫 ≤ maxTasks（綁定寫出端）
         let idx = readIndex           // 以值捕獲
         readIndex += 1
-        let capturedData = data
+        let capturedData = data       // let copy：@Sendable closure 只能捕獲 let
         group.enter()
         queue.async {
             let body = LZFSEv1.compressBody(capturedData, strong: strong, bvx3: bvx3,
                                             lazy2: lazy2, optimal: optimal)   // 區塊串，不含 bvx$
             lock.lock()
-            state.results[idx] = body
-            // 任一執行緒都可在鎖內依序排水，保證輸出順序
-            while let r = state.results.removeValue(forKey: state.writeIndex) {
+            shared.results[idx] = body
+            // 任一執行緒在鎖內依序排水；每寫出一個 chunk 才 signal 一次 sem，
+            // 使「已讀未寫」嚴格 ≤ maxTasks（記憶體上界 ≈ maxTasks × chunkSize）。
+            while let r = shared.results.removeValue(forKey: shared.writeIndex) {
                 do { try output.write(contentsOf: r) }
-                catch { state.failure = state.failure ?? "\(error)" }
-                state.writeIndex += 1
+                catch { shared.failure = shared.failure ?? "\(error)" }
+                shared.writeIndex += 1
+                sem.signal()          // ← 綁定寫出，而非 task 完成
             }
             lock.unlock()
-            sem.signal()
             group.leave()
         }
     }
     group.wait()
-    if let f = state.failure {
+    if let f = shared.failure {
         eprint("Error writing output: \(f) / 寫入輸出時發生錯誤。")
         exit(1)
     }
@@ -3590,69 +3378,22 @@ case .other3, .bvx3:
     // 非分塊串流自動退回循序，結果保證正確。
     if isEncoding {
         runParallelEncode(input: inputHandle, output: outputHandle,
-                          inflight: inflightN,
                           strong: true, bvx3: algo == .bvx3,
                           lazy2: algo == .bvx3 && useLazy2 && !useOptimal,
                           optimal: algo == .bvx3 && useOptimal)
-    } else if let p = inputPath {
-        // 檔案輸入：串流解碼，全程不持有整份壓縮輸入（降低 RSS）。
-        // 非自家分塊串流自動退回 whole-buffer，結果保證正確。
-        switch LZFSEv1.decodeStreamFromFile(path: p, chunkRaw: LZFSEv1.parallelChunkSize,
-                                            inflight: inflightN, output: outputHandle) {
-        case .ok:
-            break
-        case .error:
-            eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
-            exit(1)
-        case .fallback:
-            // 後援：重讀整檔 whole-buffer 解碼（外來單流 / 跨組 match）
-            var src = [UInt8]()
-            do {
-                if let attrs = try? FileManager.default.attributesOfItem(atPath: p),
-                   let size = (attrs[.size] as? NSNumber)?.intValue { src.reserveCapacity(size) }
-                let rh = try FileHandle(forReadingFrom: URL(fileURLWithPath: p))
-                while true {
-                    var stop = false
-                    try autoreleasepool {
-                        guard let part = try rh.read(upToCount: 1 << 20), !part.isEmpty else { stop = true; return }
-                        src.append(contentsOf: part)
-                    }
-                    if stop { break }
-                }
-                try? rh.close()
-            } catch {
-                eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
-                exit(1)
-            }
-            guard LZFSEv1.decodeStreamToHandle(src, parallel: true,
-                                               chunkRaw: LZFSEv1.parallelChunkSize,
-                                               inflight: inflightN, output: outputHandle) else {
-                eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
-                exit(1)
-            }
-        }
     } else {
-        // stdin（-si）：無法重讀，沿用 whole-buffer 解碼
-        var src = [UInt8]()
+        let data: Data
         do {
-            while true {
-                var stop = false
-                try autoreleasepool {
-                    guard let part = try inputHandle.read(upToCount: 1 << 20), !part.isEmpty else { stop = true; return }
-                    src.append(contentsOf: part)
-                }
-                if stop { break }
-            }
+            data = try inputHandle.readToEnd() ?? Data()
         } catch {
             eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
             exit(1)
         }
-        guard LZFSEv1.decodeStreamToHandle(src, parallel: true,
-                                           chunkRaw: LZFSEv1.parallelChunkSize,
-                                           inflight: inflightN, output: outputHandle) else {
+        guard let result = LZFSEv1.parallelDecompress(data) else {
             eprint("Error: Decode failed (corrupt or truncated stream). / 錯誤：解碼失敗（串流損毀或不完整）。")
             exit(1)
         }
+        outputHandle.write(result)
     }
 }
 

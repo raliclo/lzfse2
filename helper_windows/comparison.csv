@@ -1,0 +1,9 @@
+dataset,format,win_n_meaning,mac_n,win_encode_mb_s,mac_encode_mb_s,win_mac_speed_ratio,win_compress_ratio,mac_compress_ratio,compress_ratio_diff,win_encode_sec,mac_encode_sec,note
+資料夾,格式,Windows n=40 含義,macOS n,Win 壓縮 MB/s,Mac 壓縮 MB/s,Win/Mac 速度比,Win 壓縮比,Mac 壓縮比,壓縮比差異,Win 壓縮秒,Mac 壓縮秒,備註
+claw-code,TGZ,inflight=40 (1 run),40,25.11,49.77,0.505,1.0000,1.0000,0.0000,56.41,28.46,
+claw-code,LZFSE (Other3),inflight=40 (1 run),40,301.44,380.06,0.793,0.9818,0.9865,-0.0047,4.70,3.73,
+claw-code,LZFSE (Lazy2),inflight=40 (1 run),40,46.68,68.81,0.678,0.8704,0.8998,-0.0294,30.35,20.58,
+claw-code,LZFSE (Optimal),inflight=40 (1 run),40,19.17,35.88,0.534,0.8290,0.8590,-0.0300,73.91,39.47,
+claw-code,LZFSE (BVX3),inflight=40 (1 run),40,290.10,423.81,0.685,0.9254,0.9492,-0.0238,4.88,3.34,
+claw-code,TLZ4,single run (no -n),40,227.91,429.84,0.530,1.1739,1.1793,-0.0054,6.22,3.29,
+claw-code,ZSTD,single run (no -n),40,,374.31,,0.7813,0.8245,-0.0432,0.25,3.78,WIN TIMING INVALID: zstd exited early (flag bug -q-f); output file from prior run
