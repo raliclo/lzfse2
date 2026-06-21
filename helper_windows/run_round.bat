@@ -13,14 +13,22 @@ git gc --prune=now --aggressive >> windows_round_status.txt 2>&1
 :: compile
 echo RUNNING compile %TIME:~0,8% >> windows_round_status.txt
 
-swiftc -O ../lzfse-cli.swift -o lzfse.exe >> windows_round_status.txt 2>&1
+set "_build_exe=lzfse-build-%RANDOM%.exe"
+swiftc -O ../lzfse-cli.swift -o "%_build_exe%" >> windows_round_status.txt 2>&1
 
-if not exist lzfse.exe (
+if errorlevel 1 (
     echo COMPILE_FAILED %TIME:~0,8% >> windows_round_status.txt
     echo [FAIL] 編譯失敗 / Compilation failed
     pause
     exit /b 1
 )
+
+move /Y "%_build_exe%" lzfse.exe >> windows_round_status.txt 2>&1
+if errorlevel 1 (
+    echo COMPILE_INSTALL_FAILED %TIME:~0,8% >> windows_round_status.txt
+    exit /b 1
+)
+del /Q "%_build_exe:.exe=.lib%" "%_build_exe:.exe=.exp%" > nul 2>&1
 
 echo COMPILE_OK %TIME:~0,8% >> windows_round_status.txt
 
@@ -36,8 +44,14 @@ if %ERRORLEVEL% neq 0 (
 cat .\lzfse-test-windows.txt
 echo TEST_OK %TIME:~0,8% >> windows_round_status.txt
 
-.\benchmark_windows.bat ..\claw-code 40 >> windows_round_status.txt 2>&1
-Move-Item -Path "*-results.txt" -Destination "bench_logs" -Force
+call .\benchmark_windows.bat ..\claw-code 40 >> windows_round_status.txt 2>&1
+if errorlevel 1 (
+    echo BENCHMARK_FAILED %TIME:~0,8% >> windows_round_status.txt
+    exit /b 1
+)
+
+:: benchmark_windows.bat 目前將最新結果留在本目錄；summarize_win.py 會同時
+:: 掃描本目錄與 bench_logs，並選取時間最新的紀錄。
 
 
 :: Step 1: Windows benchmark summary / Windows benchmark 摘要

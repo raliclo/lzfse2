@@ -9,6 +9,82 @@
 - **bitstream-identical**：壓縮產物的位元組與 baseline 完全相同，這是比 output-identical 更嚴格且獨立的條件。
 - 壓縮檔大小或壓縮比變動應另行記錄，不得單獨用來判定 output-identical 失敗。
 
+# R40-Win：Optimal 跨段 match 越界修復（2026-06-21）/ R40-Win: Optimal Cross-Segment Match OOB Fix
+
+> 在 Windows 驗測 R40 code 時發現：Optimal 編碼器的低重複段 greedy 快路徑存在記憶體越界 bug，導致 Release 版本以 `VCRUNTIME140.dll 0xc0000005`（存取違規）崩潰，Debug 版本明確回報 `Fatal error: UnsafeBufferPointer with negative count`。此問題理論上在 macOS 同樣存在，但 Release 編譯下行為未定義，不一定立即崩潰。
+
+## 根因分析 / Root Cause
+
+Optimal 的低重複段 greedy 路徑（`lzParseOptimal` 內，`coverage < optPrescreenMinCoverage` 分支）在計算 match 長度時，`limit` 參數使用全域輸入長度 `n - i - 4`，未受目前段的 `segEnd` 限制。
+
+**因果鏈：**
+
+| 步驟 | 說明 |
+|---|---|
+| ① | greedy match 取 `limit = n - i - 4`，match 跨越 `segEnd` |
+| ② | `emitGreedy` 將 `litStart` 推進至 `i + matchLen`，可能 > `segEnd` |
+| ③ | 下一段 `segStart = segEnd`，進入 `posLoop` 時 `i = segStart < litStart` |
+| ④ | `emitGreedy(at: i, ...)` 執行 `UnsafeBufferPointer(start: p + litStart, count: i - litStart)` |
+| ⑤ | `i - litStart < 0` → `count` 為負數 → Debug: Fatal error；Release: 存取違規崩潰 |
+
+**其他佐證：**
+- `-n 1` 也能重現（非 `-n 40` 特有問題）
+- Windows 事件記錄有多次相同模組、相同 fault offset 的崩潰紀錄
+- 崩潰前的部分輸出停在合法 block 邊界，但缺少 `bvx$` 結尾標記（截斷串流）
+
+## 修復 / Fix
+
+**檔案：`lzfse-cli.swift` 約第 1264 行**（Optimal greedy 快路徑 match 限制）
+
+| | 修復前 | 修復後 |
+|---|---|---|
+| rep 路徑 limit | `limit: n - i - 4`（全域）| `limit: segEnd - i - 4`（限段內）|
+| cand 路徑 limit | `limit: n - i - 4`（全域）| `limit: segEnd - i - 4`（限段內）|
+
+兩處 match 計算均改為停在 `segEnd`，防止 `litStart` 超出段邊界。
+
+## 驗證結果 / Validation
+
+| 項目 | 結果 |
+|---|---|
+| `swiftc -O` 編譯 | ✅ 成功 |
+| 內建 `-test`（含新增跨段 match 回歸測試）| ✅ 全部通過 |
+| `claw-code -algo bvx3 -optimal -n 40` 完整壓縮 | ✅ 成功，約 **73.3 秒** |
+| 輸出大小 | **406,284,948 bytes** |
+| `bvx$` 結尾標記 | ✅ 存在 |
+| 解壓後 `tar -tf` | ✅ 成功，output-identical |
+
+> 注意：壓縮輸出 406,284,948 bytes 與 macOS R39 baseline（407,098,957 bytes）差異 814,009 bytes，原因為：修復後 greedy 段的 match 不再跨段、導致某些 match 略短，bitstream 合法但非 bitstream-identical。output-identical 驗收通過。
+
+## Windows 基準測試（Run C，2026-06-21）/ Windows Baseline
+
+以 R40-Win 修復後的 binary（`lzfse.exe`）對 `claw-code`（n=40 inflight）執行完整基準測試。後續 R{N}-Win 以此為比較基準。
+
+| 格式 | 耗時（秒）| Encode MB/s | 壓縮比（/TGZ）|
+|---|---:|---:|---:|
+| TGZ | 55.92 | 25.33 | 1.0000 |
+| LZFSE (Other3) | 5.15 | 275.17 | 0.9818 |
+| LZFSE (BVX3) | 5.18 | 273.65 | 0.9254 |
+| TLZ4 | 6.19 | 228.93 | 1.1739 |
+| LZFSE (Lazy2) | 36.56 | 38.75 | 0.8704 |
+| ZSTD | 10.18 | 139.17 | 0.7813 |
+| LZFSE (Optimal) | 80.67 | 17.56 | 0.8273 |
+
+MB/s 以 1351 MiB × 1.048576 = 1416.63 MB 為基準（與 macOS 格式一致）。Windows 不量測 decode speed、RSS、CPU energy（需 macOS powermetrics）。
+
+## Win/Mac 比較報告結構 / Comparison Report Structure
+
+每輪流程：先跑 **R{N}-Mac**，再跑 **R{N}-Win**，最後執行 `comparison_win.py` 產生三區段比較報告：
+
+| 區段 | Win | Mac | 說明 |
+|---|---|---|---|
+| 1a. Encode MB/s + ratio/TGZ | ✅ | ✅ | Win/Mac 對比 + 各平台相對 TGZ 速度比 |
+| 1b. Decode MB/s + ratio/TGZ | — | ✅ | Windows 不量測 decode |
+| 2. RSS MB + ratio/TGZ | — | ✅ | Windows 不量測 RSS |
+| 3. CPU Energy J + ratio/TGZ | — | ✅ | Windows 不量測能耗；n=40 decode energy 不可信 |
+
+---
+
 # R40：Streaming decode 復原與 encode 管線修正（2026-06-21）/ R40: Restore Streaming Decode & Fix Encode Pipeline
 
 > 以 R39（3379 行）為起點，補回 R39 移除的 streaming decode 路徑，並修正 R39 引入的 `runParallelEncode` 兩個 regression。無演算法改動，encode / decode 輸出應與 R39 bitstream-identical。

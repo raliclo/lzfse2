@@ -1264,13 +1264,17 @@ public enum LZFSEv1 {
                             // rep 優先
                             for r in [rep0, rep1, rep2] where r > 0 && r <= i {
                                 if load32(i - r) == load32(i) {
-                                    let l = 4 + matchLength(i - r + 4, i + 4, limit: n - i - 4)
+                                    // 預篩 greedy 必須停在目前 DP 段內；若跨過 segEnd，
+                                    // litStart 會超前於下一段的 segStart，後續 literal count 變成負值。
+                                    let l = 4 + matchLength(i - r + 4, i + 4,
+                                                            limit: segEnd - i - 4)
                                     if l > bl { bl = l; bd = r }
                                 }
                             }
                             // 單一最近候選（greedy，僅 1 深度——預篩段不值得深搜）
                             if bl < 4, cand >= 0, i - cand <= maxDist, load32(cand) == load32(i) {
-                                let l = 4 + matchLength(cand + 4, i + 4, limit: n - i - 4)
+                                let l = 4 + matchLength(cand + 4, i + 4,
+                                                        limit: segEnd - i - 4)
                                 if l >= 4 { bl = l; bd = i - cand }
                             }
                             if bl >= 4 {
@@ -3283,6 +3287,20 @@ func runLZFSEv1Tests() {
         bigText.append(Data("\(words[Int(seed >> 33) % words.count])_\(i % 977) ".utf8))
     }
     runCase("文字大樣本 (多表 literal)", bigText)
+
+    // Optimal 預篩 greedy 的跨段回歸：在 128KiB 段尾製造可延伸至下一段的 match。
+    // match 必須被限制在 segEnd；否則 litStart 會超前於下一段並形成負 literal count。
+    let seg = LZFSEv1.optSegmentSize
+    var crossSegment = [UInt8](repeating: 0, count: seg * 2 + 2048)
+    var crossSeed: UInt64 = 0xD1B54A32D192ED03
+    for i in crossSegment.indices {
+        crossSeed = crossSeed &* 2862933555777941757 &+ 3037000493
+        crossSegment[i] = UInt8(truncatingIfNeeded: crossSeed >> 24)
+    }
+    let dst = seg - 64
+    let pattern = Array(crossSegment[(dst - 256)..<dst])
+    for i in 0..<2048 { crossSegment[dst + i] = pattern[i & 255] }
+    runCase("Optimal 跨段 match 回歸", Data(crossSegment))
 }
 
 // =====================================================================

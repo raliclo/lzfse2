@@ -1,154 +1,147 @@
+"""彙整 Windows benchmark 原始紀錄並輸出 benchmark_summary.csv。
+
+Usage:
+    python summarize_win.py [--results-dir DIR] [--output CSV]
+
+工具會同時檢查 DIR 與 DIR/bench_logs，對每個格式選用最新紀錄。
+若最新輸出大小與上一份紀錄相差超過 50%，會標記為無效，避免截斷輸出
+（例如 tar write error）被誤當成壓縮率改善。
 """
-summarize_win.py — BenchMarkResult-Win.csv 摘要工具 / Windows benchmark summary tool
 
-用法 / Usage:
-    python summarize_win.py [path/to/BenchMarkResult-Win.csv]
-
-預設讀取腳本同目錄的 BenchMarkResult-Win.csv。
-Defaults to BenchMarkResult-Win.csv in the same directory as this script.
-"""
-
+import argparse
 import csv
-import io
-import os
+import re
 import sys
+from pathlib import Path
 
-# Force UTF-8 output so Chinese labels render correctly on Windows consoles
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-else:
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-SUSPICIOUS_MB_S = 9999 # encode MB/s above this is likely a measurement error
-BAR_WIDTH = 30          # character width for speed bar
+FORMATS = {
+    "encodeTgz": "TGZ",
+    "encodeOther3": "LZFSE (Other3)",
+    "encodeBVX3": "LZFSE (BVX3)",
+    "encodeLazy2": "LZFSE (Lazy2)",
+    "encodeOptimal": "LZFSE (Optimal)",
+    "encodeLZ4": "TLZ4",
+    "encodeZSTD": "ZSTD",
+}
+FORMAT_ORDER = {name: i for i, name in enumerate(FORMATS)}
+NAME_RE = re.compile(
+    r"^(?P<dataset>.+)-(?P<token>encode(?:Tgz|Other3|BVX3|Lazy2|Optimal|LZ4|ZSTD))"
+    r"(?:-n(?P<n>\d+))?-results\.txt$"
+)
+NS_RE = re.compile(r"Process took:\s*(\d+)")
+BYTES_RE = re.compile(r"Encoded size:\s*(\d+)")
 
-def parse_float(s):
-    """Return float or None for empty / non-numeric values."""
-    try:
-        return float(s) if s.strip() else None
-    except ValueError:
+
+def read_result(path):
+    text = path.read_text(encoding="utf-8", errors="replace")
+    ns_match = NS_RE.search(text)
+    bytes_match = BYTES_RE.search(text)
+    if not ns_match or not bytes_match:
         return None
+    return int(ns_match.group(1)), int(bytes_match.group(1))
 
-def load_csv(path):
-    """Load CSV, skip the Chinese header row (row 2), return list of dicts."""
-    rows = []
-    with open(path, newline="", encoding="utf-8-sig") as f:
-        reader = csv.reader(f)
-        headers = next(reader)          # row 1: English column names
-        next(reader)                    # row 2: Chinese labels — skip
-        for line in reader:
-            if not any(line):           # skip blank lines
+
+def collect(results_dir):
+    candidates = []
+    for directory in (results_dir, results_dir / "bench_logs"):
+        if not directory.is_dir():
+            continue
+        for path in directory.glob("*-results.txt"):
+            match = NAME_RE.match(path.name)
+            parsed = read_result(path) if match else None
+            if not match or not parsed:
                 continue
-            rows.append(dict(zip(headers, line)))
+            candidates.append({
+                "path": path,
+                "dataset": match.group("dataset"),
+                "token": match.group("token"),
+                "n": match.group("n") or "",
+                "nanoseconds": parsed[0],
+                "encoded_bytes": parsed[1],
+                "mtime": path.stat().st_mtime,
+            })
+    return candidates
+
+
+def summarize(candidates, status_log):
+    grouped = {}
+    for item in candidates:
+        key = (item["dataset"], item["token"], item["n"])
+        grouped.setdefault(key, []).append(item)
+
+    tar_write_error = False
+    if status_log.is_file():
+        tar_write_error = "tar: Write error" in status_log.read_text(
+            encoding="utf-8", errors="replace"
+        )
+
+    rows = []
+    for key, versions in grouped.items():
+        versions.sort(key=lambda item: item["mtime"], reverse=True)
+        current = versions[0]
+        valid = current["nanoseconds"] > 0 and current["encoded_bytes"] > 0
+        notes = []
+
+        if len(versions) > 1 and versions[1]["encoded_bytes"] > 0:
+            previous = versions[1]["encoded_bytes"]
+            size_ratio = current["encoded_bytes"] / previous
+            if size_ratio < 0.5 or size_ratio > 2.0:
+                valid = False
+                notes.append(
+                    f"encoded size is {size_ratio:.1%} of previous result"
+                )
+
+        if tar_write_error and current["token"] == "encodeOptimal":
+            valid = False
+            notes.insert(0, "tar write error")
+
+        suffix = f"-n{current['n']}" if current["n"] else ""
+        rows.append({
+            "format": f"{current['token']}{suffix}",
+            "nanoseconds": current["nanoseconds"],
+            "encoded_bytes": current["encoded_bytes"],
+            "valid": "yes" if valid else "no",
+            "note": "; ".join(notes),
+            "_token": current["token"],
+        })
+
+    rows.sort(key=lambda row: (FORMAT_ORDER[row["_token"]], row["format"]))
     return rows
 
-def bar(value, max_value, width=BAR_WIDTH):
-    """Render a simple ASCII bar proportional to value/max_value."""
-    if value is None or max_value == 0:
-        return " " * width
-    filled = int(round(value / max_value * width))
-    return "#" * filled + "." * (width - filled)
 
-def flag(row):
-    """Return a warning tag if the row has suspicious data."""
-    mb_s = parse_float(row.get("encode_mb_s"))
-    if mb_s is not None and mb_s > SUSPICIOUS_MB_S:
-        return " ⚠ TIMING INVALID"
-    return ""
+def write_csv(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fields = ["format", "nanoseconds", "encoded_bytes", "valid", "note"]
+    with path.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({field: row[field] for field in fields})
 
-def print_section(title):
-    print()
-    print(f"{'-' * 72}")
-    print(f"  {title}")
-    print(f"{'-' * 72}")
 
-def summarize(path):
-    rows = load_csv(path)
-    if not rows:
-        print("No data found.")
-        return
+def main():
+    here = Path(__file__).resolve().parent
+    parser = argparse.ArgumentParser(description="Generate Windows benchmark summary CSV")
+    parser.add_argument("--results-dir", type=Path, default=here)
+    parser.add_argument("--output", type=Path, default=here / "benchmark_summary.csv")
+    parser.add_argument("--status-log", type=Path, default=here / "windows_round_status.txt")
+    args = parser.parse_args()
 
-    # Group by dataset
-    datasets = sorted({r["dataset"] for r in rows})
+    candidates = collect(args.results_dir.resolve())
+    if not candidates:
+        print(f"No benchmark result files found under {args.results_dir}", file=sys.stderr)
+        return 1
 
-    for ds in datasets:
-        ds_rows = [r for r in rows if r["dataset"] == ds]
-        n_vals  = sorted({r["n"] for r in ds_rows})
+    rows = summarize(candidates, args.status_log.resolve())
+    write_csv(args.output.resolve(), rows)
+    print(f"[OK] {args.output.resolve()} written ({len(rows)} rows)")
+    for row in rows:
+        state = "OK" if row["valid"] == "yes" else f"INVALID: {row['note']}"
+        seconds = row["nanoseconds"] / 1_000_000_000
+        print(f"  {row['format']:<22} {seconds:8.2f}s  {row['encoded_bytes']:>12} bytes  {state}")
+    return 0
 
-        print(f"\n{'=' * 72}")
-        print(f"  Dataset: {ds}    n value(s): {', '.join(n_vals)}")
-        print(f"  (n = inflight chunk count in 92221a02 code, not repetition count)")
-        print(f"{'=' * 72}")
-
-        # -- Encode Speed ----------------------------------------------
-        print_section("Encode Speed  壓縮速度 (MB/s)")
-        valid_mb_s = [parse_float(r["encode_mb_s"]) for r in ds_rows
-                      if parse_float(r["encode_mb_s"]) is not None
-                      and parse_float(r["encode_mb_s"]) < SUSPICIOUS_MB_S]
-        max_mb_s = max(valid_mb_s) if valid_mb_s else 1
-
-        print(f"  {'Format':<20} {'MB/s':>8}  {'Bar (valid only)'}")
-        print(f"  {'-'*20} {'-'*8}  {'-'*BAR_WIDTH}")
-        for r in ds_rows:
-            fmt    = r["format"]
-            mb_s   = parse_float(r["encode_mb_s"])
-            warn   = flag(r)
-            if warn:
-                print(f"  {fmt:<20} {'N/A':>8}  {warn.strip()}")
-            else:
-                val_str = f"{mb_s:.2f}" if mb_s is not None else "—"
-                b       = bar(mb_s, max_mb_s) if mb_s is not None else " " * BAR_WIDTH
-                print(f"  {fmt:<20} {val_str:>8}  {b}")
-
-        # -- Compression Ratio -----------------------------------------
-        print_section("Compression Ratio  壓縮比  (output / TGZ output, TGZ = 1.0000)")
-        print(f"  {'Format':<20} {'Ratio':>8}  {'Compressed':>12}  {'Note'}")
-        print(f"  {'-'*20} {'-'*8}  {'-'*12}  {'-'*20}")
-        for r in ds_rows:
-            fmt   = r["format"]
-            ratio = parse_float(r["compression_ratio"])
-            csz   = r.get("compressed_size_mib", "")
-            note  = "< 1: smaller than TGZ" if ratio is not None and ratio < 1.0 else \
-                    "> 1: larger than TGZ"  if ratio is not None and ratio > 1.0 else ""
-            ratio_str = f"{ratio:.4f}" if ratio is not None else "—"
-            print(f"  {fmt:<20} {ratio_str:>8}  {csz:>12}  {note}")
-
-        # -- Encode Time -----------------------------------------------
-        print_section("Encode Time  壓縮耗時 (seconds, ratio vs TGZ)")
-        print(f"  {'Format':<20} {'Sec':>8}  {'vs TGZ':>8}  {'Note'}")
-        print(f"  {'-'*20} {'-'*8}  {'-'*8}  {'-'*24}")
-        for r in ds_rows:
-            fmt    = r["format"]
-            sec    = parse_float(r["encode_seconds"])
-            tratio = parse_float(r["encode_time_ratio"])
-            warn   = flag(r)
-            sec_str = f"{sec:.2f}"      if sec    is not None else "—"
-            tr_str  = f"{tratio:.4f}"   if tratio is not None else "—"
-            note   = warn.strip() if warn else ""
-            print(f"  {fmt:<20} {sec_str:>8}  {tr_str:>8}  {note}")
-
-        # -- Empty Columns Summary -------------------------------------
-        print_section("Column Availability  欄位可用性")
-        all_cols = list(rows[0].keys()) if rows else []
-        has_data = [c for c in all_cols
-                    if any(r.get(c, "").strip() for r in ds_rows)]
-        no_data  = [c for c in all_cols if c not in has_data]
-        print(f"  Available ({len(has_data)}): {', '.join(has_data)}")
-        print(f"  Empty     ({len(no_data)}): {', '.join(no_data)}")
-        print(f"\n  Note: decode / RSS / trace / CPU power columns require macOS powermetrics.")
-        print(f"        No energy data available on Windows.")
-
-    print(f"\n{'=' * 72}\n")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        csv_path = sys.argv[1]
-    else:
-        csv_path = os.path.join(os.path.dirname(__file__), "BenchMarkResult-Win.csv")
-
-    if not os.path.exists(csv_path):
-        print(f"File not found: {csv_path}")
-        sys.exit(1)
-
-    print(f"Reading: {csv_path}")
-    summarize(csv_path)
+    raise SystemExit(main())
