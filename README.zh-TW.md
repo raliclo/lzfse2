@@ -204,26 +204,59 @@ raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true, /Users/raliclo
 
 ## 基準測試
 
-`BenchMarkResult.csv` 包含兩組資料集的基準測試結果：`llama.cpp`（1200M）與 `claw-code`（1200M 來源）。測試機器為 Mac mini，配備 Apple M4 10 核心 CPU、16 GB 記憶體與 256 GB 儲存空間。
+最新測試使用 `claw-code`（約 1351 MiB）與 `llama.cpp`（約 1261 MiB）兩組資料集，測試機器為 Mac mini，配備 Apple M4 10 核心 CPU、16 GB 記憶體與 256 GB 儲存空間。完整逐點資料位於 [`BenchMarkResult.csv`](BenchMarkResult.csv)，跨 n4 / n8 / n40 的最佳／最差點整理位於 [`best_points/best_points.csv`](best_points/best_points.csv) 與 [`best_points/best_points.md`](best_points/best_points.md)。
 
-### 效能指標
+以下數值來自目前的 best-points 分析。`log nX` 只表示 TGZ、Apple、TLZ4、ZSTD 的來源 log 批次，`-n` 不影響這些外部算法。Energy Ratio 以同輪、同資料集 TGZ CPU energy 為 `1.0000`；小於 1 代表比 TGZ 省 CPU energy，大於 1 代表較耗能。
 
-| 資料集 | 格式 | 原始 (M) | 壓縮後 (M) | 壓縮時間 (秒) | 解壓時間 (秒) | 壓縮 MB/s | 解壓 MB/s | 相對 TGZ 壓縮比 | 壓縮時間比 | 解壓時間比 |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| llama.cpp | TGZ | 1200 | 593 | 23.84 | 3.96 | 50.34 | 303.03 | 1.0000 | 1.00 | 1.00 |
-| llama.cpp | LZFSE (Other3) | 1200 | 592 | 6.76 | 4.26 | 177.51 | 281.69 | 0.9983 | 0.28 | 1.08 |
-| llama.cpp | LZFSE (Lazy2) | 1200 | 572 | 6.81 | 4.87 | 176.21 | 246.41 | 0.9646 | 0.29 | 1.23 |
-| llama.cpp | LZFSE (BVX3) | 1200 | 572 | 6.77 | 5.99 | 177.25 | 200.33 | 0.9646 | 0.28 | 1.51 |
-| llama.cpp | LZFSE (Apple) | 1200 | 585 | 11.16 | 5.50 | 107.53 | 218.18 | 0.9865 | 0.47 | 1.39 |
-| llama.cpp | TLZ4 | 1200 | 622 | 3.90 | 5.09 | 307.69 | 235.76 | 1.0489 | 0.16 | 1.29 |
-| llama.cpp | ZSTD | 1200 | 537 | 2.79 | 6.16 | 430.11 | 194.81 | 0.9056 | 0.12 | 1.56 |
-| claw-code | TGZ | 1200 | 433 | 25.69 | 2.21 | 46.71 | 542.99 | 1.0000 | 1.00 | 1.00 |
-| claw-code | LZFSE (Other3) | 1200 | 428 | 1.98 | 2.34 | 606.06 | 512.82 | 0.9885 | 0.08 | 1.06 |
-| claw-code | LZFSE (Lazy2) | 1200 | 419 | 2.00 | 3.28 | 600.00 | 365.85 | 0.9677 | 0.08 | 1.48 |
-| claw-code | LZFSE (BVX3) | 1200 | 423 | 1.99 | 3.59 | 603.02 | 334.26 | 0.9769 | 0.08 | 1.62 |
-| claw-code | LZFSE (Apple) | 1200 | 435 | 8.13 | 5.21 | 147.60 | 230.33 | 1.0046 | 0.32 | 2.36 |
-| claw-code | TLZ4 | 1200 | 516 | 2.03 | 4.05 | 591.13 | 296.30 | 1.1917 | 0.08 | 1.83 |
-| claw-code | ZSTD | 1200 | 368 | 2.73 | 5.71 | 439.56 | 210.16 | 0.8499 | 0.11 | 2.58 |
+### 最新最佳點摘要
+
+#### claw-code
+
+| 格式 | 最佳壓縮比 | 最佳壓縮 MB/s | 最佳解壓 MB/s | Encode RSS 範圍 | Decode RSS 範圍 | Encode Energy Ratio 範圍 | Decode Energy Ratio 範圍 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 1.0000 (`log n4`) | 50.11 (`log n40`) | 419.14 (`log n4`) | 4.2 MB (`log n4`)–4.2 MB (`log n4`) | 3.7 MB (`log n4`)–3.7 MB (`log n4`) | 1.0000 | 1.0000 |
+| Other3 | 0.9865 (`n4`) | 423.73 (`n8`) | 451.15 (`n8`) | 133.3 MB (`n4`)–227.6 MB (`n40`) | 69.4 MB (`n4`)–299.4 MB (`n40`) | 0.1916 (`n40`)–0.3120 (`n4`) | 0.1021 (`n40`)–1.1001 (`n4`) |
+| BVX3 | 0.9492 (`n4`) | 437.11 (`n40`) | 356.96 (`n4`) | 129.4 MB (`n4`)–246.7 MB (`n40`) | 70.1 MB (`n4`)–323.6 MB (`n40`) | 0.1999 (`n40`)–0.3173 (`n4`) | 0.0344 (`n40`)–1.7427 (`n4`) |
+| Lazy2 | 0.8998 (`n4`) | 69.13 (`n40`) | 435.99 (`n8`) | 188.9 MB (`n4`)–496.1 MB (`n40`) | 66.0 MB (`n4`)–320.5 MB (`n40`) | 0.6491 (`n40`)–0.9022 (`n4`) | 0.0482 (`n40`)–1.4300 (`n4`) |
+| Optimal | 0.8590 (`n4`) | 36.21 (`n40`) | 324.08 (`n40`) | 201.0 MB (`n4`)–561.2 MB (`n40`) | 68.2 MB (`n4`)–309.3 MB (`n40`) | 3.0944 (`n40`)–4.3182 (`n4`) | 0.0481 (`n40`)–1.4943 (`n4`) |
+| TLZ4 | 1.1793 (`log n4`) | 442.28 (`log n40`) | 465.47 (`log n4`) | 77.4 MB (`log n40`)–84.9 MB (`log n4`) | 33.7 MB (`log n4`)–33.7 MB (`log n4`) | 0.1949 (`log n4`)–0.1949 (`log n4`) | 0.2047 (`log n4`)–0.2047 (`log n4`) |
+| ZSTD | 0.8245 (`log n4`) | 385.36 (`log n8`) | 474.06 (`log n4`) | 375.1 MB (`log n4`)–392.7 MB (`log n40`) | 9.2 MB (`log n4`)–9.3 MB (`log n8`) | 0.2426 | 0.7385 |
+
+#### llama.cpp
+
+| 格式 | 最佳壓縮比 | 最佳壓縮 MB/s | 最佳解壓 MB/s | Encode RSS 範圍 | Decode RSS 範圍 | Encode Energy Ratio 範圍 | Decode Energy Ratio 範圍 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 1.0000 (`log n4`) | 43.64 (`log n40`) | 96.30 (`log n4`) | 4.3 MB (`log n4`)–4.3 MB (`log n4`) | 3.8 MB (`log n4`)–3.8 MB (`log n4`) | 1.0000 | 1.0000 |
+| Other3 | 0.9957 (`n4`) | 98.58 (`n40`) | 88.47 (`n40`) | 128.3 MB (`n4`)–335.5 MB (`n40`) | 67.0 MB (`n4`)–349.0 MB (`n40`) | 0.1540 (`n40`)–0.2478 (`n4`) | 0.0718 (`n40`)–0.8314 (`n4`) |
+| BVX3 | 0.9787 (`n4`) | 96.31 (`n40`) | 86.47 (`n8`) | 142.1 MB (`n4`)–355.3 MB (`n40`) | 67.1 MB (`n4`)–351.3 MB (`n40`) | 0.1532 (`n40`)–0.2568 (`n4`) | 0.0560 (`n40`)–1.3147 (`n4`) |
+| Lazy2 | 0.9551 (`n4`) | 89.04 (`n40`) | 87.77 (`n40`) | 193.5 MB (`n4`)–481.8 MB (`n40`) | 66.9 MB (`n4`)–348.8 MB (`n40`) | 0.2777 (`n40`)–0.3945 (`n4`) | 0.0576 (`n8`)–0.5950 (`n4`) |
+| Optimal | 0.9393 (`n4`) | 50.42 (`n40`) | 87.34 (`n8`) | 224.7 MB (`n4`)–597.2 MB (`n40`) | 71.0 MB (`n4`)–349.2 MB (`n40`) | 2.2189 (`n40`)–3.2077 (`n4`) | 0.0179 (`n40`)–1.0636 (`n4`) |
+| TLZ4 | 1.0537 (`log n4`) | 95.14 (`log n4`) | 86.88 (`log n8`) | 80.7 MB (`log n40`)–85.8 MB (`log n8`) | 33.8 MB (`log n4`)–33.8 MB (`log n4`) | 0.2250 (`log n4`)–0.2250 (`log n4`) | 0.1052 (`log n4`)–0.1052 (`log n4`) |
+| ZSTD | 0.9100 (`log n4`) | 101.81 (`log n4`) | 88.29 (`log n40`) | 474.0 MB (`log n40`)–474.1 MB (`log n4`) | 9.0 MB (`log n4`)–9.2 MB (`log n40`) | 0.1697 | 0.3388 |
+
+目前資料顯示：Optimal 在兩組資料上都取得 BVX3 family 最佳壓縮比，但 encode Energy Ratio 仍高於 TGZ，適合離線壓縮而非追求最低單次 encode 成本。Other3、BVX3 與 Lazy2 的 encode Energy Ratio 在所有 n 值均低於 1。Decode 對 concurrency 較敏感；n40 通常是最低能耗點，但 BVX3 family 在部分 n4 測點會高於 TGZ。
+
+### RSS 與 CPU 能耗取捨
+
+依 [`LPDDR_power_estimation/LPDDR_power_info.md`](LPDDR_power_estimation/LPDDR_power_info.md) 的連續存取估算，LPDDR4X / LPDDR5 約為 `150 / 120 mW/GB`。RSS 從約 60 MB 增至 300 MB，增量約 240 MB（0.234 GB），對應 DRAM 額外功率約 `35 / 28 mW`。
+
+若再納入 memory controller / PHY 約 20–40% 的額外成本，記憶體子系統增量約 `34–49 mW`。即使把這視為整段持續活動的保守上限，執行 40 秒約增加 `1.4–2.0 J`；若只有約 4 秒，則約 `0.14–0.20 J`。
+
+先前受控輪次中，Optimal decode 從 n4 提升至 n40 時，RSS 約由 `68.5 / 71.1 MB` 升至 `308.9 / 348.9 MB`，CPU energy 則由 `17.13 / 11.33 J` 降至 `8.39 / 5.86 J`（約 `-51% / -48%`）。CPU 節省量級遠高於不到 1 秒期間約數百分之一焦耳的估算記憶體增量。因此在目前桌面測試與約 300 MB RSS 範圍內，優先降低 CPU 執行時間／總能耗是較佳整體取捨，約 300 MB RSS 可視為有條件接受。
+
+這是依 active-memory 單位功耗建立的模型估算，不是本輪 DRAM 實測；RSS 也不等於所有頁面都持續讀寫。結論只用於能源取捨，不代表可忽略記憶體容量、系統 memory pressure 或多工作負載併行問題。最新 best-points 的 Optimal encode n40 RSS 約為 `561.2 / 597.2 MB`，仍明顯超過 300 MB 基準，應繼續調查 DP buffer、chunk in-flight 與暫存陣列生命週期。
+
+### 適用場景：伺服器端更新包壓縮
+
+Optimal compression 適合「伺服器端壓縮一次、client 端下載與解壓多次」的分發模型，例如大型 server-side code update、App 或遊戲更新包、CDN 靜態資產。高成本 encode 可在發布端離線完成，並由大量下載次數攤提，不應只用單次 encode energy 判斷整體效率。
+
+目前 Optimal 相對 BVX3 / Other3 產物更小；在大規模分發時，每個 client 都能減少下載 bytes，因而降低網路傳輸時間與 radio / Wi-Fi 活動時間。累積到大量 iPhone 或其他 client 後，傳輸端節省可能比伺服器增加的一次性壓縮成本更重要，但仍需以實際網路與裝置能耗量測確認。
+
+client 端只執行 decode。Optimal、Lazy2 與一般 BVX3 使用相同格式與 decoder；在記憶體容量允許且採較高 concurrency 時，約 300–350 MB decode RSS 的估算記憶體成本可能小於 CPU／傳輸節省，因此整體方向有利於 client-side energy。這是工作假設，不是所有 iPhone 型號或 memory-pressure 情境下的通用結論。
+
+系統層評估應使用：`一次 encode energy + 所有 client 的傳輸 energy + 所有 client 的 decode energy`。下載次數越多、壓縮大小差距越大，Optimal 的 server-side 高 encode 成本越容易被攤平；若只是單次本機壓縮，則未必划算。
+
+App Store 僅作應用場景類比：目前 `bvx3` 是私有格式，實際部署需要 client 端整合對應 decoder，並符合平台更新、簽章與封裝流程；本文件不宣稱現有格式可直接替換 App Store 的正式更新格式。
 
 ### 測試結果
 

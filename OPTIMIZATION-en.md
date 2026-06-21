@@ -9,6 +9,122 @@
 - **bitstream-identical**: The byte of the compressed product is exactly the same as the baseline, which is a stricter and more independent condition than output-identical.
 - The size of the compressed file or the change of the compression ratio should be recorded separately and shall not be used to determine the output-identical failure alone.
 
+# R39: 92221a02 encode Retest (2026-06-21) / R39 Encode-Optimization Revert Retest
+
+> Replace R35 code (3957 lines) with 92221a02 ( `lzfse-cli.swift` 3379 lines) and execute the complete benchmark. This version removes all advanced encode optimizations in R35 (R6/R10/R17/R18/R26/R27/R28/R30/R32), and the decode core algorithm is exactly the same as R35, but the decode CLI path is changed from streaming ( `decodeStreamFromFile`) back to whole-buffer `readToEnd()`. The same benchmark run also supplemented the original log analysis of decode energy corrected by powermetrics `-i 500ms`.
+
+## Code status
+
+- **Removed encode optimization**
+
+| Round | Remove content | Affected range |
+| --- | --- | --- |
+| R6 | rep length precalculation (l0/l1/l2 reuse) | other3, bvx3, lazy2 (lzParseChain) |
+| R10/R17 | entropy sampling gate (greedyEmitSegment, optEntropyHighThreshold) | bvx3 -optimal (lzParseOptimal) |
+| R18/R27 | Tag-packed hash chain (hashAndTag, chainIndexMask/chainTagShift/chainNullIndex) | other3, bvx3, lazy2, optimal(lzParseChain + lzParseOptimal) |
+| R26 | localHead move out of segment loop | bvx3 -optimal (lzParseOptimal) |
+| R28 | symbolPointer() binary search | bvx3 -optimal (lzParseOptimal) |
+| R30 | cheap-probe gating(optDPSkipAvgMatchLen) | bvx3 -optimal(lzParseOptimal) |
+| R32 | matchLength 16-byte Expand → Return 8-byte | other3, bvx3, lazy2, optimal (lzParseChain + lzParseOptimal) |
+
+- The decode kernel (FSE decoding, LZ copy, block parsing) ** is exactly the same as R35**. If there is a difference in decode speed, it comes from the different FSE symbol distribution caused by different bitstreams.
+- decode CLI path: `-i <file>` changed from `decodeStreamFromFile` (streaming) back to `inputHandle.readToEnd()` (whole-buffer), peak decode RSS equals the entire compressed input size.
+
+## n40 represents the result (Encode CPU Energy Ratio vs TGZ)
+
+| Format | claw-code ratio | enc MB/s | llama.cpp ratio | enc MB/s |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 1.000 | 50 | 1.000 | 43 |
+| TLZ4 | 0.174 | 430 | 0.192 | 91 |
+| **BVX3** | **0.179** | **424** | **0.140** | **95** |
+| Other3 | 0.190 | 380 | 0.117 | 96 |
+|ZSTD|0.239|374|0.137|98|
+| Apple | 0.296 | 140 | 0.224 | 72 |
+| Lazy2 | 0.618 | 69 | 0.277 | 87 |
+| Optimal | 2.936 | 36 | 2.120 | 50 |
+
+BVX3 encode is the most energy-saving among all LZFSE formats (82-86% than TGZ), the compression ratio is 0.949/0.979, and the encode speed is 95-424 MB/s. Other3 (LZFSE standard output) has similar energy consumption (0.117-0.190), faster (380-96 MB/s) but the compression ratio is slightly worse (0.987/0.996).
+
+## Decode energy fundamental measurement problem (powermetrics -i after 500ms)
+
+### Description of the problem
+
+Even if the sampling interval is modified from -i 100ms to -i 500ms, the decode energy measurement of n=40 is still unreliable**. The minimum decode energy ratio (0.006–0.013) is purely a quantitative illusion.
+
+### Direct comparison of the original log
+
+`claw-code-optimal n=40 decode` (ratio 0.006, report 61 mW):
+```
+唯一樣本（506ms 視窗）：
+  CPU 0-3 (E-core): 2–18% active @ 1080 MHz
+  CPU 6-9 (P-core): 0–0.84% active（完全空閒）
+  CPU Power: 61 mW
+```
+
+`claw-code-optimal n=4 decode` (ratio 1.18, report 6546 mW average):
+```
+Sample 1（506ms）：
+  CPU 6: 82.64% @ 4464 MHz
+  CPU 7: 82.99% @ 4464 MHz
+  CPU 8: 79.93% @ 4464 MHz
+  CPU 9: 82.46% @ 4464 MHz
+  CPU Power: 12907 mW
+Sample 2（507ms）：
+  CPU 6-9: 0.8–3.6%（已冷卻）
+  CPU Power: 185 mW
+```
+
+### Three-layer superposition effect
+
+**1 Only 1 sample is caught in the sampling window (n=40 decode)**
+
+```
+T=0.0s：powermetrics 啟動
+T=0.2s：decode 開始（sleep 0.2 後）
+T=0.5s：唯一樣本觸發（506ms 視窗）← decode 仍在執行中
+T=0.71s：decode 結束
+```
+
+The decode is only 0.51s, and the decode has not been completed before the sample window is completely over. There is no sample coverage in the second half (T=0.5–0.71s).
+
+**2 n=40 GCD task is completed explosively, P-core is completely passive**
+
+- n=4: 4 major tasks → P-core full speed (80-83% @ 4464 MHz), decode continues to put pressure on P-core
+- n=40: 40 small tasks (each 4MiB chunk) → E-core The task ends after a brief outbreak, and P-core is not awakened at all.
+
+**3 The only sample points are mainly free time**
+
+506ms sample composition:
+- Before 200ms: decode has not started yet (pre-sleep period)
+- Middle ~200ms: E-core has completed the outbreak, and the system is down to idle.
+- After ~100ms: decode wall time is still being calculated, but P-core is not moved
+
+Average result: 61 mW (near standby power), not real decoding power.
+
+### List of samples of each format
+
+| Format | dur | Number of samples | Report mW | Remarks |
+| --- | ---: | ---: | ---: | --- |
+| optimal (n40) | 0.51s | **1** | 61 | Free |
+| other3 (n40) | 0.44s | **1** | 85 | Idle |
+| lazy2 (n40) | 0.51s | **1** | 128 | Idle |
+| tar.lz4 | 0.47s | **1** | 1510 | Random, unable to represent |
+| bvx3 (n40) | 0.56s | **1** | 889 | Random |
+| ZSTD | 0.95s | 2 | 6359+956 | peak+cooling, average 3658 |
+| apple (n40) | 0.81s | 2 | 4169+128 | peak+cooling |
+| TGZ | 1.35s | 3 | 5300+5308+231 | The most stable, including 1 cooling sample |
+
+Only the average of TGZ decode (1.35s, 3 samples) is relatively stable. Although there are 2 samples of ZSTD and apple, the second sample is both cooling period (956/128 mW), and the average is still low. The format values of the remaining 1 sample are all sampling illusions, which is unreliable.
+
+### Conclusion
+
+**Decode energy ratio All n=40 values do not reflect the real decoding energy consumption and cannot be used for performance judgment. **If you need reliable decode energy measurement, you should use one of the following methods:
+1. Repeat the decode in a loop, so that the total measurement time is ≥ 3s (recommended)
+2. Change to IOReport / powerlog to provide per-interval finer particle sampling
+3. Only report the decode speed (MB/s) and abandon the energy consumption measurement.
+
+---
+
 # R38: R35 code retest (2026-06-20)/ R38 Revert Baseline Retest
 
 > R37 After determining that rep1/rep2 dominated-range skip has no reproducible performance gains, revert the `lzfse-cli.swift` to R35 code (remove the `repLen0/repLen1` declaration of R36 and the rep1/rep2 skip logic), and trigger the complete benchmark (starting at 15:08, 18:51 BENCH_DONE). The purpose is to confirm that the compressed output after revert returns to R35 bitstream, and the encoding speed restores the R35 water level.

@@ -9,6 +9,124 @@
 - **bitstream-identical**：壓縮產物的位元組與 baseline 完全相同，這是比 output-identical 更嚴格且獨立的條件。
 - 壓縮檔大小或壓縮比變動應另行記錄，不得單獨用來判定 output-identical 失敗。
 
+---
+
+# R39：92221a02 encode 回退版重測（2026-06-21）/ R39 Encode-Optimization Revert Retest
+
+> 以 92221a02（`lzfse-cli.swift` 3379 行）取代 R35 code（3957 行），執行完整 benchmark。此版本移除 R35 中所有進階 encode 優化（R6/R10/R17/R18/R26/R27/R28/R30/R32），decode 核心演算法與 R35 完全相同，但 decode CLI 路徑從串流式（`decodeStreamFromFile`）改回 whole-buffer `readToEnd()`。同一次 benchmark run 也補充了 powermetrics `-i 500ms` 修正後的 decode energy 原始日誌分析。
+
+## 代碼狀態
+
+- **移除的 encode 優化**
+
+| Round | 移除內容 | 影響範圍 |
+| --- | --- | --- |
+| R6 | rep 長度預計算（l0/l1/l2 重用） | other3、bvx3、lazy2（lzParseChain） |
+| R10/R17 | 熵取樣閘（greedyEmitSegment, optEntropyHighThreshold） | bvx3 -optimal（lzParseOptimal） |
+| R18/R27 | Tag-packed hash chain（hashAndTag, chainIndexMask/chainTagShift/chainNullIndex） | other3、bvx3、lazy2、optimal（lzParseChain + lzParseOptimal） |
+| R26 | localHead 移出段迴圈 | bvx3 -optimal（lzParseOptimal） |
+| R28 | symbolPointer() 二分搜尋 | bvx3 -optimal（lzParseOptimal） |
+| R30 | cheap-probe gating（optDPSkipAvgMatchLen） | bvx3 -optimal（lzParseOptimal） |
+| R32 | matchLength 16-byte 展開 → 退回 8-byte | other3、bvx3、lazy2、optimal（lzParseChain + lzParseOptimal） |
+
+- decode 核心（FSE 解碼、LZ copy、block parsing）**與 R35 完全相同**，decode 速度差異若存在，來自不同 bitstream 造成的不同 FSE symbol 分布。
+- decode CLI 路徑：`-i <file>` 由 `decodeStreamFromFile`（streaming）改回 `inputHandle.readToEnd()`（whole-buffer），peak decode RSS 等於整份壓縮輸入大小。
+
+## n40 代表結果（Encode CPU Energy Ratio vs TGZ）
+
+| 格式 | claw-code ratio | enc MB/s | llama.cpp ratio | enc MB/s |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 1.000 | 50 | 1.000 | 43 |
+| TLZ4 | 0.174 | 430 | 0.192 | 91 |
+| **BVX3** | **0.179** | **424** | **0.140** | **95** |
+| Other3 | 0.190 | 380 | 0.117 | 96 |
+| ZSTD | 0.239 | 374 | 0.137 | 98 |
+| Apple | 0.296 | 140 | 0.224 | 72 |
+| Lazy2 | 0.618 | 69 | 0.277 | 87 |
+| Optimal | 2.936 | 36 | 2.120 | 50 |
+
+BVX3 encode 為所有 LZFSE 格式中最省能（比 TGZ 省 82-86%），壓縮比 0.949/0.979，encode 速度 95-424 MB/s。Other3（LZFSE 標準輸出）能耗相近（0.117-0.190），速度更快（380-96 MB/s）但壓縮比略差（0.987/0.996）。
+
+## Decode energy 根本性量測問題（powermetrics -i 500ms 後）
+
+### 問題描述
+
+即使採樣間隔由 -i 100ms 修正為 -i 500ms，n=40 的 decode energy 量測**仍然不可信**。最低 decode energy ratio（0.006–0.013）是純粹的量測假象。
+
+### 原始 log 直接對比
+
+`claw-code-optimal n=40 decode`（比率 0.006，報告 61 mW）：
+```
+唯一樣本（506ms 視窗）：
+  CPU 0-3 (E-core): 2–18% active @ 1080 MHz
+  CPU 6-9 (P-core): 0–0.84% active（完全空閒）
+  CPU Power: 61 mW
+```
+
+`claw-code-optimal n=4 decode`（比率 1.18，報告 6546 mW 平均）：
+```
+Sample 1（506ms）：
+  CPU 6: 82.64% @ 4464 MHz
+  CPU 7: 82.99% @ 4464 MHz
+  CPU 8: 79.93% @ 4464 MHz
+  CPU 9: 82.46% @ 4464 MHz
+  CPU Power: 12907 mW
+Sample 2（507ms）：
+  CPU 6-9: 0.8–3.6%（已冷卻）
+  CPU Power: 185 mW
+```
+
+### 三層疊加效應
+
+**① 採樣視窗僅抓到 1 個樣本（n=40 decode）**
+
+```
+T=0.0s：powermetrics 啟動
+T=0.2s：decode 開始（sleep 0.2 後）
+T=0.5s：唯一樣本觸發（506ms 視窗）← decode 仍在執行中
+T=0.71s：decode 結束
+```
+
+decode 僅 0.51s，樣本窗口完全結束前 decode 尚未完成，後半截（T=0.5–0.71s）無樣本覆蓋。
+
+**② n=40 GCD 任務爆發式完成，P-core 完全未被動用**
+
+- n=4：4 個大任務 → P-core 全速（80-83% @ 4464 MHz），decode 持續對 P-core 施壓
+- n=40：40 個小任務（每個 4MiB chunk）→ E-core 短暫爆發後任務結束，P-core 根本未被喚醒
+
+**③ 唯一樣本積分以空閒時間為主**
+
+506ms 樣本組成：
+- 前 200ms：decode 尚未開始（pre-sleep 期間）
+- 中間 ~200ms：E-core 已完成爆發，系統降回空閒
+- 後 ~100ms：decode wall time 仍在計算，但 P-core 未動
+
+平均結果：61 mW（近乎待機功率），而非真實解碼功率。
+
+### 各格式樣本數一覽
+
+| 格式 | dur | 樣本數 | 報告 mW | 備註 |
+| --- | ---: | ---: | ---: | --- |
+| optimal (n40) | 0.51s | **1** | 61 | 空閒 |
+| other3 (n40) | 0.44s | **1** | 85 | 空閒 |
+| lazy2 (n40) | 0.51s | **1** | 128 | 空閒 |
+| tar.lz4 | 0.47s | **1** | 1510 | 隨機，無法代表 |
+| bvx3 (n40) | 0.56s | **1** | 889 | 隨機 |
+| ZSTD | 0.95s | 2 | 6359+956 | peak+冷卻，平均 3658 |
+| apple (n40) | 0.81s | 2 | 4169+128 | peak+冷卻 |
+| TGZ | 1.35s | 3 | 5300+5308+231 | 最穩定，含 1 個冷卻樣本 |
+
+只有 TGZ decode（1.35s，3 個樣本）的平均值相對穩定。ZSTD 與 apple 雖有 2 個樣本，但第二個樣本均為冷卻期（956/128 mW），平均值仍偏低。其餘 1 個樣本的格式數值皆為採樣假象，不可信。
+
+### 結論
+
+**decode energy ratio 所有 n=40 數值不反映真實解碼能耗，不可用於性能判定。**若需可靠的 decode energy 量測，應採用以下其中一種方式：
+1. 將 decode 以迴圈重複執行，使總量測時間 ≥ 3s（推薦）
+2. 改用 IOReport / powerlog 提供 per-interval 更細粒度採樣
+3. 只報告 decode 速度（MB/s），放棄能耗量測
+
+---
+
 # R38 ：R35 code 重測（2026-06-20）/ R38 Revert Baseline Retest
 
 > R37 判定 rep1/rep2 dominated-range skip 無可重現性能收益後，將 `lzfse-cli.swift` revert 至 R35 code（移除 R36 的 `repLen0/repLen1` 宣告及 rep1/rep2 跳過邏輯），並觸發完整 benchmark（15:08 開始，18:51 BENCH_DONE）。目的為確認 revert 後壓縮輸出回到 R35 bitstream、encode 速度恢復 R35 水位。
