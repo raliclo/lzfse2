@@ -9,6 +9,75 @@
 - **bitstream-identical**：壓縮產物的位元組與 baseline 完全相同，這是比 output-identical 更嚴格且獨立的條件。
 - 壓縮檔大小或壓縮比變動應另行記錄，不得單獨用來判定 output-identical 失敗。
 
+# R40：Streaming decode 復原與 encode 管線修正（2026-06-21）/ R40: Restore Streaming Decode & Fix Encode Pipeline
+
+> 以 R39（3379 行）為起點，補回 R39 移除的 streaming decode 路徑，並修正 R39 引入的 `runParallelEncode` 兩個 regression。無演算法改動，encode / decode 輸出應與 R39 bitstream-identical。
+
+## 代碼狀態（3652 行）
+
+### 復原：Streaming decode（`decodeStreamFromFile` / `decodeStreamToHandle`）
+
+R39 將 decode CLI 改為 `readToEnd()`（whole-buffer），峰值 RSS ≈ 整份壓縮輸入（~500 MB）。本輪加回三個函數：
+
+| 函數 / 型別 | 說明 |
+|---|---|
+| `enum StreamDecodeResult` | `.ok` / `.fallback` / `.error` 三路結果 |
+| `decodeStreamFromFile(path:chunkRaw:inflight:output:)` | 逐塊讀入壓縮串流（1 MB readChunk），自家分塊串流直接平行解碼；非自家串流退回 `.fallback` |
+| `decodeStreamToHandle(_:parallel:chunkRaw:inflight:output:)` | whole-buffer fallback 的 streaming 寫出版：`scanBlocks → 分組 → DispatchQueue.concurrentPerform → 依序寫出` |
+
+CLI decode 路徑（`-i <file>`）：先嘗試 `decodeStreamFromFile` → `.fallback` 時重讀整檔走 `decodeStreamToHandle`；stdin 路徑直接走 `decodeStreamToHandle`。全程不持有整份解壓輸出，降低 decode peak RSS。
+
+### 修正：`runParallelEncode` 兩個 regression（R39 引入）
+
+| 項目 | R33/R35 | R39（regression）| R40（修正）|
+|---|---|---|---|
+| 並行度來源 | `inflight: Int` 參數，`maxTasks = max(2, inflight)` | 硬寫 `maxTasks = max(2, activeProcessorCount)`，忽略 `-n` | 加回 `inflight: Int`，呼叫端傳 `inflightN` |
+| Encode RSS | `autoreleasepool { ... }` 包住 read 迴圈，防 autorelease Data 堆積 | 無 `autoreleasepool`，encode RSS ≈ 整份輸入 | 加回 `try autoreleasepool { ... }` |
+
+`FileHandle.read` 在 macOS 回傳 autoreleased `Data`；主執行緒 read 迴圈若無 pool，autorelease 暫存累積至程序結束才釋放，造成 encode RSS ≈ 整份輸入大小（與 `-n` 無關的 RSS 上限）。
+
+### Streaming 狀態總覽
+
+| | Encode streaming | Decode streaming | `-n` encode | `-n` decode |
+|---|---|---|---|---|
+| R33/R35 | ✅ | ✅ | ✅ | ✅ |
+| R39 | ✅ | ❌ (whole-buffer) | ❌ (activeProcessorCount) | N/A |
+| **R40** | ✅ | ✅ | ✅ | ✅ |
+
+## R33/R34 BVX3/Other3 encode「峰值」調查
+
+Trend chart 顯示 R33/R34 的 BVX3 greedy 與 Other3 encode 速度遠高於鄰近 round；本輪調查根本原因。
+
+### 結論：量測假象，非程式碼改進
+
+所有與 BVX3 greedy / Other3 encode 相關的函數，在 R33 與 R35 的 Swift 原始碼 md5 完全相同：
+
+| 函數 | BVX3 / Other3 的呼叫路徑 | R33 vs R35 md5 |
+|---|---|---|
+| `lzParseStrong` | BVX3 greedy、Other3（`strong=true`）實際呼叫者 | 相同 |
+| `lzParseChain` | BVX3 lazy2 | 相同 |
+| `compressBody` | 分派入口 | 相同 |
+| `runParallelEncode` | 平行框架 | 相同 |
+
+R33 → R35 唯一的程式碼差異是 `lzParseOptimal` 縮短 40 行（移除 4-context literal pricing），造成 binary 從 351,992 → 335,576 bytes（−16 KB）。BVX3 greedy 與 Other3 **不呼叫** `lzParseOptimal`。
+
+### 系統狀態差異才是根本原因
+
+同份 benchmark log 中，連外部程式（lz4、tar extract）也同樣放慢：
+
+| 算法 / 程式 | R33 | R35 | 倍率 |
+|---|---:|---:|---:|
+| bvx3 greedy | 2.08 s | 4.56 s | 2.20× |
+| other3 | 2.64 s | 3.87 s | 1.47× |
+| lz4（外部）| 2.18 s | 3.47 s | **1.59×** |
+| tar extract（外部）| 2.23 s | 3.56 s | **1.59×** |
+| lazy2 | 21.27 s | 22.00 s | 1.03× |
+| optimal | 39.03 s | 40.81 s | 1.05× |
+
+BVX3 greedy 的倍率（2.20×）遠大於 lazy2/optimal（~1.04×）是因為：BVX3 greedy 每個 chunk 僅 ~5 ms，OS 排程器搶佔與 hash table random-access 的 cache miss 佔總時間比例大；lazy2 每個 chunk ~530 ms，排程雜訊影響可忽略。**R35 benchmark 執行時系統背景負載較高，對短任務有不成比例的放大效應。**
+
+**R33/R34 BVX3/Other3 encode 峰值不是優化成果，是系統條件較好時的量測雜訊。**
+
 ---
 
 # R39：92221a02 encode 回退版重測（2026-06-21）/ R39 Encode-Optimization Revert Retest
