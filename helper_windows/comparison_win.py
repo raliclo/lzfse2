@@ -1,17 +1,20 @@
 """以 BenchMarkResult.csv（macOS）與 benchmark_summary.csv（Windows）產生比較報告。
 
 工作流程 / Workflow:
-    每輪先跑 R{N}-Mac，再跑 R{N}-Win，最後執行本腳本。
-    Run R{N}-Mac first, then R{N}-Win, then run this script.
+    每輪先跑 R{N}-Mac，再跑 R{N}-Win（含 decode），最後執行本腳本。
+    Run R{N}-Mac first, then R{N}-Win (with decode), then run this script.
 
 比較指標 / Comparison metrics:
-    1. Encode/Decode MB/s + ratio vs TGZ
-    2. RSS MB + ratio vs TGZ  (Mac only)
-    3. CPU Energy J + ratio vs TGZ  (Mac only; decode n=40 unreliable)
+    1a. Encode MB/s + ratio vs TGZ  (both platforms)
+    1b. Decode MB/s + ratio vs TGZ  (Mac + Windows)
+    1c. Compress size & ratio vs TGZ  (both platforms)
+    2.  RSS MB + ratio vs TGZ  (Mac only)
+    3.  CPU Energy J + ratio vs TGZ  (Mac only; decode n=40 unreliable)
 
 Usage:
     python comparison_win.py [--mac PATH] [--win-summary PATH]
-                             [--output PATH] [--n N] [--dataset NAME]
+                             [--win-decode PATH] [--output PATH]
+                             [--n N] [--dataset NAME]
 """
 
 import argparse
@@ -37,6 +40,15 @@ FORMAT_MAP = {
     "encodeLZ4":     "TLZ4",
     "encodeZSTD":    "ZSTD",
 }
+DECODE_FORMAT_MAP = {
+    "decodeTgz":     "TGZ",
+    "decodeOther3":  "LZFSE (Other3)",
+    "decodeLazy2":   "LZFSE (Lazy2)",
+    "decodeOptimal": "LZFSE (Optimal)",
+    "decodeBVX3":    "LZFSE (BVX3)",
+    "decodeLZ4":     "TLZ4",
+    "decodeZSTD":    "ZSTD",
+}
 FORMAT_ORDER = [
     "TGZ",
     "LZFSE (Other3)",
@@ -46,22 +58,31 @@ FORMAT_ORDER = [
     "TLZ4",
     "ZSTD",
 ]
-SUMMARY_RE     = re.compile(r"^(?P<token>encode\w+?)(?:-n(?P<n>\d+))?$")
-SUSPICIOUS_MBS = 1000
-BAR_WIDTH      = 20
-COL            = 22
+SUMMARY_RE      = re.compile(r"^(?P<token>encode\w+?)(?:-n(?P<n>\d+))?$")
+DECODE_SUMMARY_RE = re.compile(r"^(?P<token>decode\w+?)(?:-n(?P<n>\d+))?$")
+SUSPICIOUS_MBS  = 1000
+BAR_WIDTH       = 20
+COL             = 22
 
 CSV_FIELDS = [
     "dataset", "format", "win_n_meaning", "mac_n",
     "win_encode_mb_s", "mac_encode_mb_s", "win_mac_speed_ratio",
     "win_compress_ratio", "mac_compress_ratio", "compress_ratio_diff",
-    "win_encode_sec", "mac_encode_sec", "note",
+    "win_encode_sec", "mac_encode_sec",
+    "win_decode_mb_s", "mac_decode_mb_s", "win_mac_decode_ratio",
+    "win_decode_sec", "mac_decode_sec",
+    "win_decode_verify",
+    "note",
 ]
 CSV_LABELS = [
     "資料集", "格式", "Windows n=40 意義", "macOS n",
     "Win 壓縮 MB/s", "Mac 壓縮 MB/s", "Win/Mac 速度比",
     "Win 壓縮比", "Mac 壓縮比", "壓縮比差異",
-    "Win 壓縮秒", "Mac 壓縮秒", "備註",
+    "Win 壓縮秒", "Mac 壓縮秒",
+    "Win 解壓 MB/s", "Mac 解壓 MB/s", "Win/Mac 解壓速度比",
+    "Win 解壓秒", "Mac 解壓秒",
+    "Win 解壓驗證",
+    "備註",
 ]
 
 
@@ -123,27 +144,49 @@ def load_summary(path):
             result[display] = {**row, "n": m.group("n") or ""}
     return result
 
+def load_decode_summary(path):
+    """Return {format_display_name: row} from decode_summary.csv."""
+    with path.open(newline="", encoding="utf-8-sig") as fh:
+        reader = csv.DictReader(fh)
+        result = {}
+        for row in reader:
+            m = DECODE_SUMMARY_RE.match(row.get("format", ""))
+            if not m or m.group("token") not in DECODE_FORMAT_MAP:
+                continue
+            display = DECODE_FORMAT_MAP[m.group("token")]
+            result[display] = {**row, "n": m.group("n") or ""}
+    return result
+
 
 # ── report helpers ────────────────────────────────────────────────────────────
 
 def compute_win_speed(win_row, raw_mb):
-    """Return (seconds, mb_s, is_suspicious) from a summary row."""
+    """Return (seconds, mb_s, is_suspicious) from an encode summary row."""
     ns    = fv(win_row.get("nanoseconds"))
-    valid = win_row.get("valid") == "yes"
+    valid = win_row.get("valid", "yes") != "no"
     if not ns or not valid or raw_mb is None:
         return None, None, False
     sec   = ns / 1e9
     mb_s  = raw_mb / sec
     return sec, mb_s, (mb_s > SUSPICIOUS_MBS)
 
+def compute_win_decode_speed(dec_row, raw_mb):
+    """Return (seconds, mb_s) from a decode summary row."""
+    ns    = fv(dec_row.get("nanoseconds"))
+    valid = dec_row.get("valid", "yes") != "no"
+    if not ns or not valid or raw_mb is None:
+        return None, None
+    sec = ns / 1e9
+    return sec, raw_mb / sec
+
 def win_compress_ratio(win_row, tgz_bytes):
-    b = fv(win_row.get("encoded_bytes")) if win_row and win_row.get("valid") == "yes" else None
+    b = fv(win_row.get("encoded_bytes")) if win_row and win_row.get("valid", "yes") != "no" else None
     return b / tgz_bytes if b and tgz_bytes else None
 
 
 # ── Section 1: Encode / Decode MB/s ──────────────────────────────────────────
 
-def report_speed(mac, win, raw_mb):
+def report_speed(mac, win, win_dec, raw_mb):
     mac_tgz   = mac.get("TGZ", {})
     win_tgz   = win.get("TGZ", {})
     m_tgz_enc = fv(mac_tgz.get("encode_mb_s"))
@@ -174,9 +217,17 @@ def report_speed(mac, win, raw_mb):
               f"{w_str:>9}  {w_rt:>7}  {wm:>7}  {b}{note}")
 
     # 1b. Decode
-    section("1b. Decode MB/s  解壓速度  (Mac only — Windows does not benchmark decode)")
-    print(f"  {'Format':<{COL}}  {'Mac MB/s':>9}  {'Mac/TGZ':>7}  Bar(Mac)")
-    print(f"  {'-'*COL}  {'-'*9}  {'-'*7}  {'-'*BAR_WIDTH}")
+    if win_dec:
+        section("1b. Decode MB/s  解壓速度  (Mac: avg n=40; Windows: single run total)")
+        _, w_tgz_dec = compute_win_decode_speed(win_dec.get("TGZ", {}), raw_mb)
+        print(f"  {'Format':<{COL}}  {'Mac MB/s':>9}  {'Mac/TGZ':>7}  "
+              f"{'Win MB/s':>9}  {'Win/TGZ':>7}  {'Win/Mac':>7}  {'Verify':>6}  Bar(Mac)")
+        print(f"  {'-'*COL}  {'-'*9}  {'-'*7}  {'-'*9}  {'-'*7}  {'-'*7}  {'-'*6}  {'-'*BAR_WIDTH}")
+    else:
+        section("1b. Decode MB/s  解壓速度  (Mac only — Windows decode not available)")
+        w_tgz_dec = None
+        print(f"  {'Format':<{COL}}  {'Mac MB/s':>9}  {'Mac/TGZ':>7}  Bar(Mac)")
+        print(f"  {'-'*COL}  {'-'*9}  {'-'*7}  {'-'*BAR_WIDTH}")
 
     max_dec = max((fv(m.get("decode_mb_s")) or 0 for m in mac.values()), default=1)
     for name in FORMAT_ORDER:
@@ -184,9 +235,20 @@ def report_speed(mac, win, raw_mb):
         if not m:
             continue
         dec_s = fv(m.get("decode_mb_s"))
-        ratio = fmt_n(dec_s / m_tgz_dec, 4) if dec_s and m_tgz_dec else "—"
+        m_rt  = fmt_n(dec_s / m_tgz_dec, 4) if dec_s and m_tgz_dec else "—"
         b     = bar(dec_s, max_dec)
-        print(f"  {name:<{COL}}  {fmt_n(dec_s):>9}  {ratio:>7}  {b}")
+
+        if win_dec:
+            d = win_dec.get(name)
+            _, win_dec_s = compute_win_decode_speed(d, raw_mb) if d else (None, None)
+            w_rt    = fmt_n(win_dec_s / w_tgz_dec, 4) if win_dec_s and w_tgz_dec else "—"
+            wm      = fmt_n(win_dec_s / dec_s, 3) if win_dec_s and dec_s else "—"
+            verify  = (d.get("verify") or "?") if d else "?"
+            v_str   = f"{'PASS':>6}" if verify == "PASS" else f"{'FAIL':>6}" if verify == "FAIL" else f"{'?':>6}"
+            print(f"  {name:<{COL}}  {fmt_n(dec_s):>9}  {m_rt:>7}  "
+                  f"{fmt_n(win_dec_s):>9}  {w_rt:>7}  {wm:>7}  {v_str}  {b}")
+        else:
+            print(f"  {name:<{COL}}  {fmt_n(dec_s):>9}  {m_rt:>7}  {b}")
 
 
 # ── Section 1c: Compress Size & Ratio ────────────────────────────────────────
@@ -197,7 +259,7 @@ def report_compression(mac, win):
     m_tgz_size = parse_mib(mac_tgz.get("compressed_size_mib"))
 
     win_tgz     = win.get("TGZ", {})
-    w_tgz_bytes = fv(win_tgz.get("encoded_bytes")) if win_tgz.get("valid") == "yes" else None
+    w_tgz_bytes = fv(win_tgz.get("encoded_bytes")) if win_tgz.get("valid", "yes") != "no" else None
     w_tgz_mib   = w_tgz_bytes / 1024 / 1024 if w_tgz_bytes else None
 
     section("1c. Compress Size & Ratio  壓縮大小與比率  (ratio = format / TGZ, per platform)")
@@ -212,7 +274,7 @@ def report_compression(mac, win):
         mac_size  = parse_mib(m.get("compressed_size_mib")) if m else None
         mac_ratio = fv(m.get("compression_ratio")) if m else None
 
-        w_bytes   = fv(w.get("encoded_bytes")) if w and w.get("valid") == "yes" else None
+        w_bytes   = fv(w.get("encoded_bytes")) if w and w.get("valid", "yes") != "no" else None
         win_mib   = w_bytes / 1024 / 1024 if w_bytes else None
         win_ratio = w_bytes / w_tgz_bytes  if w_bytes and w_tgz_bytes else None
 
@@ -271,9 +333,9 @@ def report_energy(mac):
 
 # ── CSV output ────────────────────────────────────────────────────────────────
 
-def write_csv(path, mac, win, raw_mb, dataset, mac_n):
+def write_csv(path, mac, win, win_dec, raw_mb, dataset, mac_n):
     tgz_win   = win.get("TGZ", {})
-    tgz_bytes = fv(tgz_win.get("encoded_bytes")) if tgz_win.get("valid") == "yes" else None
+    tgz_bytes = fv(tgz_win.get("encoded_bytes")) if tgz_win.get("valid", "yes") != "no" else None
 
     rows = []
     for name in FORMAT_ORDER:
@@ -288,7 +350,14 @@ def write_csv(path, mac, win, raw_mb, dataset, mac_n):
         mac_sec   = fv(m.get("encode_seconds")) if m else None
         win_ratio = win_compress_ratio(w, tgz_bytes) if w else None
 
-        valid     = w and w.get("valid") == "yes" and not suspicious
+        # Decode
+        mac_dec_mbs = fv(m.get("decode_mb_s")) if m else None
+        mac_dec_sec = fv(m.get("decode_seconds")) if m else None
+        d = win_dec.get(name) if win_dec else None
+        win_dec_sec, win_dec_mbs = compute_win_decode_speed(d, raw_mb) if d else (None, None)
+        win_dec_verify = (d.get("verify") or "") if d else ""
+
+        valid     = w and w.get("valid", "yes") != "no" and not suspicious
         note = ""
         if not valid and w:
             note = f"WIN RESULT INVALID: {w.get('note') or 'marked invalid or suspicious'}"
@@ -299,21 +368,28 @@ def write_csv(path, mac, win, raw_mb, dataset, mac_n):
                 else "single run (no -n)"
 
         rows.append({
-            "dataset":          dataset,
-            "format":           name,
-            "win_n_meaning":    win_n,
-            "mac_n":            str(mac_n),
-            "win_encode_mb_s":  fmt_n(win_mbs, 2),
-            "mac_encode_mb_s":  fmt_n(mac_mbs, 2),
-            "win_mac_speed_ratio": fmt_n(win_mbs / mac_mbs if win_mbs and mac_mbs else None, 3),
-            "win_compress_ratio":  fmt_n(win_ratio, 4),
-            "mac_compress_ratio":  fmt_n(mac_ratio, 4),
-            "compress_ratio_diff": fmt_n(win_ratio - mac_ratio
-                                         if win_ratio is not None and mac_ratio is not None
-                                         else None, 4),
-            "win_encode_sec":   fmt_n(win_sec, 2),
-            "mac_encode_sec":   fmt_n(mac_sec, 2),
-            "note":             note,
+            "dataset":              dataset,
+            "format":               name,
+            "win_n_meaning":        win_n,
+            "mac_n":                str(mac_n),
+            "win_encode_mb_s":      fmt_n(win_mbs, 2),
+            "mac_encode_mb_s":      fmt_n(mac_mbs, 2),
+            "win_mac_speed_ratio":  fmt_n(win_mbs / mac_mbs if win_mbs and mac_mbs else None, 3),
+            "win_compress_ratio":   fmt_n(win_ratio, 4),
+            "mac_compress_ratio":   fmt_n(mac_ratio, 4),
+            "compress_ratio_diff":  fmt_n(win_ratio - mac_ratio
+                                          if win_ratio is not None and mac_ratio is not None
+                                          else None, 4),
+            "win_encode_sec":       fmt_n(win_sec, 2),
+            "mac_encode_sec":       fmt_n(mac_sec, 2),
+            "win_decode_mb_s":      fmt_n(win_dec_mbs, 2),
+            "mac_decode_mb_s":      fmt_n(mac_dec_mbs, 2),
+            "win_mac_decode_ratio": fmt_n(win_dec_mbs / mac_dec_mbs
+                                          if win_dec_mbs and mac_dec_mbs else None, 3),
+            "win_decode_sec":       fmt_n(win_dec_sec, 2),
+            "mac_decode_sec":       fmt_n(mac_dec_sec, 2),
+            "win_decode_verify":    win_dec_verify,
+            "note":                 note,
         })
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -334,6 +410,7 @@ def main():
     ap     = argparse.ArgumentParser(description="macOS vs Windows benchmark comparison")
     ap.add_argument("--mac",         type=Path, default=here.parent / "BenchMarkResult.csv")
     ap.add_argument("--win-summary", type=Path, default=here / "benchmark_summary.csv")
+    ap.add_argument("--win-decode",  type=Path, default=None)
     ap.add_argument("--output",      type=Path, default=here / "comparison.csv")
     ap.add_argument("--n",           type=int,  default=40)
     ap.add_argument("--dataset",     default="claw-code")
@@ -350,6 +427,14 @@ def main():
         print(f"No macOS rows for dataset={args.dataset}, n={args.n}", file=sys.stderr)
         sys.exit(1)
 
+    # Auto-detect decode_summary.csv if not specified
+    win_dec_path = args.win_decode
+    if win_dec_path is None:
+        default_dec = args.win_summary.parent / "decode_summary.csv"
+        if default_dec.exists():
+            win_dec_path = default_dec
+    win_dec = load_decode_summary(win_dec_path) if win_dec_path and win_dec_path.exists() else {}
+
     tgz_mac = mac.get("TGZ", {})
     raw_mb  = (parse_mib(tgz_mac.get("raw_size_mib")) or 0) * 1.048576  # MiB → MB
 
@@ -358,13 +443,15 @@ def main():
     print(f"  macOS vs Windows — dataset={args.dataset}  mac_n={args.n}  win_n=40(inflight)")
     print(f"  macOS  : {args.mac.name}")
     print(f"  Windows: {args.win_summary.name}")
+    if win_dec:
+        print(f"  Win Dec: {win_dec_path.name}")
     print()
     print(f"  Workflow: R{{N}}-Mac first → R{{N}}-Win → this script.")
     print(f"  Semantic: macOS -n {args.n} = {args.n} repetitions (avg).")
     print(f"            Windows -n 40 = inflight chunk count (single run).")
     print("=" * 78)
 
-    report_speed(mac, win, raw_mb)
+    report_speed(mac, win, win_dec, raw_mb)
     report_compression(mac, win)
     report_rss(mac)
     report_energy(mac)
@@ -373,13 +460,13 @@ def main():
     print("=" * 78)
     print()
 
-    # Also write comparison.csv
-    rows = write_csv(args.output.resolve(), mac, win, raw_mb, args.dataset, args.n)
+    rows = write_csv(args.output.resolve(), mac, win, win_dec, raw_mb, args.dataset, args.n)
     print(f"[OK] {args.output} written ({len(rows)} rows)")
     for r in rows:
-        spd  = r["win_encode_mb_s"] or "N/A"
+        enc_spd = r["win_encode_mb_s"] or "N/A"
+        dec_spd = r["win_decode_mb_s"] or "N/A"
         note = f"  {r['note']}" if r["note"] else ""
-        print(f"  {r['format']:<20} Win {spd:>7} MB/s{note}")
+        print(f"  {r['format']:<20} Win enc {enc_spd:>7} MB/s  dec {dec_spd:>7} MB/s{note}")
 
 
 if __name__ == "__main__":

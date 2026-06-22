@@ -51,25 +51,25 @@ exit /b
 :encodeOther3
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-tar -cf - "%~1" | lzfse.exe -encode -algo other3 %_n_opt% -si -o "%~1.lzfse.other3"
+tar -cf - "%~1" | .\lzfse.exe -encode -algo other3 %_n_opt% -si -o "%~1.lzfse.other3"
 exit /b
 
 :encodeBVX3
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-tar -cf - "%~1" | lzfse.exe -encode -algo bvx3 %_n_opt% -si -o "%~1.lzfse.bvx3"
+tar -cf - "%~1" | .\lzfse.exe -encode -algo bvx3 %_n_opt% -si -o "%~1.lzfse.bvx3"
 exit /b
 
 :encodeLazy2
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-tar -cf - "%~1" | lzfse.exe -encode -algo bvx3 -lazy2 %_n_opt% -si -o "%~1.lzfse.lazy2"
+tar -cf - "%~1" | .\lzfse.exe -encode -algo bvx3 -lazy2 %_n_opt% -si -o "%~1.lzfse.lazy2"
 exit /b
 
 :encodeOptimal
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-tar -cf - "%~1" | lzfse.exe -encode -algo bvx3 -optimal %_n_opt% -si -o "%~1.lzfse.optimal"
+tar -cf - "%~1" | .\lzfse.exe -encode -algo bvx3 -optimal %_n_opt% -si -o "%~1.lzfse.optimal"
 exit /b
 
 :encodeLZ4

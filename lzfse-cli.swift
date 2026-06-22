@@ -3703,3 +3703,5 @@ case .other3, .bvx3:
 try? inputHandle.close()
 try? outputHandle.close()
 }
+
+runCLI()

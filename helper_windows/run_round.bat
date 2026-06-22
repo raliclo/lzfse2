@@ -54,11 +54,19 @@ if errorlevel 1 (
 :: 掃描本目錄與 bench_logs，並選取時間最新的紀錄。
 
 
-:: Step 1: Windows benchmark summary / Windows benchmark 摘要
+:: Step 1: Decode benchmark / 解壓縮基準測試（在 summarize 前執行以便納入報告）
+echo [INFO] Running decode-win.bat %TIME:~0,8% >> windows_round_status.txt
+call .\decode-win.bat ..\claw-code 40 >> windows_round_status.txt 2>&1
+if errorlevel 1 (
+    echo DECODE_BENCHMARK_FAILED %TIME:~0,8% >> windows_round_status.txt
+    echo [WARN] decode benchmark 失敗，繼續 / decode benchmark failed, continuing
+)
+
+:: Step 2: Windows benchmark summary (encode + decode) / Windows benchmark 摘要
 echo [INFO] Running summarize_win.py %TIME:~0,8% >> windows_round_status.txt
 python summarize_win.py | powershell -NoProfile -Command "$input | Tee-Object -Append -FilePath windows_round_status.txt"
 
-:: Step 2: macOS vs Windows comparison / macOS vs Windows 比較
+:: Step 3: macOS vs Windows comparison / macOS vs Windows 比較
 echo [INFO] Running comparison_win.py %TIME:~0,8% >> windows_round_status.txt
 python comparison_win.py | powershell -NoProfile -Command "$input | Tee-Object -Append -FilePath windows_round_status.txt"
 
