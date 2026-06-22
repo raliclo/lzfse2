@@ -189,6 +189,39 @@ def report_speed(mac, win, raw_mb):
         print(f"  {name:<{COL}}  {fmt_n(dec_s):>9}  {ratio:>7}  {b}")
 
 
+# ── Section 1c: Compress Size & Ratio ────────────────────────────────────────
+
+def report_compression(mac, win):
+    """Section 1c: compressed size (MiB) and ratio vs TGZ, both platforms."""
+    mac_tgz    = mac.get("TGZ", {})
+    m_tgz_size = parse_mib(mac_tgz.get("compressed_size_mib"))
+
+    win_tgz     = win.get("TGZ", {})
+    w_tgz_bytes = fv(win_tgz.get("encoded_bytes")) if win_tgz.get("valid") == "yes" else None
+    w_tgz_mib   = w_tgz_bytes / 1024 / 1024 if w_tgz_bytes else None
+
+    section("1c. Compress Size & Ratio  壓縮大小與比率  (ratio = format / TGZ, per platform)")
+    print(f"  {'Format':<{COL}}  {'Mac MiB':>8}  {'Mac/TGZ':>7}  "
+          f"{'Win MiB':>8}  {'Win/TGZ':>7}  {'Mac/Win':>7}")
+    print(f"  {'-'*COL}  {'-'*8}  {'-'*7}  {'-'*8}  {'-'*7}  {'-'*7}")
+
+    for name in FORMAT_ORDER:
+        m = mac.get(name)
+        w = win.get(name)
+
+        mac_size  = parse_mib(m.get("compressed_size_mib")) if m else None
+        mac_ratio = fv(m.get("compression_ratio")) if m else None
+
+        w_bytes   = fv(w.get("encoded_bytes")) if w and w.get("valid") == "yes" else None
+        win_mib   = w_bytes / 1024 / 1024 if w_bytes else None
+        win_ratio = w_bytes / w_tgz_bytes  if w_bytes and w_tgz_bytes else None
+
+        mac_win   = mac_size / win_mib if mac_size and win_mib else None
+
+        print(f"  {name:<{COL}}  {fmt_n(mac_size, 1):>8}  {fmt_n(mac_ratio, 4):>7}  "
+              f"{fmt_n(win_mib, 1):>8}  {fmt_n(win_ratio, 4):>7}  {fmt_n(mac_win, 4):>7}")
+
+
 # ── Section 2: RSS MB ─────────────────────────────────────────────────────────
 
 def report_rss(mac):
@@ -332,6 +365,7 @@ def main():
     print("=" * 78)
 
     report_speed(mac, win, raw_mb)
+    report_compression(mac, win)
     report_rss(mac)
     report_energy(mac)
 

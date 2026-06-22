@@ -1,5 +1,5 @@
 """
-Build lzfse2_R1_R40_trend.xlsx
+Build lzfse2_R1_R41_trend.xlsx
 Formats: TGZ, BVX3, Other3, Lazy2, Optimal, ZSTD, TLZ4 (7 formats)
 Metrics: Encode/Decode Speed, RSS, Energy, Compress Ratio
 Charts:  Actual LineChart objects embedded in each chart sheet
@@ -8,7 +8,7 @@ Era colour coding:
   Yellow  R3-R22  : single-run, speed + ratio only
   Green   R23-R24 : single-run, speed + ratio + RSS
   Blue    R25-R26 : n=40, speed + RSS + ratio
-  White   R27-R40 : n=40, full (speed + RSS + energy + ratio)
+  White   R27-R41 : n=40, full (speed + RSS + energy + ratio)
 """
 import subprocess, openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -31,7 +31,7 @@ ROUND_ORDER = [
     'R15','R16','R17','R18','R19','R21','R22',
     'R23','R24','R25','R26',
     'R27','R28','R29','R30','R31','R32','R33','R34',
-    'R35','R36','R37','R38','R39','R40',
+    'R35','R36','R37','R38','R39','R40','R41',
 ]
 FORMATS = ['TGZ', 'BVX3', 'Other3', 'Lazy2', 'Optimal', 'ZSTD', 'TLZ4']
 FORMAT_KEYS = {
@@ -89,11 +89,19 @@ def pf(v):
     try: return float(v.strip()) if v and v.strip() else None
     except: return None
 
+REPO_ROOT = str(__import__('pathlib').Path.home() / 'proj' / 'lzfse2')
+
 def git_csv(commit):
+    if commit == 'local':
+        try:
+            with open(f'{REPO_ROOT}/BenchMarkResult.csv', encoding='utf-8-sig') as f:
+                return f.read()
+        except Exception:
+            return ''
     r = subprocess.run(
         ['git', 'show', f'{commit}:BenchMarkResult.csv'],
         capture_output=True, text=True, errors='replace',
-        cwd='C:/Users/lowei/proj/lzfse2'
+        cwd=REPO_ROOT
     )
     return r.stdout if r.returncode == 0 else ''
 
@@ -152,7 +160,7 @@ R27_40_COMMITS = {
     'R27': 'd6987a0', 'R28': '55da799', 'R29': 'c3b5af8', 'R30': '996e16e',
     'R31': '068737c', 'R32': '2fa46a7', 'R33': '3b38b4d', 'R34': 'c1b510d',
     'R35': 'c2f0721', 'R36': 'edaa07e', 'R37': '7dfe4b3', 'R38': 'd1247d6',
-    'R39': '65d1e67', 'R40': 'c288335',
+    'R39': '65d1e67', 'R40': 'c288335', 'R41': 'local',
 }
 ALL_COMMITS = {**ROUND_COMMITS, **R27_40_COMMITS}
 
@@ -419,7 +427,7 @@ make_energy_sheet(wb, 'claw-code_Energy', 'claw-code', 'Raw_claw-code')
 make_energy_sheet(wb, 'llama_cpp_Energy', 'llama.cpp', 'Raw_llama_cpp')
 print("  Energy chart sheets done")
 
-OUT = '#trend/lzfse2_R1_R40_trend.xlsx'
+OUT = '#trend/lzfse2_R1_R41_trend.xlsx'
 wb.save(OUT)
 print(f"\nSaved: {OUT}")
 print(f"Rounds: {len(ROUND_ORDER)}, Formats: {FORMATS}")

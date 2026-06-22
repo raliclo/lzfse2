@@ -153,6 +153,6 @@ roundStatus "COMPARISON_DONE"
 
 # Step.15 翻譯文件為英文版（繁中 → 英文；輸出檔名加 -en）
 echo "RUNNING md-translate $(date +%H:%M:%S)" >> round_status.txt
-./helper/md-translate.sh >> round_status.txt 2>&1
+./helper/md-translate-mac.sh >> round_status.txt 2>&1
 
 echo "Done."
