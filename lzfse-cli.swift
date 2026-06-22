@@ -3387,6 +3387,96 @@ func printUsage() {
 
 enum Algo: String { case apple, other3, bvx3 }
 
+// =================================================================
+// MARK: - Shared Error Types
+// =================================================================
+
+enum LZFSEError: LocalizedError {
+    case unsupported(String)
+    case decodeFailed
+    case encodeFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .unsupported(let message): return "Unsupported: \(message)"
+        case .decodeFailed: return "Decode failed (corrupt or truncated stream)"
+        case .encodeFailed: return "Encode failed"
+        }
+    }
+}
+
+// =================================================================
+// MARK: - Helper Function for Parallel Encoding
+// =================================================================
+// This function is at module level so it can be called by both CLI and UI
+
+/// 多核心分塊平行壓縮（other3 / bvx3 共用的編碼路徑）。
+func runParallelEncode(input: FileHandle, output: FileHandle,
+                       inflight: Int,
+                       chunkSize: Int = LZFSEv1.parallelChunkSize,
+                       strong: Bool = false, bvx3: Bool = false, lazy2: Bool = false,
+                       optimal: Bool = false) throws {
+    let maxTasks = max(2, inflight)
+    let sem = DispatchSemaphore(value: maxTasks)
+    let lock = NSLock()
+    final class ParallelEncodeState: @unchecked Sendable {
+        var results: [Int: Data] = [:]
+        var writeIndex = 0
+        var failure: String? = nil
+    }
+    let state = ParallelEncodeState()
+    var readIndex = 0
+    let queue = DispatchQueue(label: "lzfse.parallel", qos: .userInitiated,
+                              attributes: .concurrent)
+    let group = DispatchGroup()
+
+    while true {
+        var data = Data(capacity: chunkSize)
+        do {
+            try autoreleasepool {
+                while data.count < chunkSize,
+                      let part = try input.read(upToCount: chunkSize - data.count),
+                      !part.isEmpty {
+                    data.append(part)
+                }
+            }
+        } catch {
+            throw LZFSEError.encodeFailed
+        }
+        if data.isEmpty { break }
+
+        sem.wait()
+        let idx = readIndex
+        readIndex += 1
+        let capturedData = data
+        group.enter()
+        queue.async {
+            let body = LZFSEv1.compressBody(capturedData, strong: strong, bvx3: bvx3,
+                                            lazy2: lazy2, optimal: optimal)
+            lock.lock()
+            state.results[idx] = body
+            while let r = state.results.removeValue(forKey: state.writeIndex) {
+                do { try output.write(contentsOf: r) }
+                catch { state.failure = state.failure ?? "\(error)" }
+                state.writeIndex += 1
+            }
+            lock.unlock()
+            sem.signal()
+            group.leave()
+        }
+    }
+    group.wait()
+    if state.failure != nil {
+        throw LZFSEError.encodeFailed
+    }
+    output.write(Data([0x62, 0x76, 0x78, 0x24]))
+}
+
+// =================================================================
+// MARK: - CLI Main Function (wrapped for library use)
+// =================================================================
+
+func runCLI() {
 // ---------------------------------------------------------------------
 // 1. 解析參數 / Parse arguments
 // ---------------------------------------------------------------------
@@ -3506,91 +3596,6 @@ if args.contains("-so") {
 // 4. 執行 / Run
 // ---------------------------------------------------------------------
 
-/// 多核心分塊平行壓縮（other3 / bvx3 共用的編碼路徑）。
-///
-/// 設計重點（修正先前版本的問題）：
-///   1. 純同步 GCD，不用 Task —— 頂層程式碼是 MainActor 隔離的，
-///      Task{} 會繼承 MainActor，而主執行緒又被 wait() 擋住 → 死結。
-///   2. 分塊以 compressBody 壓縮：內部會正確切成 ≤10000 matches /
-///      ≤40000 literals 的合法區塊（先前把整個 1MB 塞單一區塊是非法串流）。
-///   3. 區塊索引以值捕獲（let idx），杜絕 readIndex 參照競態。
-///   4. Semaphore 限流：記憶體用量 ≈ chunkSize × 2 × 核心數。
-///   5. 結果在鎖內按 writeIndex 順序排水寫出，保證輸出順序正確；
-///      所有分塊寫完後才補上唯一一個 bvx$。
-func runParallelEncode(input: FileHandle, output: FileHandle,
-                       inflight: Int,
-                       chunkSize: Int = LZFSEv1.parallelChunkSize,
-                       strong: Bool = false, bvx3: Bool = false, lazy2: Bool = false,
-                       optimal: Bool = false) {
-    // 在途數由 -n 決定（與核心數解耦）。實際同時壓縮的執行緒仍由 GCD 並行佇列約束 ≈ 核心數，
-    // 故較大 N 主要加深讀寫管線；較小 N 直接降低同時佔用的 parser/DP scratch → 降 encode RSS。
-    let maxTasks = max(2, inflight)
-    // 有界緩衝：sem 限制「已讀但尚未寫出」的 chunk 數 ≤ maxTasks。
-    // sem.signal() 綁定在「該 chunk 被寫出」而非「task 完成」，
-    // 否則慢 chunk 在前時，其後已壓完的 body 會在 results 無界堆積（→ OOM）。
-    let sem = DispatchSemaphore(value: maxTasks)
-    let lock = NSLock()
-    final class ParallelEncodeState: @unchecked Sendable {
-        var results: [Int: Data] = [:]
-        var writeIndex = 0
-        var failure: String? = nil
-    }
-    let state = ParallelEncodeState()
-    var readIndex = 0
-    let queue = DispatchQueue(label: "lzfse.parallel", qos: .userInitiated,
-                              attributes: .concurrent)
-    let group = DispatchGroup()
-
-    while true {
-        // R4：pipe（tar | lzfse）可能短讀——累積讀滿 chunkSize 再派工。
-        // 滿塊保證：比率（視窗滿 4MiB）、每塊固定開銷、平行解碼分組都依賴它。
-        // Pipes may return short reads; accumulate a full chunk before dispatch.
-        // autoreleasepool：FileHandle.read 在 macOS 會回傳 autoreleased Data 暫存；主執行緒讀取
-        // 迴圈若無 pool，這些暫存會累積到「整份輸入大小」才在程序結束時釋放（encode RSS 爆增根因）。
-        var data = Data(capacity: chunkSize)
-        do {
-            try autoreleasepool {
-                while data.count < chunkSize,
-                      let part = try input.read(upToCount: chunkSize - data.count),
-                      !part.isEmpty {
-                    data.append(part)
-                }
-            }
-        } catch {
-            eprint("Error reading input: \(error) / 讀取輸入時發生錯誤。")
-            exit(1)
-        }
-        if data.isEmpty { break }
-
-        sem.wait()                    // 流量控制：限制在途分塊數
-        let idx = readIndex           // 以值捕獲
-        readIndex += 1
-        let capturedData = data
-        group.enter()
-        queue.async {
-            let body = LZFSEv1.compressBody(capturedData, strong: strong, bvx3: bvx3,
-                                            lazy2: lazy2, optimal: optimal)   // 區塊串，不含 bvx$
-            lock.lock()
-            state.results[idx] = body
-            // 任一執行緒都可在鎖內依序排水，保證輸出順序
-            while let r = state.results.removeValue(forKey: state.writeIndex) {
-                do { try output.write(contentsOf: r) }
-                catch { state.failure = state.failure ?? "\(error)" }
-                state.writeIndex += 1
-            }
-            lock.unlock()
-            sem.signal()
-            group.leave()
-        }
-    }
-    group.wait()
-    if let f = state.failure {
-        eprint("Error writing output: \(f) / 寫入輸出時發生錯誤。")
-        exit(1)
-    }
-    output.write(Data([0x62, 0x76, 0x78, 0x24]))   // 'bvx$'：唯一的結尾標記
-}
-
 switch algo {
 
 case .apple:
@@ -3622,11 +3627,16 @@ case .other3, .bvx3:
     // 解碼：先嘗試分塊邊界平行解碼（自家串流必中），
     // 非分塊串流自動退回循序，結果保證正確。
     if isEncoding {
-        runParallelEncode(input: inputHandle, output: outputHandle,
-                          inflight: inflightN,
-                          strong: true, bvx3: algo == .bvx3,
-                          lazy2: algo == .bvx3 && useLazy2 && !useOptimal,
-                          optimal: algo == .bvx3 && useOptimal)
+        do {
+            try runParallelEncode(input: inputHandle, output: outputHandle,
+                                  inflight: inflightN,
+                                  strong: true, bvx3: algo == .bvx3,
+                                  lazy2: algo == .bvx3 && useLazy2 && !useOptimal,
+                                  optimal: algo == .bvx3 && useOptimal)
+        } catch {
+            eprint("Error: Encode failed. / 錯誤：編碼失敗。")
+            exit(1)
+        }
     } else if let p = inputPath {
         // 檔案輸入：串流解碼，全程不持有整份壓縮輸入（降低 RSS）。
         // 非自家分塊串流自動退回 whole-buffer，結果保證正確。
@@ -3692,3 +3702,4 @@ case .other3, .bvx3:
 // 關閉檔案句柄 / Close file handles
 try? inputHandle.close()
 try? outputHandle.close()
+}
