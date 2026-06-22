@@ -14,7 +14,7 @@
 
 > 將 R27 的 Tag-packed hash chain（hashAndTag / chainIndexMask / chainTagShift / chainNullIndex）重新導入 R40 代碼基礎。  
 > lzParseChain（BVX3 / Lazy2）與 lzParseOptimal（Optimal）均同步更新。  
-> 本輪為 Mac 正式跑分，待結果後更新此節。
+> 對 claw-code / llama.cpp 執行 `-n 40 / 8 / 4` 三批次完整 benchmark。
 
 ## 優化策略 / Optimization Strategy
 
@@ -23,20 +23,111 @@
 | **核心變更** | `head[h]` 與 `chain[c]` 改為 `(tag<<24)\|index` packed Int32 格式 |
 | **hashAndTag** | 同一 Fibonacci 乘法 `×0x9E3779B185EBCA87`，高 17 bits → bucket，次 8 bits → tag |
 | **鏈走訪** | 每個候選先比 `(packed>>24)==qtag`，不符直接跳下一個（純暫存器操作）|
-| **Sentinel** | `chainNullIndex=0x00FF_FFFF`（head 初始 -1 → UInt32 高位 = tag=0xFF，低位 = index=0xFFFFFF）|
-| **Greedy path** | 僅解包 index（`&chainIndexMask`），不套 tag filter（只看 1 個候選，cost 不值得）|
+| **Sentinel** | `chainNullIndex=0x00FF_FFFF`（head 初始 -1 → UInt32 → index=0xFFFFFF）|
+| **Greedy path** | 僅解包 index（`&chainIndexMask`），不套 tag filter（只看 1 個候選）|
 | **assert guard** | `assert(n <= Int(chainIndexMask))`，確保 chunk 不超 16 MiB 索引上限 |
 
-## 預期效益 / Expected Gain
+## 1a. Encode 速度 vs Windows（claw-code, n=40）/ Encode MB/s — Win/Mac Comparison
 
-| 維度 | 預測 | 最受益格式 |
-| --- | --- | --- |
-| Encode MB/s | Optimal +5–20%；Lazy2 不穩定；BVX3/Other3 無關 | Optimal |
-| Decode MB/s | 零影響 | — |
-| 壓縮比 | 實測持平（hash 函數不變） | — |
-| CPU Energy | 與 Encode 速度正相關，Optimal 最顯著 | Optimal |
+| 格式 | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 48.73 | 1.0000 | 25.33 | 1.0000 | 0.520 |
+| Other3 | 344.41 | 7.0677 | 275.20 | 10.8632 | 0.799 |
+| BVX3 | 375.00 | 7.6955 | 273.66 | 10.8023 | 0.730 |
+| Lazy2 | 63.73 | 1.3078 | 38.75 | 1.5297 | 0.608 |
+| Optimal | 34.45 | 0.7070 | 17.56 | 0.6932 | 0.510 |
+| TLZ4 | 394.69 | 8.0995 | 228.94 | 9.0372 | 0.580 |
+| ZSTD | 353.65 | 7.2573 | 139.17 | 5.4934 | 0.394 |
 
-> 正式結果待 R41-Mac benchmark 完成後更新。
+## 1b. Decode 速度（Mac only, claw-code n=40）/ Decode MB/s
+
+| 格式 | Mac MB/s | Mac/TGZ |
+| --- | ---: | ---: |
+| TGZ | 376.09 | 1.0000 |
+| TLZ4 | 405.75 | 1.0789 |
+| ZSTD | 422.91 | 1.1245 |
+| Other3 | 388.52 | 1.0331 |
+| Lazy2 | 365.21 | 0.9711 |
+| Optimal | 394.70 | 1.0495 |
+| BVX3 | 326.41 | 0.8679 |
+
+## 1c. 壓縮大小與比率（claw-code, n=40）/ Compress Size & Ratio
+
+| 格式 | Mac MiB | Mac/TGZ | Win MiB | Win/TGZ | Mac/Win |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 470.0 | 1.0000 | 468.3 | 1.0000 | 1.0035 |
+| Other3 | 463.0 | 0.9865 | 459.8 | 0.9818 | 1.0069 |
+| BVX3 | 446.0 | 0.9492 | 433.4 | 0.9254 | 1.0291 |
+| Lazy2 | 423.0 | 0.8998 | 407.6 | 0.8704 | 1.0377 |
+| Optimal | 403.0 | 0.8574 | 387.5 | 0.8273 | 1.0401 |
+| TLZ4 | 554.0 | 1.1793 | 549.8 | 1.1739 | 1.0077 |
+| ZSTD | 387.0 | 0.8245 | 365.9 | 0.7813 | 1.0576 |
+
+## 2. RSS 峰值（Mac only, claw-code n=40）/ Peak RSS
+
+| 格式 | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 4.2 MB | 1.00 | 3.7 MB | 1.00 |
+| TLZ4 | 80.4 MB | 19.1 | 33.8 MB | 9.1 |
+| Other3 | 266.1 MB | 63.4 | 299.5 MB | 80.9 |
+| BVX3 | 272.9 MB | 65.0 | 324.5 MB | 87.7 |
+| ZSTD | 387.8 MB | 92.3 | 9.2 MB | 2.5 |
+| Lazy2 | 499.5 MB | 118.9 | 320.2 MB | 86.5 |
+| Optimal | 572.5 MB | 136.3 | 308.2 MB | 83.2 |
+
+## 3. CPU Energy（Mac only, claw-code n=40）/ CPU Energy Ratio vs TGZ
+
+> ⚠ Decode energy n=40 因取樣覆蓋率 <5% 不可信，僅供參考（標 `*`）。
+
+| 格式 | Enc J | Enc/TGZ | Dec J | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 164.11 | 1.0000 | 5.82 | 1.0000 |
+| Other3 | 27.41 | 0.1670 | 0.17* | 0.0290 |
+| BVX3 | 29.05 | 0.1770 | 0.56* | 0.0962 |
+| TLZ4 | 29.62 | 0.1805 | 0.58* | 0.1002 |
+| ZSTD | 41.39 | 0.2522 | 3.01* | 0.5174 |
+| Lazy2 | 114.59 | 0.6983 | 0.47* | 0.0805 |
+| Optimal | 511.73 | 3.1183 | 0.46* | 0.0784 |
+
+## 4. Best Points（claw-code, all n）
+
+| 格式 | 最佳壓縮比 | 最佳 Enc MB/s | 最差 Enc MB/s | 最佳 Dec MB/s | 最低 Enc RSS | 最高 Enc RSS | 最低 Enc J | 最高 Enc J | 最低 Enc J/TGZ | 最高 Enc J/TGZ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 1.0000 | 48.73 | 46.57 | 382.54 | 4.2 MB | 4.3 MB | 164.11 | 164.11 | 1.0000 | 1.0000 |
+| Other3 | 0.9865 | 404.94 (`n8`) | 341.85 (`n4`) | 388.52 | 140.3 MB | 266.1 MB | 27.41 | 47.83 | 0.1670 | 0.2915 |
+| BVX3 | 0.9492 | 406.15 (`n8`) | 322.32 (`n4`) | 326.41 | 139.0 MB | 272.9 MB | 29.05 | 49.73 | 0.1770 | 0.3030 |
+| Lazy2 | 0.8998 | 63.73 (`n40`) | 53.39 (`n4`) | 409.36 (`n8`) | 194.7 MB | 499.5 MB | 114.59 | 158.69 | 0.6983 | 0.9670 |
+| Optimal | 0.8574 | 34.45 (`n40`) | 25.51 (`n4`) | 394.70 | 215.4 MB | 572.5 MB | 511.73 | 704.65 | 3.1183 | 4.2939 |
+| TLZ4 | 1.1793 | 420.57 (`n4`) | 394.69 (`n40`) | 477.45 (`n4`) | 76.9 MB | 80.4 MB | 29.62 | 29.62 | 0.1805 | 0.1805 |
+| ZSTD | 0.8245 | 360.20 (`n8`) | 353.65 (`n40`) | 422.91 | 371.5 MB | 388.7 MB | 41.39 | 41.39 | 0.2522 | 0.2522 |
+
+## n40 代表結果（Encode / Decode CPU Energy Ratio vs TGZ）
+
+| 格式 | Enc J/TGZ (claw n40) | Enc J/TGZ (llama n40) | Dec J/TGZ (claw n40)* | Dec J/TGZ (llama n40)* |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| Other3 | 0.1670 | 0.1320 | 0.0290 | 0.0124 |
+| BVX3 | 0.1770 | 0.1514 | 0.0962 | 0.0035 |
+| Lazy2 | 0.6983 | 0.2817 | 0.0805 | 0.0097 |
+| Optimal | 3.1183 | 2.1219 | 0.0784 | 0.0278 |
+| TLZ4 | 0.1805 | 0.2114 | 0.1002 | 0.0143 |
+| ZSTD | 0.2522 | 0.1606 | 0.5174 | 0.1752 |
+
+> `*` Decode energy n=40 取樣覆蓋率 <5%，不可信，僅供參考。
+
+## R41 vs R40 Encode 速度對比（claw-code, n=40）
+
+| 格式 | R40 MB/s | R41 MB/s | 變化 |
+| --- | ---: | ---: | --- |
+| TGZ | 48.64 | 48.73 | ≈ 持平 |
+| Other3 | 380.73 | 344.41 | -9.5% ⚠️ |
+| BVX3 | 421.51 | 375.00 | -11.0% ⚠️ |
+| Lazy2 | 57.84 | 63.73 | +10.2% ✅ |
+| Optimal | 29.90 | 34.45 | +15.2% ✅ |
+| TLZ4 | 424.74 | 394.69 | -7.1% |
+| ZSTD | 363.63 | 353.65 | -2.7% |
+
+> BVX3 / Other3 速度略降但能耗同步下降，可能為熱節流 or 量測誤差；Optimal / Lazy2 如預期上升。壓縮比持平（hash 函數不變）。
 
 ---
 

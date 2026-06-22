@@ -1,6 +1,5 @@
 # lzfse2 Optimization Report / Optimization Report
 
-
 ## Note: The reason why IO and disk capacity will be sharply reduced is that .gitignore is not set, so VS CODE will automatically include these files in the temporary storage area of git, resulting in disk IO competition and capacity sharp reduction, so the files of future test temporary files need to be excluded by .gitignore.
 
 ## Acceptance terms
@@ -8,6 +7,127 @@
 - **output-identical**: Subject to the content after decompression/extract; as long as the decompression result is exactly the same as the original data, it will be passed, and the compressed file byte is not required to be the same.
 - **bitstream-identical**: The byte of the compressed product is exactly the same as the baseline, which is a stricter and more independent condition than output-identical.
 - The size of the compressed file or the change of the compression ratio should be recorded separately and shall not be used to determine the output-identical failure alone.
+
+---
+
+# R41-Mac: Tag-packed Hash Chain Introduction (2026-06-22)/ R41-Mac: Tag-packed Hash Chain
+
+> Reintroduce the R40 code base of R27's Tag-packed hash chain (hashAndTag / chainIndexMask / chainTagShift / chainNullIndex).
+> lzParseChain (BVX3 / Lazy2) and lzParseOptimal (Optimal) are updated synchronously.
+> Execute `-n 40 / 8 / 4` three batches of complete benchmark on claw-code / llama.cpp.
+
+## Optimization Strategy / Optimization Strategy
+
+| Project | Description |
+|---|---|
+| **Core Change** | `head[h]` and `chain[c]` changed to `(tag<<24)\|index` packed Int32 format |
+| **hashAndTag** | The same Fibonacci multiplication `×0x9E3779B185EBCA87`, high 17 bits → bucket, second 8 bits → tag |
+| **Chain visit** | Each candidate compares `(packed>>24)==qtag` first, and jumps directly to the next one if it does not match (pure register operation) |
+| **Sentinel** | `chainNullIndex=0x00FF_FFFF` (head initial -1 → UInt32 → index=0xFFFFFF)|
+| **Greedy path** | Only unpack index ( `&chainIndexMask`), no tag filter (only one candidate) |
+| **assert guard** | `assert(n <= Int(chainIndexMask))`, ensure that chunk does not exceed the upper limit of 16 MiB index |
+
+## 1a. Encode speed vs Windows (claw-code, n=40)/ Encode MB/s — Win/Mac Comparison
+
+| Format | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 48.73 | 1.0000 | 25.33 | 1.0000 | 0.520 |
+| Other3 | 344.41 | 7.0677 | 275.20 | 10.8632 | 0.799 |
+| BVX3 | 375.00 | 7.6955 | 273.66 | 10.8023 | 0.730 |
+| Lazy2 | 63.73 | 1.3078 | 38.75 | 1.5297 | 0.608 |
+| Optimal | 34.45 | 0.7070 | 17.56 | 0.6932 | 0.510 |
+| TLZ4 | 394.69 | 8.0995 | 228.94 | 9.0372 | 0.580 |
+| ZSTD | 353.65 | 7.2573 | 139.17 | 5.4934 | 0.394 |
+
+## 1b. Decode speed (Mac only, claw-code n=40)/ Decode MB/s
+
+| Format | Mac MB/s | Mac/TGZ |
+| --- | ---: | ---: |
+| TGZ | 376.09 | 1.0000 |
+| TLZ4 | 405.75 | 1.0789 |
+| ZSTD | 422.91 | 1.1245 |
+| Other3 | 388.52 | 1.0331 |
+| Lazy2 | 365.21 | 0.9711 |
+| Optimal | 394.70 | 1.0495 |
+| BVX3 | 326.41 | 0.8679 |
+
+## 1c. Compress Size & Ratio (claw-code, n=40)/ Compress Size & Ratio
+
+| Format | Mac MiB | Mac/TGZ | Win MiB | Win/TGZ | Mac/Win |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 470.0 | 1.0000 | 468.3 | 1.0000 | 1.0035 |
+| Other3 | 463.0 | 0.9865 | 459.8 | 0.9818 | 1.0069 |
+| BVX3 | 446.0 | 0.9492 | 433.4 | 0.9254 | 1.0291 |
+| Lazy2 | 423.0 | 0.8998 | 407.6 | 0.8704 | 1.0377 |
+| Optimal | 403.0 | 0.8574 | 387.5 | 0.8273 | 1.0401 |
+| TLZ4 | 554.0 | 1.1793 | 549.8 | 1.1739 | 1.0077 |
+| ZSTD | 387.0 | 0.8245 | 365.9 | 0.7813 | 1.0576 |
+
+## two RSS peak (Mac only, claw-code n=40)/ Peak RSS
+
+| Format | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 4.2MB | 1.00 | 3.7MB | 1.00 |
+| TLZ4 | 80.4MB | 19.1 | 33.8 MB | 9.1 |
+| Other3 | 266.1 MB | 63.4 | 299.5 MB | 80.9 |
+| BVX3 | 272.9 MB | 65.0 | 324.5 MB | 87.7 |
+| ZSTD | 387.8 MB | 92.3 | 9.2 MB | 2.5 |
+| Lazy2 | 499.5MB | 118.9 | 320.2MB | 86.5
+| Optimal | 572.5 MB | 136.3 | 308.2 MB | 83.2 |
+
+## three. CPU Energy (Mac only, claw-code n=40)/ CPU Energy Ratio vs TGZ
+
+> ⚠ Decode energy n=40 is not reliable due to the sampling coverage rate <5%, for reference only (standard `*`).
+
+| Format | Enc J | Enc/TGZ | Dec J | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 164.11 | 1.0000 | 5.82 | 1.0000 |
+| Other3 | 27.41 | 0.1670 | 0.17* | 0.0290 |
+| BVX3 | 29.05 | 0.1770 | 0.56* | 0.0962 |
+| TLZ4 | 29.62 | 0.1805 | 0.58* | 0.1002 |
+| ZSTD | 41.39 | 0.2522 | 3.01* | 0.5174 |
+| Lazy2 | 114.59 | 0.6983 | 0.47* | 0.0805 |
+| Optimal | 511.73 | 3.1183 | 0.46* | 0.0784 |
+
+## four. Best Points (claw-code, all n)
+
+| Format | Best Compression Ratio | Best Enc MB/s | Worst Enc MB/s | Best Dec MB/s | Lowest Enc RSS | Highest Enc RSS | Lowest Enc J | Highest Enc J | Lowest Enc J/TGZ | Highest Enc J/TGZ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 1.0000 | 48.73 | 46.57 | 382.54 | 4.2 MB | 4.3 MB | 164.11 | 164.11 | 1.0000 | 1.0000 |
+| Other3 | 0.9865 | 404.94 ( `n8`) | 341.85 ( `n4`) | 388.52 | 140.3 MB | 266.1 MB | 27.41 | 47.83 | 0.1670 | 0.2915 |
+| BVX3 | 0.9492 | 406.15 ( `n8`) | 322.32 ( `n4`) | 326.41 | 139.0 MB | 272.9 MB | 29.05 | 49.73 | 0.1770 | 0.3030 |
+| Lazy2 | 0.8998 | 63.73 ( `n40`) | 53.39 ( `n4`) | 409.36 ( `n8`) | 194.7 MB | 499.5 MB | 114.59 | 158.69 | 0.6983 | 0.9670 |
+| Optimal | 0.8574 | 34.45 ( `n40`) | 25.51 ( `n4`) | 394.70 | 215.4 MB | 572.5 MB | 511.73 | 704.65 | 3.1183 | 4.2939 |
+| TLZ4 | 1.1793 | 420.57 ( `n4`) | 394.69 ( `n40`) | 477.45 ( `n4`) | 76.9 MB | 80.4 MB | 29.62 | 29.62 | 0.1805 | 0.1805 |
+| ZSTD | 0.8245 | 360.20 ( `n8`) | 353.65 ( `n40`) | 422.91 | 371.5 MB | 388.7 MB | 41.39 | 41.39 | 0.2522 | 0.2522 |
+
+## n40 represents the result (Encode / Decode CPU Energy Ratio vs TGZ)
+
+| Format | Enc J/TGZ (claw n40) | Enc J/TGZ (llama n40) | Dec J/TGZ (claw n40)* | Dec J/TGZ (llama n40)* |
+| --- | ---: | ---: | ---: | ---: |
+|TGZ|1.0000|1.0000|1.0000|1.0000|
+| Other3 | 0.1670 | 0.1320 | 0.0290 | 0.0124 |
+| BVX3 | 0.1770 | 0.1514 | 0.0962 | 0.0035 |
+| Lazy2 | 0.6983 | 0.2817 | 0.0805 | 0.0097 |
+| Optimal | 3.1183 | 2.1219 | 0.0784 | 0.0278 |
+| TLZ4 | 0.1805 | 0.2114 | 0.1002 | 0.0143 |
+| ZSTD | 0.2522 | 0.1606 | 0.5174 | 0.1752 |
+
+> `*` Decode energy n=40 Sampling coverage rate <5%, not trusted, for reference only.
+
+## R41 vs R40 Encode Speed Comparison (claw-code, n=40)
+
+| Format | R40 MB/s | R41 MB/s | Change |
+| --- | ---: | ---: | --- |
+| TGZ | 48.64 | 48.73 | ≈ flat |
+| Other3 | 380.73 | 344.41 | -9.5% ⚠️ |
+| BVX3 | 421.51 | 375.00 | -11.0% ⚠️ |
+| Lazy2 | 57.84 | 63.73 | +10.2% ✅ |
+| Optimal | 29.90 | 34.45 | +15.2% ✅ |
+| TLZ4 | 424.74 | 394.69 | -7.1% |
+| ZSTD | 363.63 | 353.65 | -2.7% |
+
+> BVX3 / Other3 The speed is slightly reduced but the energy consumption is synchronously reduced, which may be thermal throttle or measurement error; Optimal / Lazy2 rises as expected. The compression ratio remains flat (the hash function remains unchanged).
 
 ---
 

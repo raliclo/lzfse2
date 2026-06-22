@@ -161,22 +161,15 @@ func normalizeSpacing(_ line: String) -> String {
 
 // ── 批次翻譯（clientIdentifier=行號 對回；回應順序可能與請求不同） ──
 let session = TranslationSession(installedSource: source, target: target)
-var prepareOK = true
 do { try await session.prepareTranslation() } catch {
-    eprint("prepare warn=\(error)")
-    if "\(error)".contains("notInstalled") {
-        eprint("TRANSLATE_SKIPPED: language pack not installed. Run: System Settings → General → Language & Region → Translation Languages, add zh-Hant → en.")
-        // 直接寫出原文（不翻譯）並結束
-        let result = out.joined(separator: "\n")
-        if let p = outPath { try? result.write(toFile: p, atomically: true, encoding: .utf8) }
-        exit(0)
-    }
-    prepareOK = false
+    // prepareTranslation() may return notInstalled as a false negative even when
+    // the language bundle is installed — ignore and proceed to actual translation.
+    eprint("prepare warn=\(error) (ignored, proceeding)")
 }
 
 let chunkSize = 64
 var done = 0, translated = 0
-while prepareOK && done < translatable.count {
+while done < translatable.count {
     let slice = translatable[done ..< min(done + chunkSize, translatable.count)]
     let requests = slice.map {
         TranslationSession.Request(sourceText: $0.text, clientIdentifier: "\($0.idx)")
