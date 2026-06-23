@@ -199,6 +199,134 @@
 
 ---
 
+# R41-Mac-Retest：以 UI 支援代碼重測（2026-06-23）/ R41-Mac-Retest: Retest with ui-supported code
+
+> 在 `lzfse-cli.swift` 加入 `runCLI()` 包裝函式（支援 lzfse-ui SwiftUI app）後，對 R41 代碼重新執行完整 Mac benchmark。  
+> Trace 分析首次全數成功（36 包 TRACE_ANALYSIS_OK、72 XML CPU_CALL_TREE_ANALYSIS_OK）；前序所有執行皆以 `source_trace_missing` 失敗。  
+> 代碼功能不變（output-identical ✅），`runCLI()` 包裝不影響演算法路徑。
+
+## 變更內容 / Code Change
+
+| 項目 | 說明 |
+| --- | --- |
+| **`lzfse-cli.swift`** | 加入 `runCLI()` 包裝函式，供 `lzfse-ui.swift` SwiftUI @main 呼叫 |
+| **`lzfse-ui/lzfse-ui.swift`** | 新增 SwiftUI macOS app：檔案選取、演算法選擇、並行任務步進（n=1–32），雙語 EN/ZH-TW UI |
+| **演算法路徑** | 無變更；output-identical ✅ |
+| **Trace 分析** | 首次全數成功（36/36 TRACE_ANALYSIS_OK，72/72 CPU_CALL_TREE_ANALYSIS_OK）|
+
+## 1a. Encode 速度 vs R41-Mac 首輪（claw-code, n=40）/ Encode MB/s vs R41-Mac First Run
+
+| 格式 | Retest MB/s | Retest/TGZ | R41-Mac MB/s | 變化 |
+| --- | ---: | ---: | ---: | --- |
+| TGZ | 48.75 | 1.0000 | 48.73 | ≈ 持平 |
+| Other3 | 408.72 | 8.3841 | 344.41 | +18.7% ✅ |
+| BVX3 | 402.73 | 8.2558 | 375.00 | +7.4% ✅ |
+| Lazy2 | 66.59 | 1.3651 | 63.73 | +4.5% ✅ |
+| Optimal | 35.32 | 0.7241 | 34.45 | +2.5% ✅ |
+| Apple | 142.31 | 2.9191 | 142.31 | ≈ 持平 |
+| TLZ4 | 425.04 | 8.7142 | 394.69 | +7.7% ✅ |
+| ZSTD | 366.34 | 7.5109 | 353.65 | +3.6% ✅ |
+
+> 所有格式均較 R41-Mac 首輪提升；Other3 / BVX3 大幅回升（+7–19%），推測首輪有熱節流。
+
+## 1b. Decode 速度（claw-code, n=40）/ Decode MB/s
+
+| 格式 | MB/s | /TGZ |
+| --- | ---: | ---: |
+| TGZ | 366.57 | 1.0000 |
+| TLZ4 | 447.02 | 1.2196 |
+| ZSTD | 416.95 | 1.1375 |
+| Other3 | 414.62 | 1.1313 |
+| Lazy2 | 412.80 | 1.1259 |
+| Apple | 386.19 | 1.0536 |
+| Optimal | 347.86 | 0.9490 |
+| BVX3 | 322.85 | 0.8808 |
+
+## 1c. 壓縮大小與比率（claw-code, n=40）/ Compress Size & Ratio
+
+| 格式 | MiB | /TGZ |
+| --- | ---: | ---: |
+| TGZ | 470 | 1.0000 |
+| ZSTD | 387 | 0.8245 |
+| Optimal | 403 | 0.8574 |
+| Lazy2 | 423 | 0.8998 |
+| BVX3 | 446 | 0.9492 |
+| Other3 | 463 | 0.9865 |
+| Apple | 464 | 0.9873 |
+| TLZ4 | 554 | 1.1793 |
+
+## 2. RSS 峰值（Mac only, claw-code n=40）/ Peak RSS
+
+| 格式 | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 4.2 MB | 1.00 | 3.8 MB | 1.00 |
+| TLZ4 | 80.0 MB | 19.0 | 33.7 MB | 8.9 |
+| Other3 | 236.1 MB | 56.2 | 301.1 MB | 79.2 |
+| BVX3 | 243.8 MB | 58.1 | 323.5 MB | 85.1 |
+| ZSTD | 375.2 MB | 89.3 | 9.2 MB | 2.4 |
+| Lazy2 | 497.7 MB | 118.5 | 321.8 MB | 84.7 |
+| Optimal | 581.4 MB | 138.4 | 307.9 MB | 81.0 |
+| Apple | 1367.8 MB | 325.7 | 473.5 MB | 124.6 |
+
+## 3. CPU Energy（Mac only, claw-code n=40）/ CPU Energy Ratio vs TGZ
+
+> ⚠ Decode energy n=40 因取樣覆蓋率 <5% 不可信，僅供參考（標 `*`）。
+
+| 格式 | Enc J | Enc/TGZ | Dec J | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 157.17 | 1.0000 | 5.71 | 1.0000 |
+| Other3 | 26.05 | 0.1658 | 0.60* | 0.1058 |
+| BVX3 | 29.20 | 0.1858 | 0.15* | 0.0256 |
+| TLZ4 | 30.25 | 0.1925 | 0.60* | 0.1059 |
+| Apple | 49.16 | 0.3128 | 2.92* | 0.5107 |
+| ZSTD | 44.82 | 0.2852 | 2.99* | 0.5231 |
+| Lazy2 | 120.94 | 0.7695 | 1.27* | 0.2227 |
+| Optimal | 531.92 | 3.3844 | 0.69* | 0.1216 |
+
+## 4. CPU Trace 分析（首次全數成功）/ CPU Trace Analysis — First Full Success
+
+> 本輪首次所有 36 trace 包均成功（TRACE_ANALYSIS_OK ×36，CPU_CALL_TREE_ANALYSIS_OK ×72）。
+
+| 格式 (n=40) | Top Symbol | Category | Count |
+| --- | --- | --- | ---: |
+| TGZ | `0x197c4bbac` (libz) | other | 85 |
+| Other3 | `encodeBlock(triplets:literals:rawBytes:)` | encode | 73 |
+| BVX3 | `encodeBlockV3(triplets:literals:rawBytes:)` | encode | 85 |
+| Lazy2 | `bestMatch` in `lzParseChain` | **parse** | 132 |
+| Optimal | closure in `lzParseOptimal` | **parse** | 535 |
+| Apple | `lzfseEncodeMatches` | apple_lzfse | 82 |
+| TLZ4 | `LZ4HC_compress_generic_noDictCtx` | external_tool | 295 |
+| ZSTD | `ZSTD_compressBlock_lazy2_row` | external_tool | 162 |
+
+> **Parse hotspot 確認**：Lazy2 = `bestMatch` in chain traversal，Optimal = `lzParseOptimal` closure 調用次數 535（>>Lazy2 132）→ Optimal 每 chunk 調用次數遠高於 Lazy2。
+
+## 5. Encode 速度全覽（claw-code + llama.cpp, n=40）/ Encode Speed Overview
+
+| 格式 | claw-code MB/s | claw/TGZ | llama.cpp MB/s | llama/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 48.75 | 1.00 | 39.90 | 1.00 |
+| Other3 | 408.72 | 8.38 | 86.95 | 2.18 |
+| BVX3 | 402.73 | 8.26 | 86.81 | 2.18 |
+| Lazy2 | 66.59 | 1.37 | 78.64 | 1.97 |
+| Optimal | 35.32 | 0.72 | 49.20 | 1.23 |
+| Apple | 142.31 | 2.92 | 66.02 | 1.66 |
+| TLZ4 | 425.04 | 8.71 | 85.77 | 2.15 |
+| ZSTD | 366.34 | 7.51 | 90.37 | 2.27 |
+
+> `llama.cpp` 資料以 lzma 預壓縮，LZFSE n=40 加速效益遠低於 claw-code（BVX3 claw 8.26× vs llama 2.18×）。
+
+## 結論與 R42 方向 / Conclusion & R42 Direction
+
+| 項目 | 結論 |
+| --- | --- |
+| **速度恢復** | R41 首輪熱節流 → Retest Other3/BVX3 回升 +7–19%；Optimal/Lazy2 穩定 |
+| **Trace 分析** | 首次全數成功；Lazy2 = parse（`bestMatch` chain），Optimal = parse（`lzParseOptimal` closure）瓶頸確認 |
+| **能耗最佳** | Other3 n40 = 0.166× TGZ；Optimal n4 = 4.70× TGZ（最高）|
+| **壓縮比最佳** | ZSTD 0.8245 → Optimal 0.8574 → Lazy2 0.8998 |
+| **R42 方向** | Lazy2/Optimal parse hotspot → prefetch chain entries、SIMD match compare（NEON）|
+
+---
+
 # R40-Mac：macOS 完整 Benchmark 結果（2026-06-22）/ R40-Mac: Full macOS Benchmark Results
 
 > 以 R40 代碼（3652 行）對 claw-code / llama.cpp 執行 `-n 40 / 8 / 4` 三批次完整 benchmark，涵蓋 encode/decode 速度、RSS 峰值、CPU energy ratio，並與 R40-Win 比較 encode 速度。

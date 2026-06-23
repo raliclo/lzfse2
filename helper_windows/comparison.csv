@@ -1,9 +1,9 @@
 ﻿dataset,format,win_n_meaning,mac_n,win_encode_mb_s,mac_encode_mb_s,win_mac_speed_ratio,win_compress_ratio,mac_compress_ratio,compress_ratio_diff,win_encode_sec,mac_encode_sec,win_decode_mb_s,mac_decode_mb_s,win_mac_decode_ratio,win_decode_sec,mac_decode_sec,win_decode_verify,note
 資料集,格式,Windows n=40 意義,macOS n,Win 壓縮 MB/s,Mac 壓縮 MB/s,Win/Mac 速度比,Win 壓縮比,Mac 壓縮比,壓縮比差異,Win 壓縮秒,Mac 壓縮秒,Win 解壓 MB/s,Mac 解壓 MB/s,Win/Mac 解壓速度比,Win 解壓秒,Mac 解壓秒,Win 解壓驗證,備註
-claw-code,TGZ,single run (no -n),40,24.67,48.73,0.506,1.0000,1.0000,0.0000,57.42,29.06,643.72,376.09,1.712,2.20,3.77,PASS,
-claw-code,LZFSE (Other3),inflight=40 (1 run),40,266.36,344.41,0.773,0.9818,0.9865,-0.0047,5.32,4.11,760.85,388.52,1.958,1.86,3.65,PASS,
-claw-code,LZFSE (BVX3),inflight=40 (1 run),40,241.42,375.00,0.644,0.9254,0.9492,-0.0238,5.87,3.78,800.90,326.41,2.454,1.77,4.34,PASS,
-claw-code,LZFSE (Lazy2),inflight=40 (1 run),40,38.75,63.73,0.608,0.8704,0.8998,-0.0294,36.55,22.22,853.08,365.21,2.336,1.66,3.88,PASS,
-claw-code,LZFSE (Optimal),inflight=40 (1 run),40,15.54,34.45,0.451,0.8273,0.8574,-0.0301,91.15,41.11,897.14,394.70,2.273,1.58,3.59,PASS,
-claw-code,TLZ4,single run (no -n),40,191.84,394.69,0.486,1.1739,1.1793,-0.0054,7.38,3.59,1752.37,405.75,4.319,0.81,3.49,PASS,
-claw-code,ZSTD,single run (no -n),40,103.67,353.65,0.293,0.7813,0.8245,-0.0432,13.66,4.00,1037.24,422.91,2.453,1.37,3.35,PASS,
+claw-code,TGZ,single run (no -n),40,24.67,48.75,0.506,1.0000,1.0000,0.0000,57.42,29.05,643.72,366.57,1.756,2.20,3.86,PASS,
+claw-code,LZFSE (Other3),inflight=40 (1 run),40,266.36,408.72,0.652,0.9818,0.9865,-0.0047,5.32,3.47,760.85,414.62,1.835,1.86,3.42,PASS,
+claw-code,LZFSE (BVX3),inflight=40 (1 run),40,241.42,402.73,0.599,0.9254,0.9492,-0.0238,5.87,3.52,800.90,322.85,2.481,1.77,4.39,PASS,
+claw-code,LZFSE (Lazy2),inflight=40 (1 run),40,38.75,66.59,0.582,0.8704,0.8998,-0.0294,36.55,21.27,853.08,412.80,2.067,1.66,3.43,PASS,
+claw-code,LZFSE (Optimal),inflight=40 (1 run),40,15.54,35.32,0.440,0.8273,0.8574,-0.0301,91.15,40.10,897.14,347.86,2.579,1.58,4.07,PASS,
+claw-code,TLZ4,single run (no -n),40,191.84,425.04,0.451,1.1739,1.1793,-0.0054,7.38,3.33,1752.37,447.02,3.920,0.81,3.17,PASS,
+claw-code,ZSTD,single run (no -n),40,103.67,366.34,0.283,0.7813,0.8245,-0.0432,13.66,3.87,1037.24,416.95,2.488,1.37,3.40,PASS,

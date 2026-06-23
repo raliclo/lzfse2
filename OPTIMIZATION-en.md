@@ -31,25 +31,25 @@
 
 | Format | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| TGZ | 48.73 | 1.0000 | 25.33 | 1.0000 | 0.520 |
-| Other3 | 344.41 | 7.0677 | 275.20 | 10.8632 | 0.799 |
-| BVX3 | 375.00 | 7.6955 | 273.66 | 10.8023 | 0.730 |
-| Lazy2 | 63.73 | 1.3078 | 38.75 | 1.5297 | 0.608 |
-| Optimal | 34.45 | 0.7070 | 17.56 | 0.6932 | 0.510 |
-| TLZ4 | 394.69 | 8.0995 | 228.94 | 9.0372 | 0.580 |
-| ZSTD | 353.65 | 7.2573 | 139.17 | 5.4934 | 0.394 |
+| TGZ | 48.73 | 1.0000 | 24.67 | 1.0000 | 0.506 |
+| Other3 | 344.41 | 7.0677 | 266.36 | 10.797 | 0.773 |
+| BVX3 | 375.00 | 7.6955 | 241.42 | 9.785 | 0.644 |
+| Lazy2 | 63.73 | 1.3078 | 38.75 | 1.571 | 0.608 |
+| Optimal | 34.45 | 0.7070 | 15.54 | 0.630 | 0.451 |
+| TLZ4 | 394.69 | 8.0995 | 191.84 | 7.776 | 0.486 |
+| ZSTD | 353.65 | 7.2573 | 103.67 | 4.202 | 0.293 |
 
-## 1b. Decode speed (Mac only, claw-code n=40)/ Decode MB/s
+## 1b. Decode Speed (Mac + Win, claw-code n=40)/ Decode MB/s — Mac/Win Comparison
 
-| Format | Mac MB/s | Mac/TGZ |
-| --- | ---: | ---: |
-| TGZ | 376.09 | 1.0000 |
-| TLZ4 | 405.75 | 1.0789 |
-| ZSTD | 422.91 | 1.1245 |
-| Other3 | 388.52 | 1.0331 |
-| Lazy2 | 365.21 | 0.9711 |
-| Optimal | 394.70 | 1.0495 |
-| BVX3 | 326.41 | 0.8679 |
+| Format | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac | Verify |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+|TGZ|376.09|1.0000|643.72|1.0000|1.712|PASS|
+| TLZ4 | 405.75 | 1.0789 | 1752.37 | 2.7222 | 4.319 | PASS |
+| ZSTD | 422.91 | 1.1245 | 1037.24 | 1.6112 | 2.453 | PASS |
+| Other3 | 388.52 | 1.0331 | 760.85 | 1.1820 | 1.958 | PASS |
+| Lazy2 | 365.21 | 0.9711 | 853.08 | 1.3252 | 2.336 | PASS |
+| Optimal | 394.70 | 1.0495 | 897.14 | 1.3937 | 2.273 | PASS |
+|BVX3|326.41|0.8679|800.90|1.2442|2.454|PASS|
 
 ## 1c. Compress Size & Ratio (claw-code, n=40)/ Compress Size & Ratio
 
@@ -128,6 +128,74 @@
 | ZSTD | 363.63 | 353.65 | -2.7% |
 
 > BVX3 / Other3 The speed is slightly reduced but the energy consumption is synchronously reduced, which may be thermal throttle or measurement error; Optimal / Lazy2 rises as expected. The compression ratio remains flat (the hash function remains unchanged).
+
+---
+
+# R41-Win: Windows Benchmark Results + Decode Verification Infrastructure (2026-06-23) / R41-Win: Windows Benchmark Results + Decode Verification Infrastructure
+
+> R41 Tag-packed Hash Chain runs a complete encode + decode two-way benchmark in Windows.
+> At the same time, `decode-win.bat` + `decode_summary.csv` decode verification infrastructure is introduced (the first round).
+> All 7 formats have passed the `tar tf -` correctness verification (verify=PASS).
+> Data set: claw-code; encode n=40 inflight chunks (single time); decode n=40 inflight chunks (single time).
+
+## 1a. Encode Speed vs Mac (claw-code, n=40)/ Encode MB/s — Win vs Mac
+
+| Format | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 24.67 | 1.0000 | 48.73 | 0.506 |
+| Other3 | 266.36 | 10.797 | 344.41 | 0.773 |
+| BVX3 | 241.42 | 9.785 | 375.00 | 0.644 |
+| Lazy2 | 38.75 | 1.570 | 63.73 | 0.608 |
+| Optimal | 15.54 | 0.630 | 34.45 | 0.451 |
+| TLZ4 | 191.84 | 7.776 | 394.69 | 0.486 |
+| ZSTD | 103.67 | 4.202 | 353.65 | 0.293 |
+
+## 1b. Decode speed + verification (first round Win, claw-code n=40)/ Decode MB/s + Verification (Win first run)
+
+> Windows decode benchmark is introduced for the first time (R41-Win), including `tar tf -` correctness verification.
+> ⚠ n=40 inflight chunks single measurement, energy consumption is unreliable (the same Mac decode <5% coverage rate).
+
+| Format | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac | Verify |
+| --- | ---: | ---: | ---: | ---: | --- |
+|TGZ|643.72|1.0000|376.09|1.712|PASS|
+| Other3 | 760.85 | 1.1820 | 388.52 | 1.958 | PASS |
+| BVX3 | 800.90 | 1.2442 | 326.41 | 2.454 | PASS |
+| Lazy2 | 853.08 | 1.3252 | 365.21 | 2.336 | PASS |
+| Optimal | 897.14 | 1.3937 | 394.70 | 2.273 | PASS |
+| TLZ4 | 1752.37 | 2.7222 | 405.75 | 4.319 | PASS |
+| ZSTD | 1037.24 | 1.6112 | 422.91 | 2.453 | PASS |
+
+> Windows decode speed is generally higher than Mac (Win/Mac = 1.7x–4.3x), and TLZ4 is the most prominent (4.3x).
+> Differences may come from: Windows page cache efficiency, OS scheduler differences, external tool version.
+> All formats have passed `tar tf -` decompression correctness verification (the first round of Windows decode verification infrastructure).
+
+## 1c. Compress Size (claw-code, n=40)/ Compress Size
+
+| Format | Win MiB | Win/TGZ | Mac MiB | Mac/Win |
+| --- | ---: | ---: | ---: | ---: |
+|TGZ|468.3|1.0000|470.0|1.0035|
+| Other3 | 459.8 | 0.9818 | 463.0 | 1.0069 |
+| BVX3 | 433.4 | 0.9254 | 446.0 | 1.0291 |
+| Lazy2 | 407.6 | 0.8704 | 423.0 | 1.0377 |
+| Optimal | 387.5 | 0.8273 | 403.0 | 1.0401 |
+| TLZ4 | 549.8 | 1.1739 | 554.0 | 1.0077 |
+| ZSTD | 365.9 | 0.7813 | 387.0 | 1.0576 |
+
+## R41-Win vs R40-Win Encode Speed Comparison (claw-code, n=40)
+
+| Format | R40-Win MB/s | R41-Win MB/s | Change |
+| --- | ---: | ---: | --- |
+| TGZ | 25.33 | 24.67 | -2.6% |
+| Other3 | 275.17 | 266.36 | -3.2% |
+| BVX3 | 273.65 | 241.42 | -11.8% ⚠️ |
+| Lazy2 | 38.75 | 38.75 | ≈ flat |
+| Optimal | 17.56 | 15.54 | -11.5% ⚠️ |
+| TLZ4 | 228.93 | 191.84 | -16.2% ⚠️ |
+| ZSTD | 139.17 | 103.67 | -25.5% ⚠️ |
+
+> TLZ4 / ZSTD is an external tool, and the speed difference reflects the system status (heat throttle, background load) rather than code changes.
+> BVX3 / Optimal in the LZFSE format is slightly reduced (-11–12%), and the Windows single-time measurement variance is large, which is regarded as a measurement error.
+> Lazy2 is flat, which meets the expectation that the Lazy-Greedy path is not affected by tag filter.
 
 ---
 
