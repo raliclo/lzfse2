@@ -20,10 +20,15 @@ echo "Creating app bundle structure..."
 mkdir -p "${SCRIPT_DIR}/${APP_NAME}.app/Contents/MacOS"
 mkdir -p "${SCRIPT_DIR}/${APP_NAME}.app/Contents/Resources"
 
+# Strip the top-level runCLI() entry point (not valid in multi-file @main builds)
+TEMP_CLI="/tmp/lzfse-cli-lib-$$.swift"
+grep -v "^runCLI()$" "${PROJECT_ROOT}/lzfse-cli.swift" > "$TEMP_CLI"
+trap "rm -f '$TEMP_CLI'" EXIT
+
 # Compile the Swift files
 echo "Compiling Swift code..."
 swiftc -O \
-    "${PROJECT_ROOT}/lzfse-cli.swift" \
+    "$TEMP_CLI" \
     "${SCRIPT_DIR}/lzfse-ui.swift" \
     -o "${SCRIPT_DIR}/${APP_NAME}.app/Contents/MacOS/LZFSE UI" \
     -framework SwiftUI \
