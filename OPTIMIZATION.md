@@ -49,6 +49,127 @@ diff -rq /Volumes/Windows/proj_Win /Volumes/Windows/test/proj_Win 2>/dev/null
 
 ---
 
+## 壓縮架構說明 / Compression Architecture
+
+### 壓縮比貢獻來源 / Compression Ratio Contribution Sources
+
+壓縮比由兩個串聯階段決定：**LZ parse（match/literal 切割）** 和 **FSE 熵編碼（符號壓縮）**。
+
+#### 第一層：LZ Parse — 決定「有多少資料能用 match 表示」
+
+| 輸出類型 | 意義 | 佔壓縮比貢獻 |
+| --- | --- | --- |
+| **Literal** | 無法 match 的原始 byte | 熵編碼後仍需存入壓縮檔 |
+| **Match (L, M, D)** | 距離 D 前有長 M 的重複、前有 L 個 literal | 3 個符號取代數十至數千 byte |
+
+Parser 選擇直接影響 match 率：
+- `lzParse`（greedy）：每位置看 1 個候選，快但 match 偏短
+- `lzParseChain`（Lazy2）：hash chain 多步搜尋，match 更長/更優
+- `lzParseOptimal`（Optimal）：DP 全域最佳化，match 總 bit cost 最小
+
+實測（claw-code）：Other3 ≈ 0.31、Optimal ≈ 0.26（比 Other3 再省 ~16%）。
+
+#### 第二層：FSE 熵編碼 — 決定「符號能壓多緊」
+
+每個 block 有 5 條獨立 FSE 串流（bvx3 literal 最多 4 個上下文）：
+
+| 串流 | 符號數（other3 / bvx3） | 狀態數 |
+| --- | --- | --- |
+| Literal | 256 / 256×4 ctx | 1024 |
+| L（literal run 長度）| 20 / 22 | 64 |
+| M（match 長度）| 20 / 22 | 64 |
+| D（match 距離）| 64 / 80 | 256 |
+| extra bits | — | — |
+
+FSE 對高頻符號用少 bits，理論極限接近 Shannon entropy。
+
+#### 格式差異對壓縮比的影響
+
+| 格式 | D 視窗上限 | M 上限 | Block 標頭開銷 |
+| --- | --- | --- | --- |
+| other3（LZFSE 相容）| 262,139（≈256 KB）| 2,359 | 772 bytes / block |
+| bvx3（本工具私有）| 4,194,299（全 4MB chunk）| 69,947 | 54 bytes / block |
+
+bvx3 的更大視窗讓長距離重複能被 match，加上 3-deep rep-offset（D=0/1/2 = 歷史距離，幾乎零 cost），是 bvx3 壓縮比優於 other3 的主因。
+
+---
+
+### 壓縮流程查詢表全覽 / Lookup Tables in Compression Pipeline
+
+#### 一、LZ Match 搜尋表（Parse 階段，動態 per chunk）
+
+**Greedy parser** — 單層 hash table：
+```
+hashTable[hash4(i)] = 最近出現此 hash 的位置（碰撞直接覆蓋）
+```
+
+**Chain parser（Lazy2 / Optimal）** — head + chain 雙表：
+```
+head[h]  → hash bucket 最新 index（131072 桶，17-bit hash）
+chain[c] → linked list，chain[idx] = 前一個同 hash 的位置
+搜尋路徑：head[h] → chain[c0] → chain[c1] → … (最多 32 步)
+```
+
+**R41 Tag-packed 格式**（壓縮 head/chain 的 Int32 編碼）：
+```
+Int32 = (tag << 24) | index
+  tag  = hash 次 8 bits → 先比 tag，不符直接跳過（純暫存器操作）
+  index = 24-bit 位置索引（上限 16 MB chunk）
+```
+
+#### 二、FSE 編解碼表（Entropy 階段，動態 per block）
+
+每個 block 根據當下符號頻率動態建立，共 5 張編碼表 + 對應解碼表：
+
+```swift
+// 編碼表 entry：
+FSEEncoderEntry { s0, k, delta0, delta1 }
+// s0: 門檻（state < s0 → 輸出 k bits，否則 k-1 bits）
+// delta0/delta1: 新 state 偏移量
+
+// literal 解碼表（packed Int32）：
+(delta << 16) | (symbol << 8) | nbits  // nstates 個 entry
+
+// L/M/D 數值解碼表：
+FSEValueDecoderEntry { totalBits, valueBits, delta, vbase }
+```
+
+#### 三、靜態符號定義表（格式規範，編解碼共用）
+
+```
+lBaseValue[20] / lExtraBits[20]  → L 符號 ↔ literal run 長度
+mBaseValue[20] / mExtraBits[20]  → M 符號 ↔ match 長度
+dBaseValue[64] / dExtraBits[64]  → D 符號 ↔ match 距離（other3）
+// bvx3：lm3（22 符號）+ d3（80 符號）/ bvx3D（88 符號）
+
+解碼公式：實際值 = base[symbol] + readBits(extraBits[symbol])
+```
+
+#### 四、Optimal Parser DP Cost 表（動態 per segment，`rebuildPrices` 維護）
+
+```
+litPrice[256]      → 每個 byte 值的 FSE bit cost
+mPriceTab[22]      → 每個 M 符號的 bit cost
+dPriceTab[80]      → 每個 D 符號的 bit cost
+lmBaseP[22]        → M 符號 base price（inner loop 預算）
+cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
+```
+
+#### 表的性質總結
+
+| 表 | 靜態 vs 動態 | 生命週期 | 主要用途 |
+| --- | --- | --- | --- |
+| `lBaseValue` 等格式表 | 靜態（格式規範）| 永久 | 符號 ↔ 數值互換 |
+| `head[h]` / `chain[c]` | 動態 | per chunk（跨 chunk 重用，`ParseScratch` pool）| LZ match 搜尋 |
+| FSE `EncoderTable` | 動態 | per block | 符號 → bitstream |
+| FSE `DecoderTable` | 動態 | per block | bitstream → 符號 + 數值 |
+| `litPrice` / `mPriceTab` 等 | 動態 | per segment（`rebuildPrices`）| Optimal DP cost 估算 |
+
+> **R42 relevance**：`head/chain` 的 cache miss 是 Lazy2/Optimal 的主要瓶頸（R41 trace 確認）。  
+> R42 的 prefetch chain entries 目標就是在走訪鏈時預取下一個 chain entry 到 L1 cache，減少 stall。
+
+---
+
 # R41-Mac：Tag-packed Hash Chain 導入（2026-06-22）/ R41-Mac: Tag-packed Hash Chain
 
 > 將 R27 的 Tag-packed hash chain（hashAndTag / chainIndexMask / chainTagShift / chainNullIndex）重新導入 R40 代碼基礎。  
