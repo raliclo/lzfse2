@@ -2691,7 +2691,7 @@ public enum LZFSEv1 {
     enum StreamDecodeResult { case ok, fallback, error }
 
     static func decodeStreamFromFile(path: String, chunkRaw: Int, inflight: Int,
-                                     output: FileHandle) -> StreamDecodeResult {
+                                     output: FileHandle, debug: Bool = false) -> StreamDecodeResult {
         guard chunkRaw > 0, let fh = FileHandle(forReadingAtPath: path) else { return .fallback }
         defer { try? fh.close() }
 
@@ -2767,7 +2767,10 @@ public enum LZFSEv1 {
                 comp.append(contentsOf: buf[pos ..< pos + size])
                 pos += size
                 cumRaw += raw
-                if cumRaw > chunkRaw { misaligned = true; return nil }
+                if cumRaw > chunkRaw {
+                    if debug { fputs("[DBG] overshoot cumRaw=\(cumRaw) chunkRaw=\(chunkRaw) nBlks=\(blks.count) lastBlkRaw=\(raw)\n", stderr) }
+                    misaligned = true; return nil
+                }
                 if cumRaw == chunkRaw { return (comp, blks, cumRaw) }
             }
         }
@@ -2775,17 +2778,25 @@ public enum LZFSEv1 {
         func decodeGroup(_ comp: [UInt8], _ blks: [Blk], _ raw: Int) -> [UInt8]? {
             if raw == 0 { return [] }
             var out = [UInt8](repeating: 0, count: raw)
+            var failIdx = -1; var failCursor = 0
             let ok = out.withUnsafeMutableBufferPointer { ob -> Bool in
                 let dp = ob.baseAddress!
                 var cursor = 0
                 let lit = UnsafeMutablePointer<UInt8>.allocate(capacity: literalsPerBlockV3 + 8)
                 defer { lit.deallocate() }
-                for b in blks {
+                for (i, b) in blks.enumerated() {
                     guard decodeOneBlock(src: comp, at: b.off, magic: b.magic,
                                          dp: dp, regionBase: 0, regionEnd: raw,
-                                         cursor: &cursor, litScratch: lit) != nil else { return false }
+                                         cursor: &cursor, litScratch: lit) != nil else {
+                        failIdx = i; failCursor = cursor; return false
+                    }
                 }
-                return cursor == raw
+                if cursor != raw { failCursor = cursor; return false }
+                return true
+            }
+            if !ok && debug {
+                let b = failIdx >= 0 ? blks[failIdx] : (blks.last ?? Blk(off: 0, magic: 0, raw: 0))
+                fputs("[DBG] decodeGroup failed blkIdx=\(failIdx) magic=0x\(String(b.magic, radix:16)) blkRaw=\(b.raw) cursor=\(failCursor)/\(raw) nBlks=\(blks.count)\n", stderr)
             }
             return ok ? out : nil
         }
@@ -2796,7 +2807,10 @@ public enum LZFSEv1 {
                 guard let g = nextGroup() else { break }
                 batch.append(g)
             }
-            if misaligned { return wroteAny ? .error : .fallback }
+            if misaligned {
+                if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+                return wroteAny ? .error : .fallback
+            }
             if batch.isEmpty { break }
 
             var outs = [[UInt8]?](repeating: nil, count: batch.count)
@@ -2808,7 +2822,10 @@ public enum LZFSEv1 {
                 if let o = o { outs[i] = o } else { failed = true }
                 lock.unlock()
             }
-            if failed { return wroteAny ? .error : .fallback }
+            if failed {
+                if debug { fputs("[DBG] batch decode failed wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+                return wroteAny ? .error : .fallback
+            }
             for o in outs {
                 guard let o = o else { return wroteAny ? .error : .fallback }
                 if !o.isEmpty { output.write(Data(o)) }
@@ -3494,6 +3511,7 @@ if args.contains("-test") {
 
 let isEncoding = args.contains("-encode")
 let isDecoding = args.contains("-decode")
+let debugMode  = args.contains("-debug")
 guard isEncoding != isDecoding else {
     eprint("Error: Specify exactly one of -encode or -decode. / 錯誤：請指定 -encode 或 -decode 其中之一。")
     exit(1)
@@ -3641,7 +3659,7 @@ case .other3, .bvx3:
         // 檔案輸入：串流解碼，全程不持有整份壓縮輸入（降低 RSS）。
         // 非自家分塊串流自動退回 whole-buffer，結果保證正確。
         switch LZFSEv1.decodeStreamFromFile(path: p, chunkRaw: LZFSEv1.parallelChunkSize,
-                                            inflight: inflightN, output: outputHandle) {
+                                            inflight: inflightN, output: outputHandle, debug: debugMode) {
         case .ok:
             break
         case .error:

@@ -1,0 +1,22 @@
+# lldb batch script — verify decodeStreamFromFile returns .ok
+# Run from project root:
+#   lldb --batch -s debug/lldb_decode_debug.txt /opt/homebrew/bin/lzfse-debug 2>&1 | tee debug/lzfse-debug-out.txt
+
+# Redirect stdout (decoded tar stream) to /dev/null
+settings set target.output-path /dev/null
+
+# Breakpoint at .ok return (end of decodeStreamFromFile, line 2835)
+breakpoint set --file lzfse-cli.swift --line 2835
+
+# Breakpoint at .error / .fallback returns
+breakpoint set --file lzfse-cli.swift --line 2812
+breakpoint set --file lzfse-cli.swift --line 2826
+breakpoint set --file lzfse-cli.swift --line 2828
+
+# Run with -debug flag so [DBG] prints appear on stderr
+run -decode -i "/Volumes/Windows/test/proj_Win.lzfse" -n 8 -debug -so
+
+frame info
+frame variable wroteAny misaligned
+thread backtrace
+process continue

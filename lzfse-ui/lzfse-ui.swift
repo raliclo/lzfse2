@@ -1,7 +1,7 @@
 //  lzfse-ui.swift — SwiftUI 圖形介面，用於 LZFSE 壓縮/解壓縮工具
 //
 //  編譯指令（從 lzfse-ui/ 目錄執行）：
-//  swiftc -O ../lzfse-cli.swift lzfse-ui.swift -o lzfse-ui -framework SwiftUI
+//  swiftc -O ./opt/homebrew/bin/lzfse-cli.swift lzfse-ui.swift -o lzfse-ui -framework SwiftUI
 //
 //  或執行 ./build-ui.sh，或用 Xcode 新增 macOS App 專案包含兩個 Swift 檔
 //
@@ -45,19 +45,18 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity)
                     }
 
-                    optionsSection
                     fileSelectionSection
+                    commandLineSection
 
                     if viewModel.isProcessing {
                         progressView
                     }
 
-                    actionButtons
                 }
                 .padding(24)
             }
         }
-        .frame(minWidth: 800, minHeight: 600)
+        .frame(minWidth: 800, minHeight: 650)
     }
 
     // MARK: - Header
@@ -93,6 +92,7 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+
             }
             .padding(8)
         }
@@ -102,75 +102,66 @@ struct ContentView: View {
     private var algorithmSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Compression Algorithm / 壓縮演算法")
-                    .font(.headline)
-                Picker("Algorithm", selection: $viewModel.algorithm) {
-                    Text("Apple (Standard)").tag(LZFSEAlgorithm.apple)
-                    Text("Other3 (Enhanced)").tag(LZFSEAlgorithm.other3)
-                    Text("BVX3 (Maximum Compression)").tag(LZFSEAlgorithm.bvx3)
-                }
-                .pickerStyle(.radioGroup)
+                // Algorithm picker + info (disabled during decode)
+                Group {
+                    Text("Compression Algorithm / 壓縮演算法")
+                        .font(.headline)
+                    Picker("Algorithm", selection: $viewModel.algorithm) {
+                        Text("Apple (Standard)").tag(LZFSEAlgorithm.apple)
+                        Text("Other3 (Enhanced)").tag(LZFSEAlgorithm.other3)
+                        Text("BVX3 (Maximum Compression)").tag(LZFSEAlgorithm.bvx3)
+                    }
+                    .pickerStyle(.radioGroup)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    switch viewModel.algorithm {
-                    case .apple:
-                        InfoText("Uses system Compression framework. Standard compatibility.")
-                        InfoText("使用系統壓縮框架。標準相容性。")
-                    case .other3:
-                        InfoText("Enhanced matching with better compression. Standard LZFSE format.")
-                        InfoText("強化比對，更好的壓縮率。標準 LZFSE 格式。")
-                    case .bvx3:
-                        InfoText("Maximum compression with custom format. Only this tool can decompress.")
-                        InfoText("最高壓縮率，自訂格式。僅本工具可解壓縮。")
-                            .foregroundColor(.orange)
+                    VStack(alignment: .leading, spacing: 4) {
+                        switch viewModel.algorithm {
+                        case .apple:
+                            InfoText("Uses system Compression framework. Standard compatibility.")
+                            InfoText("使用系統壓縮框架。標準相容性。")
+                        case .other3:
+                            InfoText("Enhanced matching with better compression. Standard LZFSE format.")
+                            InfoText("強化比對，更好的壓縮率。標準 LZFSE 格式。")
+                        case .bvx3:
+                            InfoText("Maximum compression with custom format. Only this tool can decompress.")
+                            InfoText("最高壓縮率，自訂格式。僅本工具可解壓縮。")
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    .padding(.top, 4)
+
+                    if viewModel.operation == .encode && viewModel.algorithm == .bvx3 {
+                        Divider()
+                        Toggle("Lazy2 Mode / 雜湊鏈深搜", isOn: $viewModel.useLazy2)
+                            .disabled(viewModel.useOptimal)
+                        Text("Deep hash-chain search for better compression (slower)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Toggle("Optimal Parsing / 最優解析", isOn: $viewModel.useOptimal)
+                        Text("Best compression ratio using DP (slowest)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
-                .padding(.top, 4)
-            }
-            .padding(8)
-        }
-        .disabled(viewModel.operation == .decode)
-    }
-
-    // MARK: - Options Section
-    private var optionsSection: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Advanced Options / 進階選項")
-                    .font(.headline)
-
-                HStack {
-                    Text("Parallel Tasks (n) / 並行任務數:")
-                    Spacer()
-                    Stepper("\(viewModel.parallelTasks)",
-                            value: $viewModel.parallelTasks,
-                            in: 1...32)
-                    .frame(width: 100)
-                }
-                Text("Controls memory usage and parallelism (1-32)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                .disabled(viewModel.operation == .decode)
 
                 Divider()
 
-                if viewModel.operation == .encode && viewModel.algorithm == .bvx3 {
-                    Toggle("Lazy2 Mode / 雜湊鏈深搜", isOn: $viewModel.useLazy2)
-                        .disabled(viewModel.useOptimal)
-                    Text("Deep hash-chain search for better compression (slower)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Toggle("Optimal Parsing / 最優解析", isOn: $viewModel.useOptimal)
-                    Text("Best compression ratio using DP (slowest)")
+                // Parallel Tasks — always enabled
+                HStack {
+                    Text("Parallel Tasks (n) / 並行任務數:")
+                        .font(.subheadline)
+                    Spacer()
+                    TextField("", value: $viewModel.parallelTasks, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 70)
+                        .multilineTextAlignment(.trailing)
+                    Text("(1–\(ProcessInfo.processInfo.processorCount * 10))")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-
-                if viewModel.operation == .decode && viewModel.inputIsLzfseXArchive {
-                    Divider()
-                    InfoText("lzfseX archive detected — will extract via tar -xf - (matches extract() in zshrc.sh)")
-                    InfoText("偵測到 lzfseX 壓縮包，將以 tar -xf - 解包（符合 extract() 行為）")
-                }
+                Text("Controls memory usage and parallelism")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             .padding(8)
         }
@@ -260,6 +251,28 @@ struct ContentView: View {
                     .background(Color(NSColor.textBackgroundColor))
                     .cornerRadius(6)
                 }
+
+                if isDecoding && isLzfseX {
+                    Divider()
+                    InfoText("lzfseX archive detected — will extract via tar -xf - (matches extract() in zshrc.sh)")
+                    InfoText("偵測到 lzfseX 壓縮包，將以 tar -xf - 解包（符合 extract() 行為）")
+                }
+
+                Divider()
+
+                HStack(spacing: 12) {
+                    Spacer()
+                    Button("Reset / 重置") { viewModel.reset() }
+                        .disabled(viewModel.isProcessing)
+                    Button(action: { viewModel.process() }) {
+                        Label(
+                            viewModel.operation == .encode ? "Compress / 壓縮" : "Decompress / 解壓縮",
+                            systemImage: viewModel.operation == .encode ? "arrow.down.circle.fill" : "arrow.up.circle.fill"
+                        )
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!viewModel.canProcess || viewModel.isProcessing)
+                }
             }
             .padding(8)
         }
@@ -280,6 +293,35 @@ struct ContentView: View {
         return "Output File / 壓縮輸出檔:"
     }
 
+    // MARK: - Command Line Section
+    private var commandLineSection: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("Equivalent Command / 等效指令", systemImage: "terminal")
+                        .font(.headline)
+                    Spacer()
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(viewModel.equivalentCommand, forType: .string)
+                    } label: {
+                        Label("Copy / 複製", systemImage: "doc.on.doc")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                }
+                Text(viewModel.equivalentCommand)
+                    .font(.system(.body, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                    .background(Color(NSColor.textBackgroundColor))
+                    .cornerRadius(6)
+            }
+            .padding(8)
+        }
+    }
+
     // MARK: - Progress View
     private var progressView: some View {
         GroupBox {
@@ -292,25 +334,6 @@ struct ContentView: View {
             .frame(maxWidth: .infinity)
             .padding()
         }
-    }
-
-    // MARK: - Action Buttons
-    private var actionButtons: some View {
-        HStack(spacing: 16) {
-            Button("Reset / 重置") { viewModel.reset() }
-                .disabled(viewModel.isProcessing)
-            Spacer()
-            Button(action: { viewModel.process() }) {
-                Label(
-                    viewModel.operation == .encode ? "Compress / 壓縮" : "Decompress / 解壓縮",
-                    systemImage: viewModel.operation == .encode ? "arrow.down.circle.fill" : "arrow.up.circle.fill"
-                )
-                .frame(minWidth: 150)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!viewModel.canProcess || viewModel.isProcessing)
-        }
-        .padding(.vertical, 8)
     }
 
     // MARK: - Status View
@@ -363,12 +386,24 @@ struct InfoText: View {
 @MainActor
 class LZFSEViewModel: ObservableObject {
     @Published var operation: LZFSEOperation = .encode {
-        didSet { if operation != oldValue { outputPath = nil } }
+        didSet {
+            guard operation != oldValue else { return }
+            outputPath = nil
+            if let path = inputFilePath {
+                suggestOutputPath(for: URL(fileURLWithPath: path))
+            }
+        }
     }
     @Published var algorithm: LZFSEAlgorithm = .other3 {
         didSet { if inputIsDirectory && operation == .encode { updateDirectoryOutputPath() } }
     }
-    @Published var parallelTasks: Int = 8
+    @Published var parallelTasks: Int = 8 {
+        didSet {
+            let maxN = ProcessInfo.processInfo.processorCount * 10
+            if parallelTasks < 1 { parallelTasks = 1 }
+            else if parallelTasks > maxN { parallelTasks = maxN }
+        }
+    }
     @Published var useLazy2: Bool = false {
         didSet { if inputIsDirectory && operation == .encode { updateDirectoryOutputPath() } }
     }
@@ -382,6 +417,8 @@ class LZFSEViewModel: ObservableObject {
     @Published var progressMessage: String = ""
     @Published var statusMessage: String = ""
     @Published var hasError: Bool = false
+
+    private var rssTrackedPeak: Int64 = 0
 
     var canProcess: Bool { inputFilePath != nil && outputPath != nil }
 
@@ -401,20 +438,53 @@ class LZFSEViewModel: ObservableObject {
 
     private func isLzfseXArchive(_ path: String) -> Bool {
         let lzfseXSuffixes = [".lzfse.bvx3.optimal", ".lzfse.bvx3.lazy2", ".lzfse.bvx3",
-                              ".lzfse.other3", ".lzfse.apple"]
+                              ".lzfse.other3", ".lzfse.apple", ".lzfse"]
         return lzfseXSuffixes.contains { path.hasSuffix($0) }
+    }
+
+    var equivalentCommand: String {
+        let input  = inputFilePath ?? "<input>"
+        let output = outputPath    ?? "<output>"
+        let n      = parallelTasks
+
+        let algoFlag: String
+        switch algorithm {
+        case .apple:  algoFlag = "-algo apple"
+        case .other3: algoFlag = "-algo other3"
+        case .bvx3:
+            if useOptimal      { algoFlag = "-algo bvx3 -optimal" }
+            else if useLazy2   { algoFlag = "-algo bvx3 -lazy2" }
+            else               { algoFlag = "-algo bvx3" }
+        }
+
+        if operation == .encode {
+            if inputIsDirectory {
+                let url    = URL(fileURLWithPath: input)
+                let parent = url.deletingLastPathComponent().path
+                let name   = url.lastPathComponent
+                return "tar -cf - -C \"\(parent)\" \"\(name)\" \\\n  | /opt/homebrew/bin/lzfse -encode \(algoFlag) -si -o \"\(output)\" -n \(n)"
+            } else {
+                return "/opt/homebrew/bin/lzfse -encode \(algoFlag) -i \"\(input)\" -o \"\(output)\" -n \(n)"
+            }
+        } else {
+            if inputIsLzfseXArchive {
+                return "/opt/homebrew/bin/lzfse -decode -i \"\(input)\" -n \(n) -so | tar -xf - -C \"\(output)\""
+            } else {
+                return "/opt/homebrew/bin/lzfse -decode -i \"\(input)\" -o \"\(output)\" -n \(n)"
+            }
+        }
     }
 
     // Returns the lzfseX-convention extension for the current algorithm/flags.
     // e.g. "lzfse.other3", "lzfse.bvx3.lazy2"
     private func lzfseExtension() -> String {
         switch algorithm {
-        case .apple:  return "lzfse.apple"
-        case .other3: return "lzfse.other3"
+        case .apple:  return "lzfse"
+        case .other3: return "lzfse"
         case .bvx3:
-            if useOptimal { return "lzfse.bvx3.optimal" }
-            if useLazy2   { return "lzfse.bvx3.lazy2" }
-            return "lzfse.bvx3"
+            if useOptimal { return "lzfse" }
+            if useLazy2   { return "lzfse" }
+            return "lzfse"
         }
     }
 
@@ -551,19 +621,40 @@ class LZFSEViewModel: ObservableObject {
         Task {
             do {
                 let startTime = Date()
+                let rssBefore = currentRSS()
+                rssTrackedPeak = rssBefore
 
-                try await performOperation(
-                    inputPath: inputPath,
-                    outputPath: outputPath,
-                    operation: operation,
-                    algorithm: algorithm,
-                    parallelTasks: parallelTasks,
-                    useLazy2: useLazy2,
-                    useOptimal: useOptimal,
-                    isDirectory: inputIsDirectory
-                )
+                // Poll phys_footprint every 5 ms to capture peak during operation
+                let pollTask = Task { [weak self] in
+                    while !Task.isCancelled {
+                        guard let self else { return }
+                        let rss = self.currentRSS()
+                        if rss > self.rssTrackedPeak { self.rssTrackedPeak = rss }
+                        try? await Task.sleep(nanoseconds: 5_000_000)
+                    }
+                }
+
+                do {
+                    try await performOperation(
+                        inputPath: inputPath,
+                        outputPath: outputPath,
+                        operation: operation,
+                        algorithm: algorithm,
+                        parallelTasks: parallelTasks,
+                        useLazy2: useLazy2,
+                        useOptimal: useOptimal,
+                        isDirectory: inputIsDirectory
+                    )
+                } catch {
+                    pollTask.cancel()
+                    throw error
+                }
+                pollTask.cancel()
+                let rssAfter = currentRSS()
+                if rssAfter > rssTrackedPeak { rssTrackedPeak = rssAfter }
 
                 let elapsed = Date().timeIntervalSince(startTime)
+                let rssDelta = max(rssTrackedPeak - rssBefore, 0)
 
                 var message = "✓ Success! / 成功！\n\n"
                 if operation == .encode {
@@ -577,6 +668,7 @@ class LZFSEViewModel: ObservableObject {
                     let inputSize = fileSize(atPath: inputPath)
                     message += "Archive size / 壓縮檔大小: \(formatBytes(inputSize))\n"
                 }
+                message += "Peak RSS / 峰值記憶體: \(formatBytes(rssDelta))\n"
                 message += "Time elapsed / 耗時: \(String(format: "%.2f", elapsed)) seconds\n"
                 message += "Output / 輸出: \(outputPath)"
 
@@ -866,6 +958,18 @@ class LZFSEViewModel: ObservableObject {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+
+    // phys_footprint = live physical memory (Activity Monitor "Memory" column); not a high-water mark
+    private func currentRSS() -> Int64 {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
+        let kr = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            }
+        }
+        return kr == KERN_SUCCESS ? Int64(info.phys_footprint) : 0
     }
 }
 

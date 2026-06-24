@@ -10,6 +10,45 @@
 
 ---
 
+## 解壓命令參考 / Decode Command Reference
+
+```sh
+# 正常解壓 / Normal decode
+lzfse -decode -i file.lzfse -so | tar -xf - -C /dest
+
+# Debug 模式：發生 overshoot / block 失敗時印詳細資訊到 stderr
+# Debug mode: prints overshoot / block failure details to stderr
+lzfse -decode -i file.lzfse -debug -so 2>debug/decode_debug.txt | tar -xf - -C /dest
+```
+
+---
+
+## 大檔解碼正確性驗證（2026-06-24）/ Large-File Decode Correctness Verification
+
+**資料集**：`proj_Win`（56 GB 真實資料，含 Mac .app、二進位、GGUF 等異質內容）  
+**Dataset**: `proj_Win` (56 GB real-world data — Mac .app bundles, binaries, GGUF, etc.)
+
+**流程 / Procedure**：
+```sh
+# 壓縮 / Compress
+tar -c -C /Volumes/Windows proj_Win \
+  | lzfse -encode -si -o proj_Win.lzfse -algo other3 -n 100
+
+# 解壓 / Decompress
+lzfse -decode -i proj_Win.lzfse -n 100 -so \
+  | tar -xf - -C /Volumes/Windows/test/
+
+# 比對 / Diff
+diff -rq /Volumes/Windows/proj_Win /Volumes/Windows/test/proj_Win 2>/dev/null
+```
+
+**結果 / Result**：`DIFF_EXIT:0` — output-identical，零差異。
+
+> 備註：首輪 diff 曾顯示 `Mac_Apps/Codex.app` 內 57 個檔案不同，原因為該 app 在壓縮後被作業系統自動更新（壓縮時間 02:04，Codex binary mtime 09:10）。以最新狀態重新壓縮後 diff 結果為 0 差異，確認解碼邏輯正確。  
+> Note: First diff showed 57 files differing inside `Codex.app` — caused by OS auto-update of the app after archiving. Re-compressing from current state produced `DIFF_EXIT:0`.
+
+---
+
 # R41-Mac：Tag-packed Hash Chain 導入（2026-06-22）/ R41-Mac: Tag-packed Hash Chain
 
 > 將 R27 的 Tag-packed hash chain（hashAndTag / chainIndexMask / chainTagShift / chainNullIndex）重新導入 R40 代碼基礎。  

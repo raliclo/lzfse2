@@ -1,0 +1,59 @@
+(lldb) target create "/opt/homebrew/bin/lzfse-debug"
+Current executable set to '/opt/homebrew/bin/lzfse-debug' (arm64).
+(lldb) command source -s 0 'debug/lldb_decode_debug.txt'
+Executing commands in '/Users/raliclo/proj/lzfse2/debug/lldb_decode_debug.txt'.
+(lldb) # lldb batch script — verify decodeStreamFromFile returns .ok
+(lldb) # Run from project root:
+(lldb) #   lldb --batch -s debug/lldb_decode_debug.txt /opt/homebrew/bin/lzfse-debug 2>&1 | tee debug/lzfse-debug-out.txt
+(lldb) # Redirect stdout (decoded tar stream) to /dev/null
+(lldb) settings set target.output-path /dev/null
+(lldb) # Breakpoint at .ok return (end of decodeStreamFromFile, line 2835)
+(lldb) breakpoint set --file lzfse-cli.swift --line 2835
+Breakpoint 1: where = lzfse-debug`static LZFSEv1.decodeStreamFromFile(path:chunkRaw:inflight:output:debug:) + 3652 at lzfse-cli.swift:2835:9, address = 0x00000001000394e4
+(lldb) # Breakpoint at .error / .fallback returns
+(lldb) breakpoint set --file lzfse-cli.swift --line 2812
+Breakpoint 2: where = lzfse-debug`static LZFSEv1.decodeStreamFromFile(path:chunkRaw:inflight:output:debug:) + 1732 at lzfse-cli.swift:2812:36, address = 0x0000000100038d64
+(lldb) breakpoint set --file lzfse-cli.swift --line 2826
+Breakpoint 3: where = lzfse-debug`static LZFSEv1.decodeStreamFromFile(path:chunkRaw:inflight:output:debug:) + 2304 at lzfse-cli.swift:2826:20, address = 0x0000000100038fa0
+(lldb) breakpoint set --file lzfse-cli.swift --line 2828
+Breakpoint 4: where = lzfse-debug`static LZFSEv1.decodeStreamFromFile(path:chunkRaw:inflight:output:debug:) + 2924 at lzfse-cli.swift:2829:22, address = 0x000000010003920c
+(lldb) # Run with -debug flag so [DBG] prints appear on stderr
+(lldb) run -decode -i "/Volumes/Windows/test/proj_Win.lzfse" -n 8 -debug -so
+Process 7140 launched: '/opt/homebrew/bin/lzfse-debug' (arm64)
+Process 7140 stopped
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 4.1
+    frame #0: 0x000000010003920c lzfse-debug`static LZFSEv1.decodeStreamFromFile(path="/Volumes/Windows/test/proj_Win.lzfse", chunkRaw=4194304, inflight=8, output=0x000000010068f800, debug=true) at lzfse-cli.swift:2829:22
+   2826	                if debug { fputs("[DBG] batch decode failed wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+   2827	                return wroteAny ? .error : .fallback
+   2828	            }
+-> 2829	            for o in outs {
+    	                     ^
+   2830	                guard let o = o else { return wroteAny ? .error : .fallback }
+   2831	                if !o.isEmpty { output.write(Data(o)) }
+   2832	            }
+Target 0: (lzfse-debug) stopped.
+(lldb) frame info
+frame #0: 0x000000010003920c lzfse-debug`static LZFSEv1.decodeStreamFromFile(path="/Volumes/Windows/test/proj_Win.lzfse", chunkRaw=4194304, inflight=8, output=0x000000010068f800, debug=true) at lzfse-cli.swift:2829:22
+(lldb) frame variable wroteAny misaligned
+(Bool) wroteAny = false
+(Bool) misaligned = false
+(lldb) thread backtrace
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 4.1
+  * frame #0: 0x000000010003920c lzfse-debug`static LZFSEv1.decodeStreamFromFile(path="/Volumes/Windows/test/proj_Win.lzfse", chunkRaw=4194304, inflight=8, output=0x000000010068f800, debug=true) at lzfse-cli.swift:2829:22
+    frame #1: 0x0000000100002524 lzfse-debug`runCLI() at lzfse-cli.swift:3661:24
+    frame #2: 0x0000000100000f8c lzfse-debug`main at lzfse-cli.swift:3725:1
+    frame #3: 0x000000018c2d3e00 dyld`start + 6992
+(lldb) process continue
+Process 7140 resuming
+Process 7140 stopped
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 4.1
+    frame #0: 0x000000010003920c lzfse-debug`static LZFSEv1.decodeStreamFromFile(path="/Volumes/Windows/test/proj_Win.lzfse", chunkRaw=4194304, inflight=8, output=0x000000010068f800, debug=true) at lzfse-cli.swift:2829:22
+   2826	                if debug { fputs("[DBG] batch decode failed wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+   2827	                return wroteAny ? .error : .fallback
+   2828	            }
+-> 2829	            for o in outs {
+    	                     ^
+   2830	                guard let o = o else { return wroteAny ? .error : .fallback }
+   2831	                if !o.isEmpty { output.write(Data(o)) }
+   2832	            }
+Target 0: (lzfse-debug) stopped.

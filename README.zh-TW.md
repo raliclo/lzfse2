@@ -105,6 +105,17 @@ cat input_file | ./lzfse -encode -si -so > output_file.lzfse
 
 解壓端不需要、也不應該加 `-lazy2` 或 `-optimal`。這兩個 flag 對 decode 沒有格式意義。
 
+### 解壓 tar 封存至目錄 / Decode tar archive to directory
+
+```sh
+# 正常解壓 / Normal decode
+lzfse -decode -i file.lzfse -so | tar -xf - -C /dest
+
+# Debug 模式：overshoot / block 失敗時印詳細資訊到 stderr
+# Debug mode: prints overshoot / block failure details to stderr
+lzfse -decode -i file.lzfse -debug -so 2>debug/decode_debug.txt | tar -xf - -C /dest
+```
+
 執行內建測試：
 
 ```sh
