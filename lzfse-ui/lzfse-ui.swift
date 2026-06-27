@@ -56,7 +56,7 @@ struct ContentView: View {
                 .padding(24)
             }
         }
-        .frame(minWidth: 800, minHeight: 650)
+        .frame(minWidth: 800, minHeight: 900)
     }
 
     // MARK: - Header

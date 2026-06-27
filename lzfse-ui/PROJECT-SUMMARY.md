@@ -18,22 +18,27 @@ This package contains everything you need to create a modern macOS graphical use
    - Bilingual support (English/Chinese)
    - ~550 lines of UI code
 
+3. **AppIcon.png / AppIcon.icns**
+   - Checked-in app icon source image and macOS bundle icon
+   - `build-ui.sh` regenerates `AppIcon.icns` from `AppIcon.png`
+   - Bundle `Info.plist` references it as `CFBundleIconFile=AppIcon`
+
 ### Documentation
 
-3. **README-UI.md**
+4. **README-UI.md**
    - User guide for the application
    - Features overview
    - Building instructions
    - Usage guide with examples
    - Troubleshooting section
 
-4. **XCODE-SETUP.md**
+5. **XCODE-SETUP.md**
    - Step-by-step Xcode project creation
    - Configuration guide
    - Common issues and solutions
    - Advanced topics (testing, profiling, distribution)
 
-5. **UI-DESIGN.md**
+6. **UI-DESIGN.md**
    - Complete UI architecture documentation
    - Component breakdown with ASCII diagrams
    - User workflow descriptions
@@ -41,14 +46,15 @@ This package contains everything you need to create a modern macOS graphical use
 
 ### Build Files
 
-6. **build-ui.sh**
+7. **build-ui.sh**
    - Automated build script
    - Creates .app bundle
+   - Generates and embeds the app icon
    - Ready to run on macOS
 
-7. **Info.plist**
+8. **Info.plist**
    - App bundle configuration
-   - Metadata and document types
+   - Metadata, document types, and `CFBundleIconFile=AppIcon`
 
 ---
 
@@ -89,10 +95,11 @@ See **XCODE-SETUP.md** for detailed instructions.
    ```bash
    ./build-ui.sh
    ```
+   This also generates `AppIcon.icns` and embeds it into `LZFSE_UI.app`.
 
 3. **Run**
    ```bash
-   open "LZFSE UI.app"
+   open "LZFSE_UI.app"
    ```
 
 ---
@@ -119,7 +126,7 @@ See **XCODE-SETUP.md** for detailed instructions.
 - **BVX3**: Maximum compression (best ratio, custom format)
 
 **Manual Settings:**
-- **n (Parallel Tasks)**: 1-32, adjustable via stepper
+- **n (Parallel Tasks)**: 1-`processorCount × 10`, adjustable via text field
 - **Lazy2 Mode**: Deep search for BVX3 (toggle)
 - **Optimal Parsing**: Maximum compression for BVX3 (toggle)
 
@@ -128,6 +135,11 @@ See **XCODE-SETUP.md** for detailed instructions.
 - Automatic file naming
 - Full path control
 - Results accessible in Finder immediately
+
+### 5. Custom App Icon ✓
+- `AppIcon.png` is the source image
+- `AppIcon.icns` is the macOS bundle icon
+- `build-ui.sh` embeds the icon automatically
 
 ---
 
@@ -164,7 +176,7 @@ See **XCODE-SETUP.md** for detailed instructions.
 - [x] **File from Finder**: Native file picker with visual display
 - [x] **Decompress Folder**: Folder selection for output
 - [x] **Compression Algorithms**: Apple, Other3, BVX3 selectable
-- [x] **Manual n Setting**: Stepper control (1-32)
+- [x] **Manual n Setting**: text field with clamping to `1...processorCount × 10`
 - [x] **Extraction with Finder**: Full output path control
 
 ### Additional Features Included
@@ -264,8 +276,8 @@ LZFSEv1.decodeStreamToHandle(
 
 - Streaming I/O: No full file in memory
 - Bounded parallelism: Semaphore-controlled
-- Memory ≈ (1MB chunk × 2 × n tasks)
-- Example: n=8 → ~16MB base memory
+- Memory depends on chunk pipeline, algorithm, parser mode, tar piping, and output ordering.
+- `n` controls parallelism and can materially affect peak memory; the UI tracks peak physical footprint during each operation and reports it in the status panel.
 
 ### Performance
 
@@ -293,7 +305,7 @@ Typical compression times (1MB chunks):
 
 ### Change Default Algorithm
 
-In `lzfse-ui.swift`, line ~271:
+In `lzfse-ui.swift`, search for:
 
 ```swift
 @Published var algorithm: LZFSEAlgorithm = .other3
@@ -302,7 +314,7 @@ In `lzfse-ui.swift`, line ~271:
 
 ### Change Default Parallel Tasks
 
-Line ~272:
+Search for:
 
 ```swift
 @Published var parallelTasks: Int = 8
@@ -321,10 +333,10 @@ Line ~272:
 
 ### Change Window Size
 
-In `lzfse-ui.swift`, line ~118:
+In `lzfse-ui.swift`, search for:
 
 ```swift
-.frame(minWidth: 650, minHeight: 600)
+.frame(minWidth: 800, minHeight: 650)
 // Change to your preferred size
 ```
 
@@ -362,7 +374,7 @@ In `lzfse-ui.swift`, line ~118:
 
 ```bash
 ./build-ui.sh
-cp -r "LZFSE UI.app" /Applications/
+cp -r "LZFSE_UI.app" /Applications/
 ```
 
 ### For Sharing

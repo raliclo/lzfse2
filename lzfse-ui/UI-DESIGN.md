@@ -20,15 +20,6 @@
 │  └────────────────────────────┘  └────────────────────────────────────┘  │
 │                                                                           │
 │  ┌────────────────────────────────────────────────────────────────────┐  │
-│  │ Advanced Options / 進階選項                                          │  │
-│  │ Parallel Tasks (n): [8] [▼ ▲]   Controls memory usage (1-32)      │  │
-│  │ ── (BVX3 encode only) ──────────────────────────────────────────── │  │
-│  │ ☐ Lazy2 Mode / 雜湊鏈深搜   ☐ Optimal Parsing / 最優解析            │  │
-│  │ ── (Decode, lzfseX detected) ──────────────────────────────────── │  │
-│  │ ℹ lzfseX archive detected — will extract via tar -xf -            │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-│                                                                           │
-│  ┌────────────────────────────────────────────────────────────────────┐  │
 │  │ Files / 檔案                                                         │  │
 │  │                                                                     │  │
 │  │ Input File or Folder / 輸入檔案或資料夾:                              │  │
@@ -39,8 +30,8 @@
 │  │                                                                     │  │
 │  │ Output File / 壓縮輸出檔: (encode) or Output Folder / 輸出資料夾:    │  │
 │  │ ┌─────────────────────────────────────────────────────────────┐    │  │
-│  │ │ mydata.lzfse.bvx3                      [Clear] [Save As…]   │    │  │
-│  │ │ /Users/name/Documents/mydata.lzfse.bvx3                    │    │  │
+│  │ │ mydata.lzfse                           [Clear] [Save As…]   │    │  │
+│  │ │ /Users/name/Documents/mydata.lzfse                         │    │  │
 │  │ └─────────────────────────────────────────────────────────────┘    │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                           │
@@ -48,7 +39,7 @@
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-Minimum window size: **800 × 600 pt**
+Minimum window size: **800 × 650 pt**
 
 ---
 
@@ -57,6 +48,7 @@ Minimum window size: **800 × 600 pt**
 ### 1. Header
 **Purpose**: App identity  
 **Elements**: `doc.zipper` SF Symbol (blue gradient), bilingual title  
+**Bundle icon**: the macOS app icon is provided by `AppIcon.png` / `AppIcon.icns` and referenced from `Info.plist` via `CFBundleIconFile=AppIcon`; it is not drawn by `headerView`.
 **Code**: `headerView`
 
 ---
@@ -84,9 +76,9 @@ Minimum window size: **800 × 600 pt**
 
 | Algorithm | Output format | Compatibility |
 |-----------|--------------|---------------|
-| Apple     | `.lzfse.apple`  | Apple Compression.framework |
-| Other3    | `.lzfse.other3` | Standard bvx2 — Apple-compatible |
-| BVX3      | `.lzfse.bvx3`   | Custom large-alphabet blocks; this tool only |
+| Apple     | `.lzfse` from current UI save name | Apple Compression.framework |
+| Other3    | `.lzfse` from current UI save name | Standard bvx2 — Apple-compatible |
+| BVX3      | `.lzfse` from current UI save name | Custom large-alphabet blocks; this tool only |
 
 **Code**: `algorithmSection`
 
@@ -110,25 +102,24 @@ Input size / 輸入大小: 1.5 MB
 Output size / 輸出大小: 312 KB
 Compression ratio / 壓縮率: 20.80%
 Time elapsed / 耗時: 0.43 seconds
-Output / 輸出: /Users/name/mydata.lzfse.bvx3
+Output / 輸出: /Users/name/mydata.lzfse
 ```
 
 **Code**: `statusView`
 
 ---
 
-### 5. Advanced Options Section (full width)
-**Purpose**: Fine-tune performance and algorithm behaviour  
+### 5. Parallel Tasks and BVX3 Flags (inside Algorithm Section)
+**Purpose**: Fine-tune performance and BVX3 parser behaviour  
 **Elements**:
 
 | Control | Condition | Description |
 |---------|-----------|-------------|
-| Parallel Tasks stepper (1–32, default 8) | Always | Controls pipeline depth and memory usage |
+| Parallel Tasks text field (1–`processorCount × 10`, default 8) | Always | Controls pipeline depth and memory usage |
 | Lazy2 Mode toggle | BVX3 encode only | Deep hash-chain search; better ratio, slower |
-| Optimal Parsing toggle | BVX3 encode only | DP-based best ratio; slowest; overrides Lazy2 |
-| lzfseX info banner | Decode + lzfseX suffix detected | Informs user that tar extraction will be used |
+| Optimal Parsing toggle | BVX3 encode only | DP-based best ratio; slowest; disables Lazy2 |
 
-**Code**: `optionsSection`
+**Code**: `algorithmSection`
 
 ---
 
@@ -145,8 +136,8 @@ Auto-suggests output path on input selection:
 
 | Input | Encode output suggestion | Decode output suggestion |
 |-------|--------------------------|--------------------------|
-| Single file | `<file>.lzfse` (same dir) | parent dir + stripped name |
-| Folder | `<folder>.<algo-ext>` e.g. `mydata.lzfse.bvx3` | — |
+| Single file | `<file>.lzfse` (same dir) | parent dir + stripped name only if suffix is not recognized as lzfseX |
+| Folder | `<folder>.lzfse` in the current UI implementation | — |
 | `.lzfse.algo` archive | — | parent dir (tar extracts there) |
 
 #### Output row
@@ -154,7 +145,7 @@ Auto-suggests output path on input selection:
 |------|--------|-------------|
 | Encode | `NSSavePanel` | full file path |
 | Decode — lzfseX archive | `NSOpenPanel` (directories only) | chosen folder (tar extraction root) |
-| Decode — plain `.lzfse` | `NSOpenPanel` (directories only) | chosen folder + auto-name |
+| Decode — non-lzfseX suffix | `NSOpenPanel` (directories only) | chosen folder + auto-name |
 
 Labels and button text update contextually:
 
@@ -181,7 +172,7 @@ Labels and button text update contextually:
 - **Reset** (left): clears all selections; disabled while processing
 - **Compress / Decompress** (right, prominent): disabled until both input and output are set or while processing
 
-**Code**: `actionButtons`
+**Code**: action buttons are inline in `fileSelectionSection`
 
 ---
 
@@ -195,7 +186,7 @@ All decompression follows `extract()` in `zshrc.sh`:
 *.lzfse.bvx3          →  lzfse | tar -xf - -C <dir>
 *.lzfse.other3        →  lzfse | tar -xf - -C <dir>
 *.lzfse.apple         →  lzfse | tar -xf - -C <dir>
-*.lzfse               →  single-file decode → place in chosen folder
+*.lzfse               →  current UI treats this as lzfseX archive → lzfse | tar -xf - -C <dir>
 ```
 
 Detection is automatic from the file suffix (`isLzfseXArchive()`). No manual toggle required.
@@ -214,13 +205,13 @@ Output naming follows the lzfseX extension convention:
 
 | Algorithm + flags | Output extension |
 |-------------------|-----------------|
-| Apple | `.lzfse.apple` |
-| Other3 | `.lzfse.other3` |
-| BVX3 | `.lzfse.bvx3` |
-| BVX3 + Lazy2 | `.lzfse.bvx3.lazy2` |
-| BVX3 + Optimal | `.lzfse.bvx3.optimal` |
+| Apple | `.lzfse` |
+| Other3 | `.lzfse` |
+| BVX3 | `.lzfse` |
+| BVX3 + Lazy2 | `.lzfse` |
+| BVX3 + Optimal | `.lzfse` |
 
-The output extension updates live as the user changes algorithm or flags.
+The output path updates when the input folder is selected or when algorithm/flags change, but the current `lzfseExtension()` implementation returns `.lzfse` for every algorithm.
 
 ---
 
@@ -240,7 +231,7 @@ The output extension updates live as the user changes algorithm or flags.
 ### Compress a Folder (lzfseX)
 ```
 1. Click "Select File/Folder" → pick a folder
-   → folder icon appears; output auto-named <folder>.lzfse.other3
+   → folder icon appears; output auto-named <folder>.lzfse
 2. Optionally: change algorithm → output path updates instantly
 3. Click "Save As…" to confirm / move output location
 4. Click "Compress"
@@ -250,7 +241,7 @@ The output extension updates live as the user changes algorithm or flags.
 ### Decompress a lzfseX Archive
 ```
 1. Switch to "Decompress"
-2. Click "Select .lzfse" → pick e.g. mydata.lzfse.other3
+2. Click "Select .lzfse" → pick e.g. mydata.lzfse or mydata.lzfse.other3
    → Options shows: "lzfseX archive detected"
    → Output auto-suggested: parent dir of archive
 3. Click "Select Extract Dir" to choose extraction folder
@@ -259,15 +250,17 @@ The output extension updates live as the user changes algorithm or flags.
    → original folder structure restored
 ```
 
-### Decompress a Plain .lzfse File
+### Direct Single-File Decode
 ```
 1. Switch to "Decompress"
-2. Click "Select .lzfse" → pick e.g. file.txt.lzfse
-3. Output auto-suggested: same dir, file.txt
+2. Select an input whose suffix is not recognized by isLzfseXArchive()
+3. Output auto-suggested: same dir, stripped filename where applicable
 4. Click "Select Folder" to choose output directory
 5. Click "Decompress"
    → single-file decode; result placed in chosen folder
 ```
+
+Current note: `.lzfse` is included in `isLzfseXArchive()`, so a normal `.lzfse` selection routes through `lzfse | tar -xf -` rather than the direct single-file decode branch.
 
 ---
 
@@ -285,10 +278,9 @@ ContentView (VStack)
         │   │   ├── operationSection
         │   │   └── algorithmSection
         │   └── statusView (maxWidth .infinity)
-        ├── optionsSection
         ├── fileSelectionSection
         ├── progressView (conditional)
-        └── actionButtons
+        └── action buttons inside fileSelectionSection
 ```
 
 ### State Management (LZFSEViewModel @MainActor)
@@ -296,7 +288,7 @@ ContentView (VStack)
 |----------|------|---------|
 | `operation` | `LZFSEOperation` | encode / decode; `didSet` clears `outputPath` |
 | `algorithm` | `LZFSEAlgorithm` | apple / other3 / bvx3; `didSet` updates dir output path |
-| `parallelTasks` | `Int` | 1–32 (default 8) |
+| `parallelTasks` | `Int` | 1–`processorCount × 10` (default 8) |
 | `useLazy2` | `Bool` | BVX3 flag; `didSet` updates dir output path |
 | `useOptimal` | `Bool` | BVX3 flag; `didSet` updates dir output path |
 | `inputFilePath` | `String?` | nil = no selection |
@@ -336,7 +328,9 @@ lzfse2/
 └── lzfse-ui/
     ├── lzfse-ui.swift       # SwiftUI app (this file)
     ├── build-ui.sh          # Build script (uses ../lzfse-cli.swift)
-    ├── AppIconGenerator.swift
+    ├── AppIcon.png          # Source app icon image
+    ├── AppIcon.icns         # Generated macOS app icon
+    ├── AppIconGenerator.swift # Legacy/preview-only icon generator reference
     ├── Info.plist
     └── *.md                 # Documentation
 ```
@@ -349,8 +343,10 @@ cd lzfse-ui
 swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
     -framework SwiftUI \
     -target arm64-apple-macos13.0 \
-    -o "LZFSE UI.app/Contents/MacOS/LZFSE UI"
+    -o "LZFSE_UI.app/Contents/MacOS/LZFSE UI"
 ```
+
+`build-ui.sh` regenerates `AppIcon.icns` from `AppIcon.png`, places it under `LZFSE_UI.app/Contents/Resources/`, and writes `CFBundleIconFile=AppIcon` into the generated bundle `Info.plist`.
 
 ---
 
@@ -358,11 +354,12 @@ swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
 
 | Property | Value |
 |----------|-------|
-| Minimum size | 800 × 600 pt |
+| Minimum size | 800 × 650 pt |
 | Resizable | Yes |
 | Full screen | Supported |
 | Appearance | Auto light / dark mode |
 | Language | English + Traditional Chinese (bilingual labels throughout) |
+| Bundle icon | `AppIcon.icns` generated from `AppIcon.png` |
 
 ---
 
@@ -374,4 +371,4 @@ swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
 | **Feedback** | Status panel always visible; progress spinner during processing |
 | **Convention** | Matches `lzfseX` / `extract()` from `zshrc.sh` exactly |
 | **Safety** | Action button disabled until both paths set; Reset always available |
-| **Efficiency** | Auto-suggest paths; output extension updates live with algorithm |
+| **Efficiency** | Auto-suggest paths; equivalent command updates live with algorithm and BVX3 flags |

@@ -95,7 +95,7 @@ A complete macOS app with:
 1. ✅ **File selection from Finder** - Native macOS file picker
 2. ✅ **Decompress folder selection** - Choose output location
 3. ✅ **Algorithm selection** - Apple/Other3/BVX3 radio buttons
-4. ✅ **Manual n setting** - Parallel tasks stepper (1-32)
+4. ✅ **Manual n setting** - Parallel tasks text field clamped to `1...processorCount × 10`
 5. ✅ **Extraction with Finder** - Full path control
 6. ✅ **Progress indicators** - Visual feedback
 7. ✅ **Status messages** - Detailed results

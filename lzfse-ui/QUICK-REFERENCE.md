@@ -12,7 +12,7 @@
 ```bash
 chmod +x build-ui.sh
 ./build-ui.sh
-open "LZFSE UI.app"
+open "LZFSE_UI.app"
 ```
 
 ---
@@ -23,8 +23,8 @@ open "LZFSE UI.app"
 ```
 1. Click "Compress / 壓縮"
 2. Select algorithm (Other3 recommended)
-3. Click "Select File" → choose your file
-4. Click "Select Location" → choose where to save
+3. Click "Select File/Folder" → choose your file or folder
+4. Use the auto-suggested output path, or click "Save As..." to choose where to save
 5. Click "Compress" button
 6. Wait for completion
 7. Check status for results
@@ -34,7 +34,7 @@ open "LZFSE UI.app"
 ```
 1. Click "Decompress / 解壓縮"
 2. Click "Select File" → choose .lzfse file
-3. Click "Select Location" → choose output folder
+3. Click "Select Folder" or "Select Extract Dir" → choose output folder
 4. Click "Decompress" button
 5. Wait for completion
 6. File appears in chosen folder
@@ -58,10 +58,10 @@ open "LZFSE UI.app"
 ## 🎛️ Settings Reference
 
 ### Parallel Tasks (n)
-- **Range**: 1-32
+- **Range**: 1-`processorCount × 10`
 - **Default**: 8
 - **Effect**: More tasks = faster but uses more memory
-- **Memory**: ~2MB per task
+- **Memory**: depends on chunk pipeline, selected algorithm, and input type
 - **Recommendation**: 
   - Small files: 2-4
   - Large files: 8-16
@@ -134,7 +134,7 @@ Any algorithm works
 ### Very Large Files (>1GB)
 - **Compression**: 5-20 minutes
 - **Decompression**: 1-5 minutes
-- **Tip**: Max parallel tasks (n=32), ensure disk space
+- **Tip**: raise `n` within the UI clamp (`processorCount × 10`) only when memory and disk space are sufficient
 
 *Times vary by CPU speed and file compressibility*
 
@@ -206,16 +206,9 @@ Solution:
 
 ---
 
-## 🖥️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| ⌘O | Open/Select input file |
-| ⌘S | Start compression |
-| ⌘R | Reset all settings |
-| ⌘W | Close window |
-| ⌘Q | Quit app |
-| ⌘, | Preferences (if implemented) |
+The current `lzfse-ui.swift` implementation does not define custom shortcuts. Standard macOS window/app shortcuts such as `⌘W` and `⌘Q` still come from the system.
 
 ---
 
@@ -223,11 +216,11 @@ Solution:
 
 | Extension | Meaning |
 |-----------|---------|
-| `.lzfse` | Standard LZFSE compressed file |
-| `.lz` | Alternative LZFSE extension |
-| (any) | LZFSE detects by magic bytes, not extension |
+| `.lzfse` | Current UI default save suffix; currently routed as lzfseX archive during decode |
+| `.lzfse.apple`, `.lzfse.other3`, `.lzfse.bvx3*` | Recognized lzfseX archive suffixes |
+| Other suffix | Can take the direct single-file decode path |
 
-**Tip**: You can compress/decompress files without specific extensions
+**Tip**: the UI uses suffixes to decide whether to run the tar extraction pipeline.
 
 ---
 
@@ -301,7 +294,7 @@ No automatic updates (standalone app)
 
 ### Uninstall
 ```
-Delete "LZFSE UI.app" from Applications
+Delete "LZFSE_UI.app" from Applications
 No preferences files created
 ```
 
@@ -341,7 +334,7 @@ In Xcode:
 
 ### ❌ DON'T:
 - Compress already-compressed files (JPEG, MP4, ZIP)
-- Set parallel tasks too high (>32)
+- Set parallel tasks too high for available RAM
 - Delete original before verifying compressed version
 - Use BVX3 for files you need to share (unless recipient has this tool)
 - Compress files you need immediate random access to
@@ -439,7 +432,7 @@ Add as Finder Quick Action:
 ### Memory Optimization
 For 8GB RAM Mac: n=4
 For 16GB RAM Mac: n=8
-For 32GB+ RAM Mac: n=16-32
+For 32GB+ RAM Mac: n=16 or higher if peak RSS remains acceptable
 
 ---
 

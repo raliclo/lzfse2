@@ -99,16 +99,28 @@ Localization:
 - Localizations: + Add Chinese (Simplified/Traditional)
 ```
 
-### Asset Catalog (Optional Custom Icon)
+### App Icon
 
-To add a custom app icon:
+This repo includes a generated app icon:
+
+- `lzfse-ui/AppIcon.png` — source image
+- `lzfse-ui/AppIcon.icns` — macOS bundle icon generated from the PNG
+
+For the command-line build, `build-ui.sh` embeds `AppIcon.icns` automatically and writes `CFBundleIconFile=AppIcon`.
+
+For Xcode, use either approach:
+
+#### Asset catalog
 
 1. In Project Navigator, click **Assets.xcassets**
 2. Select **AppIcon**
-3. Drag icon files (PNG) into appropriate size slots:
-   - 16x16, 32x32, 128x128, 256x256, 512x512 (each @1x and @2x)
+3. Use `AppIcon.png` as the source image to create the required macOS icon sizes.
 
-For now, macOS will use a default app icon.
+#### Resource file
+
+1. Add `AppIcon.icns` to the app target resources
+2. Set `CFBundleIconFile` in `Info.plist` to `AppIcon`
+3. Ensure the copied resource appears as `Contents/Resources/AppIcon.icns` in the built app
 
 ### Capabilities
 
@@ -137,7 +149,8 @@ LZFSE UI/
 ├── Engine/
 │   └── lzfse-cli.swift      (Core compression logic)
 ├── Resources/
-│   └── Assets.xcassets
+│   ├── Assets.xcassets
+│   └── AppIcon.icns
 └── Supporting Files/
     └── Info.plist
 ```

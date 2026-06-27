@@ -85,7 +85,7 @@ swiftc -O lzfse-cli.swift lzfse-ui.swift -o LZFSE-UI \
 ```bash
 chmod +x build-ui.sh
 ./build-ui.sh
-open "LZFSE UI.app"
+open "LZFSE_UI.app"
 ```
 
 ## Verification
@@ -95,7 +95,7 @@ After building, you should have a working app with:
 - ✅ File selection from Finder
 - ✅ Decompress folder selection
 - ✅ Algorithm selection (Apple/Other3/BVX3)
-- ✅ Manual n (parallel tasks 1-32) setting
+- ✅ Manual n setting clamped to `1...processorCount × 10`
 - ✅ Extraction with Finder integration
 - ✅ Progress indicators
 - ✅ Status messages
