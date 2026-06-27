@@ -22,6 +22,7 @@ This package contains everything you need to create a modern macOS graphical use
    - Checked-in app icon source image and macOS bundle icon
    - `build-ui.sh` regenerates `AppIcon.icns` from `AppIcon.png`
    - Bundle `Info.plist` references it as `CFBundleIconFile=AppIcon`
+   - Windows `build-win.sh` uses the same `AppIcon.png` to generate `.win-build/AppIcon.ico` / `.win-build/AppIcon.res` and embeds that resource into `LZFSE_UI_Win.exe`
 
 ### Documentation
 
@@ -140,6 +141,7 @@ See **XCODE-SETUP.md** for detailed instructions.
 - `AppIcon.png` is the source image
 - `AppIcon.icns` is the macOS bundle icon
 - `build-ui.sh` embeds the icon automatically
+- `build-win.sh` embeds a Windows icon resource generated from the same `AppIcon.png`, so `LZFSE_UI_Win.exe` uses the matching icon in File Explorer and the taskbar
 
 ---
 

@@ -1,18 +1,23 @@
 @echo off
-chcp 65001 > nul
-cd ..
-swiftc -O lzfse-cli.swift -o ./helper_windows/lzfse.exe
+:: compile
+echo RUNNING compile %TIME:~0,8% 
 
-if %ERRORLEVEL% neq 0 (
-    echo.
+set "_build_exe=lzfse-build-%RANDOM%.exe"
+swiftc -O ../lzfse-cli.swift -o "%_build_exe%" 
+
+if errorlevel 1 (
+    echo COMPILE_FAILED %TIME:~0,8%
     echo [FAIL] 編譯失敗 / Compilation failed
     pause
-    exit /b %ERRORLEVEL%
+    exit /b 1
 )
-cd helper_windows
 
-echo [OK] 編譯成功 / Compilation succeeded
+move /Y "%_build_exe%" lzfse.exe 
+if errorlevel 1 (
+    echo COMPILE_INSTALL_FAILED %TIME:~0,8%
+    exit /b 1
+)
+del /Q "%_build_exe:.exe=.lib%" "%_build_exe:.exe=.exp%" > nul 2>&1
 
-.\lzfse.exe -test > .\lzfse-test-windows.txt
-echo [OK] 測試完成，結果寫入 lzfse-test-windows.txt / Test done, results in lzfse-test-windows.txt
+echo COMPILE_OK %TIME:~0,8%
 pause

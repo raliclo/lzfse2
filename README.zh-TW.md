@@ -30,6 +30,28 @@ swiftc -O lzfse-cli.swift -o lzfse
 
 `compile.sh` 也會將二進位檔複製到 `/opt/homebrew/bin`，因此該步驟可能需要本機寫入權限。
 
+## Windows 圖形介面（LZFSE_UI_Win）
+
+以 SwiftCrossUI（WinUIBackend）打造的 Windows 圖形前端，對應 macOS 的 `lzfse-ui/lzfse-ui.swift`。它連結同一份 codec，並隨附 `lzfse.exe`。
+
+**建置**（需 Git for Windows、Swift for Windows 6.3.2、VS Build Tools + Windows SDK）：
+
+```sh
+cd lzfse-ui
+./build-win.sh            # 或在檔案總管按兩下 build-win.bat
+# → lzfse-ui/release/LZFSE_UI_Win.zip （GUI app + 隨附 lzfse.exe）
+```
+
+**自包含 CLI 包**（`lzfse.exe` + Swift runtime DLL，免裝 Swift 即可執行）：
+
+```sh
+cd helper_windows
+./build-cli-win.sh        # 或按兩下 build-cli-win.bat
+# → helper_windows/release/lzfse-cli.zip
+```
+
+**執行需求：** GUI 需安裝 **Windows App SDK 1.5 runtime（含 DDLM 套件）**，否則無法啟動（exit 132）。DDLM 安裝、功能與疑難排解詳見 [lzfse-ui/README-UI-Win.md](lzfse-ui/README-UI-Win.md)。
+
 ## 用法
 
 ```sh
@@ -104,6 +126,20 @@ cat input_file | ./lzfse -encode -si -so > output_file.lzfse
 ```
 
 解壓端不需要、也不應該加 `-lazy2` 或 `-optimal`。這兩個 flag 對 decode 沒有格式意義。
+
+### Windows PowerShell tar 解包注意事項
+
+不要在 Windows PowerShell 直接使用 `.\lzfse.exe -decode -so | tar ...`，PowerShell 可能把 binary stdout 當文字管線處理而破壞 tar stream。請改用 `cmd /d /c` 讓 binary pipe 由 `cmd.exe` 處理：
+
+```powershell
+cmd /d /c ".\lzfse.exe -decode -i ""C:/path/input.lzfse"" -n 8 -so | tar -xf - -C ""C:/path/output-folder"""
+```
+
+若封存是用父層相對路徑建立，內容路徑可能是 `../name/...`；Windows bsdtar 會因安全檢查回報 `Path contains '..'`。這種情況請在解包時移除最前面的 `..` path component：
+
+```powershell
+cmd /d /c ".\lzfse.exe -decode -i ""C:/path/input.lzfse"" -n 8 -so | tar -xf - --strip-components 1 -C ""C:/path/output-folder"""
+```
 
 ### 解壓 tar 封存至目錄 / Decode tar archive to directory
 

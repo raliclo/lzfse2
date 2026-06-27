@@ -48,7 +48,7 @@ Minimum window size: **800 × 650 pt**
 ### 1. Header
 **Purpose**: App identity  
 **Elements**: `doc.zipper` SF Symbol (blue gradient), bilingual title  
-**Bundle icon**: the macOS app icon is provided by `AppIcon.png` / `AppIcon.icns` and referenced from `Info.plist` via `CFBundleIconFile=AppIcon`; it is not drawn by `headerView`.
+**Bundle icon**: the macOS app icon is provided by `AppIcon.png` / `AppIcon.icns` and referenced from `Info.plist` via `CFBundleIconFile=AppIcon`; the Windows build uses the same `AppIcon.png` to generate and embed a `.ico` / `.res` icon resource into `LZFSE_UI_Win.exe` for File Explorer and taskbar display. The bundle/app icon is not drawn by `headerView`.
 **Code**: `headerView`
 
 ---
@@ -348,6 +348,8 @@ swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
 
 `build-ui.sh` regenerates `AppIcon.icns` from `AppIcon.png`, places it under `LZFSE_UI.app/Contents/Resources/`, and writes `CFBundleIconFile=AppIcon` into the generated bundle `Info.plist`.
 
+`build-win.sh` uses the same `AppIcon.png` to generate temporary `.win-build/AppIcon.ico` and `.win-build/AppIcon.res`, then links the resource into `LZFSE_UI_Win.exe`. This gives the Windows app the matching Explorer and taskbar icon.
+
 ---
 
 ## Window & Visual
@@ -359,7 +361,7 @@ swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
 | Full screen | Supported |
 | Appearance | Auto light / dark mode |
 | Language | English + Traditional Chinese (bilingual labels throughout) |
-| Bundle icon | `AppIcon.icns` generated from `AppIcon.png` |
+| Bundle icon | macOS: `AppIcon.icns` generated from `AppIcon.png`; Windows: embedded `.ico` / `.res` generated from the same `AppIcon.png` |
 
 ---
 

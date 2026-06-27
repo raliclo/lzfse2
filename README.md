@@ -30,6 +30,28 @@ Or run the auxiliary stet:
 
 `compile.sh` WILL ALSO COPY THE BINER FILE TO `/opt/homebrew/bin`, SO THIS STEP MAY REQUIRE A WRITE AUTHORITION.
 
+## Windows GUI (LZFSE_UI_Win)
+
+A SwiftCrossUI (WinUIBackend) graphical frontend for Windows, mirroring the macOS `lzfse-ui/lzfse-ui.swift`. It links the same codec and bundles `lzfse.exe`.
+
+**Build** (needs Git for Windows, Swift for Windows 6.3.2, VS Build Tools + Windows SDK):
+
+```sh
+cd lzfse-ui
+./build-win.sh            # or double-click build-win.bat
+# → lzfse-ui/release/LZFSE_UI_Win.zip  (GUI app + bundled lzfse.exe)
+```
+
+**Self-contained CLI package** (`lzfse.exe` + Swift runtime DLLs — runs without Swift installed):
+
+```sh
+cd helper_windows
+./build-cli-win.sh        # or double-click build-cli-win.bat
+# → helper_windows/release/lzfse-cli.zip
+```
+
+**Runtime requirement:** the GUI needs the **Windows App SDK 1.5 runtime (including the DDLM package)** installed, or it will fail to launch (exit 132). See [lzfse-ui/README-UI-Win.md](lzfse-ui/README-UI-Win.md) for the DDLM install, features, and troubleshooting.
+
 ## Usage
 
 ```sh
@@ -104,6 +126,20 @@ That is:
 ```
 
 The decompression terminal does not need and should not add `-lazy2` or `-optimal`. These two flags have no formatting significance for decode.
+
+### Windows PowerShell note for tar extraction
+
+Do not pipe binary `-so` output directly through Windows PowerShell; PowerShell may treat the stream as text and corrupt the tar data. Use `cmd /d /c` for the binary pipe:
+
+```powershell
+cmd /d /c ".\lzfse.exe -decode -i ""C:/path/input.lzfse"" -n 8 -so | tar -xf - -C ""C:/path/output-folder"""
+```
+
+If the archive was created from a parent-relative path and `tar` reports `Path contains '..'`, strip the leading `..` path component during extraction:
+
+```powershell
+cmd /d /c ".\lzfse.exe -decode -i ""C:/path/input.lzfse"" -n 8 -so | tar -xf - --strip-components 1 -C ""C:/path/output-folder"""
+```
 
 Run the built-in test:
 

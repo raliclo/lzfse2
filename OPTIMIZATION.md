@@ -170,6 +170,48 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# Pre-R42：LZFSE_Win_UI — Windows 圖形介面與打包工具鏈（2026-06-27）/ Pre-R42: LZFSE_Win_UI — Windows GUI & Packaging Toolchain
+
+> 基礎建設輪（非演算法優化）：為 lzfse 加上 Windows GUI 前端與自包含打包流程。
+> **未改變壓縮/解碼演算法**——R42 的 codec 目標（prefetch chain entries）不受影響。
+> Infrastructure round (not an algorithm optimization): adds a Windows GUI frontend and
+> self-contained packaging. **No change to the compression/decode algorithms** — the R42 codec
+> target (prefetch chain entries) is unaffected.
+
+## 產出 / Deliverables
+- `lzfse-ui/lzfse-ui-win.swift` — SwiftCrossUI（WinUIBackend）GUI，對應 macOS 的 `lzfse-ui/lzfse-ui.swift`。
+  直接 import codec（`build-win.sh` 以 `grep -v` 移除 `runCLI()` 後一起編入同一 target）。
+  SwiftCrossUI GUI mirroring the macOS `lzfse-ui.swift`; links the codec directly.
+- `lzfse-ui/build-win.sh` + `build-win.bat` → `lzfse-ui/release/LZFSE_UI_Win.zip`（GUI app + 隨附 `lzfse.exe`）。
+- `helper_windows/build-cli-win.sh` + `build-cli-win.bat` → `helper_windows/release/lzfse-cli.zip`
+  （`lzfse.exe` + 32 個 Swift runtime DLL，免裝 Swift 即可執行 / self-contained, runs without Swift installed）。
+- `lzfse-ui/screenshot-win.bat`、`lzfse-ui/README-UI-Win.md`。
+
+## codec 變更：Swift 6 嚴格並行相容（純標註，零邏輯變更）/ Codec change: Swift 6 strict-concurrency compat (annotations only)
+為了讓 `lzfse-cli.swift` 能在 SwiftPM（tools-version 6.0）下與 SwiftCrossUI 一起編譯，於
+`DispatchQueue.concurrentPerform` 解碼路徑與 `scratchPool` 加上 `nonisolated(unsafe)`（NSLock 保護的共享變數）
+與 `@Sendable`（區域函式）。**同時仍可用 `swiftc -O` 建成 CLI**（encode/decode round-trip 已驗證）。
+Added `nonisolated(unsafe)` / `@Sendable` to the concurrentPerform decode paths so the codec compiles
+under Swift 6 strict concurrency while still building as the CLI via `swiftc -O`. Pure annotations.
+
+## Windows 工程要點（每個都花了實際除錯）/ Windows engineering notes
+| 主題 / Topic | 處理 / Resolution |
+| --- | --- |
+| WinAppSDK 1.5 **DDLM 必裝** | 缺 DDLM `5001.x` → `MddBootstrapInitialize2` 失敗、閃退（exit 132）。需官方 redistributable 提權安裝。 |
+| 無主控台視窗 / no console | `/SUBSYSTEM:WINDOWS` + `/ENTRY:mainCRTStartup` 連結成 GUI 子系統。 |
+| 隱藏子程序視窗 / hide child windows | Win32 `CreateProcessW` + `CREATE_NO_WINDOW`（cmd/tar/lzfse 不跳視窗）。 |
+| 解壓不卡死 / no hang | 重活在獨立 OS `Thread`（`Task.detached` 仍卡 WinUI 訊息泵 → 事件日誌 AppHangB1）。 |
+| 資料夾選擇器 / folder picker | WinUIBackend 只能選檔；改用 Win32 `SHBrowseForFolderW`（獨立 STA thread + `OleInitialize`）。 |
+| 剪貼簿 / clipboard | WinUI TextBox 無 Ctrl+C → Win32 `SetClipboardData(CF_UNICODETEXT)`。 |
+| 解碼分流 / decode routing | 單檔/資料夾壓縮都命名 `.lzfse`；以 tar `ustar` 魔數（offset 257，串流偷看前 512 byte）判斷解包或單檔。 |
+| 打包 / packaging | bsdtar 不能寫 zip → PowerShell `Compress-Archive`；路徑轉換用 `sed`（不依賴 cygpath）。 |
+
+## 需求 / Requirements
+WinAppSDK 1.5 runtime（含 DDLM）、Swift for Windows 6.3.2、VS Build Tools + Windows SDK、Git for Windows、PowerShell。
+詳見 / See `lzfse-ui/README-UI-Win.md`。
+
+---
+
 # R41-Mac：Tag-packed Hash Chain 導入（2026-06-22）/ R41-Mac: Tag-packed Hash Chain
 
 > 將 R27 的 Tag-packed hash chain（hashAndTag / chainIndexMask / chainTagShift / chainNullIndex）重新導入 R40 代碼基礎。  

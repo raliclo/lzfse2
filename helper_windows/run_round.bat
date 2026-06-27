@@ -6,6 +6,11 @@ echo [INFO] 目前路徑 / Current directory: %CD% >> windows_round_status.txt
 echo [INFO] 目前磁碟空間 / Current disk space: >> windows_round_status.txt
 powershell -Command "Get-CimInstance Win32_LogicalDisk | Select-Object Caption,@{N='Size_GB';E={[math]::Round($_.Size/1GB,1)}},@{N='Free_GB';E={[math]::Round($_.FreeSpace/1GB,1)}} | Format-Table -AutoSize"   >> windows_round_status.txt 2>&1
 
+:: 確保 bench_logs 存在，並把本目錄既有的 *-results.txt 先移入（保持本目錄乾淨）
+:: Ensure bench_logs exists and move any existing *-results.txt there first (keep cwd clean)
+if not exist bench_logs mkdir bench_logs
+move /Y *-results.txt bench_logs\ > nul 2>&1
+
 :: git gc (前置清理)
 echo RUNNING git gc %TIME:~0,8% >> windows_round_status.txt
 git gc --prune=now --aggressive >> windows_round_status.txt 2>&1
@@ -50,8 +55,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: benchmark_windows.bat 目前將最新結果留在本目錄；summarize_win.py 會同時
-:: 掃描本目錄與 bench_logs，並選取時間最新的紀錄。
+:: benchmark_windows.bat / decode-win.bat 會把 *-results.txt 產生在本目錄；
+:: 本輪結束前統一移入 bench_logs（見下方 decode 後的 move）。
+:: summarize_win.py 會同時掃描本目錄與 bench_logs 並選取時間最新的紀錄，
+:: 因此結果只放在 bench_logs 仍可被正確讀取。
 
 
 :: Step 1: Decode benchmark / 解壓縮基準測試（在 summarize 前執行以便納入報告）
@@ -62,13 +69,38 @@ if errorlevel 1 (
     echo [WARN] decode benchmark 失敗，繼續 / decode benchmark failed, continuing
 )
 
+:: 將本輪產生的 *-results.txt 全數移入 bench_logs（encode + decode），
+:: 使 results.txt 只存在於 bench_logs；summarize_win.py 會自 bench_logs 讀取。
+:: Move this round's *-results.txt (encode + decode) into bench_logs so results.txt
+:: live only there; summarize_win.py reads them from bench_logs.
+echo [INFO] Moving *-results.txt to bench_logs %TIME:~0,8% >> windows_round_status.txt
+move /Y *-results.txt bench_logs\ >> windows_round_status.txt 2>&1
+
 :: Step 2: Windows benchmark summary (encode + decode) / Windows benchmark 摘要
 echo [INFO] Running summarize_win.py %TIME:~0,8% >> windows_round_status.txt
-python summarize_win.py | powershell -NoProfile -Command "$input | Tee-Object -Append -FilePath windows_round_status.txt"
+set "_summary_log=%TEMP%\lzfse-summary-%RANDOM%.log"
+python summarize_win.py > "%_summary_log%" 2>&1
+set "_summary_rc=%ERRORLEVEL%"
+type "%_summary_log%"
+type "%_summary_log%" >> windows_round_status.txt
+del /Q "%_summary_log%" > nul 2>&1
+if not "%_summary_rc%"=="0" (
+    echo SUMMARY_FAILED %TIME:~0,8% >> windows_round_status.txt
+    exit /b %_summary_rc%
+)
 
 :: Step 3: macOS vs Windows comparison / macOS vs Windows 比較
 echo [INFO] Running comparison_win.py %TIME:~0,8% >> windows_round_status.txt
-python comparison_win.py | powershell -NoProfile -Command "$input | Tee-Object -Append -FilePath windows_round_status.txt"
+set "_comparison_log=%TEMP%\lzfse-comparison-%RANDOM%.log"
+python comparison_win.py > "%_comparison_log%" 2>&1
+set "_comparison_rc=%ERRORLEVEL%"
+type "%_comparison_log%"
+type "%_comparison_log%" >> windows_round_status.txt
+del /Q "%_comparison_log%" > nul 2>&1
+if not "%_comparison_rc%"=="0" (
+    echo COMPARISON_FAILED %TIME:~0,8% >> windows_round_status.txt
+    exit /b %_comparison_rc%
+)
 
 :: git gc (後置收尾)
 git gc --prune=now --aggressive >> windows_round_status.txt 2>&1

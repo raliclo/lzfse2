@@ -753,7 +753,7 @@ public enum LZFSEv1 {
         }
         deinit { head.deallocate(); chain.deallocate() }
     }
-    static var scratchPool: [ParseScratch] = []
+    nonisolated(unsafe) static var scratchPool: [ParseScratch] = []  // 由 scratchLock 保護 / guarded by scratchLock
     static let scratchLock = NSLock()
     static func acquireScratch(_ n: Int) -> ParseScratch {
         scratchLock.lock()
@@ -2625,7 +2625,7 @@ public enum LZFSEv1 {
         let total = blocks.reduce(0) { $0 + $1.rawBytes }
         if total == 0 { return true }
 
-        var groups: [[BlockInfo]] = []
+        nonisolated(unsafe) var groups: [[BlockInfo]] = []
         if parallel && chunkRaw > 0 {
             var current: [BlockInfo] = []
             var cum = 0
@@ -2647,15 +2647,15 @@ public enum LZFSEv1 {
 
         let groupRaw = groups.map { g in g.reduce(0) { $0 + $1.rawBytes } }
         let n0 = max(1, inflight)
-        var gi = 0
+        nonisolated(unsafe) var gi = 0
         while gi < groups.count {
             let hi = min(gi + n0, groups.count)
-            var offs = [0]
+            nonisolated(unsafe) var offs = [0]
             for k in gi..<hi { offs.append(offs.last! + groupRaw[k]) }
             let batchTotal = max(offs.last!, 1)
             let buf = UnsafeMutableRawPointer.allocate(byteCount: batchTotal, alignment: 16)
-            let dp = buf.bindMemory(to: UInt8.self, capacity: batchTotal)
-            var failed = false
+            nonisolated(unsafe) let dp = buf.bindMemory(to: UInt8.self, capacity: batchTotal)
+            nonisolated(unsafe) var failed = false  // 由 lock 保護 / guarded by lock
             let lock = NSLock()
             let n = hi - gi
 
@@ -2775,7 +2775,7 @@ public enum LZFSEv1 {
             }
         }
 
-        func decodeGroup(_ comp: [UInt8], _ blks: [Blk], _ raw: Int) -> [UInt8]? {
+        @Sendable func decodeGroup(_ comp: [UInt8], _ blks: [Blk], _ raw: Int) -> [UInt8]? {
             if raw == 0 { return [] }
             var out = [UInt8](repeating: 0, count: raw)
             var failIdx = -1; var failCursor = 0
@@ -2802,7 +2802,7 @@ public enum LZFSEv1 {
         }
 
         while !streamEnded {
-            var batch: [(comp: [UInt8], blks: [Blk], raw: Int)] = []
+            nonisolated(unsafe) var batch: [(comp: [UInt8], blks: [Blk], raw: Int)] = []
             while batch.count < N && !streamEnded {
                 guard let g = nextGroup() else { break }
                 batch.append(g)
@@ -2813,8 +2813,8 @@ public enum LZFSEv1 {
             }
             if batch.isEmpty { break }
 
-            var outs = [[UInt8]?](repeating: nil, count: batch.count)
-            var failed = false
+            nonisolated(unsafe) var outs = [[UInt8]?](repeating: nil, count: batch.count)  // 由 lock 保護 / guarded by lock
+            nonisolated(unsafe) var failed = false
             let lock = NSLock()
             DispatchQueue.concurrentPerform(iterations: batch.count) { i in
                 let o = decodeGroup(batch[i].comp, batch[i].blks, batch[i].raw)
@@ -2846,7 +2846,7 @@ public enum LZFSEv1 {
         if total == 0 { return Data() }
 
         // 分組：累計原始大小於 chunkRaw 倍數處切（平行模式）；循序 = 單組
-        var groups: [[BlockInfo]] = []
+        nonisolated(unsafe) var groups: [[BlockInfo]] = []
         if parallel && chunkRaw > 0 {
             var current: [BlockInfo] = []
             var cum = 0
@@ -2863,16 +2863,16 @@ public enum LZFSEv1 {
         }
 
         // 各組輸出區段的前綴位移
-        var offsets: [Int] = [0]
+        nonisolated(unsafe) var offsets: [Int] = [0]
         for g in groups { offsets.append(offsets.last! + g.reduce(0) { $0 + $1.rawBytes }) }
 
         let buf = UnsafeMutableRawPointer.allocate(byteCount: max(total, 1),
                                                    alignment: 16)
-        let dp = buf.bindMemory(to: UInt8.self, capacity: max(total, 1))
-        var anyFailed = false
+        nonisolated(unsafe) let dp = buf.bindMemory(to: UInt8.self, capacity: max(total, 1))
+        nonisolated(unsafe) var anyFailed = false  // 由 lock 保護 / guarded by lock
         let lock = NSLock()
 
-        func decodeGroup(_ gi: Int) -> Bool {
+        @Sendable func decodeGroup(_ gi: Int) -> Bool {
             let regionBase = offsets[gi]
             let regionEnd = offsets[gi + 1]
             var cursor = regionBase
