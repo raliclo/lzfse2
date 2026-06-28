@@ -1,21 +1,27 @@
 @echo off
 chcp 65001 > nul
-:: Usage: decode-win.bat <dataset> [n]
-:: Decode benchmark for all 7 formats; mirrors encode-win.bat encode logic.
-:: All formats decode to nul (no disk writes) to measure pure decode speed.
+setlocal EnableDelayedExpansion
+:: Usage: decode-win.bat <dataset> [n] [write]
+:: Default: decode to nul (no disk writes) for speed benchmark.
+:: With [write]: decode to decoded\<dataset>\<algo> and compare each algo output with TGZ output.
 :: Prerequisite: run encode-win.bat first to produce the compressed files.
 
 set "_dataset=%~1"
 set "_logprefix=%~nx1"
 if "%_logprefix%"=="" set "_logprefix=dataset"
 set "_n=%~2"
+set "_write=0"
+if /I "%~3"=="write" set "_write=1"
+set "_decode_output_note=write to nul"
+if "%_write%"=="1" set "_decode_output_note=write to file"
+set "_mode_suffix=-nul"
+if "%_write%"=="1" set "_mode_suffix=-file"
 
 if "%_dataset%"=="" (
-    echo Usage: decode-win.bat ^<dataset^> [n]
+    echo Usage: decode-win.bat ^<dataset^> [n] [write]
     exit /b 1
 )
 
-:: Check required compressed files exist / ?????????
 set "_missing=0"
 for %%F in (
     "%_dataset%.tgz"
@@ -37,160 +43,227 @@ if "%_missing%"=="1" (
 
 if not exist bench_logs mkdir bench_logs
 if not exist bench_results_csv mkdir bench_results_csv
+if "%_write%"=="1" if not exist decoded mkdir decoded
 set "_nsuffix="
 if not "%_n%"=="" set "_nsuffix=-n%_n%"
 
-:: Warm-cache: read all compressed files into OS page cache
-echo [Info] Warming cache for decode benchmark...
+echo [Info] Warming cache for decode benchmark... %TIME:~0,8%
 call :warmCache "%_dataset%"
 
-echo [Info] Starting decode benchmark...
-
-echo [Info] Running tgz decode benchmark...
-call :nanoTimeElapsed call :decodeTgz "%_dataset%" > "bench_logs\%_logprefix%-decodeTgz%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.tgz" "bench_logs\%_logprefix%-decodeTgz%_nsuffix%-results.txt"
-
-echo [Info] Running lzfse other3 decode benchmark...
-call :nanoTimeElapsed call :decodeOther3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeOther3%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.lzfse.other3" "bench_logs\%_logprefix%-decodeOther3%_nsuffix%-results.txt"
-
-echo [Info] Running lzfse bvx3 decode benchmark...
-call :nanoTimeElapsed call :decodeBVX3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.lzfse.bvx3" "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%-results.txt"
-
-echo [Info] Running lzfse lazy2 decode benchmark...
-call :nanoTimeElapsed call :decodeLazy2 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.lzfse.lazy2" "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%-results.txt"
-
-echo [Info] Running lzfse optimal decode benchmark...
-call :nanoTimeElapsed call :decodeOptimal "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.lzfse.optimal" "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%-results.txt"
-
-echo [Info] Running lz4 decode benchmark...
-call :nanoTimeElapsed call :decodeLZ4 "%_dataset%" > "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.tar.lz4" "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%-results.txt"
-
-echo [Info] Running zstd decode benchmark...
-call :nanoTimeElapsed call :decodeZSTD "%_dataset%" > "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.tar.zst" "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%-results.txt"
-
-echo [Info] Summarising decode results...
-powershell -NoProfile -Command "$csv=@('format,nanoseconds,encoded_bytes'); Get-ChildItem 'bench_logs\*-decode*-results.txt' | Sort-Object Name | ForEach-Object { $m=[regex]::Match($_.BaseName,'(decode\w+(?:-n\d+)?)-results'); $fmt=if($m.Success){$m.Groups[1].Value}else{$_.BaseName}; $c=Get-Content $_.FullName -Raw; if ($c) { $ns=([regex]::Match($c,'Process took:\s+(\d+)')).Groups[1].Value; $b=([regex]::Match($c,'Encoded size:\s+(\d+)')).Groups[1].Value; $csv+=$fmt+','+$ns+','+$b } }; $csv | Out-File 'bench_results_csv\decode_summary.csv' -Encoding UTF8"
-echo [OK] bench_results_csv\decode_summary.csv written
-
-:: Correctness verification: decode each format (single-thread, no -n) and pipe to tar tf
-:: Appends "==> Verify: PASS/FAIL" to each result file; summarize_win.py reads this field.
-echo [Info] Verifying decode correctness (tar tf check)...
-
-tar tzf "%_dataset%.tgz" > nul 2>&1
-if %ERRORLEVEL% == 0 (
-    echo [PASS] TGZ
-    call :writeVerify "bench_logs\%_logprefix%-decodeTgz%_nsuffix%-results.txt" PASS
+if "%_write%"=="1" (
+    echo [Info] Starting decode benchmark with write output to decoded\%_logprefix% ... %TIME:~0,8%
 ) else (
-    echo [FAIL] TGZ
-    call :writeVerify "bench_logs\%_logprefix%-decodeTgz%_nsuffix%-results.txt" FAIL
+    echo [Info] Starting decode benchmark... %TIME:~0,8%
 )
 
-.\lzfse.exe -decode -i "%_dataset%.lzfse.other3" -so -algo other3 | tar tf - > nul 2>&1
-if %ERRORLEVEL% == 0 (
-    echo [PASS] LZFSE Other3
-    call :writeVerify "bench_logs\%_logprefix%-decodeOther3%_nsuffix%-results.txt" PASS
-) else (
-    echo [FAIL] LZFSE Other3
-    call :writeVerify "bench_logs\%_logprefix%-decodeOther3%_nsuffix%-results.txt" FAIL
-)
+echo [Info] Running tgz decode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :decodeTgz "%_dataset%" > "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt" 2>&1
+call :appendFileSize "%_dataset%.tgz" "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt"
+call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] tgz decode %TIME:~0,8%
 
-.\lzfse.exe -decode -i "%_dataset%.lzfse.bvx3" -so -algo bvx3 | tar tf - > nul 2>&1
-if %ERRORLEVEL% == 0 (
-    echo [PASS] LZFSE BVX3
-    call :writeVerify "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%-results.txt" PASS
-) else (
-    echo [FAIL] LZFSE BVX3
-    call :writeVerify "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%-results.txt" FAIL
-)
+echo [Info] Running lzfse other3 decode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :decodeOther3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt" 2>&1
+call :appendFileSize "%_dataset%.lzfse.other3" "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt"
+call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse other3 decode %TIME:~0,8%
 
-.\lzfse.exe -decode -i "%_dataset%.lzfse.lazy2" -so -algo bvx3 -lazy2 | tar tf - > nul 2>&1
-if %ERRORLEVEL% == 0 (
-    echo [PASS] LZFSE Lazy2
-    call :writeVerify "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%-results.txt" PASS
-) else (
-    echo [FAIL] LZFSE Lazy2
-    call :writeVerify "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%-results.txt" FAIL
-)
+echo [Info] Running lzfse bvx3 decode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :decodeBVX3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" 2>&1
+call :appendFileSize "%_dataset%.lzfse.bvx3" "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
+call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse bvx3 decode %TIME:~0,8%
 
-.\lzfse.exe -decode -i "%_dataset%.lzfse.optimal" -so -algo bvx3 -optimal | tar tf - > nul 2>&1
-if %ERRORLEVEL% == 0 (
-    echo [PASS] LZFSE Optimal
-    call :writeVerify "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%-results.txt" PASS
-) else (
-    echo [FAIL] LZFSE Optimal
-    call :writeVerify "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%-results.txt" FAIL
-)
+echo [Info] Running lzfse lazy2 decode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :decodeLazy2 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt" 2>&1
+call :appendFileSize "%_dataset%.lzfse.lazy2" "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt"
+call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse lazy2 decode %TIME:~0,8%
 
-lz4 -d -c -q "%_dataset%.tar.lz4" | tar tf - > nul 2>&1
-if %ERRORLEVEL% == 0 (
-    echo [PASS] LZ4
-    call :writeVerify "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%-results.txt" PASS
-) else (
-    echo [FAIL] LZ4
-    call :writeVerify "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%-results.txt" FAIL
-)
+echo [Info] Running lzfse optimal decode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :decodeOptimal "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt" 2>&1
+call :appendFileSize "%_dataset%.lzfse.optimal" "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt"
+call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse optimal decode %TIME:~0,8%
 
-zstd -d -c -q "%_dataset%.tar.zst" | tar tf - > nul 2>&1
-if %ERRORLEVEL% == 0 (
-    echo [PASS] ZSTD
-    call :writeVerify "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%-results.txt" PASS
-) else (
-    echo [FAIL] ZSTD
-    call :writeVerify "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%-results.txt" FAIL
-)
+echo [Info] Running lz4 decode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :decodeLZ4 "%_dataset%" > "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt" 2>&1
+call :appendFileSize "%_dataset%.tar.lz4" "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt"
+call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lz4 decode %TIME:~0,8%
 
-echo [Info] Decode verification complete.
+echo [Info] Running zstd decode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :decodeZSTD "%_dataset%" > "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt" 2>&1
+call :appendFileSize "%_dataset%.tar.zst" "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt"
+call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] zstd decode %TIME:~0,8%
+
+if "%_write%"=="1" goto verifyWrite
+goto verifyStream
+
+:verifyWrite
+echo [Info] Verifying decoded folders against TGZ output... %TIME:~0,8%
+call :verifyDecodedNonEmpty TGZ "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\tgz"
+call :verifyAgainstTgz "LZFSE Other3" "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\other3"
+if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\other3"
+call :verifyAgainstTgz "LZFSE BVX3" "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\bvx3"
+if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\bvx3"
+call :verifyAgainstTgz "LZFSE Lazy2" "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\lazy2"
+if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\lazy2"
+call :verifyAgainstTgz "LZFSE Optimal" "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\optimal"
+if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\optimal"
+call :verifyAgainstTgz LZ4 "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\lz4"
+if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\lz4"
+call :verifyAgainstTgz ZSTD "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\zstd"
+if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\zstd"
+goto afterVerify
+
+:verifyStream
+echo [Info] Verifying decode correctness (tar tf check)... %TIME:~0,8%
+call :verifyStreamTgz
+call :verifyStreamOther3
+call :verifyStreamBVX3
+call :verifyStreamLazy2
+call :verifyStreamOptimal
+call :verifyStreamLZ4
+call :verifyStreamZSTD
+
+:afterVerify
+
+echo [Info] Summarising decode results... %TIME:~0,8%
+python summarize_win.py --results-dir . --decode-output bench_results_csv\decode_summary.csv
+if errorlevel 1 exit /b 1
+echo [OK] bench_results_csv\decode_summary.csv written %TIME:~0,8%
+
+echo [Info] Decode verification complete. %TIME:~0,8%
 goto :EOF
 
-:: ?? Decode subroutines (decode to nul - no disk writes) ??????????????????
-
 :decodeTgz
-:: Decompress gzip stream to nul to measure decode speed without disk writes
-tar xzf  "%~1.tgz" > nul 2>&1
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\tgz"
+    tar xzf "%~1.tgz" -C "decoded\%_logprefix%\tgz" > nul
+) else (
+    tar xzf "%~1.tgz" > nul 2>&1
+)
 exit /b
 
 :decodeOther3
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-.\lzfse.exe -decode -i "%~1.lzfse.other3" -so -algo other3 %_n_opt% > nul 2>&1
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\other3"
+    .\lzfse.exe -decode -i "%~1.lzfse.other3" -so -algo other3 %_n_opt% | tar xf - -C "decoded\%_logprefix%\other3" > nul
+) else (
+    .\lzfse.exe -decode -i "%~1.lzfse.other3" -so -algo other3 %_n_opt% > nul 2>&1
+)
 exit /b
 
 :decodeBVX3
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-.\lzfse.exe -decode -i "%~1.lzfse.bvx3" -so -algo bvx3 %_n_opt% > nul
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\bvx3"
+    .\lzfse.exe -decode -i "%~1.lzfse.bvx3" -so -algo bvx3 %_n_opt% | tar xf - -C "decoded\%_logprefix%\bvx3" > nul
+) else (
+    .\lzfse.exe -decode -i "%~1.lzfse.bvx3" -so -algo bvx3 %_n_opt% > nul 2>&1
+)
 exit /b
 
 :decodeLazy2
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-.\lzfse.exe -decode -i "%~1.lzfse.lazy2" -so -algo bvx3 -lazy2 %_n_opt% > nul 2>&1
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\lazy2"
+    .\lzfse.exe -decode -i "%~1.lzfse.lazy2" -so -algo bvx3 -lazy2 %_n_opt% | tar xf - -C "decoded\%_logprefix%\lazy2" > nul
+) else (
+    .\lzfse.exe -decode -i "%~1.lzfse.lazy2" -so -algo bvx3 -lazy2 %_n_opt% > nul 2>&1
+)
 exit /b
 
 :decodeOptimal
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-.\lzfse.exe -decode -i "%~1.lzfse.optimal" -so -algo bvx3 -optimal %_n_opt% > nul 2>&1
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\optimal"
+    .\lzfse.exe -decode -i "%~1.lzfse.optimal" -so -algo bvx3 -optimal %_n_opt% | tar xf - -C "decoded\%_logprefix%\optimal" > nul
+) else (
+    .\lzfse.exe -decode -i "%~1.lzfse.optimal" -so -algo bvx3 -optimal %_n_opt% > nul 2>&1
+)
 exit /b
 
 :decodeLZ4
-lz4 -d -c -q "%~1.tar.lz4" > nul 2>&1
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\lz4"
+    lz4 -d -c -q "%~1.tar.lz4" | tar xf - -C "decoded\%_logprefix%\lz4" > nul
+) else (
+    lz4 -d -c -q "%~1.tar.lz4" > nul 2>&1
+)
 exit /b
 
 :decodeZSTD
-zstd -d -c -q "%~1.tar.zst" > nul 2>&1
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\zstd"
+    zstd -d -c -q "%~1.tar.zst" | tar xf - -C "decoded\%_logprefix%\zstd" > nul
+) else (
+    zstd -d -c -q "%~1.tar.zst" > nul 2>&1
+)
 exit /b
 
-:: Helpers 
+:verifyStreamTgz
+tar tzf "%_dataset%.tgz" > nul 2>&1
+if !ERRORLEVEL! == 0 ( echo [PASS] TGZ & call :writeVerify "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] TGZ & call :writeVerify "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt" FAIL )
+exit /b
+
+:verifyStreamOther3
+.\lzfse.exe -decode -i "%_dataset%.lzfse.other3" -so -algo other3 | tar tf - > nul 2>&1
+if !ERRORLEVEL! == 0 ( echo [PASS] LZFSE Other3 & call :writeVerify "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] LZFSE Other3 & call :writeVerify "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt" FAIL )
+exit /b
+
+:verifyStreamBVX3
+.\lzfse.exe -decode -i "%_dataset%.lzfse.bvx3" -so -algo bvx3 | tar tf - > nul 2>&1
+if !ERRORLEVEL! == 0 ( echo [PASS] LZFSE BVX3 & call :writeVerify "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] LZFSE BVX3 & call :writeVerify "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" FAIL )
+exit /b
+
+:verifyStreamLazy2
+.\lzfse.exe -decode -i "%_dataset%.lzfse.lazy2" -so -algo bvx3 -lazy2 | tar tf - > nul 2>&1
+if !ERRORLEVEL! == 0 ( echo [PASS] LZFSE Lazy2 & call :writeVerify "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] LZFSE Lazy2 & call :writeVerify "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt" FAIL )
+exit /b
+
+:verifyStreamOptimal
+.\lzfse.exe -decode -i "%_dataset%.lzfse.optimal" -so -algo bvx3 -optimal | tar tf - > nul 2>&1
+if !ERRORLEVEL! == 0 ( echo [PASS] LZFSE Optimal & call :writeVerify "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] LZFSE Optimal & call :writeVerify "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt" FAIL )
+exit /b
+
+:verifyStreamLZ4
+lz4 -d -c -q "%_dataset%.tar.lz4" | tar tf - > nul 2>&1
+if !ERRORLEVEL! == 0 ( echo [PASS] LZ4 & call :writeVerify "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] LZ4 & call :writeVerify "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt" FAIL )
+exit /b
+
+:verifyStreamZSTD
+zstd -d -c -q "%_dataset%.tar.zst" | tar tf - > nul 2>&1
+if !ERRORLEVEL! == 0 ( echo [PASS] ZSTD & call :writeVerify "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] ZSTD & call :writeVerify "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt" FAIL )
+exit /b
+
+:prepareOut
+powershell -NoProfile -Command "if (Test-Path -LiteralPath '%~1') { Remove-Item -LiteralPath '%~1' -Recurse -Force }; New-Item -ItemType Directory -Force -Path '%~1' | Out-Null"
+exit /b
+
+:verifyAgainstTgz
+:: %~1 = display name, %~2 = result file, %~3 = output folder
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0compare-decoded-win.ps1" -Reference "decoded\%_logprefix%\tgz" -Candidate "%~3" -Name "%~1" -ResultFile "%~2"
+exit /b
+
+:verifyDecodedNonEmpty
+:: %~1 = display name, %~2 = result file, %~3 = output folder
+powershell -NoProfile -Command "$path='%~3'; $count=0; if (Test-Path -LiteralPath $path) { $count=@(Get-ChildItem -LiteralPath $path -Recurse -File -Force).Count }; if ($count -gt 0) { Write-Output('[PASS] %~1'); '==> Verify: PASS' | Out-File -Append -Encoding UTF8 -LiteralPath '%~2'; exit 0 }; Write-Output('[FAIL] %~1'); Write-Output('  output has no files: '+$path); '==> Verify: FAIL' | Out-File -Append -Encoding UTF8 -LiteralPath '%~2'; '==> Verify diff:' | Out-File -Append -Encoding UTF8 -LiteralPath '%~2'; ('output has no files: '+$path) | Out-File -Append -Encoding UTF8 -LiteralPath '%~2'; exit 1"
+exit /b
+
+:removeDecodedFolder
+:: Remove per-algorithm decoded output after comparison. Keep decoded\<dataset>\tgz as reference.
+powershell -NoProfile -Command "if (Test-Path -LiteralPath '%~1') { Remove-Item -LiteralPath '%~1' -Recurse -Force }"
+exit /b
 
 :warmCache
-:: Pre-read all compressed files into OS page cache before timing
 for %%F in (
     "%~1.tgz"
     "%~1.lzfse.other3"
@@ -211,13 +284,16 @@ exit /b
 powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; if (Test-Path '%~1') { $s=(Get-Item '%~1').Length; Write-Output('==> Encoded size: '+$s+' bytes') } else { Write-Output('Compressed file not found: %~1') }" >> "%~2"
 exit /b
 
+:writeDecodeOutputMode
+powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output('==> Decode output: %_decode_output_note%')" >> "%~1"
+exit /b
+
 :writeVerify
 :: %~1 = result file path, %~2 = PASS or FAIL
 powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output('==> Verify: %~2')" >> "%~1"
 exit /b
 
 :nanoTimeElapsed
-:: Nanosecond timer matching encode-win.bat / ?????? encode-win.bat ??
 for /f %%T in ('powershell -NoProfile -Command "[System.Diagnostics.Stopwatch]::GetTimestamp()"') do set "_t0=%%T"
 %1 %2 %3 %4 %5
 set _rc=%ERRORLEVEL%

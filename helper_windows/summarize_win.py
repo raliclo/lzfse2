@@ -1,4 +1,4 @@
-"""彙整 Windows benchmark 原始紀錄並輸出 benchmark_summary.csv 與 decode_summary.csv。
+"""彙整 Windows benchmark 原始紀錄並輸出 encode_summary.csv 與 decode_summary.csv。
 
 Usage:
     python summarize_win.py [--results-dir DIR] [--output CSV] [--decode-output CSV]
@@ -62,11 +62,13 @@ DISPLAY_BY_TOKEN = {**FORMATS, **DECODE_FORMATS}
 
 NAME_RE = re.compile(
     r"^(?P<dataset>.+)-(?P<token>(?:en|de)code(?:Tgz|Other3|BVX3|Lazy2|Optimal|LZ4|ZSTD))"
-    r"(?:-n(?P<n>\d+))?-results\.txt$"
+    r"(?:-n(?P<n>\d+))?(?:-(?P<mode>file|nul))?-results\.txt$"
 )
 NS_RE = re.compile(r"Process took:\s*(\d+)")
 BYTES_RE = re.compile(r"Encoded size:\s*(\d+)")
 VERIFY_RE = re.compile(r"Verify:\s*(\w+)")
+ENCODE_OUTPUT_RE = re.compile(r"Encode output:\s*(write to (?:file|nul))")
+DECODE_OUTPUT_RE = re.compile(r"Decode output:\s*(write to (?:file|nul))")
 
 
 def read_result(path):
@@ -76,10 +78,14 @@ def read_result(path):
         return None
     bytes_match = BYTES_RE.search(text)
     verify_match = VERIFY_RE.search(text)
+    encode_output_match = ENCODE_OUTPUT_RE.search(text)
+    decode_output_match = DECODE_OUTPUT_RE.search(text)
     return (
         int(ns_match.group(1)),
         (int(bytes_match.group(1)) if bytes_match else 0),
         (verify_match.group(1).upper() if verify_match else None),
+        (encode_output_match.group(1) if encode_output_match else None),
+        (decode_output_match.group(1) if decode_output_match else None),
     )
 
 
@@ -98,9 +104,12 @@ def collect(results_dir):
                 "dataset": match.group("dataset"),
                 "token": match.group("token"),
                 "n": match.group("n") or "",
+                "filename_mode": match.group("mode") or "",
                 "nanoseconds": parsed[0],
                 "encoded_bytes": parsed[1],
                 "verify": parsed[2],
+                "encode_output": parsed[3],
+                "decode_output": parsed[4],
                 "mtime": path.stat().st_mtime,
             })
     return candidates
@@ -116,7 +125,10 @@ def load_rss_summary(path):
             display = RSS_FORMAT_MAP.get((row.get("format") or "").strip())
             if not display:
                 continue
-            rows[display] = {
+            dataset = (row.get("dataset") or "").strip()
+            mode = normalize_mode(row.get("output_mode") or row.get("mode") or "")
+            key = (dataset, display, mode) if dataset else (display, mode)
+            rows[key] = {
                 "encode_rss_mb": row.get("encode_rss_mb", ""),
                 "decode_rss_mb": row.get("decode_rss_mb", ""),
             }
@@ -128,7 +140,13 @@ def attach_rss(rows, rss_rows):
         return rows
     for row in rows:
         display = DISPLAY_BY_TOKEN.get(row.get("_token"))
-        rss = rss_rows.get(display or "")
+        mode = row.get("_output_mode", "")
+        rss = (
+            rss_rows.get((row.get("dataset", ""), display or "", mode))
+            or rss_rows.get((display or "", mode))
+            or rss_rows.get((row.get("dataset", ""), display or "", ""))
+            or rss_rows.get((display or "", ""))
+        )
         if not rss:
             continue
         row["encode_rss_mb"] = rss.get("encode_rss_mb", "")
@@ -136,10 +154,20 @@ def attach_rss(rows, rss_rows):
     return rows
 
 
+def normalize_mode(value):
+    value = (value or "").strip().lower()
+    if value in {"file", "write to file"}:
+        return "file"
+    if value in {"nul", "null", "write to nul", "write to null"}:
+        return "nul"
+    return ""
+
+
 def summarize(candidates, status_log, format_order, is_decode=False):
     grouped = {}
     for item in candidates:
-        key = (item["dataset"], item["token"], item["n"])
+        mode = item["filename_mode"] or normalize_mode(item.get("encode_output") or item.get("decode_output"))
+        key = (item["dataset"], item["token"], item["n"], mode)
         grouped.setdefault(key, []).append(item)
 
     tar_write_error = False
@@ -152,13 +180,23 @@ def summarize(candidates, status_log, format_order, is_decode=False):
     for key, versions in grouped.items():
         versions.sort(key=lambda item: item["mtime"], reverse=True)
         current = versions[0]
+        mode = current["filename_mode"] or normalize_mode(current.get("encode_output") or current.get("decode_output"))
         # Decode validity: timing is what matters; compressed_bytes is informational
         valid = current["nanoseconds"] > 0
-        if not is_decode:
+        if not is_decode and current.get("encode_output") != "write to nul":
             valid = valid and current["encoded_bytes"] > 0
         notes = []
+        if not is_decode and current.get("encode_output"):
+            notes.append(current["encode_output"])
+        if is_decode and current.get("decode_output"):
+            notes.append(current["decode_output"])
 
-        if not is_decode and len(versions) > 1 and versions[1]["encoded_bytes"] > 0:
+        if (
+            not is_decode
+            and current.get("encode_output") != "write to nul"
+            and len(versions) > 1
+            and versions[1]["encoded_bytes"] > 0
+        ):
             previous = versions[1]["encoded_bytes"]
             size_ratio = current["encoded_bytes"] / previous if current["encoded_bytes"] > 0 else 0
             if size_ratio < 0.5 or size_ratio > 2.0:
@@ -167,12 +205,17 @@ def summarize(candidates, status_log, format_order, is_decode=False):
                     f"encoded size is {size_ratio:.1%} of previous result"
                 )
 
-        if tar_write_error and current["token"] == "encodeOptimal":
+        if (
+            tar_write_error
+            and current["token"] == "encodeOptimal"
+            and current.get("encode_output") != "write to nul"
+        ):
             valid = False
             notes.insert(0, "tar write error")
 
         suffix = f"-n{current['n']}" if current["n"] else ""
         rows.append({
+            "dataset": current["dataset"],
             "format": f"{current['token']}{suffix}",
             "nanoseconds": current["nanoseconds"],
             "encoded_bytes": current["encoded_bytes"],
@@ -180,15 +223,21 @@ def summarize(candidates, status_log, format_order, is_decode=False):
             "verify": current["verify"] or "",
             "note": "; ".join(notes),
             "_token": current["token"],
+            "_output_mode": mode,
         })
 
-    rows.sort(key=lambda row: (format_order.get(row["_token"], 999), row["format"]))
+    rows.sort(key=lambda row: (
+        row["dataset"],
+        format_order.get(row["_token"], 999),
+        row["format"],
+        row.get("_output_mode", ""),
+    ))
     return rows
 
 
 def write_csv(path, rows, include_verify=False):
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["format", "nanoseconds", "encoded_bytes", "valid"]
+    fields = ["dataset", "format", "nanoseconds", "encoded_bytes", "valid"]
     if include_verify:
         fields.append("verify")
     if any("encode_rss_mb" in row or "decode_rss_mb" in row for row in rows):
@@ -276,41 +325,81 @@ def load_mac_result_template(path, dataset, n_value):
     return header, labels, raw_size
 
 
+def ensure_windows_mode_columns(header, labels):
+    extra_columns = [
+        "encode_mb_s(file)",
+        "decode_mb_s(file)",
+        "encode_rss_mb(file)",
+        "decode_rss_mb(file)",
+        "encode_mb_s(null)",
+        "decode_mb_s(null)",
+        "encode_rss_mb(null)",
+        "decode_rss_mb(null)",
+    ]
+    extra_labels = [
+        "Encode MB/s (write to file)",
+        "Decode MB/s (write to file)",
+        "Encode RSS MB (write to file)",
+        "Decode RSS MB (write to file)",
+        "Encode MB/s (write to null)",
+        "Decode MB/s (write to null)",
+        "Encode RSS MB (write to null)",
+        "Decode RSS MB (write to null)",
+    ]
+    for column, label in zip(extra_columns, extra_labels):
+        if column not in header:
+            header.append(column)
+            labels.append(label)
+    return header, labels
+
+
 def write_benchmark_result_win(path, mac_template_path, dataset, n_value, enc_rows, dec_rows):
     """Write BenchMarkResult-Win.csv with the same columns as BenchMarkResult.csv."""
     header, labels, raw_size = load_mac_result_template(mac_template_path, dataset, n_value)
+    header, labels = ensure_windows_mode_columns(list(header), list(labels))
     raw_mib = parse_mib(raw_size)
     raw_mb = raw_mib * 1.048576 if raw_mib is not None else None
 
-    enc_by_name = {}
+    enc_by_name_mode = {}
     for row in enc_rows:
         token, row_n = parse_summary_key(row.get("format"))
         name = FORMATS.get(token)
         if name:
-            enc_by_name[name] = {**row, "n": row_n}
+            enc_by_name_mode[(name, row.get("_output_mode") or "file")] = {**row, "n": row_n}
 
-    dec_by_name = {}
+    dec_by_name_mode = {}
     for row in dec_rows:
         token, _ = parse_summary_key(row.get("format"))
         name = DECODE_FORMATS.get(token)
         if name:
-            dec_by_name[name] = row
+            dec_by_name_mode[(name, row.get("_output_mode") or "nul")] = row
 
-    tgz_enc = enc_by_name.get("TGZ", {})
-    tgz_dec = dec_by_name.get("TGZ", {})
+    def row_for(mapping, name, preferred_mode):
+        return mapping.get((name, preferred_mode)) or mapping.get((name, "file")) or mapping.get((name, "nul")) or {}
+
+    tgz_enc = row_for(enc_by_name_mode, "TGZ", "file")
+    tgz_dec = row_for(dec_by_name_mode, "TGZ", "file")
     tgz_bytes = int(tgz_enc.get("encoded_bytes") or 0)
     tgz_encode_seconds = int(tgz_enc.get("nanoseconds") or 0) / 1_000_000_000 if tgz_enc else None
     tgz_decode_seconds = int(tgz_dec.get("nanoseconds") or 0) / 1_000_000_000 if tgz_dec else None
 
     output_rows = []
     for name in BENCHMARK_RESULT_ORDER:
-        enc = enc_by_name.get(name)
+        enc = row_for(enc_by_name_mode, name, "file")
         if not enc:
             continue
-        dec = dec_by_name.get(name, {})
+        dec = row_for(dec_by_name_mode, name, "file")
         encoded_bytes = int(enc.get("encoded_bytes") or 0)
         encode_seconds = int(enc.get("nanoseconds") or 0) / 1_000_000_000
         decode_seconds = int(dec.get("nanoseconds") or 0) / 1_000_000_000 if dec.get("nanoseconds") else None
+        enc_file = row_for(enc_by_name_mode, name, "file")
+        enc_nul = row_for(enc_by_name_mode, name, "nul")
+        dec_file = row_for(dec_by_name_mode, name, "file")
+        dec_nul = row_for(dec_by_name_mode, name, "nul")
+        enc_file_seconds = int(enc_file.get("nanoseconds") or 0) / 1_000_000_000 if enc_file.get("nanoseconds") else None
+        enc_nul_seconds = int(enc_nul.get("nanoseconds") or 0) / 1_000_000_000 if enc_nul.get("nanoseconds") else None
+        dec_file_seconds = int(dec_file.get("nanoseconds") or 0) / 1_000_000_000 if dec_file.get("nanoseconds") else None
+        dec_nul_seconds = int(dec_nul.get("nanoseconds") or 0) / 1_000_000_000 if dec_nul.get("nanoseconds") else None
 
         record = {field: "" for field in header}
         record.update({
@@ -328,6 +417,14 @@ def write_benchmark_result_win(path, mac_template_path, dataset, n_value, enc_ro
             "decode_time_ratio": f"{decode_seconds / tgz_decode_seconds:.4f}" if decode_seconds and tgz_decode_seconds else "",
             "encode_rss_mb": enc.get("encode_rss_mb", ""),
             "decode_rss_mb": (dec.get("decode_rss_mb") or enc.get("decode_rss_mb", "")),
+            "encode_mb_s(file)": f"{raw_mb / enc_file_seconds:.2f}" if raw_mb and enc_file_seconds else "",
+            "decode_mb_s(file)": f"{raw_mb / dec_file_seconds:.2f}" if raw_mb and dec_file_seconds else "",
+            "encode_rss_mb(file)": enc_file.get("encode_rss_mb", ""),
+            "decode_rss_mb(file)": dec_file.get("decode_rss_mb", ""),
+            "encode_mb_s(null)": f"{raw_mb / enc_nul_seconds:.2f}" if raw_mb and enc_nul_seconds else "",
+            "decode_mb_s(null)": f"{raw_mb / dec_nul_seconds:.2f}" if raw_mb and dec_nul_seconds else "",
+            "encode_rss_mb(null)": enc_nul.get("encode_rss_mb", ""),
+            "decode_rss_mb(null)": dec_nul.get("decode_rss_mb", ""),
         })
         output_rows.append(record)
 
@@ -340,12 +437,42 @@ def write_benchmark_result_win(path, mac_template_path, dataset, n_value, enc_ro
     return output_rows
 
 
+def write_all_benchmark_results_win(path, mac_template_path, enc_rows, dec_rows):
+    keys = sorted({
+        (row.get("dataset", ""), parse_summary_key(row.get("format"))[1])
+        for row in enc_rows
+        if row.get("dataset")
+    })
+    all_rows = []
+    header = labels = None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    for dataset, n_value in keys:
+        enc_subset = [row for row in enc_rows if row.get("dataset") == dataset and parse_summary_key(row.get("format"))[1] == n_value]
+        dec_subset = [row for row in dec_rows if row.get("dataset") == dataset and parse_summary_key(row.get("format"))[1] == n_value]
+        if not enc_subset or not dec_subset:
+            continue
+        header, labels, _ = load_mac_result_template(mac_template_path, dataset, n_value)
+        header, labels = ensure_windows_mode_columns(list(header), list(labels))
+        rows = write_benchmark_result_win(path, mac_template_path, dataset, n_value, enc_subset, dec_subset)
+        all_rows.extend(rows)
+
+    if header is None:
+        header, labels, _ = load_mac_result_template(mac_template_path, "", "")
+        header, labels = ensure_windows_mode_columns(list(header), list(labels))
+    with path.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.DictWriter(handle, fieldnames=header, lineterminator="\n")
+        writer.writeheader()
+        writer.writerow(dict(zip(header, labels)))
+        writer.writerows(all_rows)
+    return all_rows
+
+
 def main():
     here = Path(__file__).resolve().parent
     csv_dir = here / "bench_results_csv"
     parser = argparse.ArgumentParser(description="Generate Windows benchmark summary CSVs")
     parser.add_argument("--results-dir", type=Path, default=here)
-    parser.add_argument("--output", type=Path, default=csv_dir / "benchmark_summary.csv")
+    parser.add_argument("--output", type=Path, default=csv_dir / "encode_summary.csv")
     parser.add_argument("--decode-output", type=Path, default=csv_dir / "decode_summary.csv")
     parser.add_argument("--benchmark-result-output", type=Path, default=csv_dir / "BenchMarkResult-Win.csv")
     parser.add_argument("--mac-result", type=Path, default=here.parent / "BenchMarkResult.csv")
@@ -390,12 +517,9 @@ def main():
             print(f"     {row['format']:<22} {seconds:8.2f}s  {size_str}  {state}{verify_str}")
 
     if enc_rows and dec_rows:
-        latest = max(candidates, key=lambda item: item["mtime"])
-        result_rows = write_benchmark_result_win(
+        result_rows = write_all_benchmark_results_win(
             args.benchmark_result_output.resolve(),
             args.mac_result.resolve(),
-            latest["dataset"],
-            latest["n"],
             enc_rows,
             dec_rows,
         )

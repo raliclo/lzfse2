@@ -1,0 +1,52 @@
+﻿[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\claw-code-rss-nul-n40-20260628-140804.log
+[rss] start: 2026-06-28 14:08:04
+[rss] cwd: C:\Users\lowei\proj\lzfse2\helper_windows
+[rss] dataset: ..\claw-code
+[rss] n: 40
+[rss] output: write to nul
+[rss] Other3 (nul) ...
+  encode RSS = 129.8 MB   decode RSS = 247 MB
+[rss] BVX3 (nul) ...
+  encode RSS = 148 MB   decode RSS = 245.2 MB
+[rss] Lazy2 (nul) ...
+  encode RSS = 489.2 MB   decode RSS = 242.1 MB
+[rss] Optimal (nul) ...
+  encode RSS = 518.4 MB   decode RSS = 240.7 MB
+[rss] LZ4 (nul) ...
+  encode RSS = 8.3 MB   decode RSS = 8.3 MB
+[rss] ZSTD (nul) ...
+  encode RSS = 8.3 MB   decode RSS = 8.3 MB
+[rss] Tgz (nul) ...
+  encode RSS = 6.3 MB   decode RSS = 6.1 MB
+
+[OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\rss_summary.csv written (peak RSS = Peak Working Set, n=40, output=nul):
+  dataset,format,output_mode,encode_rss_mb,decode_rss_mb
+  claw-code,Other3,file,106,247.6
+  claw-code,BVX3,file,124.9,246.2
+  claw-code,Lazy2,file,495.5,243.1
+  claw-code,Optimal,file,513.5,241
+  claw-code,LZ4,file,8.4,8.3
+  claw-code,ZSTD,file,8.4,8.4
+  claw-code,Tgz,file,6.6,5.9
+  llama.cpp,Other3,nul,117.1,346.8
+  llama.cpp,BVX3,nul,130.1,347.3
+  llama.cpp,Lazy2,nul,562.6,346.4
+  llama.cpp,Optimal,nul,748.7,346.9
+  llama.cpp,LZ4,nul,8.9,8.4
+  llama.cpp,ZSTD,nul,8.4,8.4
+  llama.cpp,Tgz,nul,6.7,6
+  llama.cpp,Other3,file,137.9,346.9
+  llama.cpp,BVX3,file,145,346.2
+  llama.cpp,Lazy2,file,616.1,345.7
+  llama.cpp,Optimal,file,754.8,346
+  llama.cpp,LZ4,file,8.3,8.3
+  llama.cpp,ZSTD,file,8.8,8.3
+  llama.cpp,Tgz,file,6.5,6.1
+  claw-code,Other3,nul,129.8,247
+  claw-code,BVX3,nul,148,245.2
+  claw-code,Lazy2,nul,489.2,242.1
+  claw-code,Optimal,nul,518.4,240.7
+  claw-code,LZ4,nul,8.3,8.3
+  claw-code,ZSTD,nul,8.3,8.3
+  claw-code,Tgz,nul,6.3,6.1
+[rss] finish: 2026-06-28 14:11:54

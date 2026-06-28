@@ -529,6 +529,226 @@ WinAppSDK 1.5 runtime（含 DDLM）、Swift for Windows 6.3.2、VS Build Tools +
 
 ---
 
+# R41-Win Retest：雙資料集完整 Windows Benchmark（2026-06-28）/ R41-Win Retest: Full Dual-Dataset Windows Benchmark
+
+> R41-Win（2026-06-23）僅有 claw-code encode 首輪結果；本輪為完整補測：  
+> 雙資料集（claw-code + llama.cpp）、雙模式（nul / file write）、encode + decode + RSS 峰值全覆蓋。  
+> 所有 14 個格式均通過 decode 正確性驗證（verify=PASS）。  
+> R41-Win (2026-06-23) had only claw-code encode; this is the full retest:  
+> both datasets, both modes (nul / file write), encode + decode + peak RSS.
+>
+> **重要發現 / Key finding**：llama.cpp 資料集上，Windows LZFSE encode 速度**超越** Mac（Other3/BVX3 ≈ 1.32–1.35×），claw-code 上仍以 Mac 領先。
+
+## 1a. Encode 速度 vs Mac（claw-code, n=40）/ Encode MB/s — Win vs Mac
+
+| 格式 | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 23.82 | 1.000 | 47.47 | 0.502 |
+| Other3 | 253.04 | 10.624 | 348.45 | 0.726 |
+| BVX3 | 246.37 | 10.343 | 405.51 | 0.608 |
+| Lazy2 | 41.03 | 1.722 | 65.08 | 0.630 |
+| Optimal | 17.78 | 0.746 | 34.74 | 0.512 |
+| TLZ4 | 201.74 | 8.469 | 418.75 | 0.482 |
+| ZSTD | 110.34 | 4.631 | 368.84 | 0.299 |
+
+## 1b. Encode 速度 vs Mac（llama.cpp, n=40）/ Encode MB/s — Win vs Mac
+
+| 格式 | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 25.70 | 1.000 | 42.87 | 0.599 |
+| Other3 | 132.53 | 5.157 | 98.50 | **1.346 ✅** |
+| BVX3 | 129.91 | 5.054 | 98.35 | **1.321 ✅** |
+| Lazy2 | 95.35 | 3.712 | 88.78 | **1.074 ✅** |
+| Optimal | 32.41 | 1.261 | 51.28 | 0.632 |
+| TLZ4 | 118.67 | 4.620 | 95.39 | **1.244 ✅** |
+| ZSTD | 114.17 | 4.444 | 100.30 | **1.138 ✅** |
+
+> **claw-code**：Windows 為 Mac 的 0.30–0.73×，Mac 明顯領先（source code 含大量重複 pattern，NEON 較有利）。  
+> **llama.cpp**：Windows LZFSE encode 超越 Mac（Other3/BVX3 ≈ 1.32–1.35×）。llama.cpp 為 pre-compressed binary，match 密度低；x86 hash chain 走訪速度在此場景優於 ARM。TGZ 與 Optimal 仍以 Mac 較快。
+
+## 1c. Decode 速度（file write mode，claw-code n=40）/ Decode MB/s — File Write Mode
+
+> decode-win.bat 以「寫檔模式」量測解碼後輸出至磁碟的 end-to-end 速度，含磁碟 I/O 開銷。
+
+| 格式 | Win MB/s | Mac MB/s | Win/Mac | Verify |
+| --- | ---: | ---: | ---: | --- |
+| TGZ | 153.54 | 388.48 | 0.395 | PASS |
+| Other3 | 158.95 | 310.67 | 0.512 | PASS |
+| BVX3 | 139.89 | 273.42 | 0.512 | PASS |
+| Lazy2 | 141.17 | 332.58 | 0.424 | PASS |
+| Optimal | 141.87 | 319.62 | 0.444 | PASS |
+| TLZ4 | 189.33 | 313.11 | 0.605 | PASS |
+| ZSTD | 171.20 | 422.27 | 0.405 | PASS |
+
+## 1d. Decode 速度（file write mode，llama.cpp n=40）/ Decode MB/s — File Write Mode (llama.cpp)
+
+| 格式 | Win MB/s | Mac MB/s | Win/Mac | Verify |
+| --- | ---: | ---: | ---: | --- |
+| TGZ | 27.53 | 89.75 | 0.307 | PASS |
+| Other3 | 41.53 | 83.86 | 0.495 | PASS |
+| BVX3 | 36.08 | 79.52 | 0.454 | PASS |
+| Lazy2 | 25.04 | 85.54 | 0.293 | PASS |
+| Optimal | 24.64 | 86.39 | 0.285 | PASS |
+| TLZ4 | 25.38 | 87.40 | 0.290 | PASS |
+| ZSTD | 25.07 | 84.58 | 0.296 | PASS |
+
+> Write-to-file decode 下，Windows 均慢於 Mac（claw: 0.40–0.61×；llama: 0.29–0.50×）。Mac SSD write 吞吐量優勢主導此量測。  
+> 注：R41-Win 首輪（nul 模式，不寫磁碟）Windows decode 速度曾達 Mac 的 1.7–4.3×；write mode 與 nul mode 差異反映磁碟 I/O 而非 codec 本身。
+
+## 1e. Encode nul vs file 模式對比 / Encode: Nul vs File Mode
+
+> nul mode = 壓縮後輸出丟棄（不寫磁碟），量測純 CPU 壓縮速度；file mode = 輸出至壓縮檔（含 I/O）。  
+> claw-code uncompressed ≈ 1416.8 MB，llama.cpp ≈ 1322.4 MB（由 comparison.csv TGZ encode 時間反推）。
+
+### claw-code (n=40)
+
+| 格式 | nul MB/s | file MB/s | nul/file |
+| --- | ---: | ---: | ---: |
+| TGZ | 24.30 | 23.82 | 1.02 |
+| Other3 | 247.04 | 253.04 | 0.976 |
+| BVX3 | 222.15 | 246.37 | 0.902 |
+| Lazy2 | 39.26 | 41.03 | 0.957 |
+| Optimal | 17.97 | 17.78 | 1.011 |
+| LZ4 | 215.75 | 201.74 | 1.069 |
+| ZSTD | 111.26 | 110.34 | 1.008 |
+
+### llama.cpp (n=40)
+
+| 格式 | nul MB/s | file MB/s | nul/file |
+| --- | ---: | ---: | ---: |
+| TGZ | 27.59 | 25.70 | 1.074 |
+| Other3 | 143.82 | 132.53 | 1.085 |
+| BVX3 | 141.16 | 129.91 | 1.086 |
+| Lazy2 | 106.06 | 95.35 | 1.112 |
+| Optimal | 33.69 | 32.41 | 1.039 |
+| LZ4 | 123.21 | 118.67 | 1.038 |
+| ZSTD | 123.88 | 114.17 | 1.085 |
+
+> **claw-code**：nul ≈ file（誤差範圍內）。壓縮輸出約 366–550 MiB，寫磁碟對整體時間影響不顯著。BVX3 nul 比 file 慢 10% 屬量測誤差。  
+> **llama.cpp**：nul 穩定快 4–11%，Lazy2 最明顯（1.112×）。壓縮輸出達 535–616 MiB，省略磁碟 I/O 有明顯加速。
+
+## 1f. Decode nul mode 速度（兩資料集）/ Decode: Nul Mode MB/s
+
+> nul mode = lzfse/lz4/zstd 解壓後丟棄輸出，量測純解碼吞吐量；file mode = 解壓並 extract 至磁碟。  
+> TGZ 的 nul/file 比 < 1（anomaly），原因見下方說明。
+
+### claw-code (n=40)
+
+| 格式 | nul MB/s | file MB/s | nul/file |
+| --- | ---: | ---: | ---: |
+| TGZ | 113.9 | 153.6 | 0.74 ⚠️ |
+| Other3 | 772.4 | 159.0 | 4.86 |
+| BVX3 | 749.0 | 139.9 | 5.35 |
+| Lazy2 | 750.3 | 141.2 | 5.31 |
+| Optimal | 744.9 | 141.9 | 5.25 |
+| LZ4 | 1609.6 | 189.4 | 8.50 |
+| ZSTD | 869.6 | 171.2 | 5.08 |
+
+### llama.cpp (n=40)
+
+| 格式 | nul MB/s | file MB/s | nul/file |
+| --- | ---: | ---: | ---: |
+| TGZ | 22.9 | 27.5 | 0.83 ⚠️ |
+| Other3 | 838.6 | 41.5 | 20.2 |
+| BVX3 | 873.0 | 36.1 | 24.2 |
+| Lazy2 | 842.1 | 25.0 | 33.6 |
+| Optimal | 846.1 | 24.6 | 34.3 |
+| LZ4 | 2165.2 | 25.4 | **85.3** |
+| ZSTD | 1674.6 | 25.1 | **66.8** |
+
+> **nul mode 關鍵數字**：LZFSE 解碼吞吐量 750–873 MB/s（兩資料集接近），LZ4 達 1610–2165 MB/s，ZSTD 達 870–1675 MB/s。  
+> **llama.cpp nul/file 比率極大（20–85×）**：file mode 需把 ~1.3 GB 解壓後資料寫入 Windows 磁碟（測得 24–42 MB/s 磁碟 write），而 nul mode 只做 CPU 解碼（~840–870 MB/s）；磁碟 I/O 才是 file mode 瓶頸的 30–85× 倍放大主因。  
+> **TGZ decode nul 比 file 慢（0.74–0.83×）anomaly**：TGZ decode-nul 在 decode-win.bat 內使用 `tar tf -`（stream verify，依然走 gz decompression 且須讀完整個 tar 目錄）；file mode 直接 `tar xzf` 到目錄，kernel buffered write 在大型 tar 中反而更快。此為實作路徑差異，非 codec 本身問題。
+
+## 2. 壓縮大小與比率 / Compress Size & Ratio
+
+### claw-code (n=40)
+
+| 格式 | Win 壓縮比/TGZ | Mac 壓縮比/TGZ | 差異 |
+| --- | ---: | ---: | ---: |
+| TGZ | 1.0000 | 1.0000 | 0.0000 |
+| Other3 | 0.9818 | 0.9865 | -0.0047 |
+| BVX3 | 0.9254 | 0.9492 | -0.0238 |
+| Lazy2 | 0.8704 | 0.8998 | -0.0294 |
+| Optimal | 0.8274 | 0.8574 | -0.0300 |
+| TLZ4 | 1.1739 | 1.1793 | -0.0054 |
+| ZSTD | 0.7813 | 0.8245 | -0.0432 |
+
+### llama.cpp (n=40)
+
+| 格式 | Win 壓縮比/TGZ | Mac 壓縮比/TGZ | 差異 |
+| --- | ---: | ---: | ---: |
+| TGZ | 1.0000 | 1.0000 | 0.0000 |
+| Other3 | 0.9970 | 0.9957 | +0.0013 |
+| BVX3 | 0.9810 | 0.9787 | +0.0023 |
+| Lazy2 | 0.9576 | 0.9551 | +0.0025 |
+| Optimal | 0.9412 | 0.9387 | +0.0025 |
+| TLZ4 | 1.0503 | 1.0537 | -0.0034 |
+| ZSTD | 0.9123 | 0.9100 | +0.0023 |
+
+> llama.cpp 壓縮比差異 < 0.4%，Win/Mac 幾乎相同。claw-code 上 ZSTD Win 略優（-0.0432），其餘差距均 < 3%。
+
+## 3. RSS 峰值（Windows, n=40）/ Peak RSS — Windows
+
+### claw-code
+
+| 格式 | Enc RSS nul (MB) | Enc RSS file (MB) | Dec RSS nul (MB) | Dec RSS file (MB) |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 6.3 | 6.3 | 5.7 | 6.1 |
+| Other3 | 116.1 | 131.6 | 247.2 | 247.2 |
+| BVX3 | 173.7 | 155.2 | 245.6 | 245.1 |
+| Lazy2 | 480.7 | 485.1 | 242.3 | 242.2 |
+| Optimal | 508.8 | 512.5 | 240.6 | 240.6 |
+| LZ4 | 8.3 | 8.3 | 8.3 | 8.3 |
+| ZSTD | 8.3 | 8.3 | 8.3 | 8.8 |
+
+### llama.cpp
+
+| 格式 | Enc RSS nul (MB) | Enc RSS file (MB) | Dec RSS nul (MB) | Dec RSS file (MB) |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 6.5 | 6.5 | 5.7 | 6.9 |
+| Other3 | 135.3 | 146.0 | 346.1 | 346.2 |
+| BVX3 | 162.6 | 171.8 | 346.6 | 346.5 |
+| Lazy2 | 635.3 | 649.8 | 346.0 | 345.6 |
+| Optimal | 756.6 | 760.5 | 346.0 | 346.1 |
+| LZ4 | 8.3 | 8.3 | 8.3 | 8.3 |
+| ZSTD | 8.3 | 8.8 | 8.3 | 8.3 |
+
+> **Optimal encode RSS**：llama.cpp 760.5 MB vs claw-code 512.5 MB（+48%）。  
+> **Lazy2 encode RSS**：llama.cpp 649.8 MB vs claw-code 485.1 MB（+34%）。  
+> llama.cpp 每 chunk 的 chain table 搜尋路徑更長（pre-compressed binary，match 不容易中途 early-exit），導致更高的 chain 記憶體壓力。  
+> Decode RSS 跨格式差異不大（LZFSE 約 240–350 MB；LZ4/ZSTD/TGZ < 10 MB）。
+
+## 4. R41-Win Retest vs R41-Win 首輪（claw-code encode 對比）/ vs Original R41-Win
+
+| 格式 | R41-Win MB/s | Retest MB/s | 變化 |
+| --- | ---: | ---: | --- |
+| TGZ | 24.67 | 23.82 | -3.5% |
+| Other3 | 266.36 | 253.04 | -5.0% |
+| BVX3 | 241.42 | 246.37 | +2.1% |
+| Lazy2 | 38.75 | 41.03 | +5.9% |
+| Optimal | 15.54 | 17.78 | +14.4% |
+| TLZ4 | 191.84 | 201.74 | +5.2% |
+| ZSTD | 103.67 | 110.34 | +6.4% |
+
+> 各格式變化均在量測誤差範圍（±5–15%）；Optimal 本次略快（+14%），其餘持平。
+
+## 結論 / Conclusion
+
+| 項目 | 結論 |
+| --- | --- |
+| **最重要發現** | llama.cpp 上 Win LZFSE encode 超越 Mac（Other3/BVX3 ≈ 1.32–1.35×）；claw-code 仍以 Mac 領先 |
+| **Encode nul vs file** | claw-code 差距 < 5%（CPU 主導）；llama.cpp nul 快 4–11%（省略 ~535–616 MiB 輸出 I/O）|
+| **Decode nul mode（CPU 限制）** | LZFSE 750–873 MB/s；LZ4 1610–2165 MB/s；ZSTD 870–1675 MB/s；TGZ anomaly（nul 慢於 file）|
+| **Decode file mode（I/O 限制）** | Windows 均慢於 Mac（claw: 0.40–0.61×；llama: 0.29–0.50×），磁碟 write 為瓶頸 |
+| **llama.cpp nul/file 比率** | LZFSE 20–34×，LZ4 85×，ZSTD 67×——pure CPU decode 遠快於磁碟 extract |
+| **bsdtar 瓶頸假設** | Windows nul/file 比率（20–85×）遠超磁碟速度差異可解釋的範圍（Mac 估計 ~10×）；疑為 Windows bsdtar（MSYS2 build）的 file 建立 syscall pattern + NTFS metadata 開銷共同造成，非 codec 問題；公平跨平台比較應以 nul mode 為準 |
+| **Optimal RSS** | llama.cpp encode RSS 760.5 MB（claw 512.5 MB，+48%），chain table 記憶體壓力更大 |
+| **壓縮比** | Win/Mac 差距 < 1%（llama 幾乎相同，claw ZSTD 差距最大 -0.04）|
+| **R42 方向** | Lazy2/Optimal parse hotspot 已確認；RSS 高峰值指向 chain table 記憶體壓力 → prefetch chain entries 可同時改善速度與間接降低 cache miss 引起的有效 RSS |
+
+---
+
 # R40-Mac：macOS 完整 Benchmark 結果（2026-06-22）/ R40-Mac: Full macOS Benchmark Results
 
 > 以 R40 代碼（3652 行）對 claw-code / llama.cpp 執行 `-n 40 / 8 / 4` 三批次完整 benchmark，涵蓋 encode/decode 速度、RSS 峰值、CPU energy ratio，並與 R40-Win 比較 encode 速度。

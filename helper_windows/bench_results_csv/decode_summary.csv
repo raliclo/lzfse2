@@ -1,8 +1,29 @@
-﻿format,nanoseconds,encoded_bytes,valid,verify,encode_rss_mb,decode_rss_mb,note
-decodeTgz-n40,2223717300,491113794,yes,PASS,6.3,5.7,
-decodeOther3-n40,1923449700,482162125,yes,PASS,143.6,247,
-decodeBVX3-n40,1762596600,454460888,yes,PASS,177.4,245.8,
-decodeLazy2-n40,1596284200,427459896,yes,PASS,488.5,242,
-decodeOptimal-n40,1831619100,406318404,yes,PASS,535.3,241.2,
-decodeLZ4-n40,812059000,576502947,yes,PASS,8.4,8.3,
-decodeZSTD-n40,1584545600,383712269,yes,PASS,8.3,8.3,
+﻿dataset,format,nanoseconds,encoded_bytes,valid,verify,encode_rss_mb,decode_rss_mb,note
+claw-code,decodeTgz-n40,9226555300,491100160,yes,PASS,6.3,6.1,write to file
+claw-code,decodeTgz-n40,12438960200,491100160,yes,PASS,6.3,5.7,write to nul
+claw-code,decodeOther3-n40,8912434900,482159820,yes,PASS,131.6,247.2,write to file
+claw-code,decodeOther3-n40,1834406200,482159820,yes,PASS,116.1,247.2,write to nul
+claw-code,decodeBVX3-n40,10126528600,454459576,yes,PASS,155.2,245.1,write to file
+claw-code,decodeBVX3-n40,1891531400,454459576,yes,PASS,173.7,245.6,write to nul
+claw-code,decodeLazy2-n40,10034814800,427459163,yes,PASS,485.1,242.2,write to file
+claw-code,decodeLazy2-n40,1888388800,427459163,yes,PASS,480.7,242.3,write to nul
+claw-code,decodeOptimal-n40,9985172400,406317010,yes,PASS,512.5,240.6,write to file
+claw-code,decodeOptimal-n40,1901982700,406317010,yes,PASS,508.8,240.6,write to nul
+claw-code,decodeLZ4-n40,7482136900,576498776,yes,PASS,8.3,8.3,write to file
+claw-code,decodeLZ4-n40,880263000,576498776,yes,PASS,8.3,8.3,write to nul
+claw-code,decodeZSTD-n40,8274869700,383711208,yes,PASS,8.3,8.8,write to file
+claw-code,decodeZSTD-n40,1629284300,383711208,yes,PASS,8.3,8.3,write to nul
+llama.cpp,decodeTgz-n40,48021532100,615383040,yes,PASS,6.5,6.9,write to file
+llama.cpp,decodeTgz-n40,57686741700,615383040,yes,PASS,6.5,5.7,write to nul
+llama.cpp,decodeOther3-n40,31836124100,613545367,yes,PASS,146,346.2,write to file
+llama.cpp,decodeOther3-n40,1576911300,613545367,yes,PASS,135.3,346.1,write to nul
+llama.cpp,decodeBVX3-n40,36645656600,603676001,yes,PASS,171.8,346.5,write to file
+llama.cpp,decodeBVX3-n40,1514797900,603676001,yes,PASS,162.6,346.6,write to nul
+llama.cpp,decodeLazy2-n40,52795288600,589304067,yes,PASS,649.8,345.6,write to file
+llama.cpp,decodeLazy2-n40,1570383500,589304067,yes,PASS,635.3,346,write to nul
+llama.cpp,decodeOptimal-n40,53671085500,579176051,yes,PASS,760.5,346.1,write to file
+llama.cpp,decodeOptimal-n40,1562954000,579176051,yes,PASS,756.6,346,write to nul
+llama.cpp,decodeLZ4-n40,52104833800,646311346,yes,PASS,8.3,8.3,write to file
+llama.cpp,decodeLZ4-n40,610765900,646311346,yes,PASS,8.3,8.3,write to nul
+llama.cpp,decodeZSTD-n40,52732298900,561421364,yes,PASS,8.8,8.3,write to file
+llama.cpp,decodeZSTD-n40,789708400,561421364,yes,PASS,8.3,8.3,write to nul

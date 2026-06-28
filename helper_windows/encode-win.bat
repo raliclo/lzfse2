@@ -1,111 +1,197 @@
 @echo off
 chcp 65001 > nul
+setlocal EnableDelayedExpansion
+
 if "%~1"=="" (
-    echo Usage: encode-win.bat ^<dataset^> [n]
+    echo Usage: encode-win.bat ^<dataset^> [n] [write]
     exit /b 1
 )
+
 set "_dataset=%~1"
 set "_logprefix=%~nx1"
 if "%_logprefix%"=="" set "_logprefix=dataset"
-:: Warm-cache：預讀整個資料集進 OS page cache，消除「第一個格式 cold-cache」造成的壓縮計時偏差（見 OPTIMIZATION.md R15/R16 cold-cache 註）
-:: Warm-cache: pre-read the whole dataset so every compression format is timed under the same warm-cache condition (removes first-format cold-cache skew).
-echo [Info] Warm-cache 預讀資料集 / Pre-reading dataset to warm OS cache... 
+for /f "tokens=1,* delims=|" %%A in ('powershell -NoProfile -Command "$item=Get-Item -LiteralPath '%_dataset%'; Write-Output ((Split-Path -Parent $item.FullName)+'|'+$item.Name)"') do (
+    set "_tar_parent=%%~A"
+    set "_tar_leaf=%%~B"
+)
+set "_write=0"
+if /I "%~3"=="write" set "_write=1"
+set "_encode_output_note=write to nul"
+if "%_write%"=="1" set "_encode_output_note=write to file"
+set "_mode_suffix=-nul"
+if "%_write%"=="1" set "_mode_suffix=-file"
+
+:: Warm-cache: pre-read the whole dataset so every compression format is timed under the same warm-cache condition.
+echo [Info] Warm-cache dataset / Pre-reading dataset to warm OS cache...
 call :tarWarmup "%_dataset%"
 
 if not exist bench_logs mkdir bench_logs
 if not exist bench_results_csv mkdir bench_results_csv
+
 set "_nsuffix="
 if not "%~2"=="" set "_nsuffix=-n%~2"
-powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output('[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試... / Starting tgz, lzfse, tlz4, zstd benchmark...')"
 
-echo [Info] Running tgz encode benchmark...
-call :nanoTimeElapsed call :encodeTgz "%_dataset%" > ".\bench_logs\%_logprefix%-encodeTgz%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.tgz" "bench_logs\%_logprefix%-encodeTgz%_nsuffix%-results.txt"
+powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output('[Info] Starting tgz, lzfse, tlz4, zstd benchmark... %TIME:~0,8%')"
 
-echo [Info] Running lzfse other3 encode benchmark...
-call :nanoTimeElapsed call :encodeOther3 "%_dataset%" "%2" > ".\bench_logs\%_logprefix%-encodeOther3%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.lzfse.other3" "bench_logs\%_logprefix%-encodeOther3%_nsuffix%-results.txt"
+echo [Info] Running tgz encode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :encodeTgz "%_dataset%" > ".\bench_logs\%_logprefix%-encodeTgz%_nsuffix%%_mode_suffix%-results.txt"
+call :appendFileSize "%_dataset%.tgz" "bench_logs\%_logprefix%-encodeTgz%_nsuffix%%_mode_suffix%-results.txt"
+call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeTgz%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] tgz encode %TIME:~0,8%
 
-echo [Info] Running lzfse bvx3 encode benchmark...
-call :nanoTimeElapsed call :encodeBVX3 "%_dataset%" "%2" > ".\bench_logs\%_logprefix%-encodeBVX3%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.lzfse.bvx3" "bench_logs\%_logprefix%-encodeBVX3%_nsuffix%-results.txt"
+echo [Info] Running lzfse other3 encode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :encodeOther3 "%_dataset%" "%~2" > ".\bench_logs\%_logprefix%-encodeOther3%_nsuffix%%_mode_suffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.other3" "bench_logs\%_logprefix%-encodeOther3%_nsuffix%%_mode_suffix%-results.txt"
+call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeOther3%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse other3 encode %TIME:~0,8%
 
-echo [Info] Running lzfse lazy2 encode benchmark...
-call :nanoTimeElapsed call :encodeLazy2 "%_dataset%" "%2" > ".\bench_logs\%_logprefix%-encodeLazy2%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.lzfse.lazy2" "bench_logs\%_logprefix%-encodeLazy2%_nsuffix%-results.txt"
+echo [Info] Running lzfse bvx3 encode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :encodeBVX3 "%_dataset%" "%~2" > ".\bench_logs\%_logprefix%-encodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.bvx3" "bench_logs\%_logprefix%-encodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
+call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse bvx3 encode %TIME:~0,8%
 
-echo [Info] Running lzfse optimal encode benchmark...
-call :nanoTimeElapsed call :encodeOptimal "%_dataset%" "%2" > ".\bench_logs\%_logprefix%-encodeOptimal%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.lzfse.optimal" "bench_logs\%_logprefix%-encodeOptimal%_nsuffix%-results.txt"
+echo [Info] Running lzfse lazy2 encode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :encodeLazy2 "%_dataset%" "%~2" > ".\bench_logs\%_logprefix%-encodeLazy2%_nsuffix%%_mode_suffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.lazy2" "bench_logs\%_logprefix%-encodeLazy2%_nsuffix%%_mode_suffix%-results.txt"
+call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeLazy2%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse lazy2 encode %TIME:~0,8%
 
-echo [Info] Running lz4 encode benchmark...
-call :nanoTimeElapsed call :encodeLZ4 "%_dataset%" > ".\bench_logs\%_logprefix%-encodeLZ4%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.tar.lz4" "bench_logs\%_logprefix%-encodeLZ4%_nsuffix%-results.txt"
+echo [Info] Running lzfse optimal encode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :encodeOptimal "%_dataset%" "%~2" > ".\bench_logs\%_logprefix%-encodeOptimal%_nsuffix%%_mode_suffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.optimal" "bench_logs\%_logprefix%-encodeOptimal%_nsuffix%%_mode_suffix%-results.txt"
+call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeOptimal%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse optimal encode %TIME:~0,8%
 
-echo [Info] Running zstd encode benchmark...
-call :nanoTimeElapsed call :encodeZSTD "%_dataset%" > "bench_logs\%_logprefix%-encodeZSTD%_nsuffix%-results.txt"
-call :appendFileSize "%_dataset%.tar.zst" "bench_logs\%_logprefix%-encodeZSTD%_nsuffix%-results.txt"
+echo [Info] Running lz4 encode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :encodeLZ4 "%_dataset%" > ".\bench_logs\%_logprefix%-encodeLZ4%_nsuffix%%_mode_suffix%-results.txt"
+call :appendFileSize "%_dataset%.tar.lz4" "bench_logs\%_logprefix%-encodeLZ4%_nsuffix%%_mode_suffix%-results.txt"
+call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeLZ4%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lz4 encode %TIME:~0,8%
 
-echo [Info] 彙整基準測試結果 / Summarising benchmark results...
-powershell -NoProfile -Command "$csv=@('format,nanoseconds,encoded_bytes'); Get-ChildItem 'bench_logs\*-results.txt' | Sort-Object Name | ForEach-Object { $m=[regex]::Match($_.BaseName,'(encode\w+(?:-n\d+)?)-results'); $fmt=if($m.Success){$m.Groups[1].Value}else{$_.BaseName}; $c=Get-Content $_.FullName -Raw; $ns=([regex]::Match($c,'Process took:\s+(\d+)')).Groups[1].Value; $b=([regex]::Match($c,'Encoded size:\s+(\d+)')).Groups[1].Value; $csv+=$fmt+','+$ns+','+$b }; $csv | Out-File 'bench_results_csv\benchmark_summary.csv' -Encoding UTF8"
-echo [OK] bench_results_csv\benchmark_summary.csv written
+echo [Info] Running zstd encode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :encodeZSTD "%_dataset%" > ".\bench_logs\%_logprefix%-encodeZSTD%_nsuffix%%_mode_suffix%-results.txt"
+call :appendFileSize "%_dataset%.tar.zst" "bench_logs\%_logprefix%-encodeZSTD%_nsuffix%%_mode_suffix%-results.txt"
+call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeZSTD%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] zstd encode %TIME:~0,8%
+
+echo [Info] Summarising benchmark results... %TIME:~0,8%
+python summarize_win.py --results-dir . --output bench_results_csv\encode_summary.csv
+if errorlevel 1 exit /b 1
+echo [OK] bench_results_csv\encode_summary.csv written %TIME:~0,8%
 goto :EOF
 
 :appendFileSize
-:: %~1 = 輸出檔案路徑, %~2 = log 檔案路徑
-powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; if (Test-Path '%~1') { $s=(Get-Item '%~1').Length; Write-Output('==> Encoded size: '+$s+' bytes') } else { Write-Output('Output file not found: %~1') }" >> "%~2"
+:: %~1 = output file, %~2 = log file
+if "%_write%"=="1" (
+    powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; if (Test-Path '%~1') { $s=(Get-Item '%~1').Length; Write-Output('==> Encoded size: '+$s+' bytes') } else { Write-Output('Output file not found: %~1') }" >> "%~2"
+) else (
+    powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output('==> Encoded size: 0 bytes') " >> "%~2"
+)
+exit /b
+
+:writeEncodeOutputMode
+powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output('==> Encode output: %_encode_output_note%')" >> "%~1"
 exit /b
 
 :encodeOther3
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-tar -cf - "%~1" | .\lzfse.exe -encode -algo other3 %_n_opt% -si -o "%~1.lzfse.other3"
+call :setTarSource "%~1"
+if "%_write%"=="1" (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo other3 %_n_opt% -si -o "%~1.lzfse.other3"
+) else (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo other3 %_n_opt% -si -so > nul 2>&1
+)
 exit /b
 
 :encodeBVX3
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-tar -cf - "%~1" | .\lzfse.exe -encode -algo bvx3 %_n_opt% -si -o "%~1.lzfse.bvx3"
+call :setTarSource "%~1"
+if "%_write%"=="1" (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo bvx3 %_n_opt% -si -o "%~1.lzfse.bvx3"
+) else (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo bvx3 %_n_opt% -si -so > nul 2>&1
+)
 exit /b
 
 :encodeLazy2
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-tar -cf - "%~1" | .\lzfse.exe -encode -algo bvx3 -lazy2 %_n_opt% -si -o "%~1.lzfse.lazy2"
+call :setTarSource "%~1"
+if "%_write%"=="1" (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo bvx3 -lazy2 %_n_opt% -si -o "%~1.lzfse.lazy2"
+) else (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo bvx3 -lazy2 %_n_opt% -si -so > nul 2>&1
+)
 exit /b
 
 :encodeOptimal
 set "_n_opt="
 if not "%~2"=="" set "_n_opt=-n %~2"
-tar -cf - "%~1" | .\lzfse.exe -encode -algo bvx3 -optimal %_n_opt% -si -o "%~1.lzfse.optimal"
+call :setTarSource "%~1"
+if "%_write%"=="1" (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo bvx3 -optimal %_n_opt% -si -o "%~1.lzfse.optimal"
+) else (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo bvx3 -optimal %_n_opt% -si -so > nul 2>&1
+)
 exit /b
 
 :encodeLZ4
-tar -cf - "%~1" | lz4 -9 -q -f - "%~1.tar.lz4"
+call :setTarSource "%~1"
+if "%_write%"=="1" (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | lz4 -9 -q -f - "%~1.tar.lz4"
+) else (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | lz4 -9 -q -c - > nul 2>&1
+)
 exit /b
 
 :encodeZSTD
-tar -cf - "%~1" | zstd -9 -q -f -o "%~1.tar.zst"
+call :setTarSource "%~1"
+if "%_write%"=="1" (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | zstd -9 -q -f -o "%~1.tar.zst"
+) else (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | zstd -9 -q -c - > nul 2>&1
+)
 exit /b
 
 :tarWarmup
-tar -cf - "%~1" > nul 2>&1
+call :setTarSource "%~1"
+cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" > nul 2>&1
+exit /b
+
+:tarCfStdout
+pushd "!_tar_parent!" || exit /b 1
+tar -cf - "!_tar_leaf!"
+set "_tar_rc=%ERRORLEVEL%"
+popd
+exit /b %_tar_rc%
+
+:tarCzfStdout
+pushd "!_tar_parent!" || exit /b 1
+tar czf - "!_tar_leaf!"
+set "_tar_rc=%ERRORLEVEL%"
+popd
+exit /b %_tar_rc%
+:setTarSource
 exit /b
 
 :nanoTimeElapsed
-:: 用法 / Usage: call :nanoTimeElapsed <command> [args...]
-:: 對應 zsh nanoTimeElapsed "$@" / Maps to zsh nanoTimeElapsed "$@"
-:: 注意：%* 在 call :label 子程序內展開的是外層腳本參數，必須用 %1 %2 %3... 取代
+:: Usage: call :nanoTimeElapsed <command> [args...]
 for /f %%T in ('powershell -NoProfile -Command "[System.Diagnostics.Stopwatch]::GetTimestamp()"') do set "_t0=%%T"
 %1 %2 %3 %4 %5
 set _rc=%ERRORLEVEL%
 for /f %%T in ('powershell -NoProfile -Command "[System.Diagnostics.Stopwatch]::GetTimestamp()"') do set "_t1=%%T"
-powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; $ns=([long]'%_t1%'-[long]'%_t0%')*1000000000/[System.Diagnostics.Stopwatch]::Frequency; Write-Output ('==> Process took: '+$ns.ToString('D10')+' 奈秒/nanoseconds')"
+powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; $ns=([long]'%_t1%'-[long]'%_t0%')*1000000000/[System.Diagnostics.Stopwatch]::Frequency; Write-Output ('==> Process took: '+$ns.ToString('D10')+' nanoseconds')"
 exit /b %_rc%
 
 :encodeTgz
-:: 用法 / Usage: call :encodeTgz <folder_or_file>
-:: 對應 zsh getar / Maps to zsh getar
-:: XZ_OPT 在 gzip(-z) 下無效，Windows tar czf 直接用 gzip 壓縮
-tar czf "%~1.tgz" "%~1"
+:: Usage: call :encodeTgz <folder_or_file>
+call :setTarSource "%~1"
+if "%_write%"=="1" (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar czf - "!_tar_leaf!" > "%~1.tgz"
+) else (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar czf - "!_tar_leaf!" > nul 2>&1
+)
 exit /b

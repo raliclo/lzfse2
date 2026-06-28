@@ -485,10 +485,14 @@ function ffilter() {
 
 ## This script helps to creat a tar.xz for a folder.
 function getar() {
-    XZ_OPT=-e9 tar czf "$1".tgz "$1"
-    du -sh $1
-    du -sh $1.tgz
+    local tar_parent="${1:h}"
+    local tar_leaf="${1:t}"
+    [[ -z "$tar_parent" || "$tar_parent" == "$1" ]] && tar_parent="."
+    XZ_OPT=-e9 tar czf "$1".tgz -C "$tar_parent" "$tar_leaf"
+    du -sh "$1"
+    du -sh "$1.tgz"
 }
+
 function lzfseX() {
     # 如果參數 $1 為空則提示並退出
     if [[ -z "$1" ]]; then
@@ -503,6 +507,9 @@ function lzfseX() {
     # 設置預設值為 'other3' (若 $2 為空)；第三參數 mode：run（預設）或 probe（僅量測記憶體峰值）
     local algo="${2:-other3}"
     local mode="${3:-run}"
+    local tar_parent="${1:h}"
+    local tar_leaf="${1:t}"
+    [[ -z "$tar_parent" || "$tar_parent" == "$1" ]] && tar_parent="."
 
     # 根據演算法設定副檔名（lazy2/optimal 為 bvx3 的解析器旗標）
     local extension="lzfse.other3"
@@ -530,14 +537,14 @@ function lzfseX() {
             echo "[MEM] ${probe_label}: /usr/bin/time -l 不可用（非 macOS？），略過 / skipped"
             return 0
         fi
-        tar -cf - "$1" | memProbe "$probe_label" \
+        tar -cf - -C "$tar_parent" "$tar_leaf" | memProbe "$probe_label" \
             lzfse -encode -si -o /dev/null -algo "$algo" ${=flags} "${n_args[@]}"
         return 0
     fi
 
     # 執行壓縮
-    echo "執行中: tar -cf - $1 | lzfse -encode -si -o $1.$extension -algo $algo $flags ${n_args[*]}"
-    tar -cf - "$1" | lzfse -encode -si -o "$1.$extension" -algo "$algo" ${=flags} "${n_args[@]}"
+    echo "執行中: tar -cf - -C $tar_parent $tar_leaf | lzfse -encode -si -o $1.$extension -algo $algo $flags ${n_args[*]}"
+    tar -cf - -C "$tar_parent" "$tar_leaf" | lzfse -encode -si -o "$1.$extension" -algo "$algo" ${=flags} "${n_args[@]}"
     local rc=$?
     if [[ $rc -ne 0 || ! -f "$1.$extension" ]]; then
         echo "[Error] lzfseX failed to create $1.$extension"
@@ -553,17 +560,23 @@ function lzfseX() {
 }
 
 function getzstd() {
-   tar -cf - $1 | zstd -9 -T0 -c > $1.zst
+   local tar_parent="${1:h}"
+   local tar_leaf="${1:t}"
+   [[ -z "$tar_parent" || "$tar_parent" == "$1" ]] && tar_parent="."
+   tar -cf - -C "$tar_parent" "$tar_leaf" | zstd -9 -T0 -c > "$1.zst"
     # tar -I 'zstd -1' -cvf $1.zst $1
-    du -sh $1
-    du -sh $1.zst
+    du -sh "$1"
+    du -sh "$1.zst"
 }
 
 function tlz4() {
-    tar -cf - $1 | lz4 -T0 -6 -q > $1.tar.lz4
+    local tar_parent="${1:h}"
+    local tar_leaf="${1:t}"
+    [[ -z "$tar_parent" || "$tar_parent" == "$1" ]] && tar_parent="."
+    tar -cf - -C "$tar_parent" "$tar_leaf" | lz4 -T0 -6 -q > "$1.tar.lz4"
     # tar --use-compress-program=lz4 -cf  $1.tar.lz4 $1
-    du -sh $1
-    du -sh $1.tar.lz4 
+    du -sh "$1"
+    du -sh "$1.tar.lz4" 
 }
 
 function diskcheck() {
@@ -636,7 +649,10 @@ function archiveMemProbe() {
                 echo "[MEM] encode ${folder} tgz: /usr/bin/time -l 不可用（非 macOS？），略過 / skipped"
                 return 0
             fi
-            memProbe "encode ${folder} tgz" tar czf /dev/null "$target"
+            local tar_parent="${target:h}"
+            local tar_leaf="${target:t}"
+            [[ -z "$tar_parent" || "$tar_parent" == "$target" ]] && tar_parent="."
+            memProbe "encode ${folder} tgz" tar czf /dev/null -C "$tar_parent" "$tar_leaf"
             ;;
         zst|zstd)
             echo "[Info] 記憶體峰值量測 (encode ${folder} zstd) / Encode peak-RSS probe:"
@@ -644,7 +660,10 @@ function archiveMemProbe() {
                 echo "[MEM] encode ${folder} zstd: /usr/bin/time -l 不可用（非 macOS？），略過 / skipped"
                 return 0
             fi
-            tar -cf - "$target" | memProbe "encode ${folder} zstd" zstd -9 -T0 -q -f -o /dev/null
+            local tar_parent="${target:h}"
+            local tar_leaf="${target:t}"
+            [[ -z "$tar_parent" || "$tar_parent" == "$target" ]] && tar_parent="."
+            tar -cf - -C "$tar_parent" "$tar_leaf" | memProbe "encode ${folder} zstd" zstd -9 -T0 -q -f -o /dev/null
             ;;
         tar.lz4)
             echo "[Info] 記憶體峰值量測 (encode ${folder} tar.lz4) / Encode peak-RSS probe:"
@@ -652,7 +671,10 @@ function archiveMemProbe() {
                 echo "[MEM] encode ${folder} tar.lz4: /usr/bin/time -l 不可用（非 macOS？），略過 / skipped"
                 return 0
             fi
-            tar -cf - "$target" | memProbe "encode ${folder} tar.lz4" lz4 -T0 -6 -q -f - /dev/null
+            local tar_parent="${target:h}"
+            local tar_leaf="${target:t}"
+            [[ -z "$tar_parent" || "$tar_parent" == "$target" ]] && tar_parent="."
+            tar -cf - -C "$tar_parent" "$tar_leaf" | memProbe "encode ${folder} tar.lz4" lz4 -T0 -6 -q -f - /dev/null
             ;;
         *)
             echo "[Error] unknown archiveMemProbe format: $fmt"
@@ -691,7 +713,10 @@ function lz4bench() {
     # Warm-cache: pre-read the whole dataset so every compression format is timed
     # under the same warm-cache condition (removes first-format cold-cache skew).
     echo $'\n[Info] Warm-cache 預讀資料集 / Pre-reading dataset to warm OS cache...'
-    tar -cf - "$1" > /dev/null 2>&1
+    local tar_parent="${1:h}"
+    local tar_leaf="${1:t}"
+    [[ -z "$tar_parent" || "$tar_parent" == "$1" ]] && tar_parent="."
+    tar -cf - -C "$tar_parent" "$tar_leaf" > /dev/null 2>&1
 
     echo $'[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試...\n'
 

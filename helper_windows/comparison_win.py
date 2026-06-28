@@ -1,4 +1,4 @@
-"""以 BenchMarkResult.csv（macOS）與 benchmark_summary.csv（Windows）產生比較報告。
+"""以 BenchMarkResult.csv（macOS）與 encode_summary.csv（Windows）產生比較報告。
 
 工作流程 / Workflow:
     每輪先跑 R{N}-Mac，再跑 R{N}-Win（含 decode），最後執行本腳本。
@@ -158,34 +158,44 @@ def load_mac(path, dataset, n):
         if r.get("dataset") == dataset and r.get("n") == str(n)
     }
 
-def load_summary(path):
-    """Return {format_display_name: row} from benchmark_summary.csv."""
+def load_summary(path, dataset=None):
+    """Return {format_display_name: row} from encode_summary.csv."""
     with path.open(newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
         result = {}
         for row in reader:
+            if dataset and row.get("dataset") and row.get("dataset") != dataset:
+                continue
             m = SUMMARY_RE.match(row.get("format", ""))
             if not m or m.group("token") not in FORMAT_MAP:
                 continue
             display = FORMAT_MAP[m.group("token")]
-            result[display] = {**row, "n": m.group("n") or ""}
+            current = result.get(display)
+            is_file = "write to file" in (row.get("note") or "").lower()
+            if current is None or is_file:
+                result[display] = {**row, "n": m.group("n") or ""}
     return result
 
-def load_decode_summary(path):
+def load_decode_summary(path, dataset=None):
     """Return {format_display_name: row} from decode_summary.csv."""
     with path.open(newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
         result = {}
         for row in reader:
+            if dataset and row.get("dataset") and row.get("dataset") != dataset:
+                continue
             m = DECODE_SUMMARY_RE.match(row.get("format", ""))
             if not m or m.group("token") not in DECODE_FORMAT_MAP:
                 continue
             display = DECODE_FORMAT_MAP[m.group("token")]
-            result[display] = {**row, "n": m.group("n") or ""}
+            current = result.get(display)
+            is_file = "write to file" in (row.get("note") or "").lower()
+            if current is None or is_file:
+                result[display] = {**row, "n": m.group("n") or ""}
     return result
 
 
-def load_rss_summary(path):
+def load_rss_summary(path, dataset=None):
     """Return {format_display_name: row} from rss_summary.csv."""
     if not path or not path.exists():
         return {}
@@ -204,9 +214,14 @@ def load_rss_summary(path):
         reader = csv.DictReader(fh)
         result = {}
         for row in reader:
+            if dataset and row.get("dataset") and row.get("dataset") != dataset:
+                continue
             display = names.get((row.get("format") or "").strip())
             if display:
-                result[display] = row
+                current = result.get(display)
+                is_file = (row.get("output_mode") or "").strip().lower() == "file"
+                if current is None or is_file:
+                    result[display] = row
         return result
 
 
@@ -483,11 +498,25 @@ def write_csv(path, mac, win, win_dec, win_rss, raw_mb, dataset, mac_n):
         })
 
     path.parent.mkdir(parents=True, exist_ok=True)
+    existing_rows = []
+    if path.exists():
+        with path.open(newline="", encoding="utf-8-sig") as fh:
+            reader = csv.DictReader(fh)
+            for row_index, existing in enumerate(reader):
+                if row_index == 0:
+                    continue
+                if existing.get("dataset") in ("", "資料集 / Dataset", dataset):
+                    continue
+                existing_rows.append({
+                    field: existing.get(field, "")
+                    for field in CSV_FIELDS
+                })
+
     with path.open("w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh, lineterminator="\n")
         w.writerow(CSV_FIELDS)
         w.writerow([CSV_LABEL_BY_FIELD.get(field, field) for field in CSV_FIELDS])
-        for r in rows:
+        for r in existing_rows + rows:
             w.writerow([r[f] for f in CSV_FIELDS])
 
     return rows
@@ -500,7 +529,7 @@ def main():
     csv_dir = here / "bench_results_csv"
     ap     = argparse.ArgumentParser(description="macOS vs Windows benchmark comparison")
     ap.add_argument("--mac",         type=Path, default=here.parent / "BenchMarkResult.csv")
-    ap.add_argument("--win-summary", type=Path, default=csv_dir / "benchmark_summary.csv")
+    ap.add_argument("--win-summary", type=Path, default=csv_dir / "encode_summary.csv")
     ap.add_argument("--win-decode",  type=Path, default=None)
     ap.add_argument("--win-rss",     type=Path, default=None)
     ap.add_argument("--output",      type=Path, default=csv_dir / "comparison.csv")
@@ -514,7 +543,7 @@ def main():
             sys.exit(1)
 
     mac = load_mac(args.mac.resolve(), args.dataset, args.n)
-    win = load_summary(args.win_summary.resolve())
+    win = load_summary(args.win_summary.resolve(), args.dataset)
     if not mac:
         print(f"No macOS rows for dataset={args.dataset}, n={args.n}", file=sys.stderr)
         sys.exit(1)
@@ -525,13 +554,13 @@ def main():
         default_dec = args.win_summary.parent / "decode_summary.csv"
         if default_dec.exists():
             win_dec_path = default_dec
-    win_dec = load_decode_summary(win_dec_path) if win_dec_path and win_dec_path.exists() else {}
+    win_dec = load_decode_summary(win_dec_path, args.dataset) if win_dec_path and win_dec_path.exists() else {}
     win_rss_path = args.win_rss
     if win_rss_path is None:
         default_rss = args.win_summary.parent / "rss_summary.csv"
         if default_rss.exists():
             win_rss_path = default_rss
-    win_rss = load_rss_summary(win_rss_path) if win_rss_path and win_rss_path.exists() else {}
+    win_rss = load_rss_summary(win_rss_path, args.dataset) if win_rss_path and win_rss_path.exists() else {}
 
     tgz_mac = mac.get("TGZ", {})
     raw_mb  = (parse_mib(tgz_mac.get("raw_size_mib")) or 0) * 1.048576  # MiB → MB
