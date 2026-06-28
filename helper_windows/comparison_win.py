@@ -8,12 +8,12 @@
     1a. Encode MB/s + ratio vs TGZ  (both platforms)
     1b. Decode MB/s + ratio vs TGZ  (Mac + Windows)
     1c. Compress size & ratio vs TGZ  (both platforms)
-    2.  RSS MB + ratio vs TGZ  (Mac only)
+    2.  RSS MB + ratio vs TGZ  (Mac + Windows when rss_summary.csv exists)
     3.  CPU Energy J + ratio vs TGZ  (Mac only; decode n=40 unreliable)
 
 Usage:
     python comparison_win.py [--mac PATH] [--win-summary PATH]
-                             [--win-decode PATH] [--output PATH]
+                             [--win-decode PATH] [--win-rss PATH] [--output PATH]
                              [--n N] [--dataset NAME]
 """
 
@@ -72,6 +72,7 @@ CSV_FIELDS = [
     "win_decode_mb_s", "mac_decode_mb_s", "win_mac_decode_ratio",
     "win_decode_sec", "mac_decode_sec",
     "win_decode_verify",
+    "win_encode_rss_mb", "mac_encode_rss_mb", "win_decode_rss_mb", "mac_decode_rss_mb",
     "note",
 ]
 CSV_LABELS = [
@@ -84,6 +85,32 @@ CSV_LABELS = [
     "Win 解壓驗證",
     "備註",
 ]
+
+CSV_LABEL_BY_FIELD = {
+    "dataset": "資料集 / Dataset",
+    "format": "格式 / Format",
+    "win_n_meaning": "Windows n meaning",
+    "mac_n": "macOS n",
+    "win_encode_mb_s": "Win encode MB/s",
+    "mac_encode_mb_s": "Mac encode MB/s",
+    "win_mac_speed_ratio": "Win/Mac encode speed ratio",
+    "win_compress_ratio": "Win compression ratio",
+    "mac_compress_ratio": "Mac compression ratio",
+    "compress_ratio_diff": "Compression ratio diff",
+    "win_encode_sec": "Win encode sec",
+    "mac_encode_sec": "Mac encode sec",
+    "win_decode_mb_s": "Win decode MB/s",
+    "mac_decode_mb_s": "Mac decode MB/s",
+    "win_mac_decode_ratio": "Win/Mac decode speed ratio",
+    "win_decode_sec": "Win decode sec",
+    "mac_decode_sec": "Mac decode sec",
+    "win_decode_verify": "Win decode verify",
+    "win_encode_rss_mb": "Win encode RSS MB",
+    "mac_encode_rss_mb": "Mac encode RSS MB",
+    "win_decode_rss_mb": "Win decode RSS MB",
+    "mac_decode_rss_mb": "Mac decode RSS MB",
+    "note": "備註 / Note",
+}
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -156,6 +183,40 @@ def load_decode_summary(path):
             display = DECODE_FORMAT_MAP[m.group("token")]
             result[display] = {**row, "n": m.group("n") or ""}
     return result
+
+
+def load_rss_summary(path):
+    """Return {format_display_name: row} from rss_summary.csv."""
+    if not path or not path.exists():
+        return {}
+    names = {
+        "Tgz": "TGZ",
+        "TGZ": "TGZ",
+        "Other3": "LZFSE (Other3)",
+        "BVX3": "LZFSE (BVX3)",
+        "Lazy2": "LZFSE (Lazy2)",
+        "Optimal": "LZFSE (Optimal)",
+        "LZ4": "TLZ4",
+        "TLZ4": "TLZ4",
+        "ZSTD": "ZSTD",
+    }
+    with path.open(newline="", encoding="utf-8-sig") as fh:
+        reader = csv.DictReader(fh)
+        result = {}
+        for row in reader:
+            display = names.get((row.get("format") or "").strip())
+            if display:
+                result[display] = row
+        return result
+
+
+def win_rss_value(win, win_rss, name, key):
+    row = win.get(name) or {}
+    value = fv(row.get(key))
+    if value is not None:
+        return value
+    row = win_rss.get(name) or {}
+    return fv(row.get(key))
 
 
 # ── report helpers ────────────────────────────────────────────────────────────
@@ -308,6 +369,27 @@ def report_rss(mac):
 
 # ── Section 3: CPU Energy J ───────────────────────────────────────────────────
 
+def report_rss_win(mac, win, win_rss):
+    mac_tgz = mac.get("TGZ", {})
+    m_tgz_enc = fv(mac_tgz.get("encode_rss_mb"))
+    w_tgz_enc = win_rss_value(win, win_rss, "TGZ", "encode_rss_mb")
+
+    section("2. RSS MB  peak memory  (Mac + Windows when rss_summary.csv is available)")
+    print(f"  {'Format':<{COL}}  {'Mac Enc':>8}  {'Mac/TGZ':>8}  {'Win Enc':>8}  {'Win/TGZ':>8}  {'Mac Dec':>8}  {'Win Dec':>8}")
+    print(f"  {'-'*COL}  {'-'*8}  {'-'*8}  {'-'*8}  {'-'*8}  {'-'*8}  {'-'*8}")
+
+    for name in FORMAT_ORDER:
+        m = mac.get(name)
+        if not m:
+            continue
+        m_enc = fv(m.get("encode_rss_mb"))
+        m_dec = fv(m.get("decode_rss_mb"))
+        w_enc = win_rss_value(win, win_rss, name, "encode_rss_mb")
+        w_dec = win_rss_value(win, win_rss, name, "decode_rss_mb")
+        m_er = fmt_n(m_enc / m_tgz_enc, 4) if m_enc and m_tgz_enc else "—"
+        w_er = fmt_n(w_enc / w_tgz_enc, 4) if w_enc and w_tgz_enc else "—"
+        print(f"  {name:<{COL}}  {fmt_n(m_enc):>8}  {m_er:>8}  {fmt_n(w_enc):>8}  {w_er:>8}  {fmt_n(m_dec):>8}  {fmt_n(w_dec):>8}")
+
 def report_energy(mac):
     section("3. CPU Energy J  能耗  (Mac only — macOS powermetrics required)")
     print(f"  ⚠  Encode energy n=40: reliable (95-107% sampling coverage).")
@@ -333,7 +415,7 @@ def report_energy(mac):
 
 # ── CSV output ────────────────────────────────────────────────────────────────
 
-def write_csv(path, mac, win, win_dec, raw_mb, dataset, mac_n):
+def write_csv(path, mac, win, win_dec, win_rss, raw_mb, dataset, mac_n):
     tgz_win   = win.get("TGZ", {})
     tgz_bytes = fv(tgz_win.get("encoded_bytes")) if tgz_win.get("valid", "yes") != "no" else None
 
@@ -356,6 +438,10 @@ def write_csv(path, mac, win, win_dec, raw_mb, dataset, mac_n):
         d = win_dec.get(name) if win_dec else None
         win_dec_sec, win_dec_mbs = compute_win_decode_speed(d, raw_mb) if d else (None, None)
         win_dec_verify = (d.get("verify") or "") if d else ""
+        win_enc_rss = win_rss_value(win, win_rss, name, "encode_rss_mb")
+        win_dec_rss = win_rss_value(win, win_rss, name, "decode_rss_mb")
+        mac_enc_rss = fv(m.get("encode_rss_mb")) if m else None
+        mac_dec_rss = fv(m.get("decode_rss_mb")) if m else None
 
         valid     = w and w.get("valid", "yes") != "no" and not suspicious
         note = ""
@@ -389,6 +475,10 @@ def write_csv(path, mac, win, win_dec, raw_mb, dataset, mac_n):
             "win_decode_sec":       fmt_n(win_dec_sec, 2),
             "mac_decode_sec":       fmt_n(mac_dec_sec, 2),
             "win_decode_verify":    win_dec_verify,
+            "win_encode_rss_mb":    fmt_n(win_enc_rss, 2),
+            "mac_encode_rss_mb":    fmt_n(mac_enc_rss, 2),
+            "win_decode_rss_mb":    fmt_n(win_dec_rss, 2),
+            "mac_decode_rss_mb":    fmt_n(mac_dec_rss, 2),
             "note":                 note,
         })
 
@@ -396,7 +486,7 @@ def write_csv(path, mac, win, win_dec, raw_mb, dataset, mac_n):
     with path.open("w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh, lineterminator="\n")
         w.writerow(CSV_FIELDS)
-        w.writerow(CSV_LABELS)
+        w.writerow([CSV_LABEL_BY_FIELD.get(field, field) for field in CSV_FIELDS])
         for r in rows:
             w.writerow([r[f] for f in CSV_FIELDS])
 
@@ -407,11 +497,13 @@ def write_csv(path, mac, win, win_dec, raw_mb, dataset, mac_n):
 
 def main():
     here   = Path(__file__).resolve().parent
+    csv_dir = here / "bench_results_csv"
     ap     = argparse.ArgumentParser(description="macOS vs Windows benchmark comparison")
     ap.add_argument("--mac",         type=Path, default=here.parent / "BenchMarkResult.csv")
-    ap.add_argument("--win-summary", type=Path, default=here / "benchmark_summary.csv")
+    ap.add_argument("--win-summary", type=Path, default=csv_dir / "benchmark_summary.csv")
     ap.add_argument("--win-decode",  type=Path, default=None)
-    ap.add_argument("--output",      type=Path, default=here / "comparison.csv")
+    ap.add_argument("--win-rss",     type=Path, default=None)
+    ap.add_argument("--output",      type=Path, default=csv_dir / "comparison.csv")
     ap.add_argument("--n",           type=int,  default=40)
     ap.add_argument("--dataset",     default="claw-code")
     args = ap.parse_args()
@@ -434,6 +526,12 @@ def main():
         if default_dec.exists():
             win_dec_path = default_dec
     win_dec = load_decode_summary(win_dec_path) if win_dec_path and win_dec_path.exists() else {}
+    win_rss_path = args.win_rss
+    if win_rss_path is None:
+        default_rss = args.win_summary.parent / "rss_summary.csv"
+        if default_rss.exists():
+            win_rss_path = default_rss
+    win_rss = load_rss_summary(win_rss_path) if win_rss_path and win_rss_path.exists() else {}
 
     tgz_mac = mac.get("TGZ", {})
     raw_mb  = (parse_mib(tgz_mac.get("raw_size_mib")) or 0) * 1.048576  # MiB → MB
@@ -445,6 +543,8 @@ def main():
     print(f"  Windows: {args.win_summary.name}")
     if win_dec:
         print(f"  Win Dec: {win_dec_path.name}")
+    if win_rss:
+        print(f"  Win RSS: {win_rss_path.name}")
     print()
     print(f"  Workflow: R{{N}}-Mac first → R{{N}}-Win → this script.")
     print(f"  Semantic: macOS -n {args.n} = {args.n} repetitions (avg).")
@@ -453,14 +553,14 @@ def main():
 
     report_speed(mac, win, win_dec, raw_mb)
     report_compression(mac, win)
-    report_rss(mac)
+    report_rss_win(mac, win, win_rss)
     report_energy(mac)
 
     print()
     print("=" * 78)
     print()
 
-    rows = write_csv(args.output.resolve(), mac, win, win_dec, raw_mb, args.dataset, args.n)
+    rows = write_csv(args.output.resolve(), mac, win, win_dec, win_rss, raw_mb, args.dataset, args.n)
     print(f"[OK] {args.output} written ({len(rows)} rows)")
     for r in rows:
         enc_spd = r["win_encode_mb_s"] or "N/A"

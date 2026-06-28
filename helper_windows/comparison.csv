@@ -1,9 +1,0 @@
-﻿dataset,format,win_n_meaning,mac_n,win_encode_mb_s,mac_encode_mb_s,win_mac_speed_ratio,win_compress_ratio,mac_compress_ratio,compress_ratio_diff,win_encode_sec,mac_encode_sec,win_decode_mb_s,mac_decode_mb_s,win_mac_decode_ratio,win_decode_sec,mac_decode_sec,win_decode_verify,note
-資料集,格式,Windows n=40 意義,macOS n,Win 壓縮 MB/s,Mac 壓縮 MB/s,Win/Mac 速度比,Win 壓縮比,Mac 壓縮比,壓縮比差異,Win 壓縮秒,Mac 壓縮秒,Win 解壓 MB/s,Mac 解壓 MB/s,Win/Mac 解壓速度比,Win 解壓秒,Mac 解壓秒,Win 解壓驗證,備註
-claw-code,TGZ,single run (no -n),40,23.86,48.75,0.489,1.0000,1.0000,0.0000,59.37,29.05,611.51,366.57,1.668,2.32,3.86,PASS,
-claw-code,LZFSE (Other3),inflight=40 (1 run),40,225.96,408.72,0.553,0.9818,0.9865,-0.0047,6.27,3.47,777.24,414.62,1.875,1.82,3.42,PASS,
-claw-code,LZFSE (BVX3),inflight=40 (1 run),40,234.86,402.73,0.583,0.9254,0.9492,-0.0238,6.03,3.52,733.29,322.85,2.271,1.93,4.39,PASS,
-claw-code,LZFSE (Lazy2),inflight=40 (1 run),40,41.31,66.59,0.620,0.8704,0.8998,-0.0294,34.29,21.27,807.70,412.80,1.957,1.75,3.43,PASS,
-claw-code,LZFSE (Optimal),inflight=40 (1 run),40,16.47,35.32,0.466,0.8273,0.8574,-0.0301,86.00,40.10,772.07,347.86,2.219,1.83,4.07,PASS,
-claw-code,TLZ4,single run (no -n),40,196.79,425.04,0.463,1.1739,1.1793,-0.0054,7.20,3.33,1707.71,447.02,3.820,0.83,3.17,PASS,
-claw-code,ZSTD,single run (no -n),40,104.67,366.34,0.286,0.7813,0.8245,-0.0432,13.53,3.87,900.79,416.95,2.160,1.57,3.40,PASS,

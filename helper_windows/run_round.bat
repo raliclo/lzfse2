@@ -11,6 +11,13 @@ powershell -Command "Get-CimInstance Win32_LogicalDisk | Select-Object Caption,@
 if not exist bench_logs mkdir bench_logs
 move /Y *-results.txt bench_logs\ > nul 2>&1
 
+:: System hardware info snapshot / 系統硬體資訊快照
+echo [INFO] Running system-info-win.bat %TIME:~0,8% >> windows_round_status.txt
+call .\system-info-win.bat >> windows_round_status.txt 2>&1
+if errorlevel 1 (
+    echo SYSTEM_INFO_FAILED %TIME:~0,8% >> windows_round_status.txt
+    echo [WARN] system info collection failed, continuing
+)
 :: git gc (前置清理)
 echo RUNNING git gc %TIME:~0,8% >> windows_round_status.txt
 git gc --prune=now --aggressive >> windows_round_status.txt 2>&1
@@ -49,17 +56,11 @@ if %ERRORLEVEL% neq 0 (
 cat .\lzfse-test-windows.txt
 echo TEST_OK %TIME:~0,8% >> windows_round_status.txt
 
-call .\benchmark_windows.bat ..\claw-code 40 >> windows_round_status.txt 2>&1
+call .\encode-win.bat ..\claw-code 40 >> windows_round_status.txt 2>&1
 if errorlevel 1 (
     echo BENCHMARK_FAILED %TIME:~0,8% >> windows_round_status.txt
     exit /b 1
 )
-
-:: benchmark_windows.bat / decode-win.bat 會把 *-results.txt 產生在本目錄；
-:: 本輪結束前統一移入 bench_logs（見下方 decode 後的 move）。
-:: summarize_win.py 會同時掃描本目錄與 bench_logs 並選取時間最新的紀錄，
-:: 因此結果只放在 bench_logs 仍可被正確讀取。
-
 
 :: Step 1: Decode benchmark / 解壓縮基準測試（在 summarize 前執行以便納入報告）
 echo [INFO] Running decode-win.bat %TIME:~0,8% >> windows_round_status.txt
@@ -69,12 +70,13 @@ if errorlevel 1 (
     echo [WARN] decode benchmark 失敗，繼續 / decode benchmark failed, continuing
 )
 
-:: 將本輪產生的 *-results.txt 全數移入 bench_logs（encode + decode），
-:: 使 results.txt 只存在於 bench_logs；summarize_win.py 會自 bench_logs 讀取。
-:: Move this round's *-results.txt (encode + decode) into bench_logs so results.txt
-:: live only there; summarize_win.py reads them from bench_logs.
-echo [INFO] Moving *-results.txt to bench_logs %TIME:~0,8% >> windows_round_status.txt
-move /Y *-results.txt bench_logs\ >> windows_round_status.txt 2>&1
+:: RSS peak memory measurement / 峰值記憶體量測（encode + decode，lzfse / lz4 / zstd / tgz）
+echo [INFO] Running rss-win.bat %TIME:~0,8% >> windows_round_status.txt
+call .\rss-win.bat ..\claw-code 40 >> windows_round_status.txt 2>&1
+if errorlevel 1 (
+    echo RSS_FAILED %TIME:~0,8% >> windows_round_status.txt
+    echo [WARN] rss measurement 失敗，繼續 / RSS measurement failed, continuing
+)
 
 :: Step 2: Windows benchmark summary (encode + decode) / Windows benchmark 摘要
 echo [INFO] Running summarize_win.py %TIME:~0,8% >> windows_round_status.txt

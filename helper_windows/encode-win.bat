@@ -1,46 +1,54 @@
 @echo off
 chcp 65001 > nul
+if "%~1"=="" (
+    echo Usage: encode-win.bat ^<dataset^> [n]
+    exit /b 1
+)
+set "_dataset=%~1"
+set "_logprefix=%~nx1"
+if "%_logprefix%"=="" set "_logprefix=dataset"
 :: Warm-cache：預讀整個資料集進 OS page cache，消除「第一個格式 cold-cache」造成的壓縮計時偏差（見 OPTIMIZATION.md R15/R16 cold-cache 註）
 :: Warm-cache: pre-read the whole dataset so every compression format is timed under the same warm-cache condition (removes first-format cold-cache skew).
 echo [Info] Warm-cache 預讀資料集 / Pre-reading dataset to warm OS cache... 
-call :tarWarmup "%1"
+call :tarWarmup "%_dataset%"
 
 if not exist bench_logs mkdir bench_logs
+if not exist bench_results_csv mkdir bench_results_csv
 set "_nsuffix="
 if not "%~2"=="" set "_nsuffix=-n%~2"
 powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Write-Output('[Info] 開始執行 tgz, lzfse, tlz4, zstd 基準測試... / Starting tgz, lzfse, tlz4, zstd benchmark...')"
 
 echo [Info] Running tgz encode benchmark...
-call :nanoTimeElapsed call :encodeTgz "%1" > .\bench_logs\%~1-encodeTgz%_nsuffix%-results.txt
-call :appendFileSize "%~1.tgz" "bench_logs\%~1-encodeTgz%_nsuffix%-results.txt"
+call :nanoTimeElapsed call :encodeTgz "%_dataset%" > ".\bench_logs\%_logprefix%-encodeTgz%_nsuffix%-results.txt"
+call :appendFileSize "%_dataset%.tgz" "bench_logs\%_logprefix%-encodeTgz%_nsuffix%-results.txt"
 
 echo [Info] Running lzfse other3 encode benchmark...
-call :nanoTimeElapsed call :encodeOther3 "%1" "%2" > .\bench_logs\%~1-encodeOther3%_nsuffix%-results.txt
-call :appendFileSize "%~1.lzfse.other3" "bench_logs\%~1-encodeOther3%_nsuffix%-results.txt"
+call :nanoTimeElapsed call :encodeOther3 "%_dataset%" "%2" > ".\bench_logs\%_logprefix%-encodeOther3%_nsuffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.other3" "bench_logs\%_logprefix%-encodeOther3%_nsuffix%-results.txt"
 
 echo [Info] Running lzfse bvx3 encode benchmark...
-call :nanoTimeElapsed call :encodeBVX3 "%1" "%2" > .\bench_logs\%~1-encodeBVX3%_nsuffix%-results.txt
-call :appendFileSize "%~1.lzfse.bvx3" "bench_logs\%~1-encodeBVX3%_nsuffix%-results.txt"
+call :nanoTimeElapsed call :encodeBVX3 "%_dataset%" "%2" > ".\bench_logs\%_logprefix%-encodeBVX3%_nsuffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.bvx3" "bench_logs\%_logprefix%-encodeBVX3%_nsuffix%-results.txt"
 
 echo [Info] Running lzfse lazy2 encode benchmark...
-call :nanoTimeElapsed call :encodeLazy2 "%1" "%2" > .\bench_logs\%~1-encodeLazy2%_nsuffix%-results.txt
-call :appendFileSize "%~1.lzfse.lazy2" "bench_logs\%~1-encodeLazy2%_nsuffix%-results.txt"
+call :nanoTimeElapsed call :encodeLazy2 "%_dataset%" "%2" > ".\bench_logs\%_logprefix%-encodeLazy2%_nsuffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.lazy2" "bench_logs\%_logprefix%-encodeLazy2%_nsuffix%-results.txt"
 
 echo [Info] Running lzfse optimal encode benchmark...
-call :nanoTimeElapsed call :encodeOptimal "%1" "%2" > .\bench_logs\%~1-encodeOptimal%_nsuffix%-results.txt
-call :appendFileSize "%~1.lzfse.optimal" "bench_logs\%~1-encodeOptimal%_nsuffix%-results.txt"
+call :nanoTimeElapsed call :encodeOptimal "%_dataset%" "%2" > ".\bench_logs\%_logprefix%-encodeOptimal%_nsuffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.optimal" "bench_logs\%_logprefix%-encodeOptimal%_nsuffix%-results.txt"
 
 echo [Info] Running lz4 encode benchmark...
-call :nanoTimeElapsed call :encodeLZ4 "%1" > .\bench_logs\%~1-encodeLZ4%_nsuffix%-results.txt
-call :appendFileSize "%~1.tar.lz4" "bench_logs\%~1-encodeLZ4%_nsuffix%-results.txt"
+call :nanoTimeElapsed call :encodeLZ4 "%_dataset%" > ".\bench_logs\%_logprefix%-encodeLZ4%_nsuffix%-results.txt"
+call :appendFileSize "%_dataset%.tar.lz4" "bench_logs\%_logprefix%-encodeLZ4%_nsuffix%-results.txt"
 
 echo [Info] Running zstd encode benchmark...
-call :nanoTimeElapsed call :encodeZSTD "%1" > bench_logs\%~1-encodeZSTD%_nsuffix%-results.txt
-call :appendFileSize "%~1.tar.zst" "bench_logs\%~1-encodeZSTD%_nsuffix%-results.txt"
+call :nanoTimeElapsed call :encodeZSTD "%_dataset%" > "bench_logs\%_logprefix%-encodeZSTD%_nsuffix%-results.txt"
+call :appendFileSize "%_dataset%.tar.zst" "bench_logs\%_logprefix%-encodeZSTD%_nsuffix%-results.txt"
 
 echo [Info] 彙整基準測試結果 / Summarising benchmark results...
-powershell -NoProfile -Command "$csv=@('format,nanoseconds,encoded_bytes'); Get-ChildItem 'bench_logs\*-results.txt' | Sort-Object Name | ForEach-Object { $m=[regex]::Match($_.BaseName,'(encode\w+(?:-n\d+)?)-results'); $fmt=if($m.Success){$m.Groups[1].Value}else{$_.BaseName}; $c=Get-Content $_.FullName -Raw; $ns=([regex]::Match($c,'Process took:\s+(\d+)')).Groups[1].Value; $b=([regex]::Match($c,'Encoded size:\s+(\d+)')).Groups[1].Value; $csv+=$fmt+','+$ns+','+$b }; $csv | Out-File 'benchmark_summary.csv' -Encoding UTF8"
-echo [OK] benchmark_summary.csv written
+powershell -NoProfile -Command "$csv=@('format,nanoseconds,encoded_bytes'); Get-ChildItem 'bench_logs\*-results.txt' | Sort-Object Name | ForEach-Object { $m=[regex]::Match($_.BaseName,'(encode\w+(?:-n\d+)?)-results'); $fmt=if($m.Success){$m.Groups[1].Value}else{$_.BaseName}; $c=Get-Content $_.FullName -Raw; $ns=([regex]::Match($c,'Process took:\s+(\d+)')).Groups[1].Value; $b=([regex]::Match($c,'Encoded size:\s+(\d+)')).Groups[1].Value; $csv+=$fmt+','+$ns+','+$b }; $csv | Out-File 'bench_results_csv\benchmark_summary.csv' -Encoding UTF8"
+echo [OK] bench_results_csv\benchmark_summary.csv written
 goto :EOF
 
 :appendFileSize

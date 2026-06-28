@@ -1,0 +1,9 @@
+﻿dataset,n,format,raw_size_mib,compressed_size_mib,encode_seconds,decode_seconds,encode_mb_s,decode_mb_s,compression_ratio,encode_time_ratio,decode_time_ratio,encode_rss_mb,decode_rss_mb,trace_wall_seconds,trace_timeout,trace_target_seen,cpu_symbol_status,cpu_top_symbol,cpu_top_count,cpu_top_category,cpu_parse_hits,cpu_encode_hits,cpu_fse_hits,cpu_swift_array_hits,encode_cpu_power_mw,decode_cpu_power_mw,encode_cpu_energy_j,decode_cpu_energy_j,encode_cpu_energy_ratio_tgz,decode_cpu_energy_ratio_tgz
+資料夾,N,格式,原始大小(M),壓縮後(M),壓縮耗時(秒),解壓耗時(秒),壓縮 MB/s,解壓 MB/s,壓縮比,壓縮時間比,解壓時間比,Encode RSS(MB),Decode RSS(MB),Trace wall time(秒),Trace timeout,Trace target seen,CPU Symbol Status,CPU Top Symbol,CPU Top Count,CPU Top Category,CPU Parse Hits,CPU Encode Hits,CPU FSE Hits,CPU Swift Array Hits,Encode CPU Power(mW),Decode CPU Power(mW),Encode CPU Energy(J),Decode CPU Energy(J),Encode CPU Energy Ratio (TGZ=1),Decode CPU Energy Ratio (TGZ=1)
+claw-code,40,TGZ,1351M,468M,38.57,2.22,36.73,637.05,1.0000,1.0000,1.0000,6.3,5.7,,,,,,,,,,,,,,,,,
+claw-code,40,LZFSE (Other3),1351M,460M,6.63,1.92,213.77,736.50,0.9818,0.1718,0.8650,143.6,247,,,,,,,,,,,,,,,,,
+claw-code,40,LZFSE (Lazy2),1351M,408M,39.13,1.60,36.20,887.45,0.8704,1.0146,0.7178,488.5,242,,,,,,,,,,,,,,,,,
+claw-code,40,LZFSE (Optimal),1351M,387M,88.39,1.83,16.03,773.43,0.8273,2.2917,0.8237,535.3,241.2,,,,,,,,,,,,,,,,,
+claw-code,40,LZFSE (BVX3),1351M,433M,5.92,1.76,239.47,803.72,0.9254,0.1534,0.7926,177.4,245.8,,,,,,,,,,,,,,,,,
+claw-code,40,TLZ4,1351M,550M,7.77,0.81,182.22,1744.49,1.1739,0.2016,0.3652,8.4,8.3,,,,,,,,,,,,,,,,,
+claw-code,40,ZSTD,1351M,366M,13.78,1.58,102.80,894.03,0.7813,0.3573,0.7126,8.3,8.3,,,,,,,,,,,,,,,,,

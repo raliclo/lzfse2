@@ -57,7 +57,7 @@ exit /b 1
 :ext_bvx3_lazy2
 if "%_probe%"=="probe" (
     echo [INFO] probe mode: decoding to nul ^(peak-RSS measurement not available on Windows^)
-    lzfse.exe -decode -i "%_file%" -o nul -algo bvx3 -lazy2 %_n_args%
+    lzfse.exe -decode -i "%_file%" -so -algo bvx3 -lazy2 %_n_args% > nul
     exit /b
 )
 echo lzfse.exe -decode -i %_file% -so -algo bvx3 -lazy2 %_n_args% ^| tar -xf -
@@ -67,7 +67,7 @@ exit /b
 :ext_bvx3_optimal
 if "%_probe%"=="probe" (
     echo [INFO] probe mode: decoding to nul ^(peak-RSS measurement not available on Windows^)
-    lzfse.exe -decode -i "%_file%" -o nul -algo bvx3 -optimal %_n_args%
+    lzfse.exe -decode -i "%_file%" -so -algo bvx3 -optimal %_n_args% > nul
     exit /b
 )
 echo lzfse.exe -decode -i %_file% -so -algo bvx3 -optimal %_n_args% ^| tar -xf -
@@ -77,7 +77,7 @@ exit /b
 :ext_bvx3
 if "%_probe%"=="probe" (
     echo [INFO] probe mode: decoding to nul ^(peak-RSS measurement not available on Windows^)
-    lzfse.exe -decode -i "%_file%" -o nul -algo bvx3 %_n_args%
+    lzfse.exe -decode -i "%_file%" -so -algo bvx3 %_n_args% > nul
     exit /b
 )
 echo lzfse.exe -decode -i %_file% -so -algo bvx3 %_n_args% ^| tar -xf -
@@ -87,7 +87,7 @@ exit /b
 :ext_other3
 if "%_probe%"=="probe" (
     echo [INFO] probe mode: decoding to nul ^(peak-RSS measurement not available on Windows^)
-    lzfse.exe -decode -i "%_file%" -o nul -algo other3 %_n_args%
+    lzfse.exe -decode -i "%_file%" -so -algo other3 %_n_args% > nul
     exit /b
 )
 echo lzfse.exe -decode -i %_file% -so -algo other3 %_n_args% ^| tar -xf -
@@ -97,7 +97,7 @@ exit /b
 :ext_apple
 if "%_probe%"=="probe" (
     echo [INFO] probe mode: decoding to nul ^(peak-RSS measurement not available on Windows^)
-    lzfse.exe -decode -i "%_file%" -o nul -algo apple %_n_args%
+    lzfse.exe -decode -i "%_file%" -so -algo apple %_n_args% > nul
     exit /b
 )
 echo lzfse.exe -decode -i %_file% -so -algo apple %_n_args% ^| tar -xf -

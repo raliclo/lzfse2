@@ -1,0 +1,101 @@
+﻿Windows hardware info / Windows 硬體資訊
+Timestamp: 2026-06-28 11:34:16
+Log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\system-info.txt
+
+== Computer ==
+Manufacturer: ASUSTeK COMPUTER INC.
+Model       : ASUS TUF Gaming A15 FA507NV_FA507NV
+RAM total   : 31.25 GB
+
+== CPU ==
+Name       : AMD Ryzen 5 7535HS with Radeon Graphics
+Vendor     : AuthenticAMD
+Cores      : 6
+Threads    : 12
+Max clock  : 3301 MHz
+L2 cache   : 3072 KB
+L3 cache   : 16384 KB
+
+== GPU ==
+Name       : AMD Radeon(TM) Graphics
+VRAM/WMI   : 512.00 MB
+Driver     : 32.0.11038.3
+Processor  : AMD Radeon Graphics Processor (0x1681)
+Resolution : 1920 x 1080
+
+Name       : NVIDIA GeForce RTX 4060 Laptop GPU
+VRAM/WMI   : 4.00 GB
+Driver     : 32.0.16.1062
+Processor  : NVIDIA GeForce RTX 4060 Laptop GPU
+
+== NVIDIA GPU via nvidia-smi ==
+NVIDIA GeForce RTX 4060 Laptop GPU, 8188 MiB, 610.62
+
+== Memory modules ==
+Slot       : P0 CHANNEL A / DIMM 0
+Maker      : Micron Technology
+Part       : CT16G56C46S5.M8D1   
+Capacity   : 16.00 GB
+Speed      : 5600 MT/s
+Configured : 4800 MT/s
+
+Slot       : P0 CHANNEL B / DIMM 0
+Maker      : Samsung
+Part       : M425R2GA3EB0-CWMOL  
+Capacity   : 16.00 GB
+Speed      : 5600 MT/s
+Configured : 4800 MT/s
+
+== Physical disks ==
+Model      : MTFDKBA512QGN-1BN1AABGA
+Media      : Fixed hard disk media
+Interface  : SCSI
+Size       : 476.94 GB
+Serial     : 0000_0000_0000_0001_00A0_7524_4D17_5327.
+
+== Physical disks via Storage cmdlets ==
+Name       : MTFDKBA512QGN-1BN1AABGA
+Media      : SSD
+Bus        : NVMe
+Size       : 476.94 GB
+Health     : Healthy
+Status     : OK
+
+== Logical disks ==
+Drive      : C:
+Label      : OS
+FS         : NTFS
+Size       : 447.44 GB
+Free       : 71.87 GB
+Free %     : 16.1%
+
+== Volumes via Storage cmdlets ==
+Drive      : C
+Label      : OS
+FS         : NTFS
+Size       : 447.44 GB
+Free       : 71.87 GB
+Health     : Healthy
+
+Drive      : 
+Label      : MYASUS
+FS         : FAT32
+Size       : 256.00 MB
+Free       : 161.82 MB
+Health     : Healthy
+
+Drive      : 
+Label      : RESTORE
+FS         : NTFS
+Size       : 28.00 GB
+Free       : 8.49 GB
+Health     : Healthy
+
+Drive      : 
+Label      : 
+FS         : NTFS
+Size       : 995.00 MB
+Free       : 67.91 MB
+Health     : Healthy
+
+[OK] System info written to: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\system-info.txt
