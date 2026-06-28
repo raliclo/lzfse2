@@ -10,6 +10,208 @@
 
 ---
 
+## Decode Command Reference / Decode Command Reference
+
+```sh
+# 正常解壓 / Normal decode
+lzfse -decode -i file.lzfse -so | tar -xf - -C /dest
+
+# Debug 模式：發生 overshoot / block 失敗時印詳細資訊到 stderr
+# Debug mode: prints overshoot / block failure details to stderr
+lzfse -decode -i file.lzfse -debug -so 2>debug/decode_debug.txt | tar -xf - -C /dest
+```
+
+---
+
+## Large-File Decode Correctness Verification (2026-06-24)/ Large-File Decode Correctness Verification
+
+**Data set**: `proj_Win` (56 GB real data, including Mac .app, binary, GGUF and other heterogeneous content)
+**Dataset**: `proj_Win` (56 GB real-world data — Mac .app bundles, binaries, GGUF, etc.)
+
+**Process / Procedure**:
+```sh
+# 壓縮 / Compress
+tar -c -C /Volumes/Windows proj_Win \
+  | lzfse -encode -si -o proj_Win.lzfse -algo other3 -n 100
+
+# 解壓 / Decompress
+lzfse -decode -i proj_Win.lzfse -n 100 -so \
+  | tar -xf - -C /Volumes/Windows/test/
+
+# 比對 / Diff
+diff -rq /Volumes/Windows/proj_Win /Volumes/Windows/test/proj_Win 2>/dev/null
+```
+
+**Result / Result**: `DIFF_EXIT:0` — output-identical, zero difference.
+
+> Remarks: The first round of diff showed that 57 files in `Mac_Apps/Codex.app` were different, because the app was automatically updated by the operating system after compression (compression time 02:04, Codex binary mtime 09:10). After recompressing in the latest state, the diff result is 0, and the decoding logic is confirmed to be correct.
+> Note: First diff showed 57 files differing inside `Codex.app` — caused by OS auto-update of the app after archiving. Re-compressing from current state produced `DIFF_EXIT:0`.
+
+---
+
+## Compression Architecture / Compression Architecture
+
+### Compression Ratio Contribution Sources / Compression Ratio Contribution Sources
+
+The compression ratio is determined by two series stages: **LZ parse (match/literal cutting)** and **FSE entropy coding (symbol compression)**.
+
+#### Level 1: LZ Parse - Decide "how much data can be represented by match"
+
+| Output type | Meaning | Contribution to compression ratio |
+| --- | --- | --- |
+| **Literal** | Unable to match the original byte | After entropy coding, it still needs to be stored in the compressed file |
+| **Match (L, M, D)** | There is a long M repetition before D, and there are L literal before D | 3 symbols replace tens to thousands of bytes |
+
+Parser selection directly affects the match rate:
+- `lzParse` (greedy): 1 candidate for each position, fast but short match
+- `lzParseChain` (Lazy2): hash chain multi-step search, match longer/more good
+- `lzParseOptimal` (Optimal): DP global optimization, match total bit cost minimum
+
+Actual measurement (claw-code): Other3 ≈ 0.31, Optimal ≈ 0.26 (saving ~16% compared with Other3).
+
+#### Layer 2: FSE entropy coding - determines "how tightly the symbol can be pressed"
+
+Each block has 5 independent FSE streams (bvx3 literal up to 4 contexts):
+
+| Streaming | Number of symbols (other3 / bvx3) | Number of statuses |
+| --- | --- | --- |
+| Literal | 256 / 256×4 ctx | 1024 |
+| L (literal run length) | 20 / 22 | 64 |
+| M (match length) | 20 / 22 | 64 |
+| D (match distance) | 64 / 80 | 256 |
+| extra bits | — | — |
+
+FSE uses fewer bits for high-frequency symbols, and the theoretical limit is close to Shannon entropy.
+
+#### The impact of format differences on the compression ratio
+
+| Format | D window upper limit | M upper limit | Block header overhead |
+| --- | --- | --- | --- |
+| other3 (LZFSE compatible) | 262,139 (≈256 KB) | 2,359 | 772 bytes / block |
+| bvx3 (private to this tool) | 4,194,299 (total 4MB chunk) | 69,947 | 54 bytes / block |
+
+The larger window of bvx3 allows long-distance repetition to be matched, plus 3-deep rep-offset (D=0/1/2 = historical distance, almost zero cost), which is the main reason why bvx3 compression ratio is better than other3.
+
+---
+
+### Overview of Compression Process Query Tables / Lookup Tables in Compression Pipeline
+
+#### I. LZ Match search table (Parse stage, dynamic per chunk)
+
+**Greedy parser** — Single-layer hash table:
+```
+hashTable[hash4(i)] = 最近出現此 hash 的位置（碰撞直接覆蓋）
+```
+
+**Chain parser (Lazy2 / Optimal)** — head + chain double table:
+```
+head[h]  → hash bucket 最新 index（131072 桶，17-bit hash）
+chain[c] → linked list，chain[idx] = 前一個同 hash 的位置
+搜尋路徑：head[h] → chain[c0] → chain[c1] → … (最多 32 步)
+```
+
+**R41 Tag-packed format** (Int32 encoding of compressed head/chain):
+```
+Int32 = (tag << 24) | index
+  tag  = hash 次 8 bits → 先比 tag，不符直接跳過（純暫存器操作）
+  index = 24-bit 位置索引（上限 16 MB chunk）
+```
+
+#### II. FSE codec table (Entropy stage, dynamic per block)
+
+Each block is dynamically created according to the current symbol frequency, with a total of 5 coding tables + corresponding decoding tables:
+
+```swift
+// 編碼表 entry：
+FSEEncoderEntry { s0, k, delta0, delta1 }
+// s0: 門檻（state < s0 → 輸出 k bits，否則 k-1 bits）
+// delta0/delta1: 新 state 偏移量
+
+// literal 解碼表（packed Int32）：
+(delta << 16) | (symbol << 8) | nbits  // nstates 個 entry
+
+// L/M/D 數值解碼表：
+FSEValueDecoderEntry { totalBits, valueBits, delta, vbase }
+```
+
+#### III. Static symbol definition table (format specification, coding and decoding sharing)
+
+```
+lBaseValue[20] / lExtraBits[20]  → L 符號 ↔ literal run 長度
+mBaseValue[20] / mExtraBits[20]  → M 符號 ↔ match 長度
+dBaseValue[64] / dExtraBits[64]  → D 符號 ↔ match 距離（other3）
+// bvx3：lm3（22 符號）+ d3（80 符號）/ bvx3D（88 符號）
+
+解碼公式：實際值 = base[symbol] + readBits(extraBits[symbol])
+```
+
+#### IV. Optimal Parser DP Cost Table (dynamic per segment, `rebuildPrices` maintenance)
+
+```
+litPrice[256]      → 每個 byte 值的 FSE bit cost
+mPriceTab[22]      → 每個 M 符號的 bit cost
+dPriceTab[80]      → 每個 D 符號的 bit cost
+lmBaseP[22]        → M 符號 base price（inner loop 預算）
+cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
+```
+
+#### Summary of the nature of the table
+
+| Table | Static vs Dynamic | Life Cycle | Main Use |
+| --- | --- | --- | --- |
+| `lBaseValue` and other format tables | Static (format specification) | Permanent | Symbol ↔ Numerical Exchange |
+| `head[h]` / `chain[c]` | Dynamic | per chunk (cross chunk reuse, `ParseScratch` pool) | LZ match search |
+| FSE `EncoderTable` | Dynamic | per block | Symbol → bitstream |
+| FSE `DecoderTable` | Dynamic | per block | bitstream → symbol + numerical value |
+| `litPrice` / `mPriceTab` etc. | Dynamic | per segment ( `rebuildPrices`) | Optimal DP cost estimate |
+
+> **R42 relevance**: The cache miss of `head/chain` is the main bottleneck of Lazy2/Optimal (R41 trace confirmation).
+> The goal of R42's prefetch chain entries is to prefetch the next chain entry to L1 cache when visiting the chain to reduce stall.
+
+---
+
+# Pre-R42: LZFSE_Win_UI — Windows Graphical Interface and Packaging Toolchain (2026-06-27) / Pre-R42: LZFSE_Win_UI — Windows GUI & Packaging Toolchain
+
+> Infrastructure round (non-algorithmization): add Windows GUI front-end and self-contained packaging process for lzfse.
+> **The compression/decoding algorithm has not been changed** - The codec target (prefetch chain entries) of R42 is not affected.
+> Infrastructure round (not an algorithm optimization): adds a Windows GUI frontend and
+> self-contained packaging. **No change to the compression/decode algorithms** — the R42 codec
+> target (prefetch chain entries) is unaffected.
+
+## Output / Deliverables
+- `lzfse-ui/lzfse-ui-win.swift` - SwiftCrossUI (WinUIBackend) GUI, corresponding to `lzfse-ui/lzfse-ui.swift` of macOS.
+Directly import codec ( `build-win.sh` remove `runCLI()` with `grep -v` and compile into the same target together).
+SwiftCrossUI GUI mirroring the macOS `lzfse-ui.swift`; links the codec directly.
+- `lzfse-ui/build-win.sh` + `build-win.bat` → `lzfse-ui/release/LZFSE_UI_Win.zip` (GUI app + attached `lzfse.exe`).
+- `helper_windows/build-cli-win.sh` + `build-cli-win.bat` → `helper_windows/release/lzfse-cli.zip`
+( `lzfse.exe` + 32 Swift runtime DLL, can run without installing Swift / self-contained, runs without Swift installed).
+- `lzfse-ui/screenshot-win.bat`, `lzfse-ui/README-UI-Win.md`.
+
+## codec change: Swift 6 strict parallel compatibility (pure annotation, zero logical change) / Codec change: Swift 6 strict-concurrency compat (annotations only)
+In order for `lzfse-cli.swift` to be compiled with SwiftCrossUI under SwiftPM (tools-version 6.0),
+`DispatchQueue.concurrentPerform` decoding path and `scratchPool` plus `nonisolated(unsafe)` (shared variable protected by NSLock)
+AND `@Sendable` (REGIONAL FUNCTION). **At the same time, `swiftc -O` can still be used to build CLI** (encode/decode round-trip verified).
+Added `nonisolated(unsafe)` / `@Sendable` to the concurrentPerform decode paths so the codec compiles
+Under Swift 6 strict concurrency while still building as the CLI via `swiftc -O`. Pure annotations.
+
+## Windows engineering key points (each of them has actually been debugged) / Windows engineering notes
+| Topic / Topic | Processing / Resolution |
+|---|---|
+| WinAppSDK 1.5 **DDLM must be installed** | Missing DDLM `5001.x` → `MddBootstrapInitialize2` Failure, flashback (exit 132). Official redistributable is required to install. |
+| No console window / no console | `/SUBSYSTEM:WINDOWS` + `/ENTRY:mainCRTStartup` linked into GUI subsystem. |
+| Hide child windows / hide child windows | Win32 `CreateProcessW` + `CREATE_NO_WINDOW` (cmd/tar/lzfse does not jump windows). |
+| Decompression does not get stuck / no hang | Relive in the independent OS `Thread` ( `Task.detached` still stuck WinUI message pump → event log AppHangB1). |
+| Folder selector / folder picker | WinUIBackend can only select files; change to Win32 `SHBrowseForFolderW` (independent STA thread + `OleInitialize`). |
+| Clipboard / clipboard | WinUI TextBox without Ctrl+C → Win32 `SetClipboardData(CF_UNICODETEXT)`. |
+| Decoding shunt / decode routing | Single file / folder compression is named `.lzfse`; judge unpacking or single file by tar `ustar` magic number (offset 257, stream peek before 512 byte). |
+| Packaging / packaging | bsdtar cannot write zip → PowerShell `Compress-Archive`; `sed` for path conversion (not dependent on cygpath). |
+
+## Requirements / Requirements
+WinAppSDK 1.5 runtime (including DDLM), Swift for Windows 6.3.2, VS Build Tools + Windows SDK, Git for Windows, PowerShell.
+See `lzfse-ui/README-UI-Win.md` for details.
+
+---
+
 # R41-Mac: Tag-packed Hash Chain Introduction (2026-06-22)/ R41-Mac: Tag-packed Hash Chain
 
 > Reintroduce the R40 code base of R27's Tag-packed hash chain (hashAndTag / chainIndexMask / chainTagShift / chainNullIndex).
@@ -196,6 +398,134 @@
 > TLZ4 / ZSTD is an external tool, and the speed difference reflects the system status (heat throttle, background load) rather than code changes.
 > BVX3 / Optimal in the LZFSE format is slightly reduced (-11–12%), and the Windows single-time measurement variance is large, which is regarded as a measurement error.
 > Lazy2 is flat, which meets the expectation that the Lazy-Greedy path is not affected by tag filter.
+
+---
+
+# R41-Mac-Retest: Retest with UI-supported code (2026-06-23)/ R41-Mac-Retest: Retest with ui-supported code
+
+> After adding the `runCLI()` packaging function (supports lzfse-ui SwiftUI app) to `lzfse-cli.swift`, re-execute the complete Mac benchmark for the R41 code.
+> Trace analysis was all successful for the first time (36 packets TRACE_ANALYSIS_OK, 72 XML CPU_CALL_TREE_ANALYSIS_OK); all pre-order executions failed with `source_trace_missing`.
+> The code function remains unchanged (output-identical ✅), and the `runCLI()` packaging does not affect the algorithm path.
+
+## Change Content / Code Change
+
+| Project | Description |
+|---|---|
+| ** `lzfse-cli.swift` ** | Join the `runCLI()` packaging function for `lzfse-ui.swift` SwiftUI @main call |
+| ** `lzfse-ui/lzfse-ui.swift` ** | New SwiftUI macOS app: file selection, algorithm selection, parallel task step (n=1–32), bilingual EN/ZH-TW UI |
+| **Algorithm path** | No change; output-identical ✅ |
+| **Trace Analysis** | Full success for the first time (36/36 TRACE_ANALYSIS_OK, 72/72 CPU_CALL_TREE_ANALYSIS_OK) |
+
+## 1a. Encode Speed vs R41-Mac First Round (claw-code, n=40)/ Encode MB/s vs R41-Mac First Run
+
+| Format | Retest MB/s | Retest/TGZ | R41-Mac MB/s | Change |
+| --- | ---: | ---: | ---: | --- |
+| TGZ | 48.75 | 1.0000 | 48.73 | ≈ flat |
+| Other3 | 408.72 | 8.3841 | 344.41 | +18.7% ✅ |
+| BVX3 | 402.73 | 8.2558 | 375.00 | +7.4% ✅ |
+| Lazy2 | 66.59 | 1.3651 | 63.73 | +4.5% ✅ |
+| Optimal | 35.32 | 0.7241 | 34.45 | +2.5% ✅ |
+| Apple | 142.31 | 2.9191 | 142.31 | ≈ flat |
+| TLZ4 | 425.04 | 8.7142 | 394.69 | +7.7% ✅ |
+| ZSTD | 366.34 | 7.5109 | 353.65 | +3.6% ✅ |
+
+> All formats are higher than the first round of R41-Mac; Other3 / BVX3 rebounds sharply (+7–19%), and it is speculated that there will be hot throttling in the first round.
+
+## 1b. Decode speed (claw-code, n=40)/ Decode MB/s
+
+| Format | MB/s | /TGZ |
+| --- | ---: | ---: |
+| TGZ | 366.57 | 1.0000 |
+| TLZ4 | 447.02 | 1.2196 |
+| ZSTD | 416.95 | 1.1375 |
+| Other3 | 414.62 | 1.1313 |
+| Lazy2 | 412.80 | 1.1259 |
+| Apple | 386.19 | 1.0536 |
+| Optimal | 347.86 | 0.9490 |
+| BVX3 | 322.85 | 0.8808 |
+
+## 1c. Compress Size & Ratio (claw-code, n=40)/ Compress Size & Ratio
+
+| Format | MiB | /TGZ |
+| --- | ---: | ---: |
+| TGZ | 470 | 1.0000 |
+|ZSTD|387|0.8245|
+| Optimal | 403 | 0.8574 |
+| Lazy2 | 423 | 0.8998 |
+| BVX3 | 446 | 0.9492 |
+| Other3 | 463 | 0.9865 |
+| Apple | 464 | 0.9873 |
+| TLZ4 | 554 | 1.1793 |
+
+## two RSS peak (Mac only, claw-code n=40)/ Peak RSS
+
+| Format | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+|TGZ|4.2MB|1.00|3.8MB|1.00|
+| TLZ4 | 80.0 MB | 19.0 | 33.7 MB | 8.9 |
+| Other3 | 236.1 MB | 56.2 | 301.1 MB | 79.2 |
+| BVX3 | 243.8 MB | 58.1 | 323.5 MB | 85.1 |
+| ZSTD | 375.2 MB | 89.3 | 9.2 MB | 2.4 |
+| Lazy2 | 497.7 MB | 118.5 | 321.8 MB | 84.7 |
+| Optimal | 581.4 MB | 138.4 | 307.9 MB | 81.0 |
+| Apple | 1367.8 MB | 325.7 | 473.5 MB | 124.6 |
+
+## three. CPU Energy (Mac only, claw-code n=40)/ CPU Energy Ratio vs TGZ
+
+> ⚠ Decode energy n=40 is not reliable due to the sampling coverage rate <5%, for reference only (standard `*`).
+
+| Format | Enc J | Enc/TGZ | Dec J | Dec/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 157.17 | 1.0000 | 5.71 | 1.0000 |
+| Other3 | 26.05 | 0.1658 | 0.60* | 0.1058 |
+| BVX3 | 29.20 | 0.1858 | 0.15* | 0.0256 |
+| TLZ4 | 30.25 | 0.1925 | 0.60* | 0.1059 |
+| Apple | 49.16 | 0.3128 | 2.92* | 0.5107 |
+| ZSTD | 44.82 | 0.2852 | 2.99* | 0.5231 |
+| Lazy2 | 120.94 | 0.7695 | 1.27* | 0.2227 |
+| Optimal | 531.92 | 3.3844 | 0.69* | 0.1216 |
+
+## four. CPU Trace Analysis (First Full Success) / CPU Trace Analysis — First Full Success
+
+> All 36 trace packets in this round were successful for the first time (TRACE_ANALYSIS_OK ×36, CPU_CALL_TREE_ANALYSIS_OK ×72).
+
+| Format (n=40) | Top Symbol | Category | Count |
+| --- | --- | --- | ---: |
+| TGZ | `0x197c4bbac` (libz) | other | 85 |
+| Other3 | `encodeBlock(triplets:literals:rawBytes:)` | encode | 73 |
+| BVX3 | `encodeBlockV3(triplets:literals:rawBytes:)` | encode | 85 |
+| Lazy2 | `bestMatch` in `lzParseChain` | **parse** | 132 |
+| Optimal | closure in `lzParseOptimal` | **parse** | 535 |
+| Apple | `lzfseEncodeMatches` | apple_lzfse | 82 |
+| TLZ4 | `LZ4HC_compress_generic_noDictCtx` | external_tool | 295 |
+| ZSTD | `ZSTD_compressBlock_lazy2_row` | external_tool | 162 |
+
+> **Parse hotspot confirmation**: Lazy2 = `bestMatch` in chain traversal, Optimal = `lzParseOptimal` closure number of calls 535 (>>Lazy2 132) → Optimal The number of calls per chunk is much higher than Lazy2.
+
+## five. Encode Speed Overview (claw-code + llama.cpp, n=40)/ Encode Speed Overview
+
+| Format | claw-code MB/s | claw/TGZ | llama.cpp MB/s | llama/TGZ |
+| --- | ---: | ---: | ---: | ---: |
+|TGZ|48.75|1.00|39.90|1.00|
+| Other3 | 408.72 | 8.38 | 86.95 | 2.18 |
+| BVX3 | 402.73 | 8.26 | 86.81 | 2.18 |
+| Lazy2 | 66.59 | 1.37 | 78.64 | 1.97 |
+| Optimal | 35.32 | 0.72 | 49.20 | 1.23 |
+| Apple | 142.31 | 2.92 | 66.02 | 1.66 |
+| TLZ4 | 425.04 | 8.71 | 85.77 | 2.15 |
+| ZSTD | 366.34 | 7.51 | 90.37 | 2.27 |
+
+> `llama.cpp` data is pre-compressed by lzma, and the acceleration efficiency of LZFSE n=40 is much lower than that of claw-code (BVX3 claw 8.26× vs llama 2.18×).
+
+## Conclusion and R42 Direction / Conclusion & R42 Direction
+
+| Project | Conclusion |
+|---|---|
+| **Speed recovery** | R41 first round of hot throttle → Retest Other3/BVX3 rebound +7–19%; Optimal/Lazy2 stable |
+| **Trace analysis** | Full success for the first time; Lazy2 = parse ( `bestMatch` chain), Optimal = parse ( `lzParseOptimal` closure) bottleneck confirmation |
+| **Best energy consumption** | Other3 n40 = 0.166× TGZ; Optimal n4 = 4.70× TGZ (highest) |
+| **Best compression ratio** | ZSTD 0.8245 → Optimal 0.8574 → Lazy2 0.8998 |
+| **R42 direction** | Lazy2/Optimal parse hotspot → prefetch chain entries, SIMD match compare (NEON) |
 
 ---
 

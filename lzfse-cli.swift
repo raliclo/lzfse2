@@ -2721,6 +2721,9 @@ public enum LZFSEv1 {
 
         struct Blk { let off: Int; let magic: UInt32; let raw: Int }
 
+        #if PROFILING
+        @inline(never)
+        #endif
         func nextGroup() -> (comp: [UInt8], blks: [Blk], raw: Int)? {
             var comp = [UInt8]()
             var blks = [Blk]()

@@ -30,27 +30,27 @@ Or run the auxiliary stet:
 
 `compile.sh` WILL ALSO COPY THE BINER FILE TO `/opt/homebrew/bin`, SO THIS STEP MAY REQUIRE A WRITE AUTHORITION.
 
-## Windows GUI (LZFSE_UI_Win)
+## Windows Graphical Interface (LZFSE_UI_Win)
 
-A SwiftCrossUI (WinUIBackend) graphical frontend for Windows, mirroring the macOS `lzfse-ui/lzfse-ui.swift`. It links the same codec and bundles `lzfse.exe`.
+The Windows graphic front-end created by SwiftCrossUI (WinUIBackend) corresponds to the `lzfse-ui/lzfse-ui.swift` of macOS. It links the same codec and comes with `lzfse.exe`.
 
-**Build** (needs Git for Windows, Swift for Windows 6.3.2, VS Build Tools + Windows SDK):
+**Building** (Reed Git for Windows, Swift for Windows 6.3.2, VS Build Tools + Windows SDK):
 
 ```sh
 cd lzfse-ui
-./build-win.sh            # or double-click build-win.bat
-# → lzfse-ui/release/LZFSE_UI_Win.zip  (GUI app + bundled lzfse.exe)
+./build-win.sh            # 或在檔案總管按兩下 build-win.bat
+# → lzfse-ui/release/LZFSE_UI_Win.zip （GUI app + 隨附 lzfse.exe）
 ```
 
-**Self-contained CLI package** (`lzfse.exe` + Swift runtime DLLs — runs without Swift installed):
+**Self-included CLI package** ( `lzfse.exe` + Swift runtime DLL, can be run without installing Swift):
 
 ```sh
 cd helper_windows
-./build-cli-win.sh        # or double-click build-cli-win.bat
+./build-cli-win.sh        # 或按兩下 build-cli-win.bat
 # → helper_windows/release/lzfse-cli.zip
 ```
 
-**Runtime requirement:** the GUI needs the **Windows App SDK 1.5 runtime (including the DDLM package)** installed, or it will fail to launch (exit 132). See [lzfse-ui/README-UI-Win.md](lzfse-ui/README-UI-Win.md) for the DDLM install, features, and troubleshooting.
+**Running requirements:** GUI needs to install **Windows App SDK 1.5 runtime (including DDLM suite)**, otherwise it cannot be started (exit 132). For details of DDLM installation, functions and troubles, please refer to [lzfse-ui/README-UI-Win.md](lzfse-ui/README-UI-Win.md).
 
 ## Usage
 
@@ -127,18 +127,29 @@ That is:
 
 The decompression terminal does not need and should not add `-lazy2` or `-optimal`. These two flags have no formatting significance for decode.
 
-### Windows PowerShell note for tar extraction
+### Notes on Unpacking Windows PowerShell tar
 
-Do not pipe binary `-so` output directly through Windows PowerShell; PowerShell may treat the stream as text and corrupt the tar data. Use `cmd /d /c` for the binary pipe:
+Do not use `.\lzfse.exe -decode -so | tar ...` directly in Windows PowerShell. PowerShell may use binary stdout as text pipeline processing and destroy tar stream. Please use `cmd /d /c` instead to let the binary pipe be processed by `cmd.exe`:
 
 ```powershell
 cmd /d /c ".\lzfse.exe -decode -i ""C:/path/input.lzfse"" -n 8 -so | tar -xf - -C ""C:/path/output-folder"""
 ```
 
-If the archive was created from a parent-relative path and `tar` reports `Path contains '..'`, strip the leading `..` path component during extraction:
+If the seal is created with the parent relative path, the content path may be `../name/...`; Windows bsdtar will return `Path contains '..'` due to security check. In this case, please remove the frontmost `..` path component when unpacking:
 
 ```powershell
 cmd /d /c ".\lzfse.exe -decode -i ""C:/path/input.lzfse"" -n 8 -so | tar -xf - --strip-components 1 -C ""C:/path/output-folder"""
+```
+
+### Decode tar archive to directory / Decode tar archive to directory
+
+```sh
+# 正常解壓 / Normal decode
+lzfse -decode -i file.lzfse -so | tar -xf - -C /dest
+
+# Debug 模式：overshoot / block 失敗時印詳細資訊到 stderr
+# Debug mode: prints overshoot / block failure details to stderr
+lzfse -decode -i file.lzfse -debug -so 2>debug/decode_debug.txt | tar -xf - -C /dest
 ```
 
 Run the built-in test:

@@ -27,7 +27,51 @@ tracePackageCount() {
 
 run_xctrace_record() {
     local start_seconds="$SECONDS"
-    xcrun xctrace record --time-limit "$XCTRACE_TIME_LIMIT" "$@"
+    # --time-limit stops recording but xctrace waits for the child to exit.
+    # When --target-stdin is used, xctrace closes the pipe after time-limit but
+    # the child may still be blocked, causing an infinite mutual wait.
+    # Fix: run in background and kill the whole process group after hard deadline.
+    # --time-limit 停止錄製，但 xctrace 仍會等待子行程結束。
+    # 使用 --target-stdin 時，xctrace 在 time-limit 後關閉 pipe，
+    # 但子行程可能仍在阻塞，導致雙方無限互等。
+    # 修正：背景執行並在硬性截止後強制終止整個 process group。
+    xcrun xctrace record --time-limit "$XCTRACE_TIME_LIMIT" "$@" &
+    local xctrace_pid=$!
+    local hard_deadline=$((start_seconds + TRACE_TIMEOUT_SECONDS + 30))
+    while [[ $SECONDS -lt $hard_deadline ]]; do
+        kill -0 "$xctrace_pid" 2>/dev/null || break
+        sleep 2
+    done
+    # Use ps -o state= instead of kill -0 to distinguish a live process from a
+    # zombie: kill -0 returns 0 for zombies too, causing false timeouts.
+    # Guard pgid against the shell's own PGID, which xctrace inherits when job
+    # control is inactive (non-interactive invocation, no set -m).
+    # 用 ps -o state= 區分真正存活的行程與 zombie（kill -0 對 zombie 也回傳 0，
+    # 會造成誤判 timeout）。同時防止 job control 未啟用時 xctrace 繼承 shell 的
+    # PGID，避免誤殺 shell 自身的 process group。
+    local proc_state
+    proc_state=$(ps -o state= -p "$xctrace_pid" 2>/dev/null | tr -d ' ')
+    if [[ -n "$proc_state" && "$proc_state" != "Z" ]]; then
+        local pgid my_pgid
+        pgid=$(ps -o pgid= -p "$xctrace_pid" 2>/dev/null | tr -d ' ')
+        my_pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')
+        if [[ -n "$pgid" && "$pgid" != "0" && "$pgid" != "$my_pgid" ]]; then
+            kill -TERM -"$pgid" 2>/dev/null || sudo kill -TERM -"$pgid" 2>/dev/null
+            sleep 3
+            kill -KILL -"$pgid" 2>/dev/null || sudo kill -KILL -"$pgid" 2>/dev/null
+        fi
+        # Bounded wait: avoids blocking forever if SIGKILL is deferred in kernel
+        # (e.g. xctrace stuck in an uninterruptible dtrace flush wait on macOS).
+        # 有界等待：避免 SIGKILL 被 kernel 延遲時永久阻塞
+        # （例如 xctrace 卡在 macOS uninterruptible dtrace flush wait）。
+        local giveup=$((SECONDS + 5))
+        while [[ $SECONDS -lt $giveup ]] && kill -0 "$xctrace_pid" 2>/dev/null; do
+            sleep 1
+        done
+        disown "$xctrace_pid" 2>/dev/null
+        return 124
+    fi
+    wait "$xctrace_pid"
     local rc=$?
     local elapsed=$((SECONDS - start_seconds))
     if [[ $elapsed -ge $TRACE_TIMEOUT_SECONDS ]]; then
@@ -134,7 +178,7 @@ trace_one() {
     rm -f "$PACKAGE_COUNT_FILE"
 
     echo "[Info] Build profile binary / 建立 profiling binary"
-    swiftc -O -g lzfse-cli.swift -o "$PROFILE_BIN"
+    swiftc -O -g -D PROFILING lzfse-cli.swift -o "$PROFILE_BIN"
 
     typeset -a LZFSE_TRACE_N_SWEEP
     if [[ -n "${LZFSE_TRACE_N_SWEEP_OVERRIDE:-}" ]]; then

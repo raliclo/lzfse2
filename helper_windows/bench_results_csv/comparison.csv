@@ -1,9 +1,9 @@
 ﻿dataset,format,win_n_meaning,mac_n,win_encode_mb_s,mac_encode_mb_s,win_mac_speed_ratio,win_compress_ratio,mac_compress_ratio,compress_ratio_diff,win_encode_sec,mac_encode_sec,win_decode_mb_s,mac_decode_mb_s,win_mac_decode_ratio,win_decode_sec,mac_decode_sec,win_decode_verify,win_encode_rss_mb,mac_encode_rss_mb,win_decode_rss_mb,mac_decode_rss_mb,note
 資料集 / Dataset,格式 / Format,Windows n meaning,macOS n,Win encode MB/s,Mac encode MB/s,Win/Mac encode speed ratio,Win compression ratio,Mac compression ratio,Compression ratio diff,Win encode sec,Mac encode sec,Win decode MB/s,Mac decode MB/s,Win/Mac decode speed ratio,Win decode sec,Mac decode sec,Win decode verify,Win encode RSS MB,Mac encode RSS MB,Win decode RSS MB,Mac decode RSS MB,備註 / Note
-claw-code,TGZ,single run (no -n),40,36.73,48.75,0.753,1.0000,1.0000,0.0000,38.57,29.05,637.05,366.57,1.738,2.22,3.86,PASS,6.30,4.20,5.70,3.80,
-claw-code,LZFSE (Other3),inflight=40 (1 run),40,213.77,408.72,0.523,0.9818,0.9865,-0.0047,6.63,3.47,736.50,414.62,1.776,1.92,3.42,PASS,143.60,236.10,247.00,301.10,
-claw-code,LZFSE (BVX3),inflight=40 (1 run),40,239.47,402.73,0.595,0.9254,0.9492,-0.0238,5.92,3.52,803.72,322.85,2.489,1.76,4.39,PASS,177.40,243.80,245.80,323.50,
-claw-code,LZFSE (Lazy2),inflight=40 (1 run),40,36.20,66.59,0.544,0.8704,0.8998,-0.0294,39.13,21.27,887.45,412.80,2.150,1.60,3.43,PASS,488.50,497.70,242.00,321.80,
-claw-code,LZFSE (Optimal),inflight=40 (1 run),40,16.03,35.32,0.454,0.8273,0.8574,-0.0301,88.39,40.10,773.43,347.86,2.223,1.83,4.07,PASS,535.30,581.40,241.20,307.90,
-claw-code,TLZ4,single run (no -n),40,182.22,425.04,0.429,1.1739,1.1793,-0.0054,7.77,3.33,1744.49,447.02,3.902,0.81,3.17,PASS,8.40,80.00,8.30,33.70,
-claw-code,ZSTD,single run (no -n),40,102.80,366.34,0.281,0.7813,0.8245,-0.0432,13.78,3.87,894.03,416.95,2.144,1.58,3.40,PASS,8.30,375.20,8.30,9.20,
+claw-code,TGZ,single run (no -n),40,36.73,47.47,0.774,1.0000,1.0000,0.0000,38.57,29.84,637.05,388.48,1.640,2.22,3.65,PASS,6.30,4.30,5.70,3.70,
+claw-code,LZFSE (Other3),inflight=40 (1 run),40,213.77,348.45,0.613,0.9818,0.9865,-0.0047,6.63,4.06,736.50,310.67,2.371,1.92,4.56,PASS,143.60,239.00,247.00,300.90,
+claw-code,LZFSE (BVX3),inflight=40 (1 run),40,239.47,405.51,0.591,0.9254,0.9492,-0.0238,5.92,3.49,803.72,273.42,2.939,1.76,5.18,PASS,177.40,273.90,245.80,323.40,
+claw-code,LZFSE (Lazy2),inflight=40 (1 run),40,36.20,65.08,0.556,0.8704,0.8998,-0.0294,39.13,21.76,887.45,332.58,2.668,1.60,4.26,PASS,488.50,495.10,242.00,320.40,
+claw-code,LZFSE (Optimal),inflight=40 (1 run),40,16.03,34.74,0.461,0.8273,0.8574,-0.0301,88.39,40.77,773.43,319.62,2.420,1.83,4.43,PASS,535.30,578.70,241.20,307.20,
+claw-code,TLZ4,single run (no -n),40,182.22,418.75,0.435,1.1739,1.1793,-0.0054,7.77,3.38,1744.49,313.11,5.571,0.81,4.52,PASS,8.40,84.80,8.30,33.70,
+claw-code,ZSTD,single run (no -n),40,102.80,368.84,0.279,0.7813,0.8245,-0.0432,13.78,3.84,894.03,422.27,2.117,1.58,3.35,PASS,8.30,393.10,8.30,9.20,
