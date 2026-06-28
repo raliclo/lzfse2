@@ -1,0 +1,26 @@
+﻿
+============================================================
+ Windows tar extraction benchmark  20260628-211935
+ tar -tzf = gz decompress + list (no file write)
+ tar -xzf = gz decompress + extract to disk
+============================================================
+
+--- claw-code  (tgz: 468.3 MB, uncompressed ref: 1416.8 MB) ---
+  [warm] pre-reading tgz into OS page cache...
+  tar -tzf (list, no write) :   2.14s  ->    661.7 MB/s
+  tar -xzf (extract files)  :    5.5s  ->    257.7 MB/s
+  list/extract speed ratio  : 2.57x  (>1 = file creation is bottleneck)
+
+--- llama.cpp  (tgz: 586.9 MB, uncompressed ref: 1322.4 MB) ---
+  [warm] pre-reading tgz into OS page cache...
+  tar -tzf (list, no write) :   1.54s  ->      858 MB/s
+  tar -xzf (extract files)  :  20.82s  ->     63.5 MB/s
+  list/extract speed ratio  : 13.51x  (>1 = file creation is bottleneck)
+
+============================================================
+ Done. Compare list vs extract MB/s:
+   list >> extract  => bsdtar file creation + NTFS is bottleneck
+   list ~= extract  => gz decompression is bottleneck
+============================================================
+
+Results saved to: C:\Users\lowei\proj\lzfse2\helper_windows\tar_benchmark\tar-bench-results.txt

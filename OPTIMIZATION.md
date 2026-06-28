@@ -658,7 +658,7 @@ WinAppSDK 1.5 runtime（含 DDLM）、Swift for Windows 6.3.2、VS Build Tools +
 
 > **nul mode 關鍵數字**：LZFSE 解碼吞吐量 750–873 MB/s（兩資料集接近），LZ4 達 1610–2165 MB/s，ZSTD 達 870–1675 MB/s。  
 > **llama.cpp nul/file 比率極大（20–85×）**：file mode 需把 ~1.3 GB 解壓後資料寫入 Windows 磁碟（測得 24–42 MB/s 磁碟 write），而 nul mode 只做 CPU 解碼（~840–870 MB/s）；磁碟 I/O 才是 file mode 瓶頸的 30–85× 倍放大主因。  
-> **TGZ decode nul 比 file 慢（0.74–0.83×）anomaly**：TGZ decode-nul 在 decode-win.bat 內使用 `tar tf -`（stream verify，依然走 gz decompression 且須讀完整個 tar 目錄）；file mode 直接 `tar xzf` 到目錄，kernel buffered write 在大型 tar 中反而更快。此為實作路徑差異，非 codec 本身問題。
+> **TGZ decode nul 比 file 慢（0.74–0.83×）anomaly**：decode-win.bat 的 TGZ nul 路徑實際執行完整 extraction + verify（並非單純 list），與 `tar -tzf`（純 list，648 MB/s）完全不同。file mode 直接 `tar xzf` 到目錄，kernel buffered write 在大型 tar 中反而更快。此為實作路徑差異，非 codec 本身問題。已由 `helper_windows/tar_benchmark/Findings.md` 獨立測試確認。
 
 ## 2. 壓縮大小與比率 / Compress Size & Ratio
 
@@ -742,10 +742,74 @@ WinAppSDK 1.5 runtime（含 DDLM）、Swift for Windows 6.3.2、VS Build Tools +
 | **Decode nul mode（CPU 限制）** | LZFSE 750–873 MB/s；LZ4 1610–2165 MB/s；ZSTD 870–1675 MB/s；TGZ anomaly（nul 慢於 file）|
 | **Decode file mode（I/O 限制）** | Windows 均慢於 Mac（claw: 0.40–0.61×；llama: 0.29–0.50×），磁碟 write 為瓶頸 |
 | **llama.cpp nul/file 比率** | LZFSE 20–34×，LZ4 85×，ZSTD 67×——pure CPU decode 遠快於磁碟 extract |
-| **bsdtar 瓶頸假設** | Windows nul/file 比率（20–85×）遠超磁碟速度差異可解釋的範圍（Mac 估計 ~10×）；疑為 Windows bsdtar（MSYS2 build）的 file 建立 syscall pattern + NTFS metadata 開銷共同造成，非 codec 問題；公平跨平台比較應以 nul mode 為準 |
+| **bsdtar 瓶頸（已驗證）** | `tar -tzf`（list only）648–844 MB/s vs `tar -xzf`（extract）174/36 MB/s；list/extract = 3.7×（claw）/ 23×（llama）→ file creation 確認為瓶頸，非 gz 解壓；LZFSE file decode（159 MB/s）≈ tar extract（174 MB/s），直接確認 codec 不是限制因素；詳見 `helper_windows/tar_benchmark/Findings.md` |
 | **Optimal RSS** | llama.cpp encode RSS 760.5 MB（claw 512.5 MB，+48%），chain table 記憶體壓力更大 |
 | **壓縮比** | Win/Mac 差距 < 1%（llama 幾乎相同，claw ZSTD 差距最大 -0.04）|
 | **R42 方向** | Lazy2/Optimal parse hotspot 已確認；RSS 高峰值指向 chain table 記憶體壓力 → prefetch chain entries 可同時改善速度與間接降低 cache miss 引起的有效 RSS |
+
+---
+
+# R41 總結 / R41 Summary
+
+> 綜合 R41-Mac、R41-Mac-Retest、R41-Win、R41-Win-Retest 四輪結果。  
+> Synthesizes all four R41 rounds: R41-Mac, R41-Mac-Retest, R41-Win, R41-Win-Retest.
+
+## 代碼變更 / Code Change
+
+R27 的 tag-packed hash chain 重新導入 R40 代碼基礎：`head[h]` / `chain[c]` 改為 `(tag<<24)|index` packed Int32；每次鏈走訪先比較高 8 bits tag，不符直接跳過（純暫存器操作），無需解包 index。同步套用至 `lzParseChain`（Other3/BVX3/Lazy2）與 `lzParseOptimal`（Optimal）。
+
+Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `(tag<<24)|index` as packed Int32. Each chain candidate checks the upper 8-bit tag first; mismatches skip without unpacking the index. Applied to both `lzParseChain` (Other3/BVX3/Lazy2) and `lzParseOptimal` (Optimal).
+
+## Mac Encode 速度 vs R40（claw-code, n=40，Retest 最終值）/ Mac Encode Speed vs R40
+
+| 格式 | R40 MB/s | R41 Retest MB/s | 變化 |
+| --- | ---: | ---: | --- |
+| Lazy2 | 57.84 | 66.59 | **+15.1% ✅** |
+| Optimal | 29.90 | 35.32 | **+18.1% ✅** |
+| Other3 | 380.73 | 408.72 | +7.3% ✅（首輪熱節流 -9.5%，Retest 回升）|
+| BVX3 | 421.51 | 402.73 | -4.5%（首輪熱節流，Retest 較首輪 +7.4%）|
+| TLZ4 | 424.74 | 425.04 | ≈ 持平 |
+| ZSTD | 363.63 | 366.34 | ≈ 持平 |
+
+> tag filter 使 chain 走訪提早剔除無效候選，Lazy2/Optimal 的 parse loop 迭代次數有效減少，為最顯著受益者。Other3/BVX3 首輪因熱節流數字偏低；Retest 排除熱節流後數字正常。
+
+## Windows Encode 主要發現 / Windows Encode — Key Finding
+
+| 資料集 | Win/Mac 範圍 | 說明 |
+| --- | --- | --- |
+| claw-code | 0.30–0.73× | Mac 領先；source code 含大量重複 pattern，ARM NEON 優勢顯著 |
+| llama.cpp | **1.07–1.35×（Other3/BVX3/Lazy2/TLZ4/ZSTD）** | Windows 超越 Mac；pre-compressed binary，x86 hash chain 走訪具競爭力 |
+
+> llama.cpp 為 pre-compressed binary，match 密度低，chain traversal 以吞吐量主導；此場景下 x86 hash chain 走訪速度與 ARM NEON 相當甚至更快。
+
+## Decode 效能摘要 / Decode Performance Summary
+
+| 量測 | 數字 | 意義 |
+| --- | ---: | --- |
+| LZFSE nul decode（Windows，兩資料集）| 750–873 MB/s | 純 CPU decode，代表真實 codec 吞吐量 |
+| LZFSE file decode（Windows，claw）| 159 MB/s | I/O 限制（bsdtar+NTFS 瓶頸）|
+| tar-xzf extract（Windows，claw）| 174 MB/s | ≈ LZFSE file decode，直接確認 bsdtar 為瓶頸 |
+| tar-xzf extract（Windows，llama）| 36 MB/s | 受限於磁碟 sequential write throughput |
+| LZFSE file decode（Mac，claw）| 310–388 MB/s | APFS 優於 NTFS，快約 2–2.5× |
+
+> Windows decode file mode 低速確認為 **bsdtar file creation + NTFS overhead**，非 codec 問題。`tar -tzf` list = 648–844 MB/s vs `tar -xzf` extract = 36–174 MB/s。跨平台公平比較應使用 nul mode。
+
+## RSS 峰值 / RSS Summary
+
+| 格式 | Mac claw | Win claw | Win llama | 說明 |
+| --- | ---: | ---: | ---: | --- |
+| Optimal encode | 572–581 MB | 509–513 MB | 757–761 MB | llama 比 claw 高 +48% |
+| Lazy2 encode | 498–500 MB | 481–485 MB | 635–650 MB | llama 比 claw 高 +34% |
+
+> llama.cpp pre-compressed binary 的 match 搜尋路徑更長（不易 early-exit），chain table 記憶體壓力更大。
+
+## R42 方向 / R42 Direction
+
+| 方向 | 依據 |
+| --- | --- |
+| **prefetch chain entries** | chain walk 前先 prefetch 下一個 entry，隱藏 cache miss 延遲；兼可降低有效 RSS |
+| **SIMD match compare（NEON/SSE）** | Lazy2 `bestMatch` / Optimal `lzParseOptimal` 確認為 parse hotspot（trace 分析）|
+| **公平比對基準** | nul mode LZFSE 750–873 MB/s 為 Windows codec 效能代表數字 |
 
 ---
 

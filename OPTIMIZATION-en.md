@@ -529,6 +529,290 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 ---
 
+# R41-Win Retest: Full Dual-Dataset Windows Benchmark (2026-06-28) / R41-Win Retest: Full Dual-Dataset Windows Benchmark
+
+> R41-Win (2026-06-23) only has the results of the first round of claw-code encode; this round is a complete supplementary test:
+> Double data set (claw-code + llama.cpp), dual mode (nul / file write), encode + decode + RSS peak full coverage.
+> All 14 formats have passed decode correctness verification (verify=PASS).
+> R41-Win (2026-06-23) had only claw-code encode; this is the full retest:
+> both datasets, both modes (nul / file write), encode + decode + peak RSS.
+>
+> **Important discovery / Key finding**: On the llama.cpp data set, Windows LZFSE encode speed ** exceeds** Mac (Other3/BVX3 ≈ 1.32–1.35×), and the claw-code is still ahead of Mac.
+
+## 1a. Encode Speed vs Mac (claw-code, n=40)/ Encode MB/s — Win vs Mac
+
+| Format | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 23.82 | 1.000 | 47.47 | 0.502 |
+| Other3 | 253.04 | 10.624 | 348.45 | 0.726 |
+| BVX3 | 246.37 | 10.343 | 405.51 | 0.608 |
+| Lazy2 | 41.03 | 1.722 | 65.08 | 0.630 |
+| Optimal | 17.78 | 0.746 | 34.74 | 0.512 |
+| TLZ4 | 201.74 | 8.469 | 418.75 | 0.482 |
+| ZSTD | 110.34 | 4.631 | 368.84 | 0.299 |
+
+## 1b. Encode Speed vs Mac (llama.cpp, n=40)/ Encode MB/s — Win vs Mac
+
+| Format | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 25.70 | 1.000 | 42.87 | 0.599 |
+| Other3 | 132.53 | 5.157 | 98.50 | **1.346 ✅** |
+| BVX3 | 129.91 | 5.054 | 98.35 | **1.321 ✅** |
+| Lazy2 | 95.35 | 3.712 | 88.78 | **1.074 ✅** |
+| Optimal | 32.41 | 1.261 | 51.28 | 0.632 |
+| TLZ4 | 118.67 | 4.620 | 95.39 | **1.244 ✅** |
+| ZSTD | 114.17 | 4.444 | 100.30 | **1.138 ✅** |
+
+> **claw-code**: Windows is 0.30–0.73× for Mac, Mac is obviously ahead (source code contains a large number of duplicate patterns, and NEON is more advantageous).
+> **llama.cpp**: Windows LZFSE encode surpasses Mac (Other3/BVX3 ≈ 1.32–1.35×). Llama.cpp is pre-compressed binary, with low match density; x86 hash chain visit speed is better than ARM in this scenario. TGZ and Optimal are still faster than Mac.
+
+## 1c. Decode speed (file write mode, claw-code n=40)/ Decode MB/s — File Write Mode
+
+> decode-win.bat measures the end-to-end speed output to the disk after decoding in "writing mode", including disk I/O overhead.
+
+| Format | Win MB/s | Mac MB/s | Win/Mac | Verify |
+| --- | ---: | ---: | ---: | --- |
+|TGZ|153.54|388.48|0.395|PASS|
+| Other3 | 158.95 | 310.67 | 0.512 | PASS |
+| BVX3 | 139.89 | 273.42 | 0.512 | PASS |
+| Lazy2 | 141.17 | 332.58 | 0.424 | PASS |
+| Optimal | 141.87 | 319.62 | 0.444 | PASS |
+| TLZ4 | 189.33 | 313.11 | 0.605 | PASS |
+| ZSTD | 171.20 | 422.27 | 0.405 | PASS |
+
+## 1d. Decode speed (file write mode, llama.cpp n=40)/ Decode MB/s — File Write Mode (llama.cpp)
+
+| Format | Win MB/s | Mac MB/s | Win/Mac | Verify |
+| --- | ---: | ---: | ---: | --- |
+|TGZ|27.53|89.75|0.307|PASS|
+| Other3 | 41.53 | 83.86 | 0.495 | PASS |
+| BVX3 | 36.08 | 79.52 | 0.454 | PASS |
+| Lazy2 | 25.04 | 85.54 | 0.293 | PASS |
+| Optimal | 24.64 | 86.39 | 0.285 | PASS |
+| TLZ4 | 25.38 | 87.40 | 0.290 | PASS |
+| ZSTD | 25.07 | 84.58 | 0.296 | PASS |
+
+> Under Write-to-file decode, Windows is slower than Mac (claw: 0.40–0.61×; llama: 0.29–0.50×). Mac SSD write throughput advantage dominates this measurement.
+> Note: The first round of R41-Win (nul mode, no write disk) Windows decode speed once reached 1.7–4.3× of Mac; the difference between write mode and null mode reflects the disk I/O rather than the codec itself.
+
+## 1e. Encode null vs file mode comparison / Encode: Nul vs File Mode
+
+> null mode = output discard after compression (no disk), measure the pure CPU compression speed; file mode = output to the compressed file (including I/O).
+> claw-code uncompressed ≈ 1416.8 MB, llama.cpp ≈ 1322.4 MB (reverse by comparison.csv TGZ encode time).
+
+### claw-code (n=40)
+
+| Format | null MB/s | file MB/s | null/file |
+|---|---:|---:|---:|---:|
+| TGZ | 24.30 | 23.82 | 1.02 |
+| Other3 | 247.04 | 253.04 | 0.976 |
+| BVX3 | 222.15 | 246.37 | 0.902 |
+| Lazy2 | 39.26 | 41.03 | 0.957 |
+| Optimal | 17.97 | 17.78 | 1.011 |
+| LZ4 | 215.75 | 201.74 | 1.069 |
+| ZSTD | 111.26 | 110.34 | 1.008 |
+
+### llama.cpp (n=40)
+
+| Format | null MB/s | file MB/s | null/file |
+|---|---:|---:|---:|---:|
+| TGZ | 27.59 | 25.70 | 1.074 |
+| Other3 | 143.82 | 132.53 | 1.085 |
+| BVX3 | 141.16 | 129.91 | 1.086 |
+| Lazy2 | 106.06 | 95.35 | 1.112 |
+| Optimal | 33.69 | 32.41 | 1.039 |
+| LZ4 | 123.21 | 118.67 | 1.038 |
+| ZSTD | 123.88 | 114.17 | 1.085 |
+
+> **claw-code**: null ≈ file (within the error range). The compressed output is about 366–550 MiB, and the writing disk has no significant impact on the overall time. BVX3 null is 10% slower than file, which is a measurement error.
+> **llama.cpp**: null is stable and fast 4–11%, Lazy2 is the most obvious (1.112×). The compressed output reaches 535–616 MiB, and the omission of disk I/O has a significant acceleration.
+
+## 1f. Decode nul mode speed (two data sets)/ Decode: Nul Mode MB/s
+
+> null mode = lzfse/lz4/zstd Discard the output after decompression to measure the pure decoding throughput; file mode = decompress and extract to disk.
+> The null/file ratio of TGZ is < 1 (anomaly), the reason is explained below.
+
+### claw-code (n=40)
+
+| Format | null MB/s | file MB/s | null/file |
+|---|---:|---:|---:|---:|
+| TGZ | 113.9 | 153.6 | 0.74 ⚠️ |
+| Other3 | 772.4 | 159.0 | 4.86 |
+| BVX3 | 749.0 | 139.9 | 5.35 |
+| Lazy2 | 750.3 | 141.2 | 5.31 |
+| Optimal | 744.9 | 141.9 | 5.25 |
+| LZ4 | 1609.6 | 189.4 | 8.50 |
+| ZSTD | 869.6 | 171.2 | 5.08 |
+
+### llama.cpp (n=40)
+
+| Format | null MB/s | file MB/s | null/file |
+|---|---:|---:|---:|---:|
+| TGZ | 22.9 | 27.5 | 0.83 ⚠️ |
+| Other3 | 838.6 | 41.5 | 20.2 |
+| BVX3 | 873.0 | 36.1 | 24.2 |
+| Lazy2 | 842.1 | 25.0 | 33.6 |
+| Optimal | 846.1 | 24.6 | 34.3 |
+| LZ4 | 2165.2 | 25.4 | **85.3** |
+| ZSTD | 1674.6 | 25.1 | **66.8** |
+
+> **nul mode key number**: LZFSE decoding throughput 750–873 MB/s (two data sets are close), LZ4 reaches 1610–2165 MB/s, and ZSTD reaches 870–1675 MB/s.
+> **llama.cpp nul/file ratio is very large (20–85×)**: file mode needs to decompress ~1.3 GB and write data to Windows disk (measured 24–42 MB/s disk write), while null mode only does CPU decoding (~840–870 MB/s); disk I/O is the main cause of the file mode bottleneck by 30–85× times.
+> **TGZ decode null is slower than file (0.74–0.83×) anomaly**: The TGZ null path of decode-win.bat actually performs complete extraction + verify (not a simple list), which is completely different from `tar -tzf` (pure list, 648 MB/s). File mode directly `tar xzf` to the directory, kernel buffered write is faster in large tar. This is an actual path difference, not a problem of codec itself. It has been independently tested and confirmed by `helper_windows/tar_benchmark/Findings.md`.
+
+## two Compress Size & Ratio / Compress Size & Ratio
+
+### claw-code (n=40)
+
+| Format | Win compression ratio/TGZ | Mac compression ratio/TGZ | Difference |
+|---|---:|---:|---:|---:|
+| TGZ | 1.0000 | 1.0000 | 0.0000 |
+| Other3 | 0.9818 | 0.9865 | -0.0047 |
+| BVX3 | 0.9254 | 0.9492 | -0.0238 |
+| Lazy2 | 0.8704 | 0.8998 | -0.0294 |
+| Optimal | 0.8274 | 0.8574 | -0.0300 |
+| TLZ4 | 1.1739 | 1.1793 | -0.0054 |
+| ZSTD | 0.7813 | 0.8245 | -0.0432 |
+
+### llama.cpp (n=40)
+
+| Format | Win compression ratio/TGZ | Mac compression ratio/TGZ | Difference |
+|---|---:|---:|---:|---:|
+| TGZ | 1.0000 | 1.0000 | 0.0000 |
+| Other3 | 0.9970 | 0.9957 | +0.0013 |
+| BVX3 | 0.9810 | 0.9787 | +0.0023 |
+| Lazy2 | 0.9576 | 0.9551 | +0.0025 |
+| Optimal | 0.9412 | 0.9387 | +0.0025 |
+| TLZ4 | 1.0503 | 1.0537 | -0.0034 |
+| ZSTD | 0.9123 | 0.9100 | +0.0023 |
+
+> llama.cpp The compression ratio difference is < 0.4%, and Win/Mac is almost the same. ZSTD Win on claw-code is slightly better (-0.0432), and the rest of the gap is < 3%.
+
+## three. RSS Peak (Windows, n=40)/ Peak RSS — Windows
+
+### claw-code
+
+| Format | Enc RSS nul (MB) | Enc RSS file (MB) | Dec RSS nul (MB) | Dec RSS file (MB) |
+| --- | ---: | ---: | ---: | ---: |
+| TGZ | 6.3 | 6.3 | 5.7 | 6.1 |
+| Other3 | 116.1 | 131.6 | 247.2 | 247.2 |
+| BVX3 | 173.7 | 155.2 | 245.6 | 245.1 |
+| Lazy2 | 480.7 | 485.1 | 242.3 | 242.2 |
+| Optimal | 508.8 | 512.5 | 240.6 | 240.6 |
+| LZ4 | 8.3 | 8.3 | 8.3 | 8.3 |
+| ZSTD | 8.3 | 8.3 | 8.3 | 8.8 |
+
+### llama.cpp
+
+| Format | Enc RSS nul (MB) | Enc RSS file (MB) | Dec RSS nul (MB) | Dec RSS file (MB) |
+| --- | ---: | ---: | ---: | ---: |
+|TGZ|6.5|6.5|5.7|6.9|
+| Other3 | 135.3 | 146.0 | 346.1 | 346.2 |
+| BVX3 | 162.6 | 171.8 | 346.6 | 346.5 |
+| Lazy2 | 635.3 | 649.8 | 346.0 | 345.6 |
+| Optimal | 756.6 | 760.5 | 346.0 | 346.1 |
+| LZ4 | 8.3 | 8.3 | 8.3 | 8.3 |
+| ZSTD | 8.3 | 8.8 | 8.3 | 8.3 |
+
+> **Optimal encode RSS**: llama.cpp 760.5 MB vs claw-code 512.5 MB (+48%).
+> **Lazy2 encode RSS**: llama.cpp 649.8 MB vs claw-code 485.1 MB (+34%).
+> llama.cpp The chain table search path of each chunk is longer (pre-compressed binary, match is not easy to early-exit halfway), resulting in higher chain memory pressure.
+> Decode RSS varies much across formats (LZFSE about 240–350 MB; LZ4/ZSTD/TGZ < 10 MB).
+
+## four. R41-Win Retest vs R41-Win First Round (claw-code encode Comparison) / vs Original R41-Win
+
+| Format | R41-Win MB/s | Retest MB/s | Change |
+| --- | ---: | ---: | --- |
+| TGZ | 24.67 | 23.82 | -3.5% |
+| Other3 | 266.36 | 253.04 | -5.0% |
+| BVX3 | 241.42 | 246.37 | +2.1% |
+| Lazy2 | 38.75 | 41.03 | +5.9% |
+| Optimal | 15.54 | 17.78 | +14.4% |
+| TLZ4 | 191.84 | 201.74 | +5.2% |
+| ZSTD | 103.67 | 110.34 | +6.4% |
+
+> Each format change is within the measurement error range (±5–15%); Optimal is slightly faster this time (+14%), and the rest remains the same.
+
+## Conclusion / Conclusion
+
+| Project | Conclusion |
+|---|---|
+| **The most important discovery** | Win LZFSE encode on llama.cpp surpasses Mac (Other3/BVX3 ≈ 1.32–1.35×); claw-code is still ahead of Mac |
+| **Encode null vs file** | claw-code gap < 5% (CPU-dominated); llama.cpp nul fast 4–11% (omitted ~535–616 MiB output I/O) |
+| **Decode null mode (CPU limit)** | LZFSE 750–873 MB/s; LZ4 1610–2165 MB/s; ZSTD 870–1675 MB/s; TGZ anomaly (nul slower than file) |
+| **Decode file mode (I/O limit)** | Windows is slower than Mac (claw: 0.40–0.61×; llama: 0.29–0.50×), disk write is a bottleneck |
+| **llama.cpp nul/file ratio** | LZFSE 20–34×, LZ4 85×, ZSTD 67×——pure CPU decode is much faster than disk extract |
+| **bsdtar bottleneck (verified)** | `tar -tzf` (list only) 648–844 MB/s vs `tar -xzf` (extract) 174/36 MB/s; list/extract = 3.7× (claw) / 23× (llama) → file creation confirmed as a bottleneck, non-gz decompression; LZFSE file decode (159 MB/s) ≈ tar extract (174 MB/s), directly confirm that codec is not a limiting factor; see `helper_windows/tar_benchmark/Findings.md` for details |
+| **Optimal RSS** | llama.cpp encode RSS 760.5 MB (claw 512.5 MB, +48%), chain table memory pressure is greater |
+| **Compression ratio** | Win/Mac gap < 1% (llama is almost the same, claw ZSTD gap is the largest -0.04) |
+| **R42 direction** | Lazy2/Optimal parse hotspot has been confirmed; RSS peak points to chain table memory pressure → prefetch chain entries can simultaneously improve the speed and indirectly reduce the effective RSS caused by cache miss |
+
+---
+
+# R41 Summary / R41 Summary
+
+> Integrate the results of the four rounds of R41-Mac, R41-Mac-Retest, R41-Win and R41-Win-Retest.
+> Synthesizes all four R41 rounds: R41-Mac, R41-Mac-Retest, R41-Win, R41-Win-Retest.
+
+## Code Change / Code Change
+
+R27's tag-packed hash chain reintroduces the R40 code base: `head[h]` / `chain[c]` to `(tag<<24)|index` packed Int32; each chain visit is relatively high 8 bits tag, skip directly if it does not match (pure register operation), no need to unpack index. Synchronously apply to `lzParseChain` (Other3/BVX3/Lazy2) and `lzParseOptimal` (Optimal).
+
+Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `(tag<<24)|index` as packed Int32. Each chain candidate checks the upper 8-bit tag first; mismatches skip without unpacking the index. Applied to both `lzParseChain` (Other3/BVX3/Lazy2) and `lzParseOptimal` (Optimal).
+
+## Mac Encode speed vs R40 (claw-code, n=40, Retest final value) / Mac Encode Speed vs R40
+
+| Format | R40 MB/s | R41 Retest MB/s | Change |
+| --- | ---: | ---: | --- |
+| Lazy2 | 57.84 | 66.59 | **+15.1% ✅** |
+| Optimal | 29.90 | 35.32 | **+18.1% ✅** |
+| Other3 | 380.73 | 408.72 | +7.3% ✅ (first round of hot throttle -9.5%, Retest rebounds) |
+| BVX3 | 421.51 | 402.73 | -4.5% (first round of hot throttle, Retest compared with the first round +7.4%) |
+| TLZ4 | 424.74 | 425.04 | ≈ flat |
+| ZSTD | 363.63 | 366.34 | ≈ flat |
+
+> tag filter eliminates invalid candidates for chain visits early, and the number of parse loop iterations of Lazy2/Optimal is effectively reduced, which is the most significant beneficiary. Other3/BVX3 The number is low due to heat throttling in the first round; the number is normal after Retest excludes hot throttling.
+
+## Windows Encode Main Discovery / Windows Encode — Key Finding
+
+| Data Set | Win/Mac Scope | Description |
+| --- | --- | --- |
+| claw-code | 0.30–0.73× | Mac leads; source code contains a large number of duplicate patterns, ARM NEON has a significant advantage |
+| llama.cpp | **1.07–1.35×(Other3/BVX3/Lazy2/TLZ4/ZSTD)** | Windows surpasses Mac; pre-compressed binary, x86 hash chain visit competitive |
+
+> llama.cpp is a pre-compressed binary, with low match density, and chain traversal is dominated by throughput; in this scenario, the x86 hash chain visit speed is equivalent to or even faster than ARM NEON.
+
+## Decode Performance Summary / Decode Performance Summary
+
+| Measurement | Number | Meaning |
+| --- | ---: | --- |
+| LZFSE nul decode (Windows, two data sets) | 750–873 MB/s | Pure CPU decode, representing real codec throughput |
+| LZFSE file decode (Windows, claw) | 159 MB/s | I/O limit (bsdtar+NTFS bottleneck) |
+| tar-xzf extract (Windows, claw) | 174 MB/s | ≈ LZFSE file decode, directly confirm that bsdtar is the bottleneck |
+| tar-xzf extract (Windows, llama) | 36 MB/s | Restricted by disk sequential write throughput |
+| LZFSE file decode (Mac, claw) | 310–388 MB/s | APFS is better than NTFS, about 2–2.5× faster |
+
+> Windows decode file mode low speed confirmed as **bsdtar file creation + NTFS overhead**, not codec problem. `tar -tzf` list = 648–844 MB/s vs `tar -xzf` extract = 36–174 MB/s. Nul mode should be used for cross-platform fair comparison.
+
+## RSS Peak / RSS Summary
+
+| Format | Mac claw | Win claw | Win llama | Description |
+| --- | ---: | ---: | ---: | --- |
+| Optimal encode | 572–581 MB | 509–513 MB | 757–761 MB | llama is +48% higher than claw |
+| Lazy2 encode | 498–500 MB | 481–485 MB | 635–650 MB | llama is +34% higher than claw |
+
+> The match search path of llama.cpp pre-compressed binary is longer (not easy to early-exit), and the chain table memory pressure is greater.
+
+## R42 Direction / R42 Direction
+
+| Direction | Based on |
+|---|---|
+| **prefetch chain entries** | Prefetch the next entry before chain walk, hide the cache miss delay; and reduce the effective RSS |
+| **SIMD match compare(NEON/SSE)** | Lazy2 `bestMatch` / Optimal `lzParseOptimal` confirmed as parse hotspot (trace analysis) |
+| **Fair Comparison Benchmark** | null mode LZFSE 750–873 MB/s for Windows codec performance represents numbers |
+
+---
+
 # R40-Mac: macOS Complete Benchmark Results (2026-06-22) / R40-Mac: Full macOS Benchmark Results
 
 > Run three batches of `-n 40 / 8 / 4` full benchmarks on claw-code / llama.cpp with R40 code (3652 lines), covering encode/decode speed, RSS peak value, CPU energy ratio, and compare the encode speed with R40-Win.

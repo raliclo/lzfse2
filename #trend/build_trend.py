@@ -89,7 +89,9 @@ def pf(v):
     try: return float(v.strip()) if v and v.strip() else None
     except: return None
 
-REPO_ROOT = str(__import__('pathlib').Path.home() / 'proj' / 'lzfse2')
+import pathlib as _pathlib
+SCRIPT_DIR = _pathlib.Path(__file__).parent
+REPO_ROOT = str(_pathlib.Path.home() / 'proj' / 'lzfse2')
 
 def git_csv(commit):
     if commit == 'local':
@@ -427,7 +429,7 @@ make_energy_sheet(wb, 'claw-code_Energy', 'claw-code', 'Raw_claw-code')
 make_energy_sheet(wb, 'llama_cpp_Energy', 'llama.cpp', 'Raw_llama_cpp')
 print("  Energy chart sheets done")
 
-OUT = '#trend/lzfse2_R1_R41_trend.xlsx'
+OUT = str(SCRIPT_DIR / 'lzfse2_DOE_trend.xlsx')
 wb.save(OUT)
 print(f"\nSaved: {OUT}")
 print(f"Rounds: {len(ROUND_ORDER)}, Formats: {FORMATS}")
