@@ -243,8 +243,92 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ## 待辦 / Next Steps
 
-- Windows 測試腳本（`helper_windows/encode-win.bat` 等）已同步支援 `-optimal3`，但本輪尚未在 Windows 執行；Win/Mac 比較報告目前顯示 `LZFSE (Optimal3)` 為 `Windows result missing`，待下次 Windows round 補齊。
+- Windows round 已於 **R42-Win（2026-07-05）** 補齊，`helper_windows/run_round.bat` 完整跑畢，`LZFSE (Optimal3)` 不再是 `Windows result missing`（見下一節）。
 - `matchConst`（L 符號攤提常數）沿用 bvx3-optimal 的近似值，尚未針對標準格式的較小 L/M 上限個別調參，未來輪次可视 claw-code/llama.cpp 的實測比率再收斂。
+
+---
+
+# R42-Win：other3 -optimal3 Windows round 補齊（2026-07-05）/ R42-Win: Windows Benchmark for other3 -optimal3
+
+> 在 Windows 上執行 `helper_windows/run_round.bat`，補齊 R42-Mac 後尚缺的 `other3 -optimal3` Windows 測試。  
+> 本輪包含：`lzfse.exe -test`、encode-to-file、encode-to-nul、decode-to-file、decode-to-nul、RSS probe、`BenchMarkResult-Win.csv` 與 Win/Mac `comparison.csv` 重建。  
+> 測試資料集：`claw-code`、`llama.cpp`；Windows `-n 40` 語意為 inflight chunk count（單次），macOS `n=40` 為 40 次平均。
+
+## 驗證 / Verification
+
+- `run_round.bat` exit code 0，`windows_round_status.txt` 結尾為 `DONE 19:01:23`。
+- `lzfse.exe -test` 全數通過，新增 `other3 -optimal3` 自我往返與平行解碼均通過。
+- `encode_summary.csv`：32 rows。
+- `decode_summary.csv`：32 rows。
+- `BenchMarkResult-Win.csv`：16 rows。
+- `comparison.csv`：每個 dataset 8 rows，含 `LZFSE (Optimal3)`。
+- 所有 Windows decode verify 皆為 `PASS`。
+
+> **修正記錄（2026-07-05 補測）/ Correction note (2026-07-05 re-run)**：`helper_windows/decode-win.bat` 的
+> `decodeOptimal3` 區塊原本沿用舊的 `:appendFileSize`（記錄壓縮檔大小），其餘 7 個格式已在同一輪修正為
+> `:appendDecodedFolderSize`（記錄實際解壓資料夾大小）。這讓 `LZFSE (Optimal3)` 的 decode MB/s 誤用 Mac
+> 端 `raw_size_mib` 估算，而非 Windows 實測的解壓大小；`comparison_win.py` 的 `compute_win_decode_speed`
+> 也有相同問題（全格式皆用 Mac `raw_mb`，未讀 `decoded_bytes`）。兩處皆已修正，並重新執行兩個資料集的
+> decode benchmark（nul + file 模式）與 `comparison.csv` 重建。下列第 1–3 節數字為修正後結果；decode 計時
+> 本身有 run-to-run 變異（尤其 file 模式，見 R41 bsdtar/NTFS 瓶頸章節），故除 Optimal3 外其餘格式的
+> decode MB/s 亦與本節初版略有出入，不代表演算法本身改變。
+
+## 1. Windows 實測結果（n=40 inflight，修正後 / corrected）/ Windows Results
+
+| 資料集 | 格式 | Win 壓縮比 | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS | Verify |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| claw-code | TGZ | 1.0000 | 33.92 | 145.90 | 6.4 MB | 6.2 MB | PASS |
+| claw-code | Other3 | 0.9818 | 296.96 | 152.19 | 131.7 MB | 247.0 MB | PASS |
+| claw-code | **Optimal3** | **0.9351** | **47.11** | **150.96** | **496.7 MB** | **244.9 MB** | PASS |
+| claw-code | BVX3 | 0.9254 | 289.21 | 150.93 | 139.0 MB | 245.6 MB | PASS |
+| claw-code | Lazy2 | 0.8704 | 51.55 | 154.04 | 484.4 MB | 242.5 MB | PASS |
+| claw-code | Optimal | 0.8274 | 24.26 | 155.59 | 513.3 MB | 240.7 MB | PASS |
+| claw-code | TLZ4 | 1.1739 | 258.08 | 208.76 | 8.3 MB | 8.3 MB | PASS |
+| claw-code | ZSTD | 0.7813 | 146.12 | 186.81 | 8.8 MB | 8.3 MB | PASS |
+| llama.cpp | TGZ | 1.0000 | 38.32 | 21.54 | 6.6 MB | 7.0 MB | PASS |
+| llama.cpp | Other3 | 0.9970 | 182.44 | 30.25 | 145.9 MB | 346.1 MB | PASS |
+| llama.cpp | **Optimal3** | **0.9743** | **66.00** | **28.79** | **758.9 MB** | **346.0 MB** | PASS |
+| llama.cpp | BVX3 | 0.9810 | 178.34 | 28.55 | 180.4 MB | 346.3 MB | PASS |
+| llama.cpp | Lazy2 | 0.9576 | 126.49 | 28.43 | 659.3 MB | 345.9 MB | PASS |
+| llama.cpp | Optimal | 0.9412 | 45.29 | 28.46 | 741.3 MB | 346.4 MB | PASS |
+| llama.cpp | TLZ4 | 1.0503 | 154.57 | 30.59 | 8.3 MB | 8.8 MB | PASS |
+| llama.cpp | ZSTD | 0.9123 | 145.30 | 30.05 | 8.3 MB | 8.3 MB | PASS |
+
+## 2. Optimal3 重點 / Optimal3 Takeaways
+
+| 資料集 | Other3 比率 | Optimal3 比率 | 比率改善 | Other3 Enc | Optimal3 Enc | Optimal3/Other3 Enc | Other3 Dec | Optimal3 Dec |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.9818 | 0.9351 | -4.75% | 296.96 MB/s | 47.11 MB/s | 15.9% | 152.19 MB/s | 150.96 MB/s |
+| llama.cpp | 0.9970 | 0.9743 | -2.28% | 182.44 MB/s | 66.00 MB/s | 36.2% | 30.25 MB/s | 28.79 MB/s |
+
+> **結論**：Windows 上 `other3 -optimal3` 已完成驗證，decode 全部 PASS，且仍輸出標準相容 bvx2 bitstream。  
+> 壓縮比相對 Other3 明顯改善：claw-code 約 -4.75%，llama.cpp 約 -2.28%。代價是 encode 速度與 RSS：Optimal3 encode RSS 接近 bvx3-optimal/lazy2 等 DP 路徑，屬於「壓縮率優先」模式；decode 速度/RSS 與 Other3 同量級（差距 <1–5%），符合共用 bvx2 decode 路徑的預期。
+
+## 2a. 為什麼 Optimal3 與 Optimal 壓縮比仍差很多 / Why Optimal3 Still Trails Optimal
+
+`Optimal3` 與 `Optimal` 的差距主要不是 DP 搜尋能力，而是**輸出格式表達能力**：
+
+- `Optimal3` = `other3 -optimal3`：使用 `lzParseOptimal2` 做分段 DP 最優解析，但輸出仍走標準 LZFSE/bvx2 `encodeBlock`，必須使用標準 `lBaseValue` / `mBaseValue` / `dBaseValue` 表，並受 `maxLValue=315`、`maxMValue=2359`、`maxDValue=262139`（約 256 KB）限制。
+- `Optimal` = `bvx3 -optimal`：使用私有 bvx3 `encodeBlockV3`，L/M 走合併的 `lm3BaseValue` / `lm3ExtraBits` 表，match 長度可到 `maxM3=69947`，距離也可覆蓋整個 4 MB chunk 等級；因此長 match、遠距離重複與大量相似檔案時能用更少 token 表達。
+- `Optimal3` 保留 Apple-compatible 標準 bitstream；`Optimal` 犧牲 Apple 相容性換更強的 L/M/D 表達能力。
+
+| 資料集 | Optimal3 比率 | Optimal 比率 | 差距主因 |
+| --- | ---: | ---: | --- |
+| claw-code | 0.9351 | 0.8274 | 程式碼/目錄結構重複多，bvx3 長 match 與遠距離 match 優勢明顯 |
+| llama.cpp | 0.9743 | 0.9412 | 重複率較低，格式能力差距仍存在但幅度較小 |
+
+> 因此 `Optimal3` 的定位是「標準相容格式內能做到的 optimal parse」，不是 `bvx3 -optimal` 的壓縮比替代品。  
+> 若目標是 Apple/標準 LZFSE 相容，`Optimal3` 是上限較合理的路徑；若目標是最高壓縮率，私有 `bvx3 -optimal` 仍有格式層級優勢。
+
+## 3. Win/Mac 對照 / Win-Mac Comparison
+
+| 資料集 | 格式 | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | Optimal3 | 47.11 | 62.85 | 0.750 | 150.96 | 435.87 | 0.346 |
+| llama.cpp | Optimal3 | 66.00 | 64.07 | 1.030 | 28.79 | 83.85 | 0.343 |
+
+> `claw-code` 上 Windows Optimal3 encode 約為 Mac 的 75%；`llama.cpp` 上 Windows encode 與 Mac 接近（1.03×）。  
+> Decode 端 Windows 較慢（約 0.34–0.35×），與本輪 Windows write-to-file/tar extraction 路徑和 NTFS/bsdtar I/O 成本相關（見 R41 bsdtar/NTFS 瓶頸章節）。
 
 ---
 

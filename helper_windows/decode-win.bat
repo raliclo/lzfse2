@@ -71,7 +71,7 @@ echo [DONE] lzfse other3 decode %TIME:~0,8%
 
 echo [Info] Running lzfse other3_optimal3 decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeOptimal3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt" 2>&1
-call :appendFileSize "%_dataset%.lzfse.other3.optimal3" "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt"
+call :appendDecodedFolderSize "%_dataset%" "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt"
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] lzfse other3_optimal3 decode %TIME:~0,8%
 

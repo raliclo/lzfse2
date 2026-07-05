@@ -251,13 +251,22 @@ def compute_win_speed(win_row, raw_mb):
     return sec, mb_s, (mb_s > SUSPICIOUS_MBS)
 
 def compute_win_decode_speed(dec_row, raw_mb):
-    """Return (seconds, mb_s) from a decode summary row."""
+    """Return (seconds, mb_s) from a decode summary row.
+
+    Uses the row's own decoded_bytes (actual Windows-measured output size)
+    when available; falls back to raw_mb (Mac's raw_size_mib) for older
+    decode_summary.csv files that lack the column.
+    """
     ns    = fv(dec_row.get("nanoseconds"))
     valid = dec_row.get("valid", "yes") != "no"
-    if not ns or not valid or raw_mb is None:
+    if not ns or not valid:
+        return None, None
+    decoded_bytes = fv(dec_row.get("decoded_bytes"))
+    decoded_mb = decoded_bytes / 1_000_000 if decoded_bytes else raw_mb
+    if decoded_mb is None:
         return None, None
     sec = ns / 1e9
-    return sec, raw_mb / sec
+    return sec, decoded_mb / sec
 
 def win_compress_ratio(win_row, tgz_bytes):
     b = fv(win_row.get("encoded_bytes")) if win_row and win_row.get("valid", "yes") != "no" else None

@@ -1,7 +1,9 @@
 [重複文字] 原始 19200 bytes
-       other3 壓縮: 222 bytes (1.2%)
+       other3 壓縮: 222 bytes (1.2%)；-optimal3: 222 bytes (1.2%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 235 bytes (1.2%)；-lazy2: 235 bytes (1.2%)；-optimal: 235 bytes (1.2%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
@@ -12,9 +14,11 @@
        平行解碼後援 (單流輸入): ✓
 
 [低熵] 原始 50000 bytes
-       other3 壓縮: 176 bytes (0.4%)
+       other3 壓縮: 176 bytes (0.4%)；-optimal3: 176 bytes (0.4%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 172 bytes (0.3%)；-lazy2: 172 bytes (0.3%)；-optimal: 172 bytes (0.3%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
@@ -25,9 +29,11 @@
        平行解碼後援 (單流輸入): ✓
 
 [隨機(不可壓)] 原始 8192 bytes
-       other3 壓縮: 8204 bytes (100.1%)
+       other3 壓縮: 8204 bytes (100.1%)；-optimal3: 8204 bytes (100.1%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 8204 bytes (100.1%)；-lazy2: 8204 bytes (100.1%)；-optimal: 8204 bytes (100.1%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
@@ -38,9 +44,11 @@
        平行解碼後援 (單流輸入): ✓
 
 [小輸入 (Apple 走 bvxn/LZVN)] 原始 27 bytes
-       other3 壓縮: 39 bytes (144.4%)
+       other3 壓縮: 39 bytes (144.4%)；-optimal3: 39 bytes (144.4%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 39 bytes (144.4%)；-lazy2: 39 bytes (144.4%)；-optimal: 39 bytes (144.4%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
@@ -51,9 +59,11 @@
        平行解碼後援 (單流輸入): ✓
 
 [中輸入 2KB (Apple 走 bvxn)] 原始 2048 bytes
-       other3 壓縮: 60 bytes (2.9%)
+       other3 壓縮: 60 bytes (2.9%)；-optimal3: 60 bytes (2.9%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 60 bytes (2.9%)；-lazy2: 60 bytes (2.9%)；-optimal: 60 bytes (2.9%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
@@ -64,9 +74,11 @@
        平行解碼後援 (單流輸入): ✓
 
 [結構化資料] 原始 41570 bytes
-       other3 壓縮: 6859 bytes (16.5%)
+       other3 壓縮: 6859 bytes (16.5%)；-optimal3: 3498 bytes (8.4%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 5232 bytes (12.6%)；-lazy2: 3546 bytes (8.5%)；-optimal: 3558 bytes (8.6%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
@@ -77,9 +89,11 @@
        平行解碼後援 (單流輸入): ✓
 
 [交錯距離 (rep-offset)] 原始 32804 bytes
-       other3 壓縮: 242 bytes (0.7%)
+       other3 壓縮: 242 bytes (0.7%)；-optimal3: 242 bytes (0.7%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 250 bytes (0.8%)；-lazy2: 250 bytes (0.8%)；-optimal: 250 bytes (0.8%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
@@ -90,9 +104,11 @@
        平行解碼後援 (單流輸入): ✓
 
 [文字大樣本 (多表 literal)] 原始 118598 bytes
-       other3 壓縮: 31666 bytes (26.7%)
+       other3 壓縮: 31666 bytes (26.7%)；-optimal3: 29046 bytes (24.5%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 31641 bytes (26.7%)；-lazy2: 30453 bytes (25.7%)；-optimal: 29053 bytes (24.5%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
@@ -103,9 +119,11 @@
        平行解碼後援 (單流輸入): ✓
 
 [Optimal 跨段 match 回歸] 原始 264192 bytes
-       other3 壓縮: 264204 bytes (100.0%)
+       other3 壓縮: 264204 bytes (100.0%)；-optimal3: 264204 bytes (100.0%)
        other3 自我往返: ✓
        other3 平行解碼: ✓
+       other3 -optimal3 自我往返: ✓
+       other3 -optimal3 平行解碼: ✓
        bvx3   壓縮: 262688 bytes (99.4%)；-lazy2: 264204 bytes (100.0%)；-optimal: 262692 bytes (99.4%)
        bvx3 -lazy2 自我往返: ✓
        bvx3 -lazy2 平行解碼: ✓
