@@ -36,6 +36,7 @@ BENCHMARK_LOG_DIR = Path("lz4bench_log")
 FORMATS = [
     ("TGZ", "tgz"),
     ("LZFSE (Other3)", "other3"),
+    ("LZFSE (Optimal3)", "optimal3"),
     ("LZFSE (Lazy2)", "lazy2"),
     ("LZFSE (Optimal)", "optimal"),
     ("LZFSE (BVX3)", "bvx3"),
@@ -47,6 +48,7 @@ FORMATS = [
 SIZE_SUFFIX = {
     "tgz": ".tgz",
     "other3": ".lzfse.other3",
+    "optimal3": ".lzfse.other3.optimal3",
     "lazy2": ".lzfse.bvx3.lazy2",
     "optimal": ".lzfse.bvx3.optimal",
     "bvx3": ".lzfse.bvx3",
@@ -209,6 +211,7 @@ def parse_benchmark(
     encode_patterns = {
         "tgz": rf"Process getar {re.escape(dataset)} took: (\d+)",
         "other3": rf"Process lzfseX {re.escape(dataset)} other3 took: (\d+)",
+        "optimal3": rf"Process lzfseX {re.escape(dataset)} optimal3 took: (\d+)",
         "lazy2": rf"Process lzfseX {re.escape(dataset)} lazy2 took: (\d+)",
         "optimal": rf"Process lzfseX {re.escape(dataset)} optimal took: (\d+)",
         "bvx3": rf"Process lzfseX {re.escape(dataset)} bvx3 took: (\d+)",
@@ -219,6 +222,7 @@ def parse_benchmark(
     decode_patterns = {
         "tgz": rf"Process extract {re.escape(dataset)}\.tgz took: (\d+)",
         "other3": rf"Process extract {re.escape(dataset)}\.lzfse\.other3 took: (\d+)",
+        "optimal3": rf"Process extract {re.escape(dataset)}\.lzfse\.other3\.optimal3 took: (\d+)",
         "lazy2": rf"Process extract {re.escape(dataset)}\.lzfse\.bvx3\.lazy2 took: (\d+)",
         "optimal": rf"Process extract {re.escape(dataset)}\.lzfse\.bvx3\.optimal took: (\d+)",
         "bvx3": rf"Process extract {re.escape(dataset)}\.lzfse\.bvx3 took: (\d+)",

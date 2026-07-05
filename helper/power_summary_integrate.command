@@ -26,6 +26,7 @@ best_points_md = Path(sys.argv[4])
 FORMAT_TO_ALGO = {
     "TGZ": "tgz",
     "LZFSE (Other3)": "other3",
+    "LZFSE (Optimal3)": "optimal3",
     "LZFSE (Lazy2)": "lazy2",
     "LZFSE (Optimal)": "optimal",
     "LZFSE (BVX3)": "bvx3",
@@ -37,6 +38,7 @@ FORMAT_TO_ALGO = {
 BEST_TO_BENCH_FORMAT = {
     "TGZ": "TGZ",
     "Other3": "LZFSE (Other3)",
+    "Optimal3": "LZFSE (Optimal3)",
     "Lazy2": "LZFSE (Lazy2)",
     "Optimal": "LZFSE (Optimal)",
     "BVX3": "LZFSE (BVX3)",

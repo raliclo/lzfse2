@@ -28,6 +28,7 @@ csv_out = Path(sys.argv[3])
 FORMATS = [
     "TGZ",
     "LZFSE (Other3)",
+    "LZFSE (Optimal3)",
     "LZFSE (BVX3)",
     "LZFSE (Lazy2)",
     "LZFSE (Optimal)",
@@ -39,6 +40,7 @@ FORMATS = [
 DISPLAY_NAME = {
     "TGZ": "TGZ",
     "LZFSE (Other3)": "Other3",
+    "LZFSE (Optimal3)": "Optimal3",
     "LZFSE (BVX3)": "BVX3",
     "LZFSE (Lazy2)": "Lazy2",
     "LZFSE (Optimal)": "Optimal",

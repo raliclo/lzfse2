@@ -26,6 +26,7 @@ set "_missing=0"
 for %%F in (
     "%_dataset%.tgz"
     "%_dataset%.lzfse.other3"
+    "%_dataset%.lzfse.other3.optimal3"
     "%_dataset%.lzfse.bvx3"
     "%_dataset%.lzfse.lazy2"
     "%_dataset%.lzfse.optimal"
@@ -68,6 +69,12 @@ call :appendFileSize "%_dataset%.lzfse.other3" "bench_logs\%_logprefix%-decodeOt
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] lzfse other3 decode %TIME:~0,8%
 
+echo [Info] Running lzfse other3_optimal3 decode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :decodeOptimal3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt" 2>&1
+call :appendFileSize "%_dataset%.lzfse.other3.optimal3" "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt"
+call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse other3_optimal3 decode %TIME:~0,8%
+
 echo [Info] Running lzfse bvx3 decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeBVX3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" 2>&1
 call :appendFileSize "%_dataset%.lzfse.bvx3" "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
@@ -106,6 +113,8 @@ echo [Info] Verifying decoded folders against TGZ output... %TIME:~0,8%
 call :verifyDecodedNonEmpty TGZ "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\tgz"
 call :verifyAgainstTgz "LZFSE Other3" "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\other3"
 if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\other3"
+call :verifyAgainstTgz "LZFSE Optimal3" "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\optimal3"
+if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\optimal3"
 call :verifyAgainstTgz "LZFSE BVX3" "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\bvx3"
 if not errorlevel 1 call :removeDecodedFolder "decoded\%_logprefix%\bvx3"
 call :verifyAgainstTgz "LZFSE Lazy2" "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt" "decoded\%_logprefix%\lazy2"
@@ -122,6 +131,7 @@ goto afterVerify
 echo [Info] Verifying decode correctness (tar tf check)... %TIME:~0,8%
 call :verifyStreamTgz
 call :verifyStreamOther3
+call :verifyStreamOptimal3
 call :verifyStreamBVX3
 call :verifyStreamLazy2
 call :verifyStreamOptimal
@@ -155,6 +165,17 @@ if "%_write%"=="1" (
     .\lzfse.exe -decode -i "%~1.lzfse.other3" -so -algo other3 %_n_opt% | tar xf - -C "decoded\%_logprefix%\other3" > nul
 ) else (
     .\lzfse.exe -decode -i "%~1.lzfse.other3" -so -algo other3 %_n_opt% > nul 2>&1
+)
+exit /b
+
+:decodeOptimal3
+set "_n_opt="
+if not "%~2"=="" set "_n_opt=-n %~2"
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\optimal3"
+    .\lzfse.exe -decode -i "%~1.lzfse.other3.optimal3" -so -algo other3 %_n_opt% | tar xf - -C "decoded\%_logprefix%\optimal3" > nul
+) else (
+    .\lzfse.exe -decode -i "%~1.lzfse.other3.optimal3" -so -algo other3 %_n_opt% > nul 2>&1
 )
 exit /b
 
@@ -219,6 +240,11 @@ exit /b
 if !ERRORLEVEL! == 0 ( echo [PASS] LZFSE Other3 & call :writeVerify "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] LZFSE Other3 & call :writeVerify "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt" FAIL )
 exit /b
 
+:verifyStreamOptimal3
+.\lzfse.exe -decode -i "%_dataset%.lzfse.other3.optimal3" -so -algo other3 | tar tf - > nul 2>&1
+if !ERRORLEVEL! == 0 ( echo [PASS] LZFSE Optimal3 & call :writeVerify "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] LZFSE Optimal3 & call :writeVerify "bench_logs\%_logprefix%-decodeOptimal3%_nsuffix%%_mode_suffix%-results.txt" FAIL )
+exit /b
+
 :verifyStreamBVX3
 .\lzfse.exe -decode -i "%_dataset%.lzfse.bvx3" -so -algo bvx3 | tar tf - > nul 2>&1
 if !ERRORLEVEL! == 0 ( echo [PASS] LZFSE BVX3 & call :writeVerify "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] LZFSE BVX3 & call :writeVerify "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" FAIL )
@@ -267,6 +293,7 @@ exit /b
 for %%F in (
     "%~1.tgz"
     "%~1.lzfse.other3"
+    "%~1.lzfse.other3.optimal3"
     "%~1.lzfse.bvx3"
     "%~1.lzfse.lazy2"
     "%~1.lzfse.optimal"

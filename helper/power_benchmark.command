@@ -236,6 +236,7 @@ runEncode() {
         zstd)     zstd -9 -T0 -q -f "$tar_input" -o "$out" ;;
         tar.lz4)  lz4 -T0 -6 -q -f "$tar_input" "$out" ;;
         other3)   ./lzfse -encode -si -o "$out" -algo other3 -n "$n" < "$tar_input" ;;
+        optimal3) ./lzfse -encode -si -o "$out" -algo other3 -optimal3 -n "$n" < "$tar_input" ;;
         apple)    ./lzfse -encode -si -o "$out" -algo apple -n "$n" < "$tar_input" ;;
         bvx3)     ./lzfse -encode -si -o "$out" -algo bvx3 -n "$n" < "$tar_input" ;;
         lazy2)    ./lzfse -encode -si -o "$out" -algo bvx3 -lazy2 -n "$n" < "$tar_input" ;;
@@ -250,7 +251,8 @@ runDecode() {
         tgz)      tar tzf "$input" >/dev/null ;;
         zstd)     zstd -d -q -f "$input" -o /dev/null ;;
         tar.lz4)  lz4 -d -q -f "$input" /dev/null ;;
-        other3)   ./lzfse -decode -i "$input" -o /dev/null -algo other3 -n "$n" ;;
+        other3|optimal3)
+                  ./lzfse -decode -i "$input" -o /dev/null -algo other3 -n "$n" ;;
         apple)    ./lzfse -decode -i "$input" -o /dev/null -algo apple -n "$n" ;;
         bvx3|lazy2|optimal)
                   ./lzfse -decode -i "$input" -o /dev/null -algo bvx3 -n "$n" ;;
@@ -278,7 +280,7 @@ fi
 typeset -a EXTERNAL_ALGOS
 EXTERNAL_ALGOS=(tgz zstd tar.lz4)
 typeset -a LZFSE_ALGOS
-LZFSE_ALGOS=(other3 apple bvx3 lazy2 optimal)
+LZFSE_ALGOS=(other3 optimal3 apple bvx3 lazy2 optimal)
 
 for dataset in claw-code llama.cpp; do
     if [[ ! -d "$dataset" ]]; then

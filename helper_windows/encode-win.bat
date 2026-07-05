@@ -45,6 +45,12 @@ call :appendFileSize "%_dataset%.lzfse.other3" "bench_logs\%_logprefix%-encodeOt
 call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeOther3%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] lzfse other3 encode %TIME:~0,8%
 
+echo [Info] Running lzfse other3_optimal3 encode benchmark... %TIME:~0,8%
+call :nanoTimeElapsed call :encodeOptimal3 "%_dataset%" "%~2" > ".\bench_logs\%_logprefix%-encodeOptimal3%_nsuffix%%_mode_suffix%-results.txt"
+call :appendFileSize "%_dataset%.lzfse.other3.optimal3" "bench_logs\%_logprefix%-encodeOptimal3%_nsuffix%%_mode_suffix%-results.txt"
+call :writeEncodeOutputMode "bench_logs\%_logprefix%-encodeOptimal3%_nsuffix%%_mode_suffix%-results.txt"
+echo [DONE] lzfse other3_optimal3 encode %TIME:~0,8%
+
 echo [Info] Running lzfse bvx3 encode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :encodeBVX3 "%_dataset%" "%~2" > ".\bench_logs\%_logprefix%-encodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
 call :appendFileSize "%_dataset%.lzfse.bvx3" "bench_logs\%_logprefix%-encodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
@@ -102,6 +108,17 @@ if "%_write%"=="1" (
     cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo other3 %_n_opt% -si -o "%~1.lzfse.other3"
 ) else (
     cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo other3 %_n_opt% -si -so > nul 2>&1
+)
+exit /b
+
+:encodeOptimal3
+set "_n_opt="
+if not "%~2"=="" set "_n_opt=-n %~2"
+call :setTarSource "%~1"
+if "%_write%"=="1" (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo other3 -optimal3 %_n_opt% -si -o "%~1.lzfse.other3.optimal3"
+) else (
+    cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | .\lzfse.exe -encode -algo other3 -optimal3 %_n_opt% -si -so > nul 2>&1
 )
 exit /b
 

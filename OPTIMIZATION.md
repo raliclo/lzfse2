@@ -170,6 +170,84 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R42-Mac：other3 -optimal3 DP 最優解析導入（2026-07-05）/ R42-Mac: other3 -optimal3 DP-Optimal Parsing
+
+> 新增 `lzParseOptimal2`：與 bvx3 的 `lzParseOptimal` 同一套分段 DP 最優解析機制（雜湊鏈 frontier、熵預篩、搜尋預算全部沿用同一組常數），但改接標準 LZFSE 的 L/M/D 符號表（`lBaseValue`/`mBaseValue`/`dBaseValue`，而非 bvx3 合併的 `lm3` 表）與較小上限（`maxLValue`/`maxMValue`/`maxDValue`），透過新旗標 `-optimal3` 接上 `-algo other3`。  
+> 輸出仍是標準 bvx2（經既有 `encodeBlock`），Apple 與任何相容解碼器可解——這是與 bvx3-optimal 最大的差異：bvx3-optimal 犧牲相容性換壓縮率，other3-optimal3 兩者兼得。  
+> 對 claw-code / llama.cpp 執行 `-n 40 / 8 / 4` 三批次完整 benchmark + tracer/CPU/power 全流程整合。
+
+## 優化策略 / Optimization Strategy
+
+| 項目 | 說明 |
+| --- | --- |
+| **核心變更** | 新增 `lzParseOptimal2`，DP 機制與 `lzParseOptimal` 相同，符號表與上限改用標準格式 |
+| **單一 rep（關鍵差異）** | 標準格式只有「與前一距離相同」單一折扣（`encodeBlock` 的 `dPrev`→`d=0` 轉換），非 bvx3 的 3 深度 rep-offset；DP 只需追蹤一個 `rep0`，省了 3 槽 MTF 邏輯 |
+| **M / D 符號表** | M 用獨立 `mBaseValue`/`mExtraBits`（20 符號），D 用 `dBaseValue`/`dExtraBits`（64 符號）——非 bvx3 合併的 `lm3`（22 符號）/ `d3`（80 符號）表 |
+| **L 定價** | 沿用攤提常數 `matchConst=80`（同 `lzParseOptimal` 量級近似，未來可依實測再調） |
+| **相容性** | 輸出走 `encodeBlock`（標準 bvx2），非 `encodeBlockV3`；Apple Compression framework 可直接解 |
+| **CLI** | `-optimal3`（僅 `-algo other3` 生效，其餘 algo 忽略並提示）；decode 端不需任何旗標，與一般 other3 相同 |
+
+## 驗證 / Verification
+
+- 內建 `-test` 全數通過（含跨段 match 回歸測試），新增 `other3 -optimal3 自我往返`、`平行解碼`、`→ Apple 解碼` 三項 check，皆為 output-identical 且 bitstream 可被 Apple `compression_decode_buffer` 正確解開。
+- 實機以 claw-code tar（約 460 MB）驗證：本工具解碼與 Apple 解碼皆與原始資料 `cmp` 完全一致。
+- 全 R42-Mac round（tracer、power benchmark、CPU call tree、`BenchMarkResult.csv` 重建、`best_points`、Win/Mac 比較報告、md-translate）跑畢，`TEST_OK`、`BENCH_DONE`，零失敗。
+
+## 1. 壓縮比與速度（n=40，兩資料集）/ Ratio & Speed (n=40, both datasets)
+
+| 資料集 | 格式 | 壓縮比 | Enc MB/s | Dec MB/s |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 47.56 | 392.56 |
+| claw-code | Other3 | 0.9865 | 339.49 | 402.20 |
+| claw-code | **Optimal3** | **0.9401** | **62.85** | **435.87** |
+| claw-code | BVX3（私有格式參考）| 0.9492 | 371.09 | 410.21 |
+| claw-code | BVX3-Optimal（私有格式參考）| 0.8574 | 33.73 | 377.00 |
+| llama.cpp | TGZ | 1.0000 | 39.63 | 88.65 |
+| llama.cpp | Other3 | 0.9957 | 87.49 | 80.41 |
+| llama.cpp | **Optimal3** | **0.9731** | **64.07** | **83.85** |
+| llama.cpp | BVX3（私有格式參考）| 0.9787 | 87.79 | 77.59 |
+| llama.cpp | BVX3-Optimal（私有格式參考）| 0.9387 | 48.01 | 76.76 |
+
+> **重點**：claw-code 上 Optimal3（0.9401）壓縮比已優於私有格式 BVX3（0.9492），代價是 encode 速度降至 Other3 的 ~18.5%（62.85 vs 339.49 MB/s）；decode 速度與 Other3 無異（同一 bvx2 解碼路徑）。llama.cpp（低重複率資料）改善幅度較小（0.9957→0.9731，約 -2.3%）。
+
+## 2. Peak RSS（Mac only, n=40）
+
+| 資料集 | 格式 | Encode RSS | Decode RSS |
+| --- | --- | ---: | ---: |
+| claw-code | Other3 | 228.9 MB | 299.3 MB |
+| claw-code | **Optimal3** | **550.8 MB** | **316.4 MB** |
+| llama.cpp | Other3 | 354.5 MB | 349.0 MB |
+| llama.cpp | **Optimal3** | **821.7 MB** | **350.9 MB** |
+
+> Optimal3 的 encode RSS 較 Other3 高約 2.3–2.4×，來自分段 DP 的 cell 陣列與 frontier 暫存區（與 bvx3-optimal 的記憶體特性一致）；decode RSS 與 Other3 相同（解碼邏輯完全共用）。
+
+## 3. CPU Energy（Mac only, n=40）
+
+| 資料集 | 格式 | Enc J | Enc J/TGZ |
+| --- | --- | ---: | ---: |
+| claw-code | Other3 | 28.16 | 0.1789 |
+| claw-code | **Optimal3** | **370.85** | **2.3557** |
+| llama.cpp | Other3 | 18.38 | 0.1104 |
+| llama.cpp | **Optimal3** | **289.48** | **1.7384** |
+
+> 能耗隨速度等比例上升（DP 為 CPU-bound），與 bvx3-optimal 的能耗量級相近（同屬「壓縮率優先、速度/能耗次之」的策略）。Decode energy n=40 取樣覆蓋率不足，不列入本輪比較。
+
+## 4. Best Points（Optimal3, all n）
+
+| 資料集 | 最佳壓縮比 | 最佳 Enc MB/s | 最佳 Dec MB/s | 最低 Enc RSS | 最高 Enc RSS | 最低 Enc J | 最高 Enc J |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.9401 (`n4`) | 62.85 (`n40`) | 440.72 (`n8`) | 190.0 MB (`n4`) | 550.8 MB (`n40`) | 370.85 (`n40`) | 533.01 (`n4`) |
+| llama.cpp | 0.9731 (`n4`) | 64.07 (`n40`) | 83.85 (`n40`) | 221.7 MB (`n4`) | 821.7 MB (`n40`) | 289.48 (`n40`) | 419.46 (`n4`) |
+
+> 壓縮比在各 n 皆不受影響（DP 解析與分塊平行度無關），最佳值出現於 `n4`；速度/RSS/能耗隨 `-n`（平行度）上升而變差，與 Other3/Lazy2/Optimal 的既有規律一致（更高平行度 = 更多同時存活的編碼上下文）。
+
+## 待辦 / Next Steps
+
+- Windows 測試腳本（`helper_windows/encode-win.bat` 等）已同步支援 `-optimal3`，但本輪尚未在 Windows 執行；Win/Mac 比較報告目前顯示 `LZFSE (Optimal3)` 為 `Windows result missing`，待下次 Windows round 補齊。
+- `matchConst`（L 符號攤提常數）沿用 bvx3-optimal 的近似值，尚未針對標準格式的較小 L/M 上限個別調參，未來輪次可视 claw-code/llama.cpp 的實測比率再收斂。
+
+---
+
 # Pre-R42：LZFSE_Win_UI — Windows 圖形介面與打包工具鏈（2026-06-27）/ Pre-R42: LZFSE_Win_UI — Windows GUI & Packaging Toolchain
 
 > 基礎建設輪（非演算法優化）：為 lzfse 加上 Windows GUI 前端與自包含打包流程。

@@ -186,7 +186,8 @@ function Measure-ProcessToTarRSS([string]$toolPath, [string]$toolArgs, [string]$
 }
 
 $formats = @(
-    @{ name = 'Other3';  enc = '-algo other3';       dec = '-algo other3';        ext = 'lzfse.other3'  },
+    @{ name = 'Other3';   enc = '-algo other3';          dec = '-algo other3';  ext = 'lzfse.other3'          },
+    @{ name = 'Optimal3'; enc = '-algo other3 -optimal3'; dec = '-algo other3';  ext = 'lzfse.other3.optimal3' },
     @{ name = 'BVX3';    enc = '-algo bvx3';         dec = '-algo bvx3';          ext = 'lzfse.bvx3'    },
     @{ name = 'Lazy2';   enc = '-algo bvx3 -lazy2';  dec = '-algo bvx3 -lazy2';   ext = 'lzfse.lazy2'   },
     @{ name = 'Optimal'; enc = '-algo bvx3 -optimal';dec = '-algo bvx3 -optimal'; ext = 'lzfse.optimal' }

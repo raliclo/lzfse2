@@ -1558,6 +1558,493 @@ public enum LZFSEv1 {
     }
 
     // =================================================================
+    // MARK: - Optimal parsing v2（other3 -optimal3；標準 L/M/D 表 + 單一 rep）
+    // =================================================================
+    //
+    // 與上方 lzParseOptimal（bvx3 專用）同一套分段 DP 機制（段大小、雜湊鏈
+    // frontier、熵預篩、搜尋預算全部沿用同一組常數——這些是 DP 機制本身的
+    // 調參，與字母表大小無關），但改接標準 LZFSE 的 L/M/D 符號表與較小上限，
+    // 輸出仍是標準 bvx2（經 encodeBlock），Apple 與任何相容解碼器可解。
+    //
+    // 與 bvx3 版本的關鍵差異：
+    //   - 標準格式只有「與前一個距離相同」單一 rep 折扣（encodeBlock 的
+    //     dPrev → d=0 轉換），不是 bvx3 的 3 深度 rep-offset；DP 因此只需
+    //     追蹤一個 rep0（= 上一步實際採用的距離），省了 3 槽 MTF 的邏輯。
+    //   - M 用獨立的 mBaseValue/mExtraBits（20 符號），D 用
+    //     dBaseValue/dExtraBits（64 符號）——非 bvx3 合併的 lm3 表。
+    //   - maxL/maxM/maxDist 預設為 maxLValue/maxMValue/maxDValue
+    //     （標準格式上限，遠小於 bvx3 的 maxL3/maxM3/maxD3）。
+    // =================================================================
+
+    static func lzParseOptimal2(_ input: [UInt8],
+                                maxL: Int = maxLValue, maxM: Int = maxMValue,
+                                maxDist: Int = maxDValue) -> (triplets: [Triplet], literals: [UInt8]) {
+        var triplets: [Triplet] = []
+        var literals: [UInt8] = []
+        let n = input.count
+        triplets.reserveCapacity(n >> 5 + 8)
+        literals.reserveCapacity(n >> 1 + 8)
+
+        func pushRun(l: Int, m: Int, d: Int) {
+            var L = l
+            while L > maxL {
+                triplets.append(Triplet(l: Int32(maxL), m: 0, d: 1))
+                L -= maxL
+            }
+            var M = m
+            if M > 0 {
+                while M > maxM {
+                    triplets.append(Triplet(l: Int32(L), m: Int32(maxM), d: Int32(d)))
+                    L = 0; M -= maxM
+                }
+                triplets.append(Triplet(l: Int32(L), m: Int32(M), d: Int32(d)))
+            } else if L > 0 {
+                triplets.append(Triplet(l: Int32(L), m: 0, d: 1))
+            }
+        }
+
+        guard n > 8 else {
+            literals = input
+            pushRun(l: n, m: 0, d: 1)
+            return (triplets, literals)
+        }
+        assert(n <= Int(LZFSEv1.chainIndexMask), "chunk too large for tag-packed chain")
+
+        let scratch = acquireScratch(n)
+        let head = scratch.head
+        let chain = scratch.chain
+        defer { releaseScratch(scratch) }
+
+        let segCap = optSegmentSize
+        let INF: Int32 = .max / 4
+        let cPrice = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
+        let cLen   = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
+        let cDist  = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
+        let cR0    = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
+        cPrice.initialize(repeating: INF, count: segCap + 1)
+        cLen.initialize(repeating: 0, count: segCap + 1)
+        cDist.initialize(repeating: 0, count: segCap + 1)
+        cR0.initialize(repeating: 0, count: segCap + 1)
+        defer {
+            cPrice.deallocate(); cLen.deallocate(); cDist.deallocate(); cR0.deallocate()
+        }
+        let stepLen  = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
+        let stepDist = UnsafeMutablePointer<Int32>.allocate(capacity: segCap + 1)
+        let frCap = optSearchDepth + 1
+        let frLen   = UnsafeMutablePointer<Int32>.allocate(capacity: frCap)
+        let frDist  = UnsafeMutablePointer<Int32>.allocate(capacity: frCap)
+        let frPrice = UnsafeMutablePointer<Int32>.allocate(capacity: frCap)
+        let frMin   = UnsafeMutablePointer<Int32>.allocate(capacity: frCap)
+        defer {
+            stepLen.deallocate(); stepDist.deallocate()
+            frLen.deallocate(); frDist.deallocate(); frPrice.deallocate(); frMin.deallocate()
+        }
+
+        // ---- 自適應價格模型（標準 M/D 表；L 走攤提常數，同 lzParseOptimal）----
+        var litCount  = [UInt32](repeating: 1, count: 256)
+        var mSymCount = [UInt32](repeating: 1, count: mSymbols)
+        var dSymCount = [UInt32](repeating: 1, count: dSymbols)
+        dSymCount[0] = 4   // 溫和偏好「與前一距離相同」（標準格式唯一的 rep 折扣）
+        for b in input { litCount[Int(b)] &+= 1 }
+        let litPrice  = UnsafeMutablePointer<Int32>.allocate(capacity: 256)
+        let mPriceTab = UnsafeMutablePointer<Int32>.allocate(capacity: mSymbols)
+        let dPriceTab = UnsafeMutablePointer<Int32>.allocate(capacity: dSymbols)
+        let mBaseP    = UnsafeMutablePointer<Int32>.allocate(capacity: mSymbols)
+        litPrice.initialize(repeating: 96, count: 256)
+        mPriceTab.initialize(repeating: 96, count: mSymbols)
+        dPriceTab.initialize(repeating: 96, count: dSymbols)
+        for s in 0..<mSymbols { mBaseP[s] = mBaseValue[s] }
+        defer {
+            litPrice.deallocate(); mPriceTab.deallocate()
+            dPriceTab.deallocate(); mBaseP.deallocate()
+        }
+        let matchConst: Int32 = 80   // L 符號 + 狀態位元的攤提常數（量級同 lzParseOptimal）
+
+        func rebuildPrices() {
+            var tot = 0.0
+            for c in litCount { tot += Double(c) }
+            for b in 0..<256 {
+                let bits = log2(tot / Double(litCount[b]))
+                litPrice[b] = Int32(max(16.0, min(240.0, (bits * 16).rounded())))
+            }
+            tot = 0; for c in mSymCount { tot += Double(c) }
+            for s in 0..<mSymbols {
+                let bits = log2(tot / Double(mSymCount[s]))
+                mPriceTab[s] = Int32(max(16.0, min(384.0, (bits * 16).rounded())))
+                             + 16 * Int32(mExtraBits[s])
+            }
+            tot = 0; for c in dSymCount { tot += Double(c) }
+            for s in 0..<dSymbols {
+                let bits = log2(tot / Double(dSymCount[s]))
+                dPriceTab[s] = Int32(max(16.0, min(384.0, (bits * 16).rounded())))
+                             + 16 * Int32(dExtraBits[s])
+            }
+        }
+
+        // 已提交路徑的 rep 狀態：單一「上一步實際距離」（非 bvx3 的 3 槽 MTF）
+        var rep0 = 0
+        var litStart = 0
+        var segStart = 0
+
+        input.withUnsafeBufferPointer { buf in
+            let p = buf.baseAddress!
+
+            @inline(__always) func load32(_ idx: Int) -> UInt32 {
+                var v: UInt32 = 0; memcpy(&v, p + idx, 4); return UInt32(littleEndian: v)
+            }
+            @inline(__always) func load64(_ idx: Int) -> UInt64 {
+                var v: UInt64 = 0; memcpy(&v, p + idx, 8); return UInt64(littleEndian: v)
+            }
+            @inline(__always) func hashAndTag(_ idx: Int) -> (h: Int, tag: UInt32) {
+                let v = UInt64(load32(idx)) | (UInt64(p[idx + 4]) << 32)
+                let prod = v &* 0x9E3779B185EBCA87
+                let h = Int(prod >> (64 - LZFSEv1.chainHashBits))
+                let tag = UInt32(truncatingIfNeeded: prod >> (64 - LZFSEv1.chainHashBits - 8)) & 0xFF
+                return (h, tag)
+            }
+            @inline(__always) func matchLength(_ a: Int, _ b: Int, limit: Int) -> Int {
+                var m = 0
+                while m + 8 <= limit {
+                    let x = load64(a + m) ^ load64(b + m)
+                    if x != 0 { return m + (x.trailingZeroBitCount >> 3) }
+                    m += 8
+                }
+                while m < limit && p[a + m] == p[b + m] { m += 1 }
+                return m
+            }
+            @inline(__always) func insert(_ idx: Int) {
+                let (h, tag) = hashAndTag(idx)
+                chain[idx] = head[h]
+                head[h] = Int32(bitPattern: (tag << LZFSEv1.chainTagShift) | UInt32(idx))
+            }
+            @inline(__always) func dSym(_ d: Int) -> Int {
+                symbol(forValue: Int32(d), base: dBaseValue)
+            }
+
+            /// 發射一段已回溯的最佳路徑（單一 rep：使用過的距離直接成為新 rep0）
+            func emitSteps(_ count: Int, from start: Int) -> Int {
+                var i = start
+                var k = count - 1
+                while k >= 0 {
+                    let sl = Int(stepLen[k])
+                    if sl == 0 {
+                        i += 1
+                    } else {
+                        let sd = Int(stepDist[k])
+                        literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                        count: i - litStart))
+                        var j = litStart
+                        while j < i { litCount[Int(p[j])] &+= 1; j += 1 }
+                        pushRun(l: i - litStart, m: sl, d: sd)
+                        mSymCount[symbol(forValue: Int32(min(sl, maxM)), base: mBaseValue)] &+= 1
+                        if sd == rep0 { dSymCount[0] &+= 1 }
+                        else { dSymCount[dSym(sd)] &+= 1 }
+                        rep0 = sd
+                        i += sl
+                        litStart = i
+                    }
+                    k -= 1
+                }
+                return i
+            }
+
+            /// 預篩段的單一 match 發射：等同 emitSteps 對一個 match 步的處理
+            func emitGreedy(at i: Int, len: Int, dist: Int) {
+                literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                count: i - litStart))
+                var j = litStart
+                while j < i { litCount[Int(p[j])] &+= 1; j += 1 }
+                pushRun(l: i - litStart, m: len, d: dist)
+                mSymCount[symbol(forValue: Int32(min(len, maxM)), base: mBaseValue)] &+= 1
+                if dist == rep0 { dSymCount[0] &+= 1 }
+                else { dSymCount[dSym(dist)] &+= 1 }
+                rep0 = dist
+                litStart = i + len
+            }
+
+            while segStart < n {
+                rebuildPrices()
+                let segEnd = min(segStart + segCap, n)
+                let segLen = segEnd - segStart
+
+                // 熵預篩（同 lzParseOptimal）：低重複段直接 greedy、不啟動 DP
+                if segLen >= 4096 {
+                    var covered = 0
+                    var probe = segStart
+                    let probeEnd = segEnd - 4
+                    var localHead = [Int32](repeating: -1, count: 1 << 14)
+                    while probe <= probeEnd {
+                        let hv = Int((load32(probe) &* 2654435761) >> (32 - 14))
+                        let c = Int(localHead[hv]); localHead[hv] = Int32(probe)
+                        if c >= 0, load32(c) == load32(probe) {
+                            let l = 4 + matchLength(c + 4, probe + 4, limit: segEnd - probe - 4)
+                            covered += l
+                            probe += l
+                        } else {
+                            probe += 1
+                        }
+                    }
+                    let coverage = covered * 100 / segLen
+                    if coverage < optPrescreenMinCoverage {
+                        var i = segStart
+                        while i + 4 <= segEnd {
+                            let (gh, _) = hashAndTag(min(i, n - 5))
+                            let cand = Int(UInt32(bitPattern: head[gh]) & LZFSEv1.chainIndexMask)
+                            insert(i)
+                            var bl = 0, bd = 0
+                            if rep0 > 0, rep0 <= i, load32(i - rep0) == load32(i) {
+                                let l = 4 + matchLength(i - rep0 + 4, i + 4, limit: segEnd - i - 4)
+                                if l >= 4 { bl = l; bd = rep0 }
+                            }
+                            if bl < 4, cand != LZFSEv1.chainNullIndex, i - cand <= maxDist, load32(cand) == load32(i) {
+                                let l = 4 + matchLength(cand + 4, i + 4, limit: segEnd - i - 4)
+                                if l >= 4 { bl = l; bd = i - cand }
+                            }
+                            if bl >= 4 {
+                                emitGreedy(at: i, len: bl, dist: bd)
+                                let end = i + bl
+                                i += 1
+                                while i < min(end, n - 4) { insert(i); i += 1 }
+                                i = end
+                            } else {
+                                i += 1
+                            }
+                        }
+                        if segEnd == n && litStart < n {
+                            literals.append(contentsOf:
+                                UnsafeBufferPointer(start: p + litStart, count: n - litStart))
+                            var j = litStart; while j < n { litCount[Int(p[j])] &+= 1; j += 1 }
+                            pushRun(l: n - litStart, m: 0, d: 1)
+                            litStart = n
+                        }
+                        segStart = segEnd
+                        continue
+                    }
+                }
+
+                cPrice.update(repeating: INF, count: segLen + 1)
+                cPrice[0] = 0
+                cR0[0] = Int32(rep0)
+
+                var cutT = -1, cutLen = 0, cutDist = 0
+                var barren = 0
+                var searchBudget = segLen * optBudgetMultiplier
+                var budgetExhausted = false
+                var t = 0
+                posLoop: while t < segLen {
+                    let i = segStart + t
+                    let base = cPrice[t]
+                    let r0 = cR0[t]
+                    // ── literal 步 ──
+                    let litStep = base + litPrice[Int(p[i])]
+                    if litStep < cPrice[t + 1] {
+                        cPrice[t + 1] = litStep; cLen[t + 1] = 0; cDist[t + 1] = 0
+                        cR0[t + 1] = r0
+                    }
+                    if i + 5 > n { t += 1; continue }
+                    let (qi, qtag) = hashAndTag(i)
+                    let candPacked = UInt32(bitPattern: head[qi])
+                    insert(i)
+                    let v = load32(i)
+                    let cap = segEnd - i
+                    // ── ① rep 候選（單一 rep；含巨型 match 提交檢查）──
+                    var bestRep = 0
+                    let rd = Int(r0)
+                    if rd > 0, rd <= i, load32(i - rd) == v {
+                        let l = 4 + matchLength(i - rd + 4, i + 4, limit: n - i - 4)
+                        bestRep = l
+                        if l >= optSufficientLen {
+                            cutT = t; cutLen = min(l, n - i); cutDist = rd
+                            break posLoop
+                        }
+                        let dpr = dPriceTab[0]
+                        var msym = 4
+                        var ll = 4
+                        let lim = min(l, cap)
+                        while ll <= lim {
+                            while msym + 1 < mSymbols && Int32(ll) >= mBaseP[msym + 1] {
+                                msym += 1
+                            }
+                            let c2 = base + matchConst + mPriceTab[msym] + dpr
+                            if ll < optDenseLen {
+                                let bEnd = msym + 1 < mSymbols
+                                    ? min(lim, Int(mBaseP[msym + 1]) - 1) : lim
+                                let dEnd = min(bEnd, optDenseLen - 1)
+                                let c2v = SIMD4<Int32>(repeating: c2)
+                                while ll + 3 <= dEnd {
+                                    let old = UnsafeRawPointer(cPrice + t + ll)
+                                        .loadUnaligned(as: SIMD4<Int32>.self)
+                                    if any(c2v .< old) {
+                                        for q in ll...(ll + 3) where c2 < cPrice[t + q] {
+                                            cPrice[t + q] = c2; cLen[t + q] = Int32(q)
+                                            cDist[t + q] = r0
+                                            cR0[t + q] = r0
+                                        }
+                                    }
+                                    ll += 4
+                                }
+                                while ll <= dEnd {
+                                    let dest = t + ll
+                                    if c2 < cPrice[dest] {
+                                        cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r0
+                                        cR0[dest] = r0
+                                    }
+                                    ll += 1
+                                }
+                                if ll > lim { break }
+                                continue
+                            }
+                            let dest = t + ll
+                            if c2 < cPrice[dest] {
+                                cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = r0
+                                cR0[dest] = r0
+                            }
+                            if ll == lim { break }
+                            ll = min(ll + (ll < optHugeLen ? 4 : 16), lim)
+                        }
+                    }
+                    // ── ② 雜湊鏈 Pareto frontier（len 遞增；排除已由 rep 候選涵蓋的距離）──
+                    if bestRep < optSufficientLen {
+                        var frCount = 0
+                        var bl = max(3, bestRep)
+                        var packed = candPacked
+                        var depth = barren >= optBarrenStreak ? optBarrenDepth : optSearchDepth
+                        if bestRep >= optRepStrongLen { depth = min(depth, optBarrenDepth) }
+                        if budgetExhausted { depth = max(optBarrenDepth, depth >> 1) }
+                        let depth0 = depth
+                        while depth > 0 {
+                            let c = Int(packed & LZFSEv1.chainIndexMask)
+                            if c == LZFSEv1.chainNullIndex { break }
+                            if c >= i { break }
+                            let dd = i - c
+                            if dd > maxDist { break }
+                            if (packed >> LZFSEv1.chainTagShift) == qtag,
+                               Int32(dd) != r0,
+                               (i + bl >= n || p[c + bl] == p[i + bl]),
+                               load32(c) == v {
+                                let l = 4 + matchLength(c + 4, i + 4, limit: n - i - 4)
+                                if l > bl {
+                                    bl = l
+                                    frLen[frCount] = Int32(l)
+                                    frDist[frCount] = Int32(dd)
+                                    frPrice[frCount] = dPriceTab[dSym(dd)]
+                                    frCount += 1
+                                    if l >= optSufficientLen { break }
+                                }
+                            }
+                            packed = UInt32(bitPattern: chain[c])
+                            depth -= 1
+                        }
+                        searchBudget -= (depth0 - depth)
+                        if searchBudget <= 0 { budgetExhausted = true }
+                        if frCount > 0 {
+                            if Int(frLen[frCount - 1]) >= optSufficientLen {
+                                cutT = t
+                                cutLen = min(Int(frLen[frCount - 1]), n - i)
+                                cutDist = Int(frDist[frCount - 1])
+                                break posLoop
+                            }
+                            frMin[frCount - 1] = Int32(frCount - 1)
+                            var k = frCount - 2
+                            while k >= 0 {
+                                frMin[k] = frPrice[k] <= frPrice[Int(frMin[k + 1])]
+                                         ? Int32(k) : frMin[k + 1]
+                                k -= 1
+                            }
+                            let maxLen = min(Int(frLen[frCount - 1]), cap)
+                            var fk = 0
+                            var msym = 4
+                            var ll = 4
+                            while ll <= maxLen {
+                                while Int(frLen[fk]) < ll { fk += 1 }
+                                let e = Int(frMin[fk])
+                                while msym + 1 < mSymbols && Int32(ll) >= mBaseP[msym + 1] {
+                                    msym += 1
+                                }
+                                let c2 = base + matchConst + mPriceTab[msym] + frPrice[e]
+                                if ll < optDenseLen {
+                                    let bEnd = msym + 1 < mSymbols
+                                        ? min(maxLen, Int(mBaseP[msym + 1]) - 1) : maxLen
+                                    let dEnd = min(bEnd, Int(frLen[fk]), optDenseLen - 1)
+                                    let dd = frDist[e]
+                                    let c2v = SIMD4<Int32>(repeating: c2)
+                                    while ll + 3 <= dEnd {
+                                        let old = UnsafeRawPointer(cPrice + t + ll)
+                                            .loadUnaligned(as: SIMD4<Int32>.self)
+                                        if any(c2v .< old) {
+                                            for q in ll...(ll + 3) where c2 < cPrice[t + q] {
+                                                cPrice[t + q] = c2; cLen[t + q] = Int32(q)
+                                                cDist[t + q] = dd
+                                                cR0[t + q] = dd
+                                            }
+                                        }
+                                        ll += 4
+                                    }
+                                    while ll <= dEnd {
+                                        let dest = t + ll
+                                        if c2 < cPrice[dest] {
+                                            cPrice[dest] = c2; cLen[dest] = Int32(ll)
+                                            cDist[dest] = dd
+                                            cR0[dest] = dd
+                                        }
+                                        ll += 1
+                                    }
+                                    if ll > maxLen { break }
+                                    continue
+                                }
+                                let dest = t + ll
+                                if c2 < cPrice[dest] {
+                                    let dd = frDist[e]
+                                    cPrice[dest] = c2; cLen[dest] = Int32(ll); cDist[dest] = dd
+                                    cR0[dest] = dd
+                                }
+                                if ll == maxLen { break }
+                                ll = min(ll + (ll < optHugeLen ? 4 : 16), maxLen)
+                            }
+                        }
+                        if frCount == 0 && bestRep < 4 { barren += 1 } else { barren = 0 }
+                    } else {
+                        barren = 0
+                    }
+                    t += 1
+                }
+
+                // ── 回溯（cell 抵達步驟反向收集）與發射 ──
+                let endT = cutT >= 0 ? cutT : segLen
+                var sc = 0
+                var tt = endT
+                while tt > 0 {
+                    let sl = cLen[tt]
+                    if sl == 0 { stepLen[sc] = 0; stepDist[sc] = 0; tt -= 1 }
+                    else { stepLen[sc] = sl; stepDist[sc] = cDist[tt]; tt -= Int(sl) }
+                    sc += 1
+                }
+                var i = emitSteps(sc, from: segStart)
+                if cutT >= 0 {
+                    stepLen[0] = Int32(cutLen); stepDist[0] = Int32(cutDist)
+                    i = emitSteps(1, from: i)
+                    var j = segStart + cutT + 1
+                    let jEnd = min(i, n - 4)
+                    while j < jEnd { insert(j); j += 1 }
+                    segStart = i
+                } else {
+                    segStart = segEnd
+                }
+            }
+
+            // 尾端 literal
+            if litStart < n {
+                literals.append(contentsOf: UnsafeBufferPointer(start: p + litStart,
+                                                                count: n - litStart))
+            }
+        }
+        if litStart < n {
+            pushRun(l: n - litStart, m: 0, d: 1)
+        }
+        return (triplets, literals)
+    }
+
+    // =================================================================
     // MARK: - 小端序讀寫工具
     // =================================================================
 
@@ -2086,7 +2573,7 @@ public enum LZFSEv1 {
     /// （每個分塊獨立壓縮，match 距離不跨分塊，解碼器的輸出歷史是連續的所以相容）。
     public static func compressBody(_ input: Data, strong: Bool = false,
                                     bvx3: Bool = false, lazy2: Bool = false,
-                                    optimal: Bool = false) -> Data {
+                                    optimal: Bool = false, optimal3: Bool = false) -> Data {
         let bytes = [UInt8](input)
         var out: [UInt8] = []
         guard !bytes.isEmpty else { return Data() }
@@ -2102,13 +2589,17 @@ public enum LZFSEv1 {
 
         // bvx3 預設走 4 槽 lazy 解析器（速度優先）；
         // -lazy2 開雜湊鏈深搜；-optimal 開分段 DP 最優解析（比率優先）
+        // other3 預設走強化 lazy 解析器；-optimal3 開分段 DP 最優解析
+        // （標準 L/M/D 表 + 單一 rep；輸出仍是標準 bvx2，Apple 可解）
         let (triplets, literals) = bvx3
             ? (optimal
                 ? lzParseOptimal(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2)
                 : (lazy2
                     ? lzParseChain(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2)
                     : lzParseStrong(bytes, maxL: maxL3, maxM: maxM3, maxDist: maxD3 - 2)))
-            : (strong ? lzParseStrong(bytes) : lzParse(bytes))
+            : (optimal3
+                ? lzParseOptimal2(bytes)
+                : (strong ? lzParseStrong(bytes) : lzParse(bytes)))
 
         // 依每區塊上限切分（留 5 個 match、最大 L 的安全邊界）
         var tStart = 0
@@ -3212,14 +3703,14 @@ func runLZFSEv1Tests() {
     /// 模擬 other3/bvx3 的輸出：分塊獨立壓縮（compressBody）串接 + 單一 bvx$
     func chunkedCompress(_ data: Data, chunkSize: Int,
                          strong: Bool = true, bvx3: Bool = false, lazy2: Bool = false,
-                         optimal: Bool = false) -> Data {
+                         optimal: Bool = false, optimal3: Bool = false) -> Data {
         var out = Data()
         var p = 0
         while p < data.count {
             let end = min(p + chunkSize, data.count)
             out.append(LZFSEv1.compressBody(data.subdata(in: p..<end),
                                             strong: strong, bvx3: bvx3, lazy2: lazy2,
-                                            optimal: optimal))
+                                            optimal: optimal, optimal3: optimal3))
             p = end
         }
         out.append(Data([0x62, 0x76, 0x78, 0x24])) // bvx$
@@ -3241,14 +3732,18 @@ func runLZFSEv1Tests() {
         // ---- 引擎層單流（後援路徑用，仍為標準 bvx2）----
         let packed = LZFSEv1.compress(data, strong: true)
 
-        // ---- -algo other3：標準 bvx2、分塊平行 ----
+        // ---- -algo other3：標準 bvx2、分塊平行（含 -optimal3 DP 最優解析）----
         if data.count > 0 {
             let o3 = chunkedCompress(data, chunkSize: cs)
-            print("       other3 壓縮: \(o3.count) bytes (\(pct(o3.count)))")
+            let o3o = chunkedCompress(data, chunkSize: cs, optimal3: true)
+            print("       other3 壓縮: \(o3.count) bytes (\(pct(o3.count)))；-optimal3: \(o3o.count) bytes (\(pct(o3o.count)))")
             check("other3 自我往返", LZFSEv1.decompress(o3) == data)
             check("other3 平行解碼", LZFSEv1.parallelDecompress(o3, chunkRaw: cs) == data)
+            check("other3 -optimal3 自我往返", LZFSEv1.decompress(o3o) == data)
+            check("other3 -optimal3 平行解碼", LZFSEv1.parallelDecompress(o3o, chunkRaw: cs) == data)
             #if canImport(Compression)
             check("other3 → Apple 解碼", appleDecompress(o3, expected: data.count) == data)
+            check("other3 -optimal3 → Apple 解碼", appleDecompress(o3o, expected: data.count) == data)
             #endif
         }
 
@@ -3366,7 +3861,7 @@ func eprint(_ message: String) {
 
 func printUsage() {
     print("""
-    Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal] [-si|-i input] [-so|-o output] [-test] [-h]
+    Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal|-optimal3] [-si|-i input] [-so|-o output] [-test] [-h]
 
     Commands:
       -encode       : Compress the input / 壓縮輸入內容
@@ -3392,6 +3887,12 @@ func printUsage() {
                       style segmented DP); best ratio, slowest; supersedes -lazy2
                       （僅 bvx3）價格驅動最優解析（分段 DP + rep 感知定價），
                       壓縮率最高、速度最慢；與 -lazy2 同時給時以 -optimal 為準
+      -optimal3     : (other3 only) Price-driven optimal parsing (same DP
+                      engine as -optimal, standard L/M/D tables, single rep);
+                      output stays standard bvx2, Apple-decodable
+                      （僅 other3）價格驅動最優解析（同 -optimal 的 DP 引擎，
+                      改用標準 L/M/D 表與單一 rep）；輸出仍是標準 bvx2，
+                      Apple 可解
       -test         : Run built-in round-trip & compatibility tests / 執行內建測試
       -h            : Show this help / 顯示說明
 
@@ -3435,7 +3936,7 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
                        inflight: Int,
                        chunkSize: Int = LZFSEv1.parallelChunkSize,
                        strong: Bool = false, bvx3: Bool = false, lazy2: Bool = false,
-                       optimal: Bool = false) throws {
+                       optimal: Bool = false, optimal3: Bool = false) throws {
     let maxTasks = max(2, inflight)
     let sem = DispatchSemaphore(value: maxTasks)
     let lock = NSLock()
@@ -3472,7 +3973,7 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
         group.enter()
         queue.async {
             let body = LZFSEv1.compressBody(capturedData, strong: strong, bvx3: bvx3,
-                                            lazy2: lazy2, optimal: optimal)
+                                            lazy2: lazy2, optimal: optimal, optimal3: optimal3)
             lock.lock()
             state.results[idx] = body
             while let r = state.results.removeValue(forKey: state.writeIndex) {
@@ -3544,6 +4045,12 @@ if useOptimal && algo != .bvx3 {
 }
 if useOptimal && useLazy2 {
     eprint("Note: -optimal supersedes -lazy2. / 提示：-optimal 優先於 -lazy2。")
+}
+
+// -optimal3：other3 的分段 DP 最優解析開關（預設關閉）
+let useOptimal3 = args.contains("-optimal3")
+if useOptimal3 && algo != .other3 {
+    eprint("Note: -optimal3 only affects -algo other3; ignored. / 提示：-optimal3 僅對 other3 生效，已忽略。")
 }
 
 #if !canImport(Compression)
@@ -3653,7 +4160,8 @@ case .other3, .bvx3:
                                   inflight: inflightN,
                                   strong: true, bvx3: algo == .bvx3,
                                   lazy2: algo == .bvx3 && useLazy2 && !useOptimal,
-                                  optimal: algo == .bvx3 && useOptimal)
+                                  optimal: algo == .bvx3 && useOptimal,
+                                  optimal3: algo == .other3 && useOptimal3)
         } catch {
             eprint("Error: Encode failed. / 錯誤：編碼失敗。")
             exit(1)

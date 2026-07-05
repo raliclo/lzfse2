@@ -18,6 +18,7 @@ from pathlib import Path
 FORMATS = {
     "encodeTgz": "TGZ",
     "encodeOther3": "LZFSE (Other3)",
+    "encodeOptimal3": "LZFSE (Optimal3)",
     "encodeBVX3": "LZFSE (BVX3)",
     "encodeLazy2": "LZFSE (Lazy2)",
     "encodeOptimal": "LZFSE (Optimal)",
@@ -29,6 +30,7 @@ FORMAT_ORDER = {name: i for i, name in enumerate(FORMATS)}
 DECODE_FORMATS = {
     "decodeTgz": "TGZ",
     "decodeOther3": "LZFSE (Other3)",
+    "decodeOptimal3": "LZFSE (Optimal3)",
     "decodeBVX3": "LZFSE (BVX3)",
     "decodeLazy2": "LZFSE (Lazy2)",
     "decodeOptimal": "LZFSE (Optimal)",
@@ -40,6 +42,7 @@ DECODE_FORMAT_ORDER = {name: i for i, name in enumerate(DECODE_FORMATS)}
 BENCHMARK_RESULT_ORDER = [
     "TGZ",
     "LZFSE (Other3)",
+    "LZFSE (Optimal3)",
     "LZFSE (Lazy2)",
     "LZFSE (Optimal)",
     "LZFSE (BVX3)",
@@ -51,6 +54,7 @@ RSS_FORMAT_MAP = {
     "Tgz": "TGZ",
     "TGZ": "TGZ",
     "Other3": "LZFSE (Other3)",
+    "Optimal3": "LZFSE (Optimal3)",
     "BVX3": "LZFSE (BVX3)",
     "Lazy2": "LZFSE (Lazy2)",
     "Optimal": "LZFSE (Optimal)",
@@ -61,7 +65,7 @@ RSS_FORMAT_MAP = {
 DISPLAY_BY_TOKEN = {**FORMATS, **DECODE_FORMATS}
 
 NAME_RE = re.compile(
-    r"^(?P<dataset>.+)-(?P<token>(?:en|de)code(?:Tgz|Other3|BVX3|Lazy2|Optimal|LZ4|ZSTD))"
+    r"^(?P<dataset>.+)-(?P<token>(?:en|de)code(?:Tgz|Other3|Optimal3|BVX3|Lazy2|Optimal|LZ4|ZSTD))"
     r"(?:-n(?P<n>\d+))?(?:-(?P<mode>file|nul))?-results\.txt$"
 )
 NS_RE = re.compile(r"Process took:\s*(\d+)")

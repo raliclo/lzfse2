@@ -125,6 +125,13 @@ trace_one() {
                 --target-stdin "$tar_input" \
                 --launch -- "$PROFILE_BIN" -encode -si -o "$compressed_out" -algo other3 "${n_args[@]}"
             ;;
+        optimal3)
+            run_xctrace_record \
+                --template "Time Profiler" \
+                --output "$trace_out" \
+                --target-stdin "$tar_input" \
+                --launch -- "$PROFILE_BIN" -encode -si -o "$compressed_out" -algo other3 -optimal3 "${n_args[@]}"
+            ;;
         apple)
             run_xctrace_record \
                 --template "Time Profiler" \
@@ -220,7 +227,7 @@ trace_one() {
 
         trace_n=""
         for trace_n in "${LZFSE_TRACE_N_SWEEP[@]}"; do
-            for algo in other3 apple bvx3 lazy2 optimal; do
+            for algo in other3 optimal3 apple bvx3 lazy2 optimal; do
                 echo "RUNNING trace ${dataset} ${algo} -n ${trace_n} $(date +%H:%M:%S)" >> "$STATUS_OUT"
                 traceRoundStatus "RUNNING_TRACE ${dataset} ${algo} -n ${trace_n}"
                 if trace_one "$dataset" "$algo" "$trace_n"; then

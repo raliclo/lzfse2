@@ -1,14 +1,14 @@
 [Info] Clean old trace packages / 清除舊 trace packages
 [Info] Build profile binary / 建立 profiling binary
-lzfse-cli.swift:2811:20: warning: will never be executed
-2808 |                 batch.append(g)
-2809 |             }
-2810 |             if misaligned {
+lzfse-cli.swift:3305:20: warning: will never be executed
+3302 |                 batch.append(g)
+3303 |             }
+3304 |             if misaligned {
      |                `- note: condition always evaluates to false
-2811 |                 if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+3305 |                 if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
      |                    `- warning: will never be executed
-2812 |                 return wroteAny ? .error : .fallback
-2813 |             }
+3306 |                 return wroteAny ? .error : .fallback
+3307 |             }
 [Info] Prepare tar input for claw-code / 建立供 -si 使用的 tar input
 [Info] Trace claw-code tgz -> ./trace/claw-code-tgz.trace
 Starting recording with the Time Profiler template. Launching process: tar. Time limit: 5.0 min
@@ -34,6 +34,12 @@ Ctrl-C to stop the recording
 Reached specified time limit, ending recording...
 Recording completed. Saving output file...
 Output file saved as: claw-code-other3-n4.trace
+[Info] Trace claw-code optimal3-n4 -> ./trace/claw-code-optimal3-n4.trace
+Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
+Ctrl-C to stop the recording
+Reached specified time limit, ending recording...
+Recording completed. Saving output file...
+Output file saved as: claw-code-optimal3-n4.trace
 [Info] Trace claw-code apple-n4 -> ./trace/claw-code-apple-n4.trace
 Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
 Ctrl-C to stop the recording
@@ -64,6 +70,12 @@ Ctrl-C to stop the recording
 Reached specified time limit, ending recording...
 Recording completed. Saving output file...
 Output file saved as: claw-code-other3-n8.trace
+[Info] Trace claw-code optimal3-n8 -> ./trace/claw-code-optimal3-n8.trace
+Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
+Ctrl-C to stop the recording
+Reached specified time limit, ending recording...
+Recording completed. Saving output file...
+Output file saved as: claw-code-optimal3-n8.trace
 [Info] Trace claw-code apple-n8 -> ./trace/claw-code-apple-n8.trace
 Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
 Ctrl-C to stop the recording
@@ -94,6 +106,12 @@ Ctrl-C to stop the recording
 Reached specified time limit, ending recording...
 Recording completed. Saving output file...
 Output file saved as: claw-code-other3-n40.trace
+[Info] Trace claw-code optimal3-n40 -> ./trace/claw-code-optimal3-n40.trace
+Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
+Ctrl-C to stop the recording
+Reached specified time limit, ending recording...
+Recording completed. Saving output file...
+Output file saved as: claw-code-optimal3-n40.trace
 [Info] Trace claw-code apple-n40 -> ./trace/claw-code-apple-n40.trace
 Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
 Ctrl-C to stop the recording
@@ -143,6 +161,12 @@ Ctrl-C to stop the recording
 Reached specified time limit, ending recording...
 Recording completed. Saving output file...
 Output file saved as: llama.cpp-other3-n4.trace
+[Info] Trace llama.cpp optimal3-n4 -> ./trace/llama.cpp-optimal3-n4.trace
+Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
+Ctrl-C to stop the recording
+Reached specified time limit, ending recording...
+Recording completed. Saving output file...
+Output file saved as: llama.cpp-optimal3-n4.trace
 [Info] Trace llama.cpp apple-n4 -> ./trace/llama.cpp-apple-n4.trace
 Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
 Ctrl-C to stop the recording
@@ -173,6 +197,12 @@ Ctrl-C to stop the recording
 Reached specified time limit, ending recording...
 Recording completed. Saving output file...
 Output file saved as: llama.cpp-other3-n8.trace
+[Info] Trace llama.cpp optimal3-n8 -> ./trace/llama.cpp-optimal3-n8.trace
+Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
+Ctrl-C to stop the recording
+Reached specified time limit, ending recording...
+Recording completed. Saving output file...
+Output file saved as: llama.cpp-optimal3-n8.trace
 [Info] Trace llama.cpp apple-n8 -> ./trace/llama.cpp-apple-n8.trace
 Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
 Ctrl-C to stop the recording
@@ -203,6 +233,12 @@ Ctrl-C to stop the recording
 Reached specified time limit, ending recording...
 Recording completed. Saving output file...
 Output file saved as: llama.cpp-other3-n40.trace
+[Info] Trace llama.cpp optimal3-n40 -> ./trace/llama.cpp-optimal3-n40.trace
+Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
+Ctrl-C to stop the recording
+Reached specified time limit, ending recording...
+Recording completed. Saving output file...
+Output file saved as: llama.cpp-optimal3-n40.trace
 [Info] Trace llama.cpp apple-n40 -> ./trace/llama.cpp-apple-n40.trace
 Starting recording with the Time Profiler template. Launching process: lzfse-profile. Time limit: 5.0 min
 Ctrl-C to stop the recording

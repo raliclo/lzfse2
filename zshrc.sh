@@ -384,6 +384,7 @@ extract () {
             case "$1" in
                 *.lzfse.bvx3.lazy2)   da=bvx3; arg2=lazy2 ;;
                 *.lzfse.bvx3.optimal) da=bvx3; arg2=optimal ;;
+                *.lzfse.other3.optimal3) da=other3 ;;
                 *.lzfse.bvx3)         da=bvx3 ;;
                 *.lzfse.other3)       da=other3 ;;
                 *.lzfse.apple)        da=apple ;;
@@ -400,6 +401,7 @@ extract () {
             *.lzfse.bvx3.lazy2) echo "lzfse -decode -i $1 -so -algo bvx3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 "${n_args[@]}" | tar -xf -  ;;
             *.lzfse.bvx3.optimal) echo "lzfse -decode -i $1 -so -algo bvx3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 "${n_args[@]}" | tar -xf -  ;;
             *.lzfse.bvx3)       echo "lzfse -decode -i $1 -so -algo bvx3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3 "${n_args[@]}" | tar -xf -  ;;
+            *.lzfse.other3.optimal3) echo "lzfse -decode -i $1 -so -algo other3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo other3 "${n_args[@]}" | tar -xf -  ;;
             *.lzfse.other3)     echo "lzfse -decode -i $1 -so -algo other3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo other3 "${n_args[@]}" | tar -xf -  ;;
             *.lzfse.apple)      echo "lzfse -decode -i $1 -so -algo apple ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo apple "${n_args[@]}" | tar -xf -  ;;
             *.tar.lz4)   lz4 -T0 -d -q -c $1 | tar -xf - ;;
@@ -496,7 +498,7 @@ function getar() {
 function lzfseX() {
     # 如果參數 $1 為空則提示並退出
     if [[ -z "$1" ]]; then
-        echo "使用方法: lzfseX <檔案或目錄> [other3|apple|bvx3|lazy2|optimal|bvx3_lazy2|bvx3_optimal] [run|probe]"
+        echo "使用方法: lzfseX <檔案或目錄> [other3|apple|bvx3|lazy2|optimal|optimal3|bvx3_lazy2|bvx3_optimal|other3_optimal3] [run|probe]"
         return 1
     fi
     if [[ ! -e "$1" ]]; then
@@ -523,6 +525,7 @@ function lzfseX() {
         bvx3)     extension="lzfse.bvx3" ;;
         lazy2|bvx3_lazy2)    extension="lzfse.bvx3.lazy2";   algo="bvx3"; flags="-lazy2" ;;
         optimal|bvx3_optimal)  extension="lzfse.bvx3.optimal"; algo="bvx3"; flags="-optimal" ;;
+        optimal3|other3_optimal3) extension="lzfse.other3.optimal3"; algo="other3"; flags="-optimal3" ;;
         other3)   extension="lzfse.other3" ;;
         *)        echo "[Error] unknown lzfseX algorithm: $algo"; return 1 ;;
     esac
@@ -606,6 +609,7 @@ function benchAlgoName() {
         *.tgz)                echo "tgz" ;;
         *.zst)                echo "zstd" ;;
         *.tar.lz4)            echo "tar.lz4" ;;
+        *.lzfse.other3.optimal3) echo "optimal3" ;;
         *.lzfse.other3)       echo "other3" ;;
         *.lzfse.apple)        echo "apple" ;;
         *.lzfse.bvx3.lazy2)   echo "lazy2" ;;
@@ -733,6 +737,11 @@ function lz4bench() {
     encode_rc=$?
     [[ $encode_rc -eq 0 && -f "$1.lzfse.other3" ]] && benchStatus "ENCODED ${1}${status_suffix} other3" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} other3 ${encode_rc}"; return 1; }
 
+    echo $'\n[Info] 測試 lzfseX other3_optimal3 壓縮 / Testing lzfseX other3_optimal3 compression:'
+    nanoTimeElapsed lzfseX $1 optimal3
+    encode_rc=$?
+    [[ $encode_rc -eq 0 && -f "$1.lzfse.other3.optimal3" ]] && benchStatus "ENCODED ${1}${status_suffix} optimal3" || { benchStatus "ENCODE_FAILED ${1}${status_suffix} optimal3 ${encode_rc}"; return 1; }
+
     echo $'\n[Info] 測試 lzfseX bvx3_lazy2 壓縮 / Testing lzfseX bvx3_lazy2 compression:'
     nanoTimeElapsed lzfseX $1 lazy2
     encode_rc=$?
@@ -769,7 +778,7 @@ function lz4bench() {
     # --------------------------------------------------------------------------
     echo $'\n[Info] 壓縮產物精確大小 / Exact compressed sizes:'
     echo "[SIZE] $1 (raw): $(du -sk "$1" | awk '{print $1}') KB"
-    local size_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.bvx3.lazy2" "$1.lzfse.bvx3.optimal" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
+    local size_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.other3.optimal3" "$1.lzfse.bvx3.lazy2" "$1.lzfse.bvx3.optimal" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
     local missing_artifacts=0
     for f in "${size_targets[@]}"; do
         if [[ -f "$f" ]]; then
@@ -794,7 +803,7 @@ function lz4bench() {
     #    Decompression + inline consistency check: each format is verified then
     #    immediately removed, keeping peak xbenchTest disk usage to ~2× raw size.
     # --------------------------------------------------------------------------
-    local extract_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.bvx3.lazy2" "$1.lzfse.bvx3.optimal" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
+    local extract_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.other3.optimal3" "$1.lzfse.bvx3.lazy2" "$1.lzfse.bvx3.optimal" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
     local base_dir="./xbenchTest/tgz"   # tgz 保留到最後作為比對基準
     local is_first=true
 
@@ -859,19 +868,20 @@ function lz4bench() {
     # --------------------------------------------------------------------------
     if [[ "$LZFSE_MEMPROBE" == "1" ]]; then
         mkdir -p memprobeResults > /dev/null 2>&1
-        echo $'\n[Info] 記憶體峰值量測 (tgz / zstd / tar.lz4 / other3 / apple / bvx3 / lazy2 / optimal，encode + decode) / Peak-RSS probes:'
+        echo $'\n[Info] 記憶體峰值量測 (tgz / zstd / tar.lz4 / other3 / optimal3 / apple / bvx3 / lazy2 / optimal，encode + decode) / Peak-RSS probes:'
         local probe_algo probe_file probe_artifact probe_suffix
         probe_suffix="${LZFSE_BENCH_SUFFIX:-}"
-        for probe_algo in tgz zstd tar.lz4 other3 apple bvx3 lazy2 optimal; do
+        for probe_algo in tgz zstd tar.lz4 other3 optimal3 apple bvx3 lazy2 optimal; do
             case "$probe_algo" in
-                tgz)     probe_artifact="$1.tgz" ;;
-                zstd)    probe_artifact="$1.zst" ;;
-                tar.lz4) probe_artifact="$1.tar.lz4" ;;
-                other3)  probe_artifact="$1.lzfse.other3" ;;
-                apple)   probe_artifact="$1.lzfse.apple" ;;
-                bvx3)    probe_artifact="$1.lzfse.bvx3" ;;
-                lazy2)   probe_artifact="$1.lzfse.bvx3.lazy2" ;;
-                optimal) probe_artifact="$1.lzfse.bvx3.optimal" ;;
+                tgz)      probe_artifact="$1.tgz" ;;
+                zstd)     probe_artifact="$1.zst" ;;
+                tar.lz4)  probe_artifact="$1.tar.lz4" ;;
+                other3)   probe_artifact="$1.lzfse.other3" ;;
+                optimal3) probe_artifact="$1.lzfse.other3.optimal3" ;;
+                apple)    probe_artifact="$1.lzfse.apple" ;;
+                bvx3)     probe_artifact="$1.lzfse.bvx3" ;;
+                lazy2)    probe_artifact="$1.lzfse.bvx3.lazy2" ;;
+                optimal)  probe_artifact="$1.lzfse.bvx3.optimal" ;;
             esac
             probe_file="memprobeResults/${1}${probe_suffix}-${probe_algo}-memprobe.txt"
             benchStatus "RUNNING_MEMPROBE ${1}${status_suffix} ${probe_algo}"

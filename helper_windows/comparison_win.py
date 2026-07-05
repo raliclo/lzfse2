@@ -34,6 +34,7 @@ else:
 FORMAT_MAP = {
     "encodeTgz":     "TGZ",
     "encodeOther3":  "LZFSE (Other3)",
+    "encodeOptimal3":"LZFSE (Optimal3)",
     "encodeLazy2":   "LZFSE (Lazy2)",
     "encodeOptimal": "LZFSE (Optimal)",
     "encodeBVX3":    "LZFSE (BVX3)",
@@ -43,6 +44,7 @@ FORMAT_MAP = {
 DECODE_FORMAT_MAP = {
     "decodeTgz":     "TGZ",
     "decodeOther3":  "LZFSE (Other3)",
+    "decodeOptimal3":"LZFSE (Optimal3)",
     "decodeLazy2":   "LZFSE (Lazy2)",
     "decodeOptimal": "LZFSE (Optimal)",
     "decodeBVX3":    "LZFSE (BVX3)",
@@ -52,6 +54,7 @@ DECODE_FORMAT_MAP = {
 FORMAT_ORDER = [
     "TGZ",
     "LZFSE (Other3)",
+    "LZFSE (Optimal3)",
     "LZFSE (BVX3)",
     "LZFSE (Lazy2)",
     "LZFSE (Optimal)",
@@ -203,6 +206,7 @@ def load_rss_summary(path, dataset=None):
         "Tgz": "TGZ",
         "TGZ": "TGZ",
         "Other3": "LZFSE (Other3)",
+        "Optimal3": "LZFSE (Optimal3)",
         "BVX3": "LZFSE (BVX3)",
         "Lazy2": "LZFSE (Lazy2)",
         "Optimal": "LZFSE (Optimal)",

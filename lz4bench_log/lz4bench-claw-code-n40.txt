@@ -1,4 +1,4 @@
-[Info] 磁碟可用空間充足：35GB / Sufficient disk space: 35GB
+[Info] 磁碟可用空間充足：23GB / Sufficient disk space: 23GB
 [Info] Fixed LZFSE -n for this round: -n 40
 
 [Info] Warm-cache 預讀資料集 / Pre-reading dataset to warm OS cache...
@@ -7,63 +7,72 @@
 
 [Info] 測試 getar 壓縮 / Testing getar compression:
 1.3G	claw-code
-480M	claw-code.tgz
-==> Process getar claw-code took: 29836105824 奈秒/nanoseconds
+481M	claw-code.tgz
+==> Process getar claw-code took: 29774669170 奈秒/nanoseconds
 
 [Info] 測試 lzfseX other3 壓縮 / Testing lzfseX other3 compression:
-執行中: tar -cf - claw-code | lzfse -encode -si -o claw-code.lzfse.other3 -algo other3  -n 40
+執行中: tar -cf - -C . claw-code | lzfse -encode -si -o claw-code.lzfse.other3 -algo other3  -n 40
 --- 壓縮資訊 ---
 1.3G	claw-code
-474M	claw-code.lzfse.other3
+470M	claw-code.lzfse.other3
 [SIZE] claw-code.lzfse.other3: 485697524 bytes
-==> Process lzfseX claw-code other3 took: 4064316988 奈秒/nanoseconds
+==> Process lzfseX claw-code other3 took: 4171606064 奈秒/nanoseconds
+
+[Info] 測試 lzfseX other3_optimal3 壓縮 / Testing lzfseX other3_optimal3 compression:
+執行中: tar -cf - -C . claw-code | lzfse -encode -si -o claw-code.lzfse.other3.optimal3 -algo other3 -optimal3 -n 40
+--- 壓縮資訊 ---
+1.3G	claw-code
+448M	claw-code.lzfse.other3.optimal3
+[SIZE] claw-code.lzfse.other3.optimal3: 462850138 bytes
+==> Process lzfseX claw-code optimal3 took: 22534429073 奈秒/nanoseconds
 
 [Info] 測試 lzfseX bvx3_lazy2 壓縮 / Testing lzfseX bvx3_lazy2 compression:
-執行中: tar -cf - claw-code | lzfse -encode -si -o claw-code.lzfse.bvx3.lazy2 -algo bvx3 -lazy2 -n 40
+執行中: tar -cf - -C . claw-code | lzfse -encode -si -o claw-code.lzfse.bvx3.lazy2 -algo bvx3 -lazy2 -n 40
 --- 壓縮資訊 ---
 1.3G	claw-code
 432M	claw-code.lzfse.bvx3.lazy2
 [SIZE] claw-code.lzfse.bvx3.lazy2: 443024833 bytes
-==> Process lzfseX claw-code lazy2 took: 21761157036 奈秒/nanoseconds
+==> Process lzfseX claw-code lazy2 took: 22659407139 奈秒/nanoseconds
 
 [Info] 測試 lzfseX bvx3_optimal 壓縮 / Testing lzfseX bvx3_optimal compression:
-執行中: tar -cf - claw-code | lzfse -encode -si -o claw-code.lzfse.bvx3.optimal -algo bvx3 -optimal -n 40
+執行中: tar -cf - -C . claw-code | lzfse -encode -si -o claw-code.lzfse.bvx3.optimal -algo bvx3 -optimal -n 40
 --- 壓縮資訊 ---
 1.3G	claw-code
 416M	claw-code.lzfse.bvx3.optimal
 [SIZE] claw-code.lzfse.bvx3.optimal: 422164020 bytes
-==> Process lzfseX claw-code optimal took: 40765024900 奈秒/nanoseconds
+==> Process lzfseX claw-code optimal took: 41990791798 奈秒/nanoseconds
 
 [Info] 測試 lzfseX bvx3 壓縮 / Testing lzfseX bvx3 compression:
-執行中: tar -cf - claw-code | lzfse -encode -si -o claw-code.lzfse.bvx3 -algo bvx3  -n 40
+執行中: tar -cf - -C . claw-code | lzfse -encode -si -o claw-code.lzfse.bvx3 -algo bvx3  -n 40
 --- 壓縮資訊 ---
 1.3G	claw-code
-451M	claw-code.lzfse.bvx3
+458M	claw-code.lzfse.bvx3
 [SIZE] claw-code.lzfse.bvx3: 467333895 bytes
-==> Process lzfseX claw-code bvx3 took: 3492406130 奈秒/nanoseconds
+==> Process lzfseX claw-code bvx3 took: 3816396952 奈秒/nanoseconds
 
 [Info] 測試 lzfseX apple 壓縮 / Testing lzfseX apple compression:
-執行中: tar -cf - claw-code | lzfse -encode -si -o claw-code.lzfse.apple -algo apple  -n 40
+執行中: tar -cf - -C . claw-code | lzfse -encode -si -o claw-code.lzfse.apple -algo apple  -n 40
 --- 壓縮資訊 ---
 1.3G	claw-code
 465M	claw-code.lzfse.apple
 [SIZE] claw-code.lzfse.apple: 486084440 bytes
-==> Process lzfseX claw-code apple took: 10086472034 奈秒/nanoseconds
+==> Process lzfseX claw-code apple took: 10487960815 奈秒/nanoseconds
 
 [Info] 測試 tlz4  壓縮 / Testing tlz4 compression:
 1.3G	claw-code
-568M	claw-code.tar.lz4
-==> Process tlz4 claw-code took: 3382009983 奈秒/nanoseconds
+564M	claw-code.tar.lz4
+==> Process tlz4 claw-code took: 3629955053 奈秒/nanoseconds
 
 [Info] 測試 zstd  壓縮 / Testing zstd compression:
 1.3G	claw-code
-402M	claw-code.zst
-==> Process getzstd claw-code took: 3839704037 奈秒/nanoseconds
+397M	claw-code.zst
+==> Process getzstd claw-code took: 4082070827 奈秒/nanoseconds
 
 [Info] 壓縮產物精確大小 / Exact compressed sizes:
 [SIZE] claw-code (raw): 1383028 KB
 [SIZE] claw-code.tgz: 492356060 bytes
 [SIZE] claw-code.lzfse.other3: 485697524 bytes
+[SIZE] claw-code.lzfse.other3.optimal3: 462850138 bytes
 [SIZE] claw-code.lzfse.bvx3.lazy2: 443024833 bytes
 [SIZE] claw-code.lzfse.bvx3.optimal: 422164020 bytes
 [SIZE] claw-code.lzfse.bvx3: 467333895 bytes
@@ -76,48 +85,54 @@
 ==================================================
 
 [Info] 測試 claw-code.tgz 解壓:
-==> Process extract claw-code.tgz took: 3645581007 奈秒/nanoseconds
+==> Process extract claw-code.tgz took: 3607641935 奈秒/nanoseconds
 target_algo=tgz
 
 [Info] 測試 claw-code.lzfse.other3 解壓:
 lzfse -decode -i claw-code.lzfse.other3 -so -algo other3 -n 40 | tar -xf - 
-==> Process extract claw-code.lzfse.other3 took: 4558573008 奈秒/nanoseconds
+==> Process extract claw-code.lzfse.other3 took: 3521164894 奈秒/nanoseconds
 [Success] claw-code.lzfse.other3 解壓內容與 tgz 一致！
 target_algo=other3
 
+[Info] 測試 claw-code.lzfse.other3.optimal3 解壓:
+lzfse -decode -i claw-code.lzfse.other3.optimal3 -so -algo other3 -n 40 | tar -xf - 
+==> Process extract claw-code.lzfse.other3.optimal3 took: 3249174833 奈秒/nanoseconds
+[Success] claw-code.lzfse.other3.optimal3 解壓內容與 tgz 一致！
+target_algo=optimal3
+
 [Info] 測試 claw-code.lzfse.bvx3.lazy2 解壓:
 lzfse -decode -i claw-code.lzfse.bvx3.lazy2 -so -algo bvx3 -n 40 | tar -xf - 
-==> Process extract claw-code.lzfse.bvx3.lazy2 took: 4258304834 奈秒/nanoseconds
+==> Process extract claw-code.lzfse.bvx3.lazy2 took: 3975599051 奈秒/nanoseconds
 [Success] claw-code.lzfse.bvx3.lazy2 解壓內容與 tgz 一致！
 target_algo=lazy2
 
 [Info] 測試 claw-code.lzfse.bvx3.optimal 解壓:
 lzfse -decode -i claw-code.lzfse.bvx3.optimal -so -algo bvx3 -n 40 | tar -xf - 
-==> Process extract claw-code.lzfse.bvx3.optimal took: 4430941105 奈秒/nanoseconds
+==> Process extract claw-code.lzfse.bvx3.optimal took: 3756535053 奈秒/nanoseconds
 [Success] claw-code.lzfse.bvx3.optimal 解壓內容與 tgz 一致！
 target_algo=optimal
 
 [Info] 測試 claw-code.lzfse.bvx3 解壓:
 lzfse -decode -i claw-code.lzfse.bvx3 -so -algo bvx3 -n 40 | tar -xf - 
-==> Process extract claw-code.lzfse.bvx3 took: 5179617882 奈秒/nanoseconds
+==> Process extract claw-code.lzfse.bvx3 took: 3452415943 奈秒/nanoseconds
 [Success] claw-code.lzfse.bvx3 解壓內容與 tgz 一致！
 target_algo=bvx3
 
 [Info] 測試 claw-code.lzfse.apple 解壓:
 lzfse -decode -i claw-code.lzfse.apple -so -algo apple -n 40 | tar -xf - 
-==> Process extract claw-code.lzfse.apple took: 4900835991 奈秒/nanoseconds
+==> Process extract claw-code.lzfse.apple took: 3430271864 奈秒/nanoseconds
 [Success] claw-code.lzfse.apple 解壓內容與 tgz 一致！
 target_algo=apple
 
 [Info] 測試 claw-code.tar.lz4 解壓:
-==> Process extract claw-code.tar.lz4 took: 4523064137 奈秒/nanoseconds
+==> Process extract claw-code.tar.lz4 took: 3638787031 奈秒/nanoseconds
 [Success] claw-code.tar.lz4 解壓內容與 tgz 一致！
 target_algo=tar.lz4
 
 [Info] 測試 claw-code.zst 解壓:
-==> Process extract claw-code.zst took: 3353865862 奈秒/nanoseconds
+==> Process extract claw-code.zst took: 3782099962 奈秒/nanoseconds
 [Success] claw-code.zst 解壓內容與 tgz 一致！
 
-[Info] 記憶體峰值量測 (tgz / zstd / tar.lz4 / other3 / apple / bvx3 / lazy2 / optimal，encode + decode) / Peak-RSS probes:
+[Info] 記憶體峰值量測 (tgz / zstd / tar.lz4 / other3 / optimal3 / apple / bvx3 / lazy2 / optimal，encode + decode) / Peak-RSS probes:
 
 [Info] 基準測試完成！ / Benchmark finished!
