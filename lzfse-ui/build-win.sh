@@ -143,7 +143,7 @@ let package = Package(
     platforms: [.macOS(.v13)],
     dependencies: [
         .package(
-            url: "https://github.com/moreSwift/swift-cross-ui",
+            url: "https://github.com/raliclo/swift-cross-ui.git",
             .upToNextMinor(from: "0.7.0")
         ),
     ],

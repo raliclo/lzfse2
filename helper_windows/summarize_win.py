@@ -70,6 +70,7 @@ NAME_RE = re.compile(
 )
 NS_RE = re.compile(r"Process took:\s*(\d+)")
 BYTES_RE = re.compile(r"Encoded size:\s*(\d+)")
+DECODED_BYTES_RE = re.compile(r"Decoded size:\s*(\d+)")
 VERIFY_RE = re.compile(r"Verify:\s*(\w+)")
 ENCODE_OUTPUT_RE = re.compile(r"Encode output:\s*(write to (?:file|nul))")
 DECODE_OUTPUT_RE = re.compile(r"Decode output:\s*(write to (?:file|nul))")
@@ -81,6 +82,7 @@ def read_result(path):
     if not ns_match:
         return None
     bytes_match = BYTES_RE.search(text)
+    decoded_bytes_match = DECODED_BYTES_RE.search(text)
     verify_match = VERIFY_RE.search(text)
     encode_output_match = ENCODE_OUTPUT_RE.search(text)
     decode_output_match = DECODE_OUTPUT_RE.search(text)
@@ -90,6 +92,7 @@ def read_result(path):
         (verify_match.group(1).upper() if verify_match else None),
         (encode_output_match.group(1) if encode_output_match else None),
         (decode_output_match.group(1) if decode_output_match else None),
+        (int(decoded_bytes_match.group(1)) if decoded_bytes_match else 0),
     )
 
 
@@ -114,6 +117,7 @@ def collect(results_dir):
                 "verify": parsed[2],
                 "encode_output": parsed[3],
                 "decode_output": parsed[4],
+                "decoded_bytes": parsed[5],
                 "mtime": path.stat().st_mtime,
             })
     return candidates
@@ -223,6 +227,7 @@ def summarize(candidates, status_log, format_order, is_decode=False):
             "format": f"{current['token']}{suffix}",
             "nanoseconds": current["nanoseconds"],
             "encoded_bytes": current["encoded_bytes"],
+            "decoded_bytes": current.get("decoded_bytes", 0),
             "valid": "yes" if valid else "no",
             "verify": current["verify"] or "",
             "note": "; ".join(notes),
@@ -239,9 +244,10 @@ def summarize(candidates, status_log, format_order, is_decode=False):
     return rows
 
 
-def write_csv(path, rows, include_verify=False):
+def write_csv(path, rows, include_verify=False, is_decode=False):
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["dataset", "format", "nanoseconds", "encoded_bytes", "valid"]
+    size_field = "decoded_bytes" if is_decode else "encoded_bytes"
+    fields = ["dataset", "format", "nanoseconds", size_field, "valid"]
     if include_verify:
         fields.append("verify")
     if any("encode_rss_mb" in row or "decode_rss_mb" in row for row in rows):
@@ -405,6 +411,14 @@ def write_benchmark_result_win(path, mac_template_path, dataset, n_value, enc_ro
         dec_file_seconds = int(dec_file.get("nanoseconds") or 0) / 1_000_000_000 if dec_file.get("nanoseconds") else None
         dec_nul_seconds = int(dec_nul.get("nanoseconds") or 0) / 1_000_000_000 if dec_nul.get("nanoseconds") else None
 
+        # decoded_bytes: raw folder size; prefer any decode row that has it, fall back to raw_mb
+        _dec_bytes = (
+            int(dec_file.get("decoded_bytes") or 0)
+            or int(dec_nul.get("decoded_bytes") or 0)
+            or int((dec or {}).get("decoded_bytes") or 0)
+        )
+        decoded_mb = _dec_bytes / 1_000_000 if _dec_bytes else raw_mb
+
         record = {field: "" for field in header}
         record.update({
             "dataset": dataset,
@@ -415,18 +429,18 @@ def write_benchmark_result_win(path, mac_template_path, dataset, n_value, enc_ro
             "encode_seconds": f"{encode_seconds:.2f}",
             "decode_seconds": f"{decode_seconds:.2f}" if decode_seconds is not None else "",
             "encode_mb_s": f"{raw_mb / encode_seconds:.2f}" if raw_mb and encode_seconds else "",
-            "decode_mb_s": f"{raw_mb / decode_seconds:.2f}" if raw_mb and decode_seconds else "",
+            "decode_mb_s": f"{decoded_mb / decode_seconds:.2f}" if decoded_mb and decode_seconds else "",
             "compression_ratio": f"{encoded_bytes / tgz_bytes:.4f}" if encoded_bytes and tgz_bytes else "",
             "encode_time_ratio": f"{encode_seconds / tgz_encode_seconds:.4f}" if encode_seconds and tgz_encode_seconds else "",
             "decode_time_ratio": f"{decode_seconds / tgz_decode_seconds:.4f}" if decode_seconds and tgz_decode_seconds else "",
             "encode_rss_mb": enc.get("encode_rss_mb", ""),
             "decode_rss_mb": (dec.get("decode_rss_mb") or enc.get("decode_rss_mb", "")),
             "encode_mb_s(file)": f"{raw_mb / enc_file_seconds:.2f}" if raw_mb and enc_file_seconds else "",
-            "decode_mb_s(file)": f"{raw_mb / dec_file_seconds:.2f}" if raw_mb and dec_file_seconds else "",
+            "decode_mb_s(file)": f"{decoded_mb / dec_file_seconds:.2f}" if decoded_mb and dec_file_seconds else "",
             "encode_rss_mb(file)": enc_file.get("encode_rss_mb", ""),
             "decode_rss_mb(file)": dec_file.get("decode_rss_mb", ""),
             "encode_mb_s(null)": f"{raw_mb / enc_nul_seconds:.2f}" if raw_mb and enc_nul_seconds else "",
-            "decode_mb_s(null)": f"{raw_mb / dec_nul_seconds:.2f}" if raw_mb and dec_nul_seconds else "",
+            "decode_mb_s(null)": f"{decoded_mb / dec_nul_seconds:.2f}" if decoded_mb and dec_nul_seconds else "",
             "encode_rss_mb(null)": enc_nul.get("encode_rss_mb", ""),
             "decode_rss_mb(null)": dec_nul.get("decode_rss_mb", ""),
         })
@@ -511,12 +525,13 @@ def main():
     if dec_candidates:
         dec_rows = summarize(dec_candidates, args.status_log.resolve(), DECODE_FORMAT_ORDER, is_decode=True)
         attach_rss(dec_rows, rss_rows)
-        write_csv(args.decode_output.resolve(), dec_rows, include_verify=True)
+        write_csv(args.decode_output.resolve(), dec_rows, include_verify=True, is_decode=True)
         print(f"[OK] {args.decode_output.resolve()} written ({len(dec_rows)} rows)")
         for row in dec_rows:
             state = "OK" if row["valid"] == "yes" else f"INVALID: {row['note']}"
             seconds = row["nanoseconds"] / 1_000_000_000
-            size_str = f"{row['encoded_bytes']:>12} bytes" if row["encoded_bytes"] else "  (size unknown)"
+            decoded = row.get("decoded_bytes") or 0
+            size_str = f"{decoded:>12} bytes" if decoded else "  (size unknown)"
             verify_str = f"  verify={row['verify']}" if row["verify"] else "  verify=?"
             print(f"     {row['format']:<22} {seconds:8.2f}s  {size_str}  {state}{verify_str}")
 

@@ -25,6 +25,7 @@ import SwiftCrossUI
 import DefaultBackend
 #if canImport(WinSDK)
 import WinSDK
+import ucrt
 #endif
 
 // MARK: - Clipboard (Win32)
@@ -118,6 +119,112 @@ private func runHiddenProcess(_ commandLine: String) -> Int32 {
     CloseHandle(pi.hThread)
     CloseHandle(pi.hProcess)
     return Int32(bitPattern: code)
+}
+
+// 依 CreateProcessW 命令列解析規則（反斜線+雙引號跳脫）逐一 quote 參數。
+// Quote a single argument per the CreateProcessW command-line parsing rules
+// (backslash + double-quote escaping).
+private func windowsQuoteArg(_ arg: String) -> String {
+    if !arg.isEmpty && !arg.contains(where: { $0 == " " || $0 == "\t" || $0 == "\n" || $0 == "\"" }) {
+        return arg
+    }
+    var result = "\""
+    var backslashes = 0
+    for ch in arg {
+        if ch == "\\" {
+            backslashes += 1
+        } else if ch == "\"" {
+            result += String(repeating: "\\", count: backslashes * 2 + 1)
+            result.append("\"")
+            backslashes = 0
+        } else {
+            result += String(repeating: "\\", count: backslashes)
+            backslashes = 0
+            result.append(ch)
+        }
+    }
+    result += String(repeating: "\\", count: backslashes * 2)
+    result += "\""
+    return result
+}
+
+// 以 CREATE_NO_WINDOW 啟動子程序，並將其 stdout 接到管線，回傳可供 Swift 端讀取的 FileHandle。
+// 用於需要一邊串流讀取子程序輸出、一邊在本程序內處理（例如 tar 壓縮輸出餵給 LZFSE 編碼器）的情境，
+// Process + Pipe 雖然功能相同，但 Windows 上的 Process.run() 不會帶 CREATE_NO_WINDOW，仍會跳出主控台視窗。
+// Launch a child process with CREATE_NO_WINDOW and wire its stdout to a pipe, returning a FileHandle
+// the Swift side can stream-read from. Needed when the child's output must be consumed in-process while
+// still running (e.g. tar's archive stream feeding directly into the LZFSE encoder) — Foundation's
+// Process + Pipe would work functionally the same, but Process.run() on Windows doesn't pass
+// CREATE_NO_WINDOW, so a console window still flashes.
+private func spawnHiddenProcessCapturingStdout(
+    executable: String, arguments: [String], workingDirectory: String
+) -> (process: HANDLE, thread: HANDLE, stdout: FileHandle)? {
+    var pipeSa = SECURITY_ATTRIBUTES()
+    pipeSa.nLength = DWORD(MemoryLayout<SECURITY_ATTRIBUTES>.size)
+    pipeSa.bInheritHandle = true
+    pipeSa.lpSecurityDescriptor = nil
+
+    var readHandle: HANDLE? = nil
+    var writeHandle: HANDLE? = nil
+    guard CreatePipe(&readHandle, &writeHandle, &pipeSa, 0),
+          let readHandle, let writeHandle else { return nil }
+
+    // 父行程持有的讀端不可被子行程繼承，否則子行程結束時管線寫端不會真正關閉（EOF 偵測失效）。
+    // The parent's read end must not be inherited by the child, otherwise the pipe's write end
+    // never truly closes when the child exits (breaks EOF detection).
+    guard SetHandleInformation(readHandle, DWORD(HANDLE_FLAG_INHERIT), 0) else {
+        CloseHandle(readHandle)
+        CloseHandle(writeHandle)
+        return nil
+    }
+
+    // GENERIC_READ | GENERIC_WRITE 直接寫成 DWORD 常值，繞開 WinSDK Swift 綁定對
+    // GENERIC_READ/GENERIC_WRITE 型別（Int32 / UInt32 視情境而定）不一致造成的多載歧義。
+    // Written as a literal DWORD to sidestep the overload ambiguity caused by the WinSDK
+    // Swift bindings typing GENERIC_READ/GENERIC_WRITE inconsistently (Int32 vs UInt32).
+    let nulHandle = "NUL".withCString(encodedAs: UTF16.self) { p in
+        CreateFileW(p, DWORD(0xC0000000),   // GENERIC_READ | GENERIC_WRITE
+                    DWORD(FILE_SHARE_READ | FILE_SHARE_WRITE),
+                    &pipeSa, DWORD(OPEN_EXISTING), 0, nil)
+    }
+
+    var si = STARTUPINFOW()
+    si.cb = DWORD(MemoryLayout<STARTUPINFOW>.size)
+    si.dwFlags = DWORD(STARTF_USESTDHANDLES)
+    si.hStdOutput = writeHandle
+    si.hStdError = nulHandle
+    si.hStdInput = nulHandle
+
+    var pi = PROCESS_INFORMATION()
+    let commandLine = ([executable] + arguments).map(windowsQuoteArg).joined(separator: " ")
+    var cmdLineW = Array(commandLine.utf16) + [0]
+    var cwdW = Array(workingDirectory.utf16) + [0]
+    let created = cmdLineW.withUnsafeMutableBufferPointer { cmdBuf in
+        cwdW.withUnsafeMutableBufferPointer { cwdBuf in
+            CreateProcessW(nil, cmdBuf.baseAddress, nil, nil, true,
+                           DWORD(0x08000000),   // CREATE_NO_WINDOW
+                           nil, cwdBuf.baseAddress, &si, &pi)
+        }
+    }
+    // 寫端與 NUL 控制代碼已被子行程繼承，父行程端用不到，關閉自己這份。
+    // The write end and NUL handle were inherited by the child; the parent's copies are unused, close them.
+    CloseHandle(writeHandle)
+    if let nulHandle { CloseHandle(nulHandle) }
+
+    guard created else {
+        CloseHandle(readHandle)
+        return nil
+    }
+
+    let fd = _open_osfhandle(Int(bitPattern: readHandle), Int32(_O_RDONLY))
+    guard fd != -1 else {
+        CloseHandle(readHandle)
+        TerminateProcess(pi.hProcess, 1)
+        CloseHandle(pi.hThread)
+        CloseHandle(pi.hProcess)
+        return nil
+    }
+    return (pi.hProcess, pi.hThread, FileHandle(fileDescriptor: fd, closeOnDealloc: true))
 }
 
 private struct LZFSEIconWindowSearch {
@@ -637,6 +744,7 @@ struct LZFSEWinApp: App {
                     }
                 } else {
                     m += "Archive / 壓縮檔: \(formatBytes(fileSize(atPath: input)))\n"
+                    m += "Output / 輸出: \(formatBytes(directorySize(atPath: output)))\n"
                     if let note { m += note + "\n" }
                 }
                 m += "Time / 耗時: \(String(format: "%.2f", elapsed)) s\n"
@@ -829,9 +937,42 @@ private func lzfseFolderEncode(
     let parent = url.deletingLastPathComponent().path
     let name = url.lastPathComponent
 
+#if canImport(WinSDK)
+    // 用 CREATE_NO_WINDOW 啟動 tar；Foundation 的 Process.run() 在 Windows 上不會帶此旗標，
+    // 會在壓縮時跳出主控台視窗。
+    // Launch tar with CREATE_NO_WINDOW; Foundation's Process.run() doesn't pass this flag on
+    // Windows, which flashes a console window during compression.
+    guard let launch = spawnHiddenProcessCapturingStdout(
+        executable: windowsTarURL.path, arguments: ["-cf", "-", name], workingDirectory: parent
+    ) else {
+        throw LZFSEUIError.tarFailed("failed to launch tar.exe")
+    }
+    let inputHandle = launch.stdout
+    _ = FileManager.default.createFile(atPath: output, contents: nil)
+    let outputHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: output))
+    defer { try? outputHandle.close() }
+
+    do {
+        try runParallelEncode(
+            input: inputHandle, output: outputHandle, inflight: parallel,
+            strong: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal)
+    } catch {
+        TerminateProcess(launch.process, 1)
+        CloseHandle(launch.thread)
+        CloseHandle(launch.process)
+        throw error
+    }
+    WaitForSingleObject(launch.process, INFINITE)
+    var code: DWORD = 0
+    GetExitCodeProcess(launch.process, &code)
+    CloseHandle(launch.thread)
+    CloseHandle(launch.process)
+    guard code == 0 else { throw LZFSEUIError.encodeFailed }
+#else
     let tar = Process()
     tar.executableURL = windowsTarURL
-    tar.arguments = ["-cf", "-", "-C", parent, name]
+    tar.currentDirectoryURL = URL(fileURLWithPath: parent)
+    tar.arguments = ["-cf", "-", name]
     let pipe = Pipe()
     tar.standardOutput = pipe
     tar.standardError = FileHandle.nullDevice
@@ -852,6 +993,7 @@ private func lzfseFolderEncode(
     }
     tar.waitUntilExit()
     guard tar.terminationStatus == 0 else { throw LZFSEUIError.encodeFailed }
+#endif
 }
 
 // UI decompression streams decoded tar payload directly to tar; no full .tar temp file.

@@ -149,7 +149,7 @@ Extract and run `LZFSE_UI_Win.exe` inside the folder.
 
 ## Current Windows status / Windows current progress
 
-As of the current Windows UI round:
+As of the 2026-07-01 Windows UI / benchmark round:
 
 - `build-win.sh` builds the SwiftCrossUI app, then runs `helper_windows/compile.bat` to build a fresh companion CLI.
 - `build-win.sh` also embeds the Windows app icon into `LZFSE_UI_Win.exe`: it uses the same `AppIcon.png` source image as the macOS app, generates `.win-build/AppIcon.ico`, compiles `.win-build/AppIcon.res` with `llvm-rc.exe`, and links that resource into the exe. File Explorer and the Windows taskbar should therefore show the LZFSE UI icon. If Windows still shows an old/default icon, use a fresh extraction folder or restart Explorer to clear the icon cache.
@@ -168,6 +168,11 @@ As of the current Windows UI round:
 - The command is executed with the working directory set to the folder containing `LZFSE_UI_Win.exe`, so `.\lzfse.exe` resolves to the packaged CLI in the same folder.
 - This avoids Windows PowerShell corrupting binary tar streams when piping `-so` directly.
 - Before extraction, the UI lists the tar entries. If they start with `../`, the UI automatically adds `--strip-components 1` during extraction. This handles archives such as `../claw-code/...` that Windows bsdtar otherwise rejects with `Path contains '..'`.
+- Windows benchmark infrastructure is active for both `claw-code` and `llama.cpp` datasets:
+  - `helper_windows/run_round.bat` runs encode-to-nul, encode-to-file, decode-to-nul, decode-to-file, RSS probes, summary generation, and macOS-vs-Windows comparison.
+  - CSV outputs live under `helper_windows/bench_results_csv/`: `encode_summary.csv`, `decode_summary.csv`, `rss_summary.csv`, `BenchMarkResult-Win.csv`, and one combined `comparison.csv` with `dataset` as the first column.
+  - Result logs live under `helper_windows/bench_logs/`.
+  - The latest recorded round completed comparison for `llama.cpp` and wrote `bench_results_csv\comparison.csv` successfully.
 
 Equivalent decode command pattern:
 

@@ -59,13 +59,13 @@ if "%_write%"=="1" (
 
 echo [Info] Running tgz decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeTgz "%_dataset%" > "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt" 2>&1
-call :appendFileSize "%_dataset%.tgz" "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt"
+call :appendDecodedFolderSize "%_dataset%" "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt"
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] tgz decode %TIME:~0,8%
 
 echo [Info] Running lzfse other3 decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeOther3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt" 2>&1
-call :appendFileSize "%_dataset%.lzfse.other3" "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt"
+call :appendDecodedFolderSize "%_dataset%" "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt"
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeOther3%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] lzfse other3 decode %TIME:~0,8%
 
@@ -77,31 +77,31 @@ echo [DONE] lzfse other3_optimal3 decode %TIME:~0,8%
 
 echo [Info] Running lzfse bvx3 decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeBVX3 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt" 2>&1
-call :appendFileSize "%_dataset%.lzfse.bvx3" "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
+call :appendDecodedFolderSize "%_dataset%" "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeBVX3%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] lzfse bvx3 decode %TIME:~0,8%
 
 echo [Info] Running lzfse lazy2 decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeLazy2 "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt" 2>&1
-call :appendFileSize "%_dataset%.lzfse.lazy2" "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt"
+call :appendDecodedFolderSize "%_dataset%" "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt"
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeLazy2%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] lzfse lazy2 decode %TIME:~0,8%
 
 echo [Info] Running lzfse optimal decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeOptimal "%_dataset%" "%_n%" > "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt" 2>&1
-call :appendFileSize "%_dataset%.lzfse.optimal" "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt"
+call :appendDecodedFolderSize "%_dataset%" "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt"
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeOptimal%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] lzfse optimal decode %TIME:~0,8%
 
 echo [Info] Running lz4 decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeLZ4 "%_dataset%" > "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt" 2>&1
-call :appendFileSize "%_dataset%.tar.lz4" "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt"
+call :appendDecodedFolderSize "%_dataset%" "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt"
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeLZ4%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] lz4 decode %TIME:~0,8%
 
 echo [Info] Running zstd decode benchmark... %TIME:~0,8%
 call :nanoTimeElapsed call :decodeZSTD "%_dataset%" > "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt" 2>&1
-call :appendFileSize "%_dataset%.tar.zst" "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt"
+call :appendDecodedFolderSize "%_dataset%" "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt"
 call :writeDecodeOutputMode "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt"
 echo [DONE] zstd decode %TIME:~0,8%
 
@@ -309,6 +309,11 @@ exit /b
 :appendFileSize
 :: %~1 = compressed file path, %~2 = log file path
 powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; if (Test-Path '%~1') { $s=(Get-Item '%~1').Length; Write-Output('==> Encoded size: '+$s+' bytes') } else { Write-Output('Compressed file not found: %~1') }" >> "%~2"
+exit /b
+
+:appendDecodedFolderSize
+:: %~1 = source dataset folder (original uncompressed data), %~2 = log file path
+powershell -NoProfile -Command "[Console]::OutputEncoding=[Text.Encoding]::UTF8; $p='%~1'; if (Test-Path -LiteralPath $p -PathType Container) { $s=(Get-ChildItem -LiteralPath $p -Recurse -File -Force | Measure-Object -Property Length -Sum).Sum; if ($null -eq $s) { $s=0 } } else { $s=0 }; Write-Output('==> Decoded size: '+$s+' bytes')" >> "%~2"
 exit /b
 
 :writeDecodeOutputMode
