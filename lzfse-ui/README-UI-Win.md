@@ -149,10 +149,13 @@ Extract and run `LZFSE_UI_Win.exe` inside the folder.
 
 ## Current Windows status / Windows current progress
 
-As of the 2026-07-01 Windows UI / benchmark round:
+As of the 2026-07-07 Windows UI / benchmark status:
 
 - `build-win.sh` builds the SwiftCrossUI app, then runs `helper_windows/compile.bat` to build a fresh companion CLI.
+- `build-win.sh` currently pins the SwiftCrossUI dependency to the `develop` branch of `https://github.com/raliclo/swift-cross-ui.git` instead of the previous `0.7.0` up-to-next-minor requirement.
 - `build-win.sh` also embeds the Windows app icon into `LZFSE_UI_Win.exe`: it uses the same `AppIcon.png` source image as the macOS app, generates `.win-build/AppIcon.ico`, compiles `.win-build/AppIcon.res` with `llvm-rc.exe`, and links that resource into the exe. File Explorer and the Windows taskbar should therefore show the LZFSE UI icon. If Windows still shows an old/default icon, use a fresh extraction folder or restart Explorer to clear the icon cache.
+- The Windows UI now exposes `Optimal3 Parsing / 標準格式最優解析` under Other3 encode mode. The equivalent command becomes `-algo other3 -optimal3`; output remains standard Apple-compatible LZFSE.
+- The file section is more compact: `Reset / 重置` and `Compress / Decompress` now sit on the right side of the `Files / 檔案` header instead of taking a separate bottom row.
 - The final `LZFSE_UI_Win.zip` contains:
 
   ```text
@@ -172,7 +175,8 @@ As of the 2026-07-01 Windows UI / benchmark round:
   - `helper_windows/run_round.bat` runs encode-to-nul, encode-to-file, decode-to-nul, decode-to-file, RSS probes, summary generation, and macOS-vs-Windows comparison.
   - CSV outputs live under `helper_windows/bench_results_csv/`: `encode_summary.csv`, `decode_summary.csv`, `rss_summary.csv`, `BenchMarkResult-Win.csv`, and one combined `comparison.csv` with `dataset` as the first column.
   - Result logs live under `helper_windows/bench_logs/`.
-  - The latest recorded round completed comparison for `llama.cpp` and wrote `bench_results_csv\comparison.csv` successfully.
+  - R42-Win completed on 2026-07-05: `lzfse.exe -test` passed, `comparison.csv` now includes `LZFSE (Optimal3)` for both datasets, and all Windows decode verify results are `PASS`.
+  - R42-Win details and the `Optimal3` vs `Optimal` compression-ratio explanation are recorded in `OPTIMIZATION.md`.
 
 Equivalent decode command pattern:
 

@@ -129,6 +129,14 @@ struct ContentView: View {
                     }
                     .padding(.top, 4)
 
+                    if viewModel.operation == .encode && viewModel.algorithm == .other3 {
+                        Divider()
+                        Toggle("Optimal3 / 最優解析", isOn: $viewModel.useOptimal3)
+                        Text("Price-driven DP parsing while keeping standard Apple-compatible LZFSE output")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     if viewModel.operation == .encode && viewModel.algorithm == .bvx3 {
                         Divider()
                         Toggle("Lazy2 Mode / 雜湊鏈深搜", isOn: $viewModel.useLazy2)
@@ -174,8 +182,23 @@ struct ContentView: View {
         let isLzfseX = viewModel.inputIsLzfseXArchive
         return GroupBox {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Files / 檔案")
-                    .font(.headline)
+                HStack(spacing: 12) {
+                    Text("Files / 檔案")
+                        .font(.headline)
+
+                    Spacer()
+
+                    Button("Reset / 重置") { viewModel.reset() }
+                        .disabled(viewModel.isProcessing)
+                    Button(action: { viewModel.process() }) {
+                        Label(
+                            viewModel.operation == .encode ? "Compress / 壓縮" : "Decompress / 解壓縮",
+                            systemImage: viewModel.operation == .encode ? "arrow.down.circle.fill" : "arrow.up.circle.fill"
+                        )
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!viewModel.canProcess || viewModel.isProcessing)
+                }
 
                 // Input
                 VStack(alignment: .leading, spacing: 8) {
@@ -258,21 +281,6 @@ struct ContentView: View {
                     InfoText("偵測到 lzfseX 壓縮包，將以 tar -xf - 解包（符合 extract() 行為）")
                 }
 
-                Divider()
-
-                HStack(spacing: 12) {
-                    Spacer()
-                    Button("Reset / 重置") { viewModel.reset() }
-                        .disabled(viewModel.isProcessing)
-                    Button(action: { viewModel.process() }) {
-                        Label(
-                            viewModel.operation == .encode ? "Compress / 壓縮" : "Decompress / 解壓縮",
-                            systemImage: viewModel.operation == .encode ? "arrow.down.circle.fill" : "arrow.up.circle.fill"
-                        )
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!viewModel.canProcess || viewModel.isProcessing)
-                }
             }
             .padding(8)
         }
@@ -410,6 +418,9 @@ class LZFSEViewModel: ObservableObject {
     @Published var useOptimal: Bool = false {
         didSet { if inputIsDirectory && operation == .encode { updateDirectoryOutputPath() } }
     }
+    @Published var useOptimal3: Bool = false {
+        didSet { if inputIsDirectory && operation == .encode { updateDirectoryOutputPath() } }
+    }
     @Published var inputFilePath: String?
     @Published var outputPath: String?
 
@@ -437,7 +448,7 @@ class LZFSEViewModel: ObservableObject {
     }
 
     private func isLzfseXArchive(_ path: String) -> Bool {
-        let lzfseXSuffixes = [".lzfse.bvx3.optimal", ".lzfse.bvx3.lazy2", ".lzfse.bvx3",
+        let lzfseXSuffixes = [".lzfse.other3.optimal3", ".lzfse.bvx3.optimal", ".lzfse.bvx3.lazy2", ".lzfse.bvx3",
                               ".lzfse.other3", ".lzfse.apple", ".lzfse"]
         return lzfseXSuffixes.contains { path.hasSuffix($0) }
     }
@@ -450,7 +461,7 @@ class LZFSEViewModel: ObservableObject {
         let algoFlag: String
         switch algorithm {
         case .apple:  algoFlag = "-algo apple"
-        case .other3: algoFlag = "-algo other3"
+        case .other3: algoFlag = useOptimal3 ? "-algo other3 -optimal3" : "-algo other3"
         case .bvx3:
             if useOptimal      { algoFlag = "-algo bvx3 -optimal" }
             else if useLazy2   { algoFlag = "-algo bvx3 -lazy2" }
@@ -594,7 +605,7 @@ class LZFSEViewModel: ObservableObject {
                 : inputURL.lastPathComponent + ".lzfse"
         } else {
             let name = inputURL.lastPathComponent
-            for suffix in [".lzfse.bvx3.optimal", ".lzfse.bvx3.lazy2", ".lzfse.bvx3",
+            for suffix in [".lzfse.other3.optimal3", ".lzfse.bvx3.optimal", ".lzfse.bvx3.lazy2", ".lzfse.bvx3",
                            ".lzfse.other3", ".lzfse.apple", ".lzfse"] {
                 if name.hasSuffix(suffix) {
                     return String(name.dropLast(suffix.count))
@@ -616,7 +627,7 @@ class LZFSEViewModel: ObservableObject {
         isProcessing = true
         hasError = false
         progressMessage = operation == .encode ? "Compressing... / 壓縮中..." : "Decompressing... / 解壓縮中..."
-        statusMessage = ""
+        statusMessage = progressMessage
 
         Task {
             do {
@@ -643,6 +654,7 @@ class LZFSEViewModel: ObservableObject {
                         parallelTasks: parallelTasks,
                         useLazy2: useLazy2,
                         useOptimal: useOptimal,
+                        useOptimal3: useOptimal3,
                         isDirectory: inputIsDirectory
                     )
                 } catch {
@@ -691,13 +703,15 @@ class LZFSEViewModel: ObservableObject {
         parallelTasks: Int,
         useLazy2: Bool,
         useOptimal: Bool,
+        useOptimal3: Bool,
         isDirectory: Bool
     ) async throws {
         if operation == .encode && isDirectory {
             try await performFolderEncode(
                 inputPath: inputPath, outputPath: outputPath,
                 algorithm: algorithm, parallelTasks: parallelTasks,
-                useLazy2: useLazy2, useOptimal: useOptimal)
+                useLazy2: useLazy2, useOptimal: useOptimal,
+                useOptimal3: useOptimal3)
         } else if operation == .decode && isLzfseXArchive(inputPath) {
             // extract() convention: lzfse | tar -xf - -C outputPath
             try await performFolderDecode(
@@ -708,7 +722,7 @@ class LZFSEViewModel: ObservableObject {
                 inputPath: inputPath, outputPath: outputPath,
                 operation: operation, algorithm: algorithm,
                 parallelTasks: parallelTasks, useLazy2: useLazy2,
-                useOptimal: useOptimal)
+                useOptimal: useOptimal, useOptimal3: useOptimal3)
         }
     }
 
@@ -721,7 +735,8 @@ class LZFSEViewModel: ObservableObject {
         algorithm: LZFSEAlgorithm,
         parallelTasks: Int,
         useLazy2: Bool,
-        useOptimal: Bool
+        useOptimal: Bool,
+        useOptimal3: Bool
     ) async throws {
         try await Task.detached(priority: .userInitiated) {
             let inputHandle = try FileHandle(forReadingFrom: URL(fileURLWithPath: inputPath))
@@ -747,7 +762,8 @@ class LZFSEViewModel: ObservableObject {
                     strong: true,
                     bvx3: algorithm == .bvx3,
                     lazy2: algorithm == .bvx3 && useLazy2 && !useOptimal,
-                    optimal: algorithm == .bvx3 && useOptimal)
+                    optimal: algorithm == .bvx3 && useOptimal,
+                    optimal3: algorithm == .other3 && useOptimal3)
 
             case (.decode, _):
                 switch LZFSEv1.decodeStreamFromFile(
@@ -786,7 +802,8 @@ class LZFSEViewModel: ObservableObject {
         algorithm: LZFSEAlgorithm,
         parallelTasks: Int,
         useLazy2: Bool,
-        useOptimal: Bool
+        useOptimal: Bool,
+        useOptimal3: Bool
     ) async throws {
         try await Task.detached(priority: .userInitiated) {
             // Build: tar -cf - -C <parent> <name> | lzfse -encode -si -o <output>
@@ -823,7 +840,8 @@ class LZFSEViewModel: ObservableObject {
                         strong: true,
                         bvx3: algorithm == .bvx3,
                         lazy2: algorithm == .bvx3 && useLazy2 && !useOptimal,
-                        optimal: algorithm == .bvx3 && useOptimal)
+                        optimal: algorithm == .bvx3 && useOptimal,
+                        optimal3: algorithm == .other3 && useOptimal3)
                 }
             } catch {
                 tarProcess.terminate()

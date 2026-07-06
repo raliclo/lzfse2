@@ -112,6 +112,7 @@ See **XCODE-SETUP.md** for detailed instructions.
 - Drag-and-drop ready (implementation provided)
 - Visual path display with auto-truncation
 - Clear/reset options
+- Compact file actions: Reset and Compress/Decompress live in the Files header row to reduce required window height
 
 ### 2. Decompression Folder Selection ✓
 - Choose output folder for decompressed files
@@ -128,6 +129,7 @@ See **XCODE-SETUP.md** for detailed instructions.
 
 **Manual Settings:**
 - **n (Parallel Tasks)**: 1-`processorCount × 10`, adjustable via text field
+- **Optimal3 Parsing**: Other3 encode option; uses `-algo other3 -optimal3` while keeping standard Apple-compatible output
 - **Lazy2 Mode**: Deep search for BVX3 (toggle)
 - **Optimal Parsing**: Maximum compression for BVX3 (toggle)
 
@@ -156,12 +158,12 @@ See **XCODE-SETUP.md** for detailed instructions.
 │                ● Other3                  │
 │                ○ BVX3                    │
 │  Options:      Parallel Tasks: 8 [±]    │
+│                ☐ Optimal3                │
 │                ☐ Lazy2                   │
 │                ☐ Optimal                 │
+│  Files:        [Reset] [Compress]        │
 │  Input:        [File Path] [Select]     │
 │  Output:       [File Path] [Select]     │
-│                                          │
-│  [Reset]               [Compress] ─────►│
 │                                          │
 │  Status: ✓ Success!                     │
 │  Input: 1.5 MB → Output: 456 KB         │

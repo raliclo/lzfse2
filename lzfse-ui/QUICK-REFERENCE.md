@@ -48,6 +48,7 @@ open "LZFSE_UI.app"
 |-----------|-------|-------|---------------|----------|
 | **Apple** | ★★★★☆ | ★★★☆☆ | ✓ Standard | You need compatibility |
 | **Other3** | ★★★☆☆ | ★★★★☆ | ✓ Standard | Balanced performance |
+| **Other3 + Optimal3** | ★★☆☆☆ | ★★★★★ | ✓ Standard | Better ratio while keeping Apple-compatible output |
 | **BVX3** | ★★☆☆☆ | ★★★★★ | ✗ Custom | Maximum compression |
 
 **Standard**: Can be decompressed by Apple tools and this app  
@@ -80,6 +81,11 @@ open "LZFSE_UI.app"
 - **Use when**: Maximum compression needed
 - **Note**: Overrides Lazy2
 
+### Optimal3 Parsing (Other3 only)
+- **Effect**: Better compression with standard Apple-compatible LZFSE output
+- **Speed impact**: slower than normal Other3
+- **Use when**: You want the best standard-format ratio without switching to private BVX3
+
 ---
 
 ## 💡 Quick Tips
@@ -95,7 +101,7 @@ Options: None
 ```
 Algorithm: Other3
 Parallel Tasks: 8-16
-Options: N/A
+Options: Enable "Optimal3 Parsing" when ratio matters more than speed
 ```
 
 ### For Maximum Compression (Custom Format)
@@ -217,7 +223,7 @@ The current `lzfse-ui.swift` implementation does not define custom shortcuts. St
 | Extension | Meaning |
 |-----------|---------|
 | `.lzfse` | Current UI default save suffix; currently routed as lzfseX archive during decode |
-| `.lzfse.apple`, `.lzfse.other3`, `.lzfse.bvx3*` | Recognized lzfseX archive suffixes |
+| `.lzfse.apple`, `.lzfse.other3`, `.lzfse.other3.optimal3`, `.lzfse.bvx3*` | Recognized lzfseX archive suffixes |
 | Other suffix | Can take the direct single-file decode path |
 
 **Tip**: the UI uses suffixes to decide whether to run the tar extraction pipeline.

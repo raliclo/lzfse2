@@ -52,51 +52,6 @@ private func copyToClipboard(_ text: String) {
     }
 }
 
-// WinUIBackend 的 showOpenDialog 只用 FileOpenPicker（僅能選檔案，忽略 allowSelectingDirectories），
-// 故資料夾選擇改用 Win32 SHBrowseForFolderW 自行實作。
-// WinUIBackend's showOpenDialog only uses FileOpenPicker (files only; it ignores
-// allowSelectingDirectories), so folder selection is implemented via Win32 SHBrowseForFolderW.
-//
-// 重要：SHBrowseForFolderW 是封鎖式 modal，若在 WinUI UI 執行緒（ASTA）直接呼叫，
-// 會在 ASTA 內開啟巢狀訊息迴圈而卡死。故改在獨立 STA 執行緒開對話框，
-// 完成後再以 Task { @MainActor } 跳回主執行緒更新狀態（UI 執行緒全程不被封鎖）。
-// IMPORTANT: SHBrowseForFolderW is a blocking modal. Calling it on the WinUI UI thread (ASTA)
-// spins a nested message loop and hangs. Run it on a dedicated STA thread, then hop back to the
-// MainActor via Task { @MainActor } to update state (the UI thread is never blocked).
-private func pickFolderWin32(title: String, completion: @escaping @MainActor (String?) -> Void) {
-    let thread = Thread {
-        // BIF_NEWDIALOGSTYLE 規定必須先 OleInitialize（不可用 CoInitialize 取代），
-        // 否則 SHBrowseForFolderW 會卡死。OleInitialize 亦會初始化 STA。
-        // BIF_NEWDIALOGSTYLE requires OleInitialize (CoInitialize is NOT sufficient), otherwise
-        // SHBrowseForFolderW hangs. OleInitialize also initializes the STA apartment.
-        _ = OleInitialize(nil)
-        defer { OleUninitialize() }
-
-        let titleW = Array(title.utf16) + [UInt16(0)]
-        var displayName = [WCHAR](repeating: 0, count: Int(MAX_PATH))
-        var picked: String? = nil
-        titleW.withUnsafeBufferPointer { tptr in
-            displayName.withUnsafeMutableBufferPointer { dptr in
-                var bi = BROWSEINFOW()
-                bi.pszDisplayName = dptr.baseAddress
-                bi.lpszTitle = tptr.baseAddress
-                bi.ulFlags = UINT(0x0001 | 0x0040)   // BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE
-                guard let pidl = SHBrowseForFolderW(&bi) else { return }
-                defer { CoTaskMemFree(UnsafeMutableRawPointer(pidl)) }
-                var pathBuf = [WCHAR](repeating: 0, count: Int(MAX_PATH))
-                let ok = pathBuf.withUnsafeMutableBufferPointer { pptr in
-                    SHGetPathFromIDListW(pidl, pptr.baseAddress)
-                }
-                if ok { picked = String(decoding: pathBuf.prefix(while: { $0 != 0 }), as: UTF16.self) }
-            }
-        }
-        let final = picked
-        Task { @MainActor in completion(final) }
-    }
-    thread.stackSize = 1 << 20
-    thread.start()
-}
-
 // 以 CREATE_NO_WINDOW 啟動命令列，避免 GUI 程式 spawn 主控台程式（cmd/tar/lzfse）時跳出主控台視窗。
 // 回傳子程序 exit code（-1 = 建立失敗）。輸出請在命令列以重導向寫入檔案。
 // Launch a command line with CREATE_NO_WINDOW so spawning console programs (cmd/tar/lzfse) from a
@@ -285,7 +240,6 @@ private func installTaskbarIconWhenReady() {
 }
 #else
 private func copyToClipboard(_ text: String) {}
-private func pickFolderWin32(title: String, completion: @escaping @MainActor (String?) -> Void) { completion(nil) }
 private func runHiddenProcess(_ commandLine: String) -> Int32 { -1 }
 private func installTaskbarIconWhenReady() {}
 #endif
@@ -300,7 +254,7 @@ enum LZFSEAlgorithm: String, CaseIterable {
 // lzfseX 命名慣例的副檔名（與 macOS 版 isLzfseXArchive 相同）
 // lzfseX naming-convention suffixes (same as the macOS isLzfseXArchive)
 private let lzfseXSuffixes = [
-    ".lzfse.bvx3.optimal", ".lzfse.bvx3.lazy2", ".lzfse.bvx3",
+    ".lzfse.other3.optimal3", ".lzfse.bvx3.optimal", ".lzfse.bvx3.lazy2", ".lzfse.bvx3",
     ".lzfse.other3", ".lzfse.apple", ".lzfse",
 ]
 
@@ -349,6 +303,7 @@ struct LZFSEWinApp: App {
     @State var parallelText: String = "8"
     @State var useLazy2: Bool = false
     @State var useOptimal: Bool = false
+    @State var useOptimal3: Bool = false
 
     @State var inputPath: String? = nil
     @State var outputPath: String? = nil
@@ -369,6 +324,7 @@ struct LZFSEWinApp: App {
     var isEncode: Bool { operationLabel == "Compress / 壓縮" }
     var algorithm: LZFSEAlgorithm { LZFSEAlgorithm(rawValue: algorithmLabel ?? "") ?? .other3 }
     var isBVX3: Bool { algorithm == .bvx3 }
+    var isOther3: Bool { algorithm == .other3 }
 
     var parallelTasks: Int {
         let n = Int(parallelText.trimmingCharacters(in: .whitespaces)) ?? 8
@@ -393,7 +349,7 @@ struct LZFSEWinApp: App {
             else if useLazy2 { algoFlag = "-algo bvx3 -lazy2" }
             else { algoFlag = "-algo bvx3" }
         } else {
-            algoFlag = "-algo other3"
+            algoFlag = useOptimal3 ? "-algo other3 -optimal3" : "-algo other3"
         }
         if isEncode {
             if inputIsDirectory {
@@ -506,6 +462,7 @@ struct LZFSEWinApp: App {
                 } else {
                     Text("Other3：強化比對，標準 LZFSE 格式 / enhanced matching, standard LZFSE format")
                         .foregroundColor(.gray)
+                    Toggle("Optimal3 / 最優解析", isOn: $useOptimal3)
                 }
             } else {
                 Text("Decompress mode auto-detects the format / 解壓縮模式自動偵測格式")
@@ -523,7 +480,15 @@ struct LZFSEWinApp: App {
 
     private var fileSection: some View {
         VStack(spacing: 12) {
-            Text("Files / 檔案").font(.system(size: 15)).foregroundColor(lzfseAccent)
+            HStack(spacing: 8) {
+                Text("Files / 檔案").font(.system(size: 15)).foregroundColor(lzfseAccent)
+
+                Spacer()
+
+                Button("Reset / 重置") { reset() }.disabled(isProcessing)
+                Button(isEncode ? "Compress / 壓縮" : "Decompress / 解壓縮") { process() }
+                    .disabled(!canProcess)
+            }
 
             // Input — 可編輯路徑 TextField，聯動 equivalentCommand 與實際執行
             // Editable path TextField; drives the equivalent command and the actual run
@@ -570,13 +535,6 @@ struct LZFSEWinApp: App {
                 }
             }
 
-            Divider()
-
-            HStack(spacing: 12) {
-                Button("Reset / 重置") { reset() }.disabled(isProcessing)
-                Button(isEncode ? "Compress / 壓縮" : "Decompress / 解壓縮") { process() }
-                    .disabled(!canProcess)
-            }
         }
         .lzfseCard()
     }
@@ -633,11 +591,17 @@ struct LZFSEWinApp: App {
 
     private func selectInput(directory: Bool) {
         if directory {
-            // 資料夾用 Win32 選擇器（backend 無法選資料夾）/ folders via Win32 (backend can't pick folders)
-            pickFolderWin32(title: "Select Folder / 選擇資料夾") { path in
-                guard let path else { return }
-                inputPath = path
-                if outputPath == nil { suggestOutput(for: path) }
+            // SwiftCrossUI develop: directories-only open dialog uses WinUI FolderPicker.
+            Task {
+                let url = await chooseFile(
+                    title: "Select Folder / 選擇資料夾",
+                    defaultButtonLabel: "Select / 選擇",
+                    allowSelectingFiles: false,
+                    allowSelectingDirectories: true
+                )
+                guard let url else { return }
+                inputPath = url.path
+                if outputPath == nil { suggestOutput(for: url.path) }
             }
         } else {
             Task {
@@ -665,9 +629,15 @@ struct LZFSEWinApp: App {
         } else {
             // 解碼輸出一律為資料夾（內容偵測決定 tar 解包或單檔輸出）
             // decode output is always a folder (content detection decides tar-extract vs single file)
-            pickFolderWin32(title: "Select Output Folder / 選擇輸出資料夾") { path in
-                guard let path else { return }
-                outputPath = path
+            Task {
+                let url = await chooseFile(
+                    title: "Select Output Folder / 選擇輸出資料夾",
+                    defaultButtonLabel: "Select / 選擇",
+                    allowSelectingFiles: false,
+                    allowSelectingDirectories: true
+                )
+                guard let url else { return }
+                outputPath = url.path
             }
         }
     }
@@ -707,10 +677,11 @@ struct LZFSEWinApp: App {
         guard let input = inputPath, let output = outputPath else { return }
         isProcessing = true
         hasError = false
-        statusMessage = ""
+        statusMessage = isEncode ? "Compressing... / 壓縮中..." : "Decompressing... / 解壓縮中..."
 
         let encode = isEncode
         let bvx3 = isBVX3
+        let optimal3 = isOther3 && useOptimal3
         let lazy2 = isBVX3 && useLazy2 && !useOptimal
         let optimal = isBVX3 && useOptimal
         let n = parallelTasks
@@ -730,7 +701,7 @@ struct LZFSEWinApp: App {
             do {
                 let note = try lzfsePerform(
                     input: input, output: output, encode: encode,
-                    bvx3: bvx3, lazy2: lazy2, optimal: optimal,
+                    bvx3: bvx3, lazy2: lazy2, optimal: optimal, optimal3: optimal3,
                     parallel: n, isDirectory: isDir)
                 let elapsed = Date().timeIntervalSince(start)
                 var m = "✓ Success! / 成功！\n"
@@ -790,14 +761,14 @@ private let windowsTarURL = URL(fileURLWithPath: "C:/Windows/System32/tar.exe")
 // Returns: a diagnostic note for decode (items extracted/warnings); nil for encode.
 private func lzfsePerform(
     input: String, output: String, encode: Bool,
-    bvx3: Bool, lazy2: Bool, optimal: Bool,
+    bvx3: Bool, lazy2: Bool, optimal: Bool, optimal3: Bool,
     parallel: Int, isDirectory: Bool
 ) throws -> String? {
     if encode {
         if isDirectory {
-            try lzfseFolderEncode(input: input, output: output, bvx3: bvx3, lazy2: lazy2, optimal: optimal, parallel: parallel)
+            try lzfseFolderEncode(input: input, output: output, bvx3: bvx3, lazy2: lazy2, optimal: optimal, optimal3: optimal3, parallel: parallel)
         } else {
-            try lzfseFileOperation(input: input, output: output, encode: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal, parallel: parallel)
+            try lzfseFileOperation(input: input, output: output, encode: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal, optimal3: optimal3, parallel: parallel)
         }
         return nil
     } else {
@@ -886,7 +857,7 @@ private func lzfseDecodeViaEquivalentCommand(input: String, outputFolder: String
 
 private func lzfseFileOperation(
     input: String, output: String, encode: Bool,
-    bvx3: Bool, lazy2: Bool, optimal: Bool, parallel: Int
+    bvx3: Bool, lazy2: Bool, optimal: Bool, optimal3: Bool, parallel: Int
 ) throws {
     let inputHandle = try FileHandle(forReadingFrom: URL(fileURLWithPath: input))
     defer { try? inputHandle.close() }
@@ -897,7 +868,7 @@ private func lzfseFileOperation(
     if encode {
         try runParallelEncode(
             input: inputHandle, output: outputHandle, inflight: parallel,
-            strong: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal)
+            strong: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal, optimal3: optimal3)
     } else {
         try decode(inputPath: input, output: outputHandle, parallel: parallel)
     }
@@ -930,7 +901,7 @@ private func decode(inputPath: String, output: FileHandle, parallel: Int) throws
 
 private func lzfseFolderEncode(
     input: String, output: String,
-    bvx3: Bool, lazy2: Bool, optimal: Bool, parallel: Int
+    bvx3: Bool, lazy2: Bool, optimal: Bool, optimal3: Bool, parallel: Int
 ) throws {
     guard FileManager.default.fileExists(atPath: windowsTarURL.path) else { throw LZFSEUIError.tarNotFound }
     let url = URL(fileURLWithPath: input)
@@ -955,7 +926,7 @@ private func lzfseFolderEncode(
     do {
         try runParallelEncode(
             input: inputHandle, output: outputHandle, inflight: parallel,
-            strong: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal)
+            strong: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal, optimal3: optimal3)
     } catch {
         TerminateProcess(launch.process, 1)
         CloseHandle(launch.thread)
@@ -986,7 +957,7 @@ private func lzfseFolderEncode(
     do {
         try runParallelEncode(
             input: inputHandle, output: outputHandle, inflight: parallel,
-            strong: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal)
+            strong: true, bvx3: bvx3, lazy2: lazy2, optimal: optimal, optimal3: optimal3)
     } catch {
         tar.terminate()
         throw error

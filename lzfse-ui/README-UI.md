@@ -11,10 +11,10 @@ Mirrors the behaviour of `lzfseX` and `extract()` from `zshrc.sh`.
 |---------|-------------|
 | **Compress files** | Single file → `.lzfse` with Apple / Other3 / BVX3 algorithm |
 | **Compress folders** | Entire directory → `<folder>.lzfse` via `tar \| lzfse`; equivalent command still shows selected algorithm flags |
-| **Decompress archives** | `.lzfse`, `.lzfse.apple`, `.lzfse.other3`, `.lzfse.bvx3*` suffixes are treated as lzfseX archives and extracted via `lzfse \| tar -xf -` |
+| **Decompress archives** | `.lzfse`, `.lzfse.apple`, `.lzfse.other3`, `.lzfse.other3.optimal3`, `.lzfse.bvx3*` suffixes are treated as lzfseX archives and extracted via `lzfse \| tar -xf -` |
 | **Decompress files** | Use a non-lzfseX suffix only when you need direct single-file decode |
 | **Auto-detect mode** | File suffix determines whether tar pipeline is used — no manual toggle |
-| **Algorithm selection** | Apple / Other3 / BVX3 (+ Lazy2 / Optimal flags for BVX3) |
+| **Algorithm selection** | Apple / Other3 / BVX3 (+ Optimal3 for Other3, Lazy2 / Optimal for BVX3) |
 | **Parallel tasks** | Configurable 1–`processorCount × 10` (default 8) |
 | **Status panel** | Always visible beside controls; shows sizes, ratio, elapsed time |
 | **Bilingual UI** | English + Traditional Chinese throughout |
@@ -90,6 +90,7 @@ Note: in the current implementation, `.lzfse` itself is included in the lzfseX s
 |-----------|------------------------|-------------|-------|---------------------|
 | Apple | `.lzfse` | Fast | Good | Apple Compression.framework for standard streams |
 | Other3 | `.lzfse` | Medium | Better | Standard bvx2; Apple-compatible |
+| Other3 + Optimal3 | `.lzfse` | Slow | Better than Other3 | Standard bvx2; Apple-compatible; parser flag only affects encode |
 | BVX3 | `.lzfse` | Slower | Best | This tool only |
 | BVX3 + Lazy2 | `.lzfse` | Slow | Better | This tool only; parser flag only affects encode |
 | BVX3 + Optimal | `.lzfse` | Slowest | Maximum | This tool only; parser flag only affects encode |
@@ -103,6 +104,7 @@ Note: in the current implementation, `.lzfse` itself is included in the lzfseX s
 | `.lzfse` | current UI default for file/folder encode | lzfseX tar extraction path in current UI suffix detection |
 | `.lzfse.apple` | `lzfseX … apple` | `extract()` → tar pipeline |
 | `.lzfse.other3` | `lzfseX … other3` | `extract()` → tar pipeline |
+| `.lzfse.other3.optimal3` | `lzfseX -algo other3 -optimal3` | `extract()` → tar pipeline |
 | `.lzfse.bvx3` | `lzfseX … bvx3` | `extract()` → tar pipeline |
 | `.lzfse.bvx3.lazy2` | `lzfseX … lazy2` | `extract()` → tar pipeline |
 | `.lzfse.bvx3.optimal` | `lzfseX … optimal` | `extract()` → tar pipeline |
@@ -112,6 +114,7 @@ Note: in the current implementation, `.lzfse` itself is included in the lzfseX s
 ## Performance Tips
 
 - **Parallel Tasks**: default 8 is balanced. Increase for large files, decrease for low RAM (2–4). The UI clamps the value to `1...processorCount × 10`.
+- **Optimal3**: available when encoding with Other3. It improves ratio while keeping the output in the standard Apple-compatible LZFSE format.
 - **Avoid compressing** already-compressed formats (JPEG, MP4, ZIP, zstd).
 - **Memory**: the status panel reports peak physical footprint for each operation. Actual memory depends on algorithm, parser mode, tar piping, decode fallback, and `n`.
 

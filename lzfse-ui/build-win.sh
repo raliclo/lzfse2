@@ -144,7 +144,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/raliclo/swift-cross-ui.git",
-            .upToNextMinor(from: "0.7.0")
+            branch: "develop"
         ),
     ],
     targets: [

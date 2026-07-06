@@ -7,8 +7,10 @@
 ## 功能
 
 - `other3` 是預設引擎，輸出標準 LZFSE 串流，可由 Apple Compression 與本工具解碼。
+- `other3 -optimal3` 是標準 LZFSE 格式的 DP 最優解析模式；壓縮率比一般 `other3` 更好，輸出仍維持 Apple 相容。
 - `apple` 在可用時使用 Apple `COMPRESSION_LZFSE` 實作。
 - `bvx3` 使用私有擴充區塊，具備較大的視窗與字母表。壓縮率可能更好，但只有本工具能解碼。
+- `bvx3 -lazy2` 與 `bvx3 -optimal` 是私有格式的高壓縮率 parser 模式，適合壓縮率優先的離線壓縮。
 - 解碼器接受所有支援的區塊型別，包含 Apple 產生的 LZFSE 串流。
 - 支援檔案、stdin/stdout 串流，以及內建往返與相容性測試。
 
@@ -30,6 +32,32 @@ swiftc -O lzfse-cli.swift -o lzfse
 
 `compile.sh` 也會將二進位檔複製到 `/opt/homebrew/bin`，因此該步驟可能需要本機寫入權限。
 
+## macOS 圖形介面（LZFSE_UI）
+
+macOS 版 UI 使用 SwiftUI，位於 `lzfse-ui/lzfse-ui.swift`，與 CLI 共用同一份 `lzfse-cli.swift` codec。
+
+**建置：**
+
+```sh
+cd lzfse-ui
+./build-ui.sh
+open "LZFSE_UI.app"
+```
+
+`build-ui.sh` 會從 `AppIcon.png` 產生 `AppIcon.icns`，放入 app bundle 並設定 `CFBundleIconFile=AppIcon`。手動編譯範例：
+
+```sh
+swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
+  -framework SwiftUI -target arm64-apple-macos13.0
+```
+
+macOS UI 目前提供 Apple / Other3 / BVX3，並支援：
+
+- Other3：`Optimal3 / 最優解析` → equivalent command 為 `-algo other3 -optimal3`
+- BVX3：`Lazy2` / `Optimal`
+- 檔案與資料夾壓縮、lzfseX tar stream 解包、Equivalent Command 顯示
+- 按下 Compress / Decompress 後，Status 會立即顯示 `Compressing... / 壓縮中...` 或 `Decompressing... / 解壓縮中...`
+
 ## Windows 圖形介面（LZFSE_UI_Win）
 
 以 SwiftCrossUI（WinUIBackend）打造的 Windows 圖形前端，對應 macOS 的 `lzfse-ui/lzfse-ui.swift`。它連結同一份 codec，並隨附 `lzfse.exe`。
@@ -41,6 +69,16 @@ cd lzfse-ui
 ./build-win.sh            # 或在檔案總管按兩下 build-win.bat
 # → lzfse-ui/release/LZFSE_UI_Win.zip （GUI app + 隨附 lzfse.exe）
 ```
+
+目前 Windows UI/build 的重點：
+
+- `build-win.sh` 會先建置 SwiftCrossUI app，再執行 `helper_windows/compile.bat` 取得最新 `lzfse.exe`，並打包進 `LZFSE_UI_Win.zip`。
+- SwiftCrossUI dependency 目前使用 `https://github.com/raliclo/swift-cross-ui.git` 的 `develop` branch，以取得新的 folder selection API。
+- Windows 版資料夾選擇已改用 SwiftCrossUI `chooseFile(... allowSelectingFiles: false, allowSelectingDirectories: true)`，由 WinUIBackend 的 `FolderPicker` 處理；不再使用自製 `SHBrowseForFolderW` helper。
+- UI 提供 `Optimal3 / 最優解析`（`-algo other3 -optimal3`）、BVX3 Lazy2 / Optimal、Equivalent Command、封裝的 `.\lzfse.exe` 解包命令。
+- `Reset / 重置` 與 Compress / Decompress 按鈕已移到 `Files / 檔案` 標題列右側，以降低視窗高度需求。
+- 按下 Compress / Decompress 後，Status 會立即顯示進行中狀態。
+- Windows exe/taskbar/File Explorer icon 使用與 macOS 相同的 `AppIcon.png` 來源。
 
 **自包含 CLI 包**（`lzfse.exe` + Swift runtime DLL，免裝 Swift 即可執行）：
 
@@ -59,7 +97,7 @@ cd helper_windows
 ```
 
 ```text
-Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal] [-si|-i input] [-so|-o output] [-test] [-h]
+Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal|-optimal3] [-si|-i input] [-so|-o output] [-test] [-h]
 ```
 
 使用預設 `other3` 引擎壓縮檔案：
@@ -73,6 +111,12 @@ Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal] [-si|-i
 ```sh
 ./lzfse -encode -algo apple -i input_file -o output_file.lzfse.apple
 ./lzfse -encode -algo bvx3 -i input_file -o output_file.lzfse.bvx3
+```
+
+使用標準 LZFSE 格式的 Optimal3 parser（Apple 相容，但壓縮較慢）：
+
+```sh
+./lzfse -encode -algo other3 -optimal3 -i input_file -o output_file.lzfse.other3.optimal3
 ```
 
 使用 `bvx3` 較高壓縮率 parser 模式壓縮 tar 串流：
@@ -105,6 +149,13 @@ tar -cf - input_dir | ./lzfse -encode -si -o input_dir.optimal.lzfse -algo bvx3 
 ```sh
 cat input_file | ./lzfse -encode -si -so > output_file.lzfse
 ./lzfse -decode -i input_file.lzfse -so > output_file
+```
+
+`-optimal3` 只是 **other3 encoder 的 parser / match selection 模式**。它使用 DP 最優解析改善壓縮比，但輸出仍是標準 LZFSE / bvx2 bitstream，因此解壓端與一般 `other3` 相同，不需要加 `-optimal3`：
+
+```bash
+./lzfse -encode -i a.tar -o a.lzfse.other3.optimal3 -algo other3 -optimal3
+./lzfse -decode -i a.lzfse.other3.optimal3 -so
 ```
 
 `-lazy2` 和 `-optimal` 只是 **bvx3 encoder 的 parser / match selection 模式**，不改 `bvx3` bitstream 格式。壓出來的檔案仍是 `bvx3` 私有格式，所以解壓時只需要指定 `-algo bvx3`：
@@ -163,8 +214,11 @@ lzfse -decode -i file.lzfse -debug -so 2>debug/decode_debug.txt | tar -xf - -C /
 | 引擎 | 輸出相容性 | 說明 |
 | --- | --- | --- |
 | `other3` | 標準 LZFSE | 預設。多核心、lazy matching，輸出可由 Apple 解碼。 |
+| `other3 -optimal3` | 標準 LZFSE | 標準格式內的 DP 最優解析；壓縮比優於 Other3，但 encode 較慢、RSS 較高。 |
 | `apple` | 標準 LZFSE | 使用 Apple Compression framework。 |
 | `bvx3` | 本工具私有格式 | 較大的視窗與字母表可提升壓縮率；Apple 無法解碼。 |
+
+`other3 -optimal3` 的定位是「標準相容格式內能做到的 optimal parse」。它不等同於 `bvx3 -optimal`：後者使用私有 bvx3 `encodeBlockV3`、更大的 match 長度與距離表達能力，因此壓縮比仍可明顯優於 Optimal3，但不具 Apple 相容性。
 
 `bvx3` 編碼時，`-lazy2` 與 `-optimal` 會選擇較慢但可能提升壓縮率的 parser 模式。它們不會建立不同的解碼格式；一般 `bvx3`、`bvx3 -lazy2`、`bvx3 -optimal` 產物都使用 `-algo bvx3` 解碼。
 
@@ -180,6 +234,9 @@ lzfse -decode -i file.lzfse -debug -so 2>debug/decode_debug.txt | tar -xf - -C /
 extract () {
     if [ -f "$1" ] ; then
         case "$1" in
+            *.lzfse.other3.optimal3) echo "lzfse -decode -i $1 -so -algo other3 | tar -xf - " ; lzfse -decode -i "$1" -so -algo other3 | tar -xf - ;;
+            *.lzfse.bvx3.optimal)   echo "lzfse -decode -i $1 -so -algo bvx3   | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3   | tar -xf - ;;
+            *.lzfse.bvx3.lazy2)     echo "lzfse -decode -i $1 -so -algo bvx3   | tar -xf - " ; lzfse -decode -i "$1" -so -algo bvx3   | tar -xf - ;;
             *.lzfse.bvx3)      echo "lzfse -decode -i $1 -so -algo bvx3   | tar -xf - " ; lzfse -decode -i $1 -so -algo bvx3   | tar -xf -  ;;
             *.lzfse.other3)    echo "lzfse -decode -i $1 -so -algo other3 | tar -xf - " ; lzfse -decode -i $1 -so -algo other3 | tar -xf -  ;;
             *.lzfse.apple)     echo "lzfse -decode -i $1 -so -algo apple  | tar -xf - " ; lzfse -decode -i $1 -so -algo apple  | tar -xf -  ;;
@@ -210,18 +267,22 @@ extract () {
 # 將檔案或目錄打成 tar 串流後，以 LZFSE 壓縮。
 lzfseX() {
     if [[ -z "$1" ]]; then
-        echo "Usage: lzfseX <file-or-directory> [apple|other3|bvx3]"
+        echo "Usage: lzfseX <file-or-directory> [apple|other3|optimal3|bvx3|lazy2|optimal]"
         return 1
     fi
 
     local algo="${2:-other3}"
     local extension="lzfse.other3"
+    local flags=("-algo" "$algo")
     [[ "$algo" == "apple" ]] && extension="lzfse.apple"
     [[ "$algo" == "bvx3" ]] && extension="lzfse.bvx3"
     [[ "$algo" == "other3" ]] && extension="lzfse.other3"
+    [[ "$algo" == "optimal3" ]] && extension="lzfse.other3.optimal3" && flags=("-algo" "other3" "-optimal3")
+    [[ "$algo" == "lazy2" ]] && extension="lzfse.bvx3.lazy2" && flags=("-algo" "bvx3" "-lazy2")
+    [[ "$algo" == "optimal" ]] && extension="lzfse.bvx3.optimal" && flags=("-algo" "bvx3" "-optimal")
 
-    echo tar -cf - "$1" "|" lzfse -encode -si -o "$1.$extension" -algo "$algo"
-    tar -cf - "$1" | lzfse -encode -si -o "$1.$extension" -algo "$algo"
+    echo tar -cf - -C "$(dirname "$1")" "$(basename "$1")" "|" lzfse -encode -si -o "$1.$extension" "${flags[@]}"
+    tar -cf - -C "$(dirname "$1")" "$(basename "$1")" | lzfse -encode -si -o "$1.$extension" "${flags[@]}"
 
     echo "--- 壓縮資訊 ---"
     du -sh "$1"
@@ -253,7 +314,32 @@ raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true, /Users/raliclo
 
 最新測試使用 `claw-code`（約 1351 MiB）與 `llama.cpp`（約 1261 MiB）兩組資料集，測試機器為 Mac mini，配備 Apple M4 10 核心 CPU、16 GB 記憶體與 256 GB 儲存空間。完整逐點資料位於 [`BenchMarkResult.csv`](BenchMarkResult.csv)，跨 n4 / n8 / n40 的最佳／最差點整理位於 [`best_points/best_points.csv`](best_points/best_points.csv) 與 [`best_points/best_points.md`](best_points/best_points.md)。
 
-以下數值來自目前的 best-points 分析。`log nX` 只表示 TGZ、Apple、TLZ4、ZSTD 的來源 log 批次，`-n` 不影響這些外部算法。Energy Ratio 以同輪、同資料集 TGZ CPU energy 為 `1.0000`；小於 1 代表比 TGZ 省 CPU energy，大於 1 代表較耗能。
+R42 Windows round 已補齊 `other3 -optimal3`，Windows 結果位於 [`helper_windows/bench_results_csv/BenchMarkResult-Win.csv`](helper_windows/bench_results_csv/BenchMarkResult-Win.csv)，跨平台合併比較位於 [`helper_windows/bench_results_csv/comparison.csv`](helper_windows/bench_results_csv/comparison.csv)。Windows 本輪 `-n 40` 表示單次 inflight chunk count；macOS `n=40` 是 40 次平均，兩者的測試語意不同，尤其 decode 寫檔路徑會受到 NTFS / bsdtar / file creation 成本影響。
+
+### R42 Mac / Windows 效能對照（n=40）
+
+下表摘自 `comparison.csv`。壓縮比以 TGZ 為 1.0000；數值越低代表檔案越小。Decode 為 write-to-file / tar extract 路徑，因此更接近 UI 實際解包體驗。
+
+| 資料集 | 格式 | Win Enc MB/s | Mac Enc MB/s | Win/Mac Enc | Win Dec MB/s | Mac Dec MB/s | Win/Mac Dec | Win 比率 | Mac 比率 | Verify |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| claw-code | Other3 | 296.96 | 339.49 | 0.875 | 152.19 | 402.20 | 0.378 | 0.9818 | 0.9865 | PASS |
+| claw-code | **Optimal3** | **47.11** | **62.85** | **0.750** | **150.96** | **435.87** | **0.346** | **0.9351** | **0.9401** | PASS |
+| claw-code | BVX3 | 289.21 | 371.09 | 0.779 | 150.93 | 410.21 | 0.368 | 0.9254 | 0.9492 | PASS |
+| claw-code | Optimal | 24.26 | 33.73 | 0.719 | 155.59 | 377.00 | 0.413 | 0.8274 | 0.8574 | PASS |
+| llama.cpp | Other3 | 182.44 | 87.49 | 2.085 | 30.25 | 80.41 | 0.376 | 0.9970 | 0.9957 | PASS |
+| llama.cpp | **Optimal3** | **66.00** | **64.07** | **1.030** | **28.79** | **83.85** | **0.343** | **0.9743** | **0.9731** | PASS |
+| llama.cpp | BVX3 | 178.34 | 87.79 | 2.031 | 28.55 | 77.59 | 0.368 | 0.9810 | 0.9787 | PASS |
+| llama.cpp | Optimal | 45.29 | 48.01 | 0.943 | 28.46 | 76.76 | 0.371 | 0.9412 | 0.9387 | PASS |
+
+重點：
+
+- `other3 -optimal3` 在 Windows 與 macOS 都通過 decode verify，輸出仍是標準 Apple-compatible LZFSE。
+- `claw-code` 上 Optimal3 相對 Other3 壓縮比改善約 4.75%（Windows：0.9818 → 0.9351），但 encode 速度約為 Other3 的 15.9%。
+- `llama.cpp` 上 Optimal3 改善較小，約 2.28%（Windows：0.9970 → 0.9743），但 Windows encode 與 Mac 幾乎相同（Win/Mac 1.03×）。
+- Windows decode write-to-file 明顯慢於 macOS（約 0.34–0.43×），主要反映本輪 Windows tar extraction / NTFS file creation 路徑，不代表 LZFSE decode core 單獨差距。
+- 若目標是最高壓縮率，`bvx3 -optimal` 仍優於 Optimal3；若目標是 Apple/標準 LZFSE 相容，Optimal3 是目前標準格式內的高壓縮率模式。
+
+以下長表來自既有 best-points 分析，用於保留完整 Mac RSS / CPU energy 脈絡；R42 `Optimal3` 的跨平台重點已列於上方表格，完整細節請見 [`OPTIMIZATION.md`](OPTIMIZATION.md) 的 R42-Mac / R42-Win 章節。`log nX` 只表示 TGZ、Apple、TLZ4、ZSTD 的來源 log 批次，`-n` 不影響這些外部算法。Energy Ratio 以同輪、同資料集 TGZ CPU energy 為 `1.0000`；小於 1 代表比 TGZ 省 CPU energy，大於 1 代表較耗能。
 
 ### 最新最佳點摘要
 

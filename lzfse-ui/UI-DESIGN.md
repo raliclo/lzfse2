@@ -72,12 +72,14 @@ Minimum window size: **800 × 650 pt**
 - Entire section disabled during Decompress
 - Contextual description updates per selection
 - BVX3 shows orange warning ("Only this tool can decompress")
+- Other3 encode mode shows `Optimal3 Parsing / 標準格式最優解析`; it passes `-algo other3 -optimal3` while keeping the output standard Apple-compatible LZFSE.
 - When a folder input is active, changing algorithm auto-updates the suggested output path (lzfseX extension convention)
 
 | Algorithm | Output format | Compatibility |
 |-----------|--------------|---------------|
 | Apple     | `.lzfse` from current UI save name | Apple Compression.framework |
 | Other3    | `.lzfse` from current UI save name | Standard bvx2 — Apple-compatible |
+| Other3 + Optimal3 | `.lzfse` from current UI save name | Standard bvx2 — Apple-compatible |
 | BVX3      | `.lzfse` from current UI save name | Custom large-alphabet blocks; this tool only |
 
 **Code**: `algorithmSection`
@@ -116,6 +118,7 @@ Output / 輸出: /Users/name/mydata.lzfse
 | Control | Condition | Description |
 |---------|-----------|-------------|
 | Parallel Tasks text field (1–`processorCount × 10`, default 8) | Always | Controls pipeline depth and memory usage |
+| Optimal3 Parsing toggle | Other3 encode only | DP/price-driven parsing for better ratio while preserving standard LZFSE output |
 | Lazy2 Mode toggle | BVX3 encode only | Deep hash-chain search; better ratio, slower |
 | Optimal Parsing toggle | BVX3 encode only | DP-based best ratio; slowest; disables Lazy2 |
 
@@ -167,10 +170,12 @@ Labels and button text update contextually:
 
 ---
 
-### 8. Action Buttons (full width)
+### 8. Action Buttons (inside Files header)
 **Elements**:
-- **Reset** (left): clears all selections; disabled while processing
-- **Compress / Decompress** (right, prominent): disabled until both input and output are set or while processing
+- **Reset**: clears all selections; disabled while processing
+- **Compress / Decompress**: disabled until both input and output are set or while processing
+
+**Layout note**: these buttons are placed on the right side of the `Files / 檔案` title row instead of a separate bottom row. This keeps the same actions visible while reducing the total window height required by the file section.
 
 **Code**: action buttons are inline in `fileSelectionSection`
 
@@ -184,6 +189,7 @@ All decompression follows `extract()` in `zshrc.sh`:
 *.lzfse.bvx3.optimal  →  lzfse | tar -xf - -C <dir>
 *.lzfse.bvx3.lazy2    →  lzfse | tar -xf - -C <dir>
 *.lzfse.bvx3          →  lzfse | tar -xf - -C <dir>
+*.lzfse.other3.optimal3 →  lzfse | tar -xf - -C <dir>
 *.lzfse.other3        →  lzfse | tar -xf - -C <dir>
 *.lzfse.apple         →  lzfse | tar -xf - -C <dir>
 *.lzfse               →  current UI treats this as lzfseX archive → lzfse | tar -xf - -C <dir>
@@ -207,6 +213,7 @@ Output naming follows the lzfseX extension convention:
 |-------------------|-----------------|
 | Apple | `.lzfse` |
 | Other3 | `.lzfse` |
+| Other3 + Optimal3 | `.lzfse` |
 | BVX3 | `.lzfse` |
 | BVX3 + Lazy2 | `.lzfse` |
 | BVX3 + Optimal | `.lzfse` |
@@ -280,7 +287,7 @@ ContentView (VStack)
         │   └── statusView (maxWidth .infinity)
         ├── fileSelectionSection
         ├── progressView (conditional)
-        └── action buttons inside fileSelectionSection
+        └── action buttons inside fileSelectionSection header
 ```
 
 ### State Management (LZFSEViewModel @MainActor)
@@ -291,6 +298,7 @@ ContentView (VStack)
 | `parallelTasks` | `Int` | 1–`processorCount × 10` (default 8) |
 | `useLazy2` | `Bool` | BVX3 flag; `didSet` updates dir output path |
 | `useOptimal` | `Bool` | BVX3 flag; `didSet` updates dir output path |
+| `useOptimal3` | `Bool` | Other3 flag; `didSet` updates dir output path |
 | `inputFilePath` | `String?` | nil = no selection |
 | `outputPath` | `String?` | file path (encode / plain decode) or dir path (lzfseX decode) |
 | `inputIsDirectory` | computed `Bool` | FileManager check |
