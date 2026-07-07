@@ -1,14 +1,5 @@
 [Info] Clean old trace packages / 清除舊 trace packages
 [Info] Build profile binary / 建立 profiling binary
-lzfse-cli.swift:3305:20: warning: will never be executed
-3302 |                 batch.append(g)
-3303 |             }
-3304 |             if misaligned {
-     |                `- note: condition always evaluates to false
-3305 |                 if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
-     |                    `- warning: will never be executed
-3306 |                 return wroteAny ? .error : .fallback
-3307 |             }
 [Info] Prepare tar input for claw-code / 建立供 -si 使用的 tar input
 [Info] Trace claw-code tgz -> ./trace/claw-code-tgz.trace
 Starting recording with the Time Profiler template. Launching process: tar. Time limit: 5.0 min

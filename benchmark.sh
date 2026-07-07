@@ -3,7 +3,6 @@ setopt NULL_GLOB
 
 
 source ./zshrc.sh
-source ./compile.sh
 
 # Step.1 初始化狀態與輸出路徑 / Initialize status and output paths.
 export ROUND_STATUS_FILE="${ROUND_STATUS_FILE:-round_status.txt}"

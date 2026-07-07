@@ -1,4 +1,4 @@
-# lzfse2 Optimization Report / Optimization Report
+# lzfse2 optimization report
 
 ## Note: The reason why IO and disk capacity will be sharply reduced is that .gitignore is not set, so VS CODE will automatically include these files in the temporary storage area of git, resulting in disk IO competition and capacity sharp reduction, so the files of future test temporary files need to be excluded by .gitignore.
 
@@ -10,48 +10,45 @@
 
 ---
 
-## Decode Command Reference / Decode Command Reference
+## Decompression command reference
 
 ```sh
-# 正常解壓 / Normal decode
+# 正常解壓
 lzfse -decode -i file.lzfse -so | tar -xf - -C /dest
 
 # Debug 模式：發生 overshoot / block 失敗時印詳細資訊到 stderr
-# Debug mode: prints overshoot / block failure details to stderr
 lzfse -decode -i file.lzfse -debug -so 2>debug/decode_debug.txt | tar -xf - -C /dest
 ```
 
 ---
 
-## Large-File Decode Correctness Verification (2026-06-24)/ Large-File Decode Correctness Verification
+## Large file decoding accuracy verification (2026-06-24)
 
 **Data set**: `proj_Win` (56 GB real data, including Mac .app, binary, GGUF and other heterogeneous content)
-**Dataset**: `proj_Win` (56 GB real-world data — Mac .app bundles, binaries, GGUF, etc.)
 
-**Process / Procedure**:
+**Process**:
 ```sh
-# 壓縮 / Compress
+# 壓縮
 tar -c -C /Volumes/Windows proj_Win \
   | lzfse -encode -si -o proj_Win.lzfse -algo other3 -n 100
 
-# 解壓 / Decompress
+# 解壓
 lzfse -decode -i proj_Win.lzfse -n 100 -so \
   | tar -xf - -C /Volumes/Windows/test/
 
-# 比對 / Diff
+# 比對
 diff -rq /Volumes/Windows/proj_Win /Volumes/Windows/test/proj_Win 2>/dev/null
 ```
 
-**Result / Result**: `DIFF_EXIT:0` — output-identical, zero difference.
+**Result**: `DIFF_EXIT:0` — output-identical, zero difference.
 
 > Remarks: The first round of diff showed that 57 files in `Mac_Apps/Codex.app` were different, because the app was automatically updated by the operating system after compression (compression time 02:04, Codex binary mtime 09:10). After recompressing in the latest state, the diff result is 0, and the decoding logic is confirmed to be correct.
-> Note: First diff showed 57 files differing inside `Codex.app` — caused by OS auto-update of the app after archiving. Re-compressing from current state produced `DIFF_EXIT:0`.
 
 ---
 
-## Compression Architecture / Compression Architecture
+## Description of compression architecture
 
-### Compression Ratio Contribution Sources / Compression Ratio Contribution Sources
+### Compression ratio contribution source
 
 The compression ratio is determined by two series stages: **LZ parse (match/literal cutting)** and **FSE entropy coding (symbol compression)**.
 
@@ -94,7 +91,7 @@ The larger window of bvx3 allows long-distance repetition to be matched, plus 3-
 
 ---
 
-### Overview of Compression Process Query Tables / Lookup Tables in Compression Pipeline
+### Overview of the compressed process query table
 
 #### I. LZ Match search table (Parse stage, dynamic per chunk)
 
@@ -170,32 +167,395 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
-# Pre-R42: LZFSE_Win_UI — Windows Graphical Interface and Packaging Toolchain (2026-06-27) / Pre-R42: LZFSE_Win_UI — Windows GUI & Packaging Toolchain
+# R43-Mac: swift_tar verification + NGResult code quality correction (2026-07-07)
+
+> **Goal**: Replace the system tar with the self-made multi-core tar tool `swift_tar` to verify the full compatibility of the benchmark pipeline ( `getar`, `power_benchmark`, `extract` decode pipeline). Synchronously correct the dead-code warning of the Swift `-O` compiler for the `misaligned` captured variable.
+
+## Changes in this round
+
+| Project | Description |
+|---|---|
+| **swift_tar combined flags** | swift_tar originally did not support `-czf`, `czf` (no-dash POSIX form) and other combined short flags, resulting in the failure of the benchmark. Correction: Expand combined flags at the entrance of `main()` to achieve full compatibility with the system tar. |
+| **run_round.command -swift_tar** | Add the opt-in flag; create PATH shim ( `tar → swift_tar`) when the flag is held, and let the sub-itinerary inherit the modified PATH with `sudo --preserve-env=PATH`; maintain the original behavior without the flag. |
+| **NGResult enum(lzfse-cli.swift)** | `nextGroup()` originally sent back the captured `var misaligned` back the truncated stream error; Swift `-O` SSA analyzed and tracked captured bool, and determined that `if misaligned` was always false in all achievable paths → warning: will never be executed. Correction: Let `nextGroup()` directly transmit back to `NGResult` ( `.group` / `.eof` / `.misaligned`), eliminate the side-channel captured variable, and change the caller to `innerLoop: switch`. |
+| **lzfse2 submodule registration** | Register swift_tar in git submodule ( `git@github.com:raliclo/swift_tar.git`) to lzfse2, no longer directly embedded in the directory. |
+
+## Verification
+
+- `TEST_OK` ( `lzfse -test` all passed, including round-trip verification after NGResult reconstruction).
+- Full R43-Mac round run: `BENCH_DONE 17:38:38`, zero failure.
+- swift_tar decode pipeline ( `lzfse -decode -so | tar -xf -`) compares all formats of the two data sets through `[Success] decompression content consistent with tgz`.
+
+## 1. Compression ratio and speed (n=40, two data sets)
+
+| Data Set | Format | Compression Ratio | Enc MB/s | Dec MB/s |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 310.83 | 396.15 |
+| claw-code | Other3 | 0.9812 | 550.38 | 599.68 |
+| claw-code | **Optimal3** | **0.9344** | **64.48** | **553.04** |
+| claw-code | Lazy2 | 0.8683 | 70.27 | 481.84 |
+| claw-code | Optimal | 0.8253 | 35.55 | 394.46 |
+| claw-code | BVX3 | 0.9244 | 540.22 | 500.02 |
+| claw-code | Apple | 0.9820 | 153.86 | 393.53 |
+| claw-code | TLZ4 | 1.1786 | 586.33 | 636.66 |
+| claw-code | ZSTD | 0.7805 | 429.27 | 559.66 |
+| llama.cpp | TGZ | 1.0000 | 243.69 | 138.41 |
+| llama.cpp | Other3 | 0.9965 | 247.42 | 140.43 |
+| llama.cpp | **Optimal3** | **0.9737** | **88.62** | **128.70** |
+| llama.cpp | Lazy2 | 0.9576 | 190.31 | 133.80 |
+| llama.cpp | Optimal | 0.9408 | 62.11 | 130.52 |
+|llama.cpp|BVX3|0.9810|405.01|135.99|
+| llama.cpp | Apple | 0.9994 | 169.01 | 125.34 |
+| llama.cpp | TLZ4 | 1.0535 | 363.08 | 131.00 |
+| llama.cpp | ZSTD | 0.9113 | 451.24 | 135.13 |
+
+> **Compared with R42-Mac**: Both encode and decode speeds have been significantly improved, mainly because swift_tar multi-core parallel replaces the system tar. For details, please refer to the comparison table below. The compression ratio of some formats (normalized to TGZ) has also improved slightly, which is speculated to be caused by swift_tar producing a slightly different tar byte stream (header/padding difference changes the repeated segment distribution of LZ window).
+
+## two Encode speed comparison: R42-Mac vs R43-Mac (n=40)
+
+> The acceleration effect of swift_tar varies according to the algorithm: **I/O intensive** (TGZ / Other3 / BVX3 / TLZ4 / ZSTD) benefits greatly from the acceleration of tar reading pipelines; **CPU intensive** (Optimal3 / Lazy2 / Optimal) compression itself is a bottleneck with limited acceleration.
+
+### claw-code (n=40)
+
+| Format | R42 Enc MB/s | R43 Enc MB/s | Change | Main Cause |
+| --- | ---: | ---: | ---: | --- |
+| TGZ | 47.56 | 310.83 | **+554%** | swift_tar multi-core gzip (vs system tar single-core) |
+| Other3 | 339.49 | 550.38 | +62% | tar input pipeline accelerates, encode traffic increases |
+| Optimal3 | 62.85 | 64.48 | +3% | CPU bound (DP analysis), tar acceleration has almost no effect |
+| Lazy2 | 62.50 | 70.27 | +12% | Slightly benefit, lazy parse is still a bottleneck |
+| Optimal | 33.73 | 35.55 | +5% | CPU bound (BVX3 DP) |
+| BVX3 | 371.09 | 540.22 | +46% | tar input pipeline acceleration |
+| Apple | 135.03 | 153.86 | +14% | Partial benefit |
+| TLZ4 | 390.15 | 586.33 | +50% | tar input pipeline acceleration |
+| ZSTD | 346.94 | 429.27 | +24% | tar input pipeline acceleration |
+
+### llama.cpp (n=40)
+
+| Format | R42 Enc MB/s | R43 Enc MB/s | Change | Main Cause |
+| --- | ---: | ---: | ---: | --- |
+| TGZ | 39.63 | 243.69 | **+515%** | swift_tar multi-core gzip |
+| Other3 | 87.49 | 247.42 | +183% | tar acceleration (llama.cpp a large number of small files, I/O accounts for a higher proportion) |
+| Optimal3 | 64.07 | 88.62 | +38% | Partial benefit, still CPU bound |
+| Lazy2 | 86.62 | 190.31 | +120% | After the tar I/O bottleneck is lifted, lazy parse makes full use of the CPU |
+| Optimal | 48.01 | 62.11 | +29% | CPU bound (BVX3 DP) |
+| BVX3 | 87.79 | 405.01 | +361% | tar input pipeline acceleration |
+| Apple | 67.39 | 169.01 | +151% | tar input pipeline acceleration |
+| TLZ4 | 87.17 | 363.08 | +317% | tar input pipeline acceleration |
+| ZSTD | 92.37 | 451.24 | +388% | tar input pipeline acceleration |
+
+## three. Peak RSS (Mac only, n=40)
+
+> TGZ uses swift_tar (full-file parallel read memory) in R43; RSS in other formats is the peak of the lzfse encode pipeline.
+
+| Data Set | Format | Encode RSS | Decode RSS |
+| --- | --- | ---: | ---: |
+| claw-code | TGZ | 2944.9 MB | 3196.4 MB |
+| claw-code | Other3 | 356.3 MB | 305.6 MB |
+| claw-code | **Optimal3** | **553.4 MB** | **323.3 MB** |
+| claw-code | Lazy2 | 495.9 MB | 324.2 MB |
+| claw-code | Optimal | 582.7 MB | 335.7 MB |
+| claw-code | BVX3 | 368.1 MB | 319.3 MB |
+| claw-code | Apple | 1356.3 MB | 470.0 MB |
+| claw-code | TLZ4 | 78.9 MB | 33.8 MB |
+| claw-code | ZSTD | 398.0 MB | 9.7 MB |
+| llama.cpp | TGZ | 2584.0 MB | 2728.6 MB |
+| llama.cpp | Other3 | 223.1MB | 349.6 MB |
+| llama.cpp | **Optimal3** | **554.1 MB** | **349.4 MB** |
+| llama.cpp | Lazy2 | 856.1 MB | 347.5 MB |
+| llama.cpp | Optimal | 614.5 MB | 347.9 MB |
+| llama.cpp | BVX3 | 235.3MB | 348.8 MB |
+| llama.cpp | Apple | 1089.8 MB | 592.2 MB |
+| llama.cpp | TLZ4 | 84.5MB | 33.8 MB |
+| llama.cpp | ZSTD | 490.4MB | 9.6MB |
+
+### Peak RSS comparison: R42 vs R43 (full format, n=40)
+
+> TGZ is in streaming mode (~4 MB) in R42 (system tar), and R43 (swift_tar) is in parallel full buffer mode (~2.9 GB); the two memory models are fundamentally different, not calculated by percentage, but marked with `†`.
+
+#### claw-code (n=40)
+
+| Format | R42 Enc RSS | R43 Enc RSS | Enc Changes | R42 Dec RSS | R43 Dec RSS | Dec Changes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 4.2 MB | 2944.9 MB | † | 3.7 MB | 3196.4 MB | † |
+| Other3 | 228.9 MB | 356.3 MB | **+56%** | 299.3 MB | 305.6 MB | +2% |
+| Optimal3 | 550.8 MB | 553.4 MB | +0.5% | 316.4 MB | 323.3 MB | +2% |
+| Lazy2 | 494.6MB | 495.9MB | +0.3% | 321.0MB | 324.2MB | +1% |
+| Optimal | 568.7 MB | 582.7 MB | +2.5% | 307.8 MB | 335.7 MB | +9% |
+| BVX3 | 250.4 MB | 368.1 MB | **+47%** | 324.8 MB | 319.3 MB | −2% |
+| Apple | 1367.7 MB | 1356.3 MB | −0.8% | 473.5 MB | 470.0 MB | −0.7% |
+| TLZ4 | 78.2 MB | 78.9 MB | +0.9% | 33.7 MB | 33.8 MB | +0.3% |
+| ZSTD | 371.2 MB | 398.0 MB | +7.2% | 9.3 MB | 9.7 MB | +4% |
+
+#### llama.cpp (n=40)
+
+| Format | R42 Enc RSS | R43 Enc RSS | Enc Changes | R42 Dec RSS | R43 Dec RSS | Dec Changes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 4.3 MB | 2584.0 MB | † | 3.8 MB | 2728.6 MB | † |
+| Other3 | 354.5 MB | 223.1 MB | **−37%** | 349.0 MB | 349.6 MB | 0% |
+| Optimal3 | 821.7 MB | 554.1 MB | **−33%** | 350.9 MB | 349.4 MB | 0% |
+| Lazy2 | 492.2 MB | 856.1 MB | **+74%** | 348.8 MB | 347.5 MB | 0% |
+| Optimal | 810.7 MB | 614.5 MB | **−24%** | 349.1 MB | 347.9 MB | 0% |
+| BVX3 | 355.4 MB | 235.3 MB | **−34%** | 351.5 MB | 348.8 MB | −0.8% |
+| Apple | 1285.5MB | 1089.8MB | **−15%** | 596.5 MB | 592.2 MB | −0.7% |
+| TLZ4 | 82.8MB | 84.5 MB | +2% | 33.8 MB | 33.8 MB | 0% |
+| ZSTD | 463.8 MB | 490.4 MB | +5.8% | 9.2 MB | 9.6 MB | +4% |
+
+> **Enc RSS Law**:
+> - **claw-code** (a small number of large files): I/O intensive format (Other3 +56%, BVX3 +47%) RSS increases, because swift_tar multi-core holds a large file buffer at the same time; CPU bound format (Optimal3 +0.5%, Lazy2 +0.3%) is almost unchanged (DP work set is independent of tar speed).
+> - **llama.cpp** (a large number of small files): RSS in most formats decreased (Other3 −37%, Optimal3 −33%, BVX3 −34%, Optimal −24%, Apple −15%), because the pipe is more coherent after swift_tar batch packaging small files, reducing the in-flight buffer of lzfse; exception: Lazy2 +74%, it is speculated that the higher input rate of swift_tar makes lazy parse hold a larger sliding window.
+> - **Dec RSS** There is almost no change in the two rounds (the decoding path is not affected by tar practice).
+
+## four. CPU Energy (Mac only, n=40)
+
+| Data Set | Format | Enc J | Enc J/TGZ |
+| --- | --- | ---: | ---: |
+| claw-code | TGZ | 104.96 | 1.0000 |
+| claw-code | Other3 | 43.82 | 0.4175 |
+| claw-code | **Optimal3** | **513.65** | **4.8939** |
+| claw-code | Lazy2 | 277.61 | 2.6450 |
+| claw-code | Optimal | 797.79 | 7.6012 |
+| claw-code | BVX3 | 45.74 | 0.4358 |
+| claw-code | Apple | 110.60 | 1.0538 |
+| claw-code | TLZ4 | 44.06 | 0.4198 |
+| claw-code | ZSTD | 52.26 | 0.4979 |
+| llama.cpp | TGZ | 100.79 | 1.0000 |
+| llama.cpp | Other3 | 34.15 | 0.3388 |
+| llama.cpp | **Optimal3** | **347.82** | **3.4509** |
+| llama.cpp | Lazy2 | 101.88 | 1.0108 |
+| llama.cpp | Optimal | 462.73 | 4.5909 |
+| llama.cpp | BVX3 | 36.48 | 0.3619 |
+| llama.cpp | Apple | 85.05 | 0.8438 |
+| llama.cpp | TLZ4 | 41.07 | 0.4075 |
+| llama.cpp | ZSTD | 33.62 | 0.3335 |
+
+### CPU Energy Comparison: R42 vs R43 (full format, n=40)
+
+#### claw-code (n=40)
+
+| Format | R42 Enc J | R43 Enc J | Enc J Change | R42 J/TGZ | R43 J/TGZ | J/TGZ Change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 157.43 | 104.96 | **−33%** | 1.0000 | 1.0000 | — |
+| Other3 | 28.16 | 43.82 | +56% | 0.1789 | 0.4175 | **+133%** |
+| Optimal3 | 370.85 | 513.65 | +38% | 2.3557 | 4.8939 | **+108%** |
+| Lazy2 | 119.63 | 277.61 | **+132%** | 0.7599 | 2.6450 | **+248%** |
+| Optimal | 529.30 | 797.79 | +51% | 3.3623 | 7.6012 | **+126%** |
+| BVX3 | 30.82 | 45.74 | +48% | 0.1958 | 0.4358 | **+123%** |
+| Apple | 42.65 | 110.60 | **+159%** | 0.2709 | 1.0538 | **+289%** |
+| TLZ4 | 30.21 | 44.06 | +46% | 0.1919 | 0.4198 | **+119%** |
+| ZSTD | 38.01 | 52.26 | +37% | 0.2414 | 0.4979 | **+106%** |
+
+#### llama.cpp (n=40)
+
+| Format | R42 Enc J | R43 Enc J | Enc J Change | R42 J/TGZ | R43 J/TGZ | J/TGZ Change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 166.52 | 100.79 | **−39%** | 1.0000 | 1.0000 | — |
+| Other3 | 18.38 | 34.15 | +86% | 0.1103 | 0.3388 | **+207%** |
+| Optimal3 | 289.48 | 347.82 | +20% | 1.7384 | 3.4509 | **+99%** |
+| Lazy2 | 47.33 | 101.88 | **+115%** | 0.2842 | 1.0108 | **+255%** |
+| Optimal | 359.50 | 462.73 | +29% | 2.1589 | 4.5909 | **+113%** |
+| BVX3 | 26.97 | 36.48 | +35% | 0.1620 | 0.3619 | **+123%** |
+| Apple | 35.98 | 85.05 | **+136%** | 0.2161 | 0.8438 | **+291%** |
+| TLZ4 | 34.55 | 41.07 | +19% | 0.2075 | 0.4075 | **+96%** |
+| ZSTD | 24.21 | 33.62 | +39% | 0.1454 | 0.3335 | **+129%** |
+
+> **Interpretation**:
+> - **TGZ**: R43 absolute energy consumption ** decreased** −33%～−39%: Although swift_tar starts multi-core, the encode time is shortened from ~28s to ~4.6s (claw-code), and the total energy consumption is still reduced.
+> - **Apple**: The largest increase (+136%～+159%): R42 encode has a large number of I/O waiting, R43 CPU is fully charged throughout the whole process, and the energy consumption increases significantly.
+> - **Lazy2**: The second increase (+115%～+132%): lazy parse I/O stall disappears under faster pipe input, and the CPU time is greatly increased.
+> - **J/TGZ ratio** All-round increase (+96%~+291%): TGZ has become a stricter benchmark due to the sharp reduction in swift_tar gzip parallel energy consumption, and the relative ratio of all other formats has therefore increased.
+
+## five. Best Points (Optimal3, all n)
+
+| Data Set | Best Compression Ratio | Best Enc MB/s | Best Dec MB/s | Lowest Enc RSS | Highest Enc RSS | Lowest Enc J | Highest Enc J |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.9344 ( `n4`) | 64.48 ( `n40`) | 565.15 ( `n8`) | 212.0 MB ( `n4`) | 553.4 MB ( `n40`) | 513.65 ( `n40`) | 722.83 ( `n4`) |
+| llama.cpp | 0.9737 ( `n4`) | 88.62 ( `n40`) | 128.70 ( `n40`) | 220.1 MB ( `n4`) | 554.1 MB ( `n40`) | 347.82 ( `n40`) | 501.50 ( `n4`)
+
+---
+
+# R42-Mac: other3 -optimal3 DP Optimal Analysis Introduction (2026-07-05)
+
+> Add `lzParseOptimal2`: and bvx3's `lzParseOptimal` The same set of segmented DP optimal analysis mechanism (hash chain frontier, entropy pre-screening, search budget all follow the same set of constants), but change the L/M/D symbol table of the standard LZFSE ( `lBaseValue` / `mBaseValue` / `dBaseValue`, instead of bvx3 merged `lm3` Table) and the smaller upper limit ( `maxLValue` / `maxMValue` / `maxDValue`), through the new flag `-optimal3` Connect `-algo other3`.
+> The output is still the standard bvx2 (with the existing `encodeBlock`), which can be solved by Apple and any compatible decoder - this is the biggest difference from bvx3-optimal: bvx3-optimal sacrifices compatibility for compression rate, and other3-optimal3 has both.
+> Execute `-n 40 / 8 / 4` three batches of complete benchmark + tracer/CPU/power full-process integration for claw-code / llama.cpp.
+
+## Optimize the strategy
+
+| Project | Description |
+|---|---|
+| **KERNEL CHANGE** | NEW `lzParseOptimal2`, THE DP MECHANISM IS THE SAME AS `lzParseOptimal`, AND THE SYMBOL TABLE AND UPPER LIMIT ARE CHANGED TO THE STANDARD FORMAT |
+| **Single rep (key difference)** | The standard format only has a single discount of "the same distance as the previous one" ( `encodeBlock`'s `dPrev`→`d=0` conversion), non-bvx3's 3 deep rep-offset; DP only needs to track one `rep0`, saving 3 slots MTF logic |
+| **M / D symbol table** | M with independent `mBaseValue` / `mExtraBits` (20 symbols), D with `dBaseValue` / `dExtraBits` (64 symbols) - non-bvx3 combined `lm3` (22 symbols) / `d3` (80 symbols) table |
+| **L Pricing** | Follow the floating constant `matchConst=80` (approximimate to the `lzParseOptimal` scale, which can be measured and adjusted in the future) |
+| **Compatibility** | Output `encodeBlock` (standard bvx2), non- `encodeBlockV3`; Apple Compression framework can be directly solved |
+| **CLI** | `-optimal3` (only `-algo other3` is effective, the rest of the algo ignores and prompts); the decode end does not need any flags, which is the same as the general other3 |
+
+## Verification
+
+- Built-in `-test` passed all numbers (including cross-segment match return test), added `other3 -optimal3 self-round-trip', ` parallel decoding `, `→ Apple decoding ` three checks, all of which are output-identical and bitstream can be correctly decoded by Apple ` compression_decode_buffer`.
+- The actual machine is verified by claw-code tar (about 460 MB): This tool decoding and Apple decoding are exactly the same as the original data `cmp`.
+- The whole R42-Mac round (tracer, power benchmark, CPU call tree, `BenchMarkResult.csv` reconstruction, `best_points`, Win/Mac comparison report, md-translate) finished, `TEST_OK`, `BENCH_DONE`, zero failure.
+
+## 1. Compression ratio and speed (n=40, two data sets)
+
+| Data Set | Format | Compression Ratio | Enc MB/s | Dec MB/s |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 47.56 | 392.56 |
+| claw-code | Other3 | 0.9865 | 339.49 | 402.20 |
+| claw-code | **Optimal3** | **0.9401** | **62.85** | **435.87** |
+| claw-code | BVX3 (private format reference) | 0.9492 | 371.09 | 410.21 |
+| claw-code | BVX3-Optimal (private format reference) | 0.8574 | 33.73 | 377.00 |
+| llama.cpp | TGZ | 1.0000 | 39.63 | 88.65 |
+| llama.cpp | Other3 | 0.9957 | 87.49 | 80.41 |
+| llama.cpp | **Optimal3** | **0.9731** | **64.07** | **83.85** |
+| llama.cpp | BVX3 (private format reference) | 0.9787 | 87.79 | 77.59 |
+| llama.cpp | BVX3-Optimal (private format reference) | 0.9387 | 48.01 | 76.76 |
+
+> **Key points**: The compression ratio of Optimal3 (0.9401) on claw-code is better than that of private format BVX3 (0.9492), at the cost of ~18.5% of the encode speed to Other3 (62.85 vs 339.49 MB/s); the decode speed is no different from Other3 (the same bvx2 decoding path). The improvement of llama.cpp (low repetition rate data) is relatively small (0.9957→0.9731, about -2.3%).
+
+## two Peak RSS (Mac only, n=40)
+
+| Data Set | Format | Encode RSS | Decode RSS |
+| --- | --- | ---: | ---: |
+| claw-code | Other3 | 228.9 MB | 299.3 MB |
+| claw-code | **Optimal3** | **550.8 MB** | **316.4 MB** |
+| llama.cpp | Other3 | 354.5 MB | 349.0 MB |
+| llama.cpp | **Optimal3** | **821.7 MB** | **350.9 MB** |
+
+> The encode RSS of Optimal3 is about 2.3–2.4× higher than that of Other3. The cell array from the segmented DP and the frontier storage area (consistent with the memory characteristics of bvx3-optimal); decode RSS is the same as Other3 (the decoding logic is completely shared).
+
+## three. CPU Energy (Mac only, n=40)
+
+| Data Set | Format | Enc J | Enc J/TGZ |
+| --- | --- | ---: | ---: |
+| claw-code | Other3 | 28.16 | 0.1789 |
+| claw-code | **Optimal3** | **370.85** | **2.3557** |
+| llama.cpp | Other3 | 18.38 | 0.1104 |
+| llama.cpp | **Optimal3** | **289.48** | **1.7384** |
+
+> Energy consumption increases in proportion with speed (DP is CPU-bound), which is similar to the energy consumption level of bvx3-optimal (the same strategy of "compression rate priority, speed/energy consumption second"). Decode energy n=40 The sampling coverage rate is insufficient and will not be included in this round of comparison.
+
+## four. Best Points (Optimal3, all n)
+
+| Data Set | Best Compression Ratio | Best Enc MB/s | Best Dec MB/s | Lowest Enc RSS | Highest Enc RSS | Lowest Enc J | Highest Enc J |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.9401 ( `n4`) | 62.85 ( `n40`) | 440.72 ( `n8`) | 190.0 MB ( `n4`) | 550.8 MB ( `n40`) | 370.85 ( `n40`) | 533.01 ( `n4`) |
+| llama.cpp | 0.9731 ( `n4`) | 64.07 ( `n40`) | 83.85 ( `n40`) | 221.7 MB ( `n4`) | 821.7 MB ( `n40`) | 289.48 ( `n40`) | 419.46 ( `n4`)|
+
+> The compression ratio is not affected in each n (DP analysis has nothing to do with block parallelism), and the optimal value appears in `n4`; the speed/RSS/energy consumption becomes worse with the increase of `-n` (parallelism), which is consistent with the existing law of Other3/Lazy2/Optimal (higher parallelism = more coding context that survives at the same time).
+
+## To be done
+
+- Windows round has been completed in **R42-Win (2026-07-05)**, `helper_windows/run_round.bat` is complete, and `LZFSE (Optimal3)` is no longer `Windows result missing` (see the next section).
+- `matchConst` (L symbol spread constant) follows the approximate value of bvx3-optimal, which has not been adjusted individually for the smaller L/M upper limit of the standard format. In the future round, the actual measurement ratio of claw-code/llama.cpp can be converged.
+
+---
+
+# R42-Win: other3 -optimal3 Windows round Completion (2026-07-05)
+
+> Run `helper_windows/run_round.bat` on Windows to complete the missing `other3 -optimal3` Windows test after R42-Mac.
+> This round includes: `lzfse.exe -test`, encode-to-file, encode-to-nul, decode-to-file, decode-to-nul, RSS probe, `BenchMarkResult-Win.csv` and Win/Mac `comparison.csv` reconstruction.
+> Test data set: `claw-code`, `llama.cpp`; Windows `-n 40` means inflight chunk count (single time), macOS `n=40` is an average of 40 times.
+
+## Verification
+
+- `run_round.bat` exit code 0, `windows_round_status.txt` ends with `DONE 19:01:23`.
+- `lzfse.exe -test` passed all, and the new `other3 -optimal3` self-round-trip and parallel decoding passed.
+- `encode_summary.csv`: 32 rows.
+- `decode_summary.csv`: 32 rows.
+- `BenchMarkResult-Win.csv`: 16 rows.
+- `comparison.csv`: 8 rows for each dataset, including `LZFSE (Optimal3)`.
+- All Windows decode verify is `PASS`.
+
+> **Correction record (2026-07-05 supplementary test)**: `helper_windows/decode-win.bat`'s
+> `decodeOptimal3` BLOCK ORIGINALLY FOLLOWED THE OLD `:appendFileSize` (RECORD COMPRESSED FILE SIZE), AND THE REMAINING 7 FORMATS HAVE BEEN CORRECTED IN THE SAME ROUND TO
+> `:appendDecodedFolderSize` (record the actual decompression folder size). This makes the decode MB/s of `LZFSE (Optimal3)` misuse Mac.
+> Terminal `raw_size_mib` estimate, not the decompression size of Windows actual measurement; `comparison_win.py`'s `compute_win_decode_speed`
+> There is also the same problem (Mac `raw_mb` is used in all formats, and `decoded_bytes` is not read). Both have been corrected, and the two data sets have been re-executed.
+> decode benchmark (nul + file mode) and `comparison.csv` reconstruction. The following numbers in Sections 1–3 are the revised results; decode timing
+> There is a run-to-run mutation itself (especially the file mode, see the R41 bsdtar/NTFS bottleneck chapter), so except for Optimal3, the rest of the formats
+> decode MB/s is also slightly different from the first version of this section, which does not mean that the algorithm itself has changed.
+
+## 1. Windows actual test results (n=40 inflight, corrected / corrected)
+
+| Data Set | Format | Win Compression Ratio | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS | Verify |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| claw-code | TGZ | 1.0000 | 33.92 | 145.90 | 6.4 MB | 6.2 MB | PASS |
+| claw-code | Other3 | 0.9818 | 296.96 | 152.19 | 131.7 MB | 247.0 MB | PASS |
+| claw-code | **Optimal3** | **0.9351** | **47.11** | **150.96** | **496.7 MB** | **244.9 MB** | PASS |
+| claw-code | BVX3 | 0.9254 | 289.21 | 150.93 | 139.0 MB | 245.6 MB | PASS |
+| claw-code | Lazy2 | 0.8704 | 51.55 | 154.04 | 484.4 MB | 242.5 MB | PASS |
+| claw-code | Optimal | 0.8274 | 24.26 | 155.59 | 513.3 MB | 240.7 MB | PASS |
+| claw-code | TLZ4 | 1.1739 | 258.08 | 208.76 | 8.3 MB | 8.3 MB | PASS |
+| claw-code | ZSTD | 0.7813 | 146.12 | 186.81 | 8.8MB | 8.3 MB | PASS |
+| llama.cpp | TGZ | 1.0000 | 38.32 | 21.54 | 6.6 MB | 7.0 MB | PASS |
+| llama.cpp | Other3 | 0.9970 | 182.44 | 30.25 | 145.9 MB | 346.1 MB | PASS |
+| llama.cpp | **Optimal3** | **0.9743** | **66.00** | **28.79** | **758.9 MB** | **346.0 MB** | PASS |
+| llama.cpp | BVX3 | 0.9810 | 178.34 | 28.55 | 180.4MB | 346.3 MB | PASS |
+| llama.cpp | Lazy2 | 0.9576 | 126.49 | 28.43 | 659.3 MB | 345.9 MB | PASS |
+| llama.cpp | Optimal | 0.9412 | 45.29 | 28.46 | 741.3 MB | 346.4 MB | PASS |
+| llama.cpp | TLZ4 | 1.0503 | 154.57 | 30.59 | 8.3MB | 8.8 MB | PASS |
+| llama.cpp | ZSTD | 0.9123 | 145.30 | 30.05 | 8.3MB | 8.3 MB | PASS |
+
+## two Optimal3 Key Points
+
+| Data Set | Other3 Ratio | Optimal3 Ratio | Ratio Improvement | Other3 Enc | Optimal3 Enc | Optimal3/Other3 Enc | Other3 Dec | Optimal3 Dec |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.9818 | 0.9351 | -4.75% | 296.96 MB/s | 47.11 MB/s | 15.9% | 152.19 MB/s | 150.96 MB/s |
+| llama.cpp | 0.9970 | 0.9743 | -2.28% | 182.44 MB/s | 66.00 MB/s | 36.2% | 30.25 MB/s | 28.79 MB/s |
+
+> **Conclusion**: `other3 -optimal3` on Windows has been verified, decode all PASS, and still output standard compatible with bvx2 bitstream.
+> The compression ratio is significantly improved compared with Other3: claw-code is about -4.75%, and llama.cpp is about -2.28%. The price is that the encode speed and RSS: Optimal3 encode RSS is close to the DP path such as bvx3-optimal/lazy2, which belongs to the "compression rate priority" model; the decode speed/RSS is the same as the other3 (the gap is <1–5%), which is in line with the expectation of the shared bvx2 decode path.
+
+## 2a. Why is the compression ratio of Optimal3 and Optimal still much worse?
+
+The main difference between `Optimal3` and `Optimal` is not DP search ability, but **output format expression ability**:
+
+- `Optimal3` = `other3 -optimal3`: Use `lzParseOptimal2` for segmented DP optimal analysis, but the output still follows the standard LZFSE/bvx2 `encodeBlock`, must use the standard `lBaseValue` / `mBaseValue` / `dBaseValue` table, and be limited by `maxLValue=315`, `maxMValue=2359`, `maxDValue=262139` (about 256 KB).
+- `Optimal` = `bvx3 -optimal`: Using Private bvx3 `encodeBlockV3`, L/M Merged `lm3BaseValue` / `lm3ExtraBits` Table, The Match Length Can Be To `maxM3=69947`, And The Distance Can Also Cover The Entire 4 MB chunk Level; Therefore, Long Match, Long-Distance Repetition And A Large Number Of Similar Files Can Be Expressed With Fewer Tokens.
+- `Optimal3` retains Apple-compatible standard bitstream; `Optimal` sacrifices Apple compatibility for stronger L/M/D expression ability.
+
+| Data Set | Optimal3 Ratio | Optimal Ratio | Main Cause of Gap |
+| --- | ---: | ---: | --- |
+| claw-code | 0.9351 | 0.8274 | There are many duplicates in the code/directory structure, and the advantages of bvx3 long match and long-distance match are obvious |
+| llama.cpp | 0.9743 | 0.9412 | The repetition rate is low, and the format ability gap still exists but the magnitude is smaller |
+
+> Therefore, the positioning of `Optimal3` is "the optimal parse that can be done within the standard compatible format", not a replacement for the compression ratio of `bvx3 -optimal`.
+> If the target is Apple/standard LZFSE compatible, `Optimal3` is a reasonable path with an upper limit; if the goal is the highest compression rate, the private `bvx3 -optimal` still has a format hierarchy advantage.
+
+## three. Win/Mac comparison
+
+| Data Set | Format | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | Optimal3 | 47.11 | 62.85 | 0.750 | 150.96 | 435.87 | 0.346 |
+| llama.cpp | Optimal3 | 66.00 | 64.07 | 1.030 | 28.79 | 83.85 | 0.343 |
+
+> Windows Optimal3 encode on `claw-code` is about 75% of Mac; Windows encode on `llama.cpp` is close to Mac (1.03×).
+> Decode-end Windows is slower (about 0.34–0.35×), which is related to this round of Windows write-to-file/tar extraction path and NTFS/bsdtar I/O cost (see R41 bsdtar/NTFS bottleneck chapter).
+
+---
+
+# Pre-R42: LZFSE_Win_UI - Windows Graphical Interface and Packaging Tool Chain (2026-06-27)
 
 > Infrastructure round (non-algorithmization): add Windows GUI front-end and self-contained packaging process for lzfse.
 > **The compression/decoding algorithm has not been changed** - The codec target (prefetch chain entries) of R42 is not affected.
-> Infrastructure round (not an algorithm optimization): adds a Windows GUI frontend and
-> self-contained packaging. **No change to the compression/decode algorithms** — the R42 codec
-> target (prefetch chain entries) is unaffected.
 
-## Output / Deliverables
+## Output
 - `lzfse-ui/lzfse-ui-win.swift` - SwiftCrossUI (WinUIBackend) GUI, corresponding to `lzfse-ui/lzfse-ui.swift` of macOS.
 Directly import codec ( `build-win.sh` remove `runCLI()` with `grep -v` and compile into the same target together).
-SwiftCrossUI GUI mirroring the macOS `lzfse-ui.swift`; links the codec directly.
 - `lzfse-ui/build-win.sh` + `build-win.bat` → `lzfse-ui/release/LZFSE_UI_Win.zip` (GUI app + attached `lzfse.exe`).
 - `helper_windows/build-cli-win.sh` + `build-cli-win.bat` → `helper_windows/release/lzfse-cli.zip`
 ( `lzfse.exe` + 32 Swift runtime DLL, can run without installing Swift / self-contained, runs without Swift installed).
 - `lzfse-ui/screenshot-win.bat`, `lzfse-ui/README-UI-Win.md`.
 
-## codec change: Swift 6 strict parallel compatibility (pure annotation, zero logical change) / Codec change: Swift 6 strict-concurrency compat (annotations only)
+## codec change: Swift 6 strictly parallel compatibility (pure annotation, zero logical change)
 In order for `lzfse-cli.swift` to be compiled with SwiftCrossUI under SwiftPM (tools-version 6.0),
 `DispatchQueue.concurrentPerform` decoding path and `scratchPool` plus `nonisolated(unsafe)` (shared variable protected by NSLock)
 AND `@Sendable` (REGIONAL FUNCTION). **At the same time, `swiftc -O` can still be used to build CLI** (encode/decode round-trip verified).
-Added `nonisolated(unsafe)` / `@Sendable` to the concurrentPerform decode paths so the codec compiles
 Under Swift 6 strict concurrency while still building as the CLI via `swiftc -O`. Pure annotations.
 
-## Windows engineering key points (each of them has actually been debugged) / Windows engineering notes
-| Topic / Topic | Processing / Resolution |
+## Key points of Windows engineering (each takes actual debugging)
+| Theme | Processing |
 |---|---|
 | WinAppSDK 1.5 **DDLM must be installed** | Missing DDLM `5001.x` → `MddBootstrapInitialize2` Failure, flashback (exit 132). Official redistributable is required to install. |
 | No console window / no console | `/SUBSYSTEM:WINDOWS` + `/ENTRY:mainCRTStartup` linked into GUI subsystem. |
@@ -206,19 +566,19 @@ Under Swift 6 strict concurrency while still building as the CLI via `swiftc -O`
 | Decoding shunt / decode routing | Single file / folder compression is named `.lzfse`; judge unpacking or single file by tar `ustar` magic number (offset 257, stream peek before 512 byte). |
 | Packaging / packaging | bsdtar cannot write zip → PowerShell `Compress-Archive`; `sed` for path conversion (not dependent on cygpath). |
 
-## Requirements / Requirements
+## Demand
 WinAppSDK 1.5 runtime (including DDLM), Swift for Windows 6.3.2, VS Build Tools + Windows SDK, Git for Windows, PowerShell.
 See `lzfse-ui/README-UI-Win.md` for details.
 
 ---
 
-# R41-Mac: Tag-packed Hash Chain Introduction (2026-06-22)/ R41-Mac: Tag-packed Hash Chain
+# R41-Mac: Introduction of Tag-packed Hash Chain (2026-06-22)
 
 > Reintroduce the R40 code base of R27's Tag-packed hash chain (hashAndTag / chainIndexMask / chainTagShift / chainNullIndex).
 > lzParseChain (BVX3 / Lazy2) and lzParseOptimal (Optimal) are updated synchronously.
 > Execute `-n 40 / 8 / 4` three batches of complete benchmark on claw-code / llama.cpp.
 
-## Optimization Strategy / Optimization Strategy
+## Optimize the strategy
 
 | Project | Description |
 |---|---|
@@ -229,7 +589,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | **Greedy path** | Only unpack index ( `&chainIndexMask`), no tag filter (only one candidate) |
 | **assert guard** | `assert(n <= Int(chainIndexMask))`, ensure that chunk does not exceed the upper limit of 16 MiB index |
 
-## 1a. Encode speed vs Windows (claw-code, n=40)/ Encode MB/s — Win/Mac Comparison
+## 1a. Encode speed vs Windows (claw-code, n=40)
 
 | Format | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -241,7 +601,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | TLZ4 | 394.69 | 8.0995 | 191.84 | 7.776 | 0.486 |
 | ZSTD | 353.65 | 7.2573 | 103.67 | 4.202 | 0.293 |
 
-## 1b. Decode Speed (Mac + Win, claw-code n=40)/ Decode MB/s — Mac/Win Comparison
+## 1b. Decode speed (Mac + Win, claw-code n=40)
 
 | Format | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac | Verify |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
@@ -253,7 +613,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | Optimal | 394.70 | 1.0495 | 897.14 | 1.3937 | 2.273 | PASS |
 |BVX3|326.41|0.8679|800.90|1.2442|2.454|PASS|
 
-## 1c. Compress Size & Ratio (claw-code, n=40)/ Compress Size & Ratio
+## 1c. Compression size and ratio (claw-code, n=40)
 
 | Format | Mac MiB | Mac/TGZ | Win MiB | Win/TGZ | Mac/Win |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -265,7 +625,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | TLZ4 | 554.0 | 1.1793 | 549.8 | 1.1739 | 1.0077 |
 | ZSTD | 387.0 | 0.8245 | 365.9 | 0.7813 | 1.0576 |
 
-## two RSS peak (Mac only, claw-code n=40)/ Peak RSS
+## two RSS peak (Mac only, claw-code n=40)
 
 | Format | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
 | --- | ---: | ---: | ---: | ---: |
@@ -277,7 +637,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | Lazy2 | 499.5MB | 118.9 | 320.2MB | 86.5
 | Optimal | 572.5 MB | 136.3 | 308.2 MB | 83.2 |
 
-## three. CPU Energy (Mac only, claw-code n=40)/ CPU Energy Ratio vs TGZ
+## three. CPU Energy (Mac only, claw-code n=40)
 
 > ⚠ Decode energy n=40 is not reliable due to the sampling coverage rate <5%, for reference only (standard `*`).
 
@@ -303,7 +663,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | TLZ4 | 1.1793 | 420.57 ( `n4`) | 394.69 ( `n40`) | 477.45 ( `n4`) | 76.9 MB | 80.4 MB | 29.62 | 29.62 | 0.1805 | 0.1805 |
 | ZSTD | 0.8245 | 360.20 ( `n8`) | 353.65 ( `n40`) | 422.91 | 371.5 MB | 388.7 MB | 41.39 | 41.39 | 0.2522 | 0.2522 |
 
-## n40 represents the result (Encode / Decode CPU Energy Ratio vs TGZ)
+## n40 represents the result (Encode
 
 | Format | Enc J/TGZ (claw n40) | Enc J/TGZ (llama n40) | Dec J/TGZ (claw n40)* | Dec J/TGZ (llama n40)* |
 | --- | ---: | ---: | ---: | ---: |
@@ -333,14 +693,14 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 ---
 
-# R41-Win: Windows Benchmark Results + Decode Verification Infrastructure (2026-06-23) / R41-Win: Windows Benchmark Results + Decode Verification Infrastructure
+# R41-Win: Windows Benchmark Results + Decode Verification Infrastructure (2026-06-23)
 
 > R41 Tag-packed Hash Chain runs a complete encode + decode two-way benchmark in Windows.
 > At the same time, `decode-win.bat` + `decode_summary.csv` decode verification infrastructure is introduced (the first round).
 > All 7 formats have passed the `tar tf -` correctness verification (verify=PASS).
 > Data set: claw-code; encode n=40 inflight chunks (single time); decode n=40 inflight chunks (single time).
 
-## 1a. Encode Speed vs Mac (claw-code, n=40)/ Encode MB/s — Win vs Mac
+## 1a. Encode speed vs Mac (claw-code, n=40)
 
 | Format | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac |
 | --- | ---: | ---: | ---: | ---: |
@@ -352,7 +712,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | TLZ4 | 191.84 | 7.776 | 394.69 | 0.486 |
 | ZSTD | 103.67 | 4.202 | 353.65 | 0.293 |
 
-## 1b. Decode speed + verification (first round Win, claw-code n=40)/ Decode MB/s + Verification (Win first run)
+## 1b. Decode speed + verification (first round Win, claw-code n=40)
 
 > Windows decode benchmark is introduced for the first time (R41-Win), including `tar tf -` correctness verification.
 > ⚠ n=40 inflight chunks single measurement, energy consumption is unreliable (the same Mac decode <5% coverage rate).
@@ -371,7 +731,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 > Differences may come from: Windows page cache efficiency, OS scheduler differences, external tool version.
 > All formats have passed `tar tf -` decompression correctness verification (the first round of Windows decode verification infrastructure).
 
-## 1c. Compress Size (claw-code, n=40)/ Compress Size
+## 1c. Compression size (claw-code, n=40)
 
 | Format | Win MiB | Win/TGZ | Mac MiB | Mac/Win |
 | --- | ---: | ---: | ---: | ---: |
@@ -401,13 +761,13 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 ---
 
-# R41-Mac-Retest: Retest with UI-supported code (2026-06-23)/ R41-Mac-Retest: Retest with ui-supported code
+# R41-Mac-Retest: Retest with UI support code (2026-06-23)
 
 > After adding the `runCLI()` packaging function (supports lzfse-ui SwiftUI app) to `lzfse-cli.swift`, re-execute the complete Mac benchmark for the R41 code.
 > Trace analysis was all successful for the first time (36 packets TRACE_ANALYSIS_OK, 72 XML CPU_CALL_TREE_ANALYSIS_OK); all pre-order executions failed with `source_trace_missing`.
 > The code function remains unchanged (output-identical ✅), and the `runCLI()` packaging does not affect the algorithm path.
 
-## Change Content / Code Change
+## Change the content
 
 | Project | Description |
 |---|---|
@@ -416,7 +776,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | **Algorithm path** | No change; output-identical ✅ |
 | **Trace Analysis** | Full success for the first time (36/36 TRACE_ANALYSIS_OK, 72/72 CPU_CALL_TREE_ANALYSIS_OK) |
 
-## 1a. Encode Speed vs R41-Mac First Round (claw-code, n=40)/ Encode MB/s vs R41-Mac First Run
+## 1a. Encode speed vs R41-Mac first round (claw-code, n=40)
 
 | Format | Retest MB/s | Retest/TGZ | R41-Mac MB/s | Change |
 | --- | ---: | ---: | ---: | --- |
@@ -431,7 +791,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 > All formats are higher than the first round of R41-Mac; Other3 / BVX3 rebounds sharply (+7–19%), and it is speculated that there will be hot throttling in the first round.
 
-## 1b. Decode speed (claw-code, n=40)/ Decode MB/s
+## 1b. Decode speed (claw-code, n=40)
 
 | Format | MB/s | /TGZ |
 | --- | ---: | ---: |
@@ -444,7 +804,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | Optimal | 347.86 | 0.9490 |
 | BVX3 | 322.85 | 0.8808 |
 
-## 1c. Compress Size & Ratio (claw-code, n=40)/ Compress Size & Ratio
+## 1c. Compression size and ratio (claw-code, n=40)
 
 | Format | MiB | /TGZ |
 | --- | ---: | ---: |
@@ -457,7 +817,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | Apple | 464 | 0.9873 |
 | TLZ4 | 554 | 1.1793 |
 
-## two RSS peak (Mac only, claw-code n=40)/ Peak RSS
+## two RSS peak (Mac only, claw-code n=40)
 
 | Format | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
 | --- | ---: | ---: | ---: | ---: |
@@ -470,7 +830,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | Optimal | 581.4 MB | 138.4 | 307.9 MB | 81.0 |
 | Apple | 1367.8 MB | 325.7 | 473.5 MB | 124.6 |
 
-## three. CPU Energy (Mac only, claw-code n=40)/ CPU Energy Ratio vs TGZ
+## three. CPU Energy (Mac only, claw-code n=40)
 
 > ⚠ Decode energy n=40 is not reliable due to the sampling coverage rate <5%, for reference only (standard `*`).
 
@@ -485,7 +845,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | Lazy2 | 120.94 | 0.7695 | 1.27* | 0.2227 |
 | Optimal | 531.92 | 3.3844 | 0.69* | 0.1216 |
 
-## four. CPU Trace Analysis (First Full Success) / CPU Trace Analysis — First Full Success
+## four. CPU Trace Analysis (the first full success)
 
 > All 36 trace packets in this round were successful for the first time (TRACE_ANALYSIS_OK ×36, CPU_CALL_TREE_ANALYSIS_OK ×72).
 
@@ -502,7 +862,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 > **Parse hotspot confirmation**: Lazy2 = `bestMatch` in chain traversal, Optimal = `lzParseOptimal` closure number of calls 535 (>>Lazy2 132) → Optimal The number of calls per chunk is much higher than Lazy2.
 
-## five. Encode Speed Overview (claw-code + llama.cpp, n=40)/ Encode Speed Overview
+## five. Encode speed overview (claw-code + llama.cpp, n=40)
 
 | Format | claw-code MB/s | claw/TGZ | llama.cpp MB/s | llama/TGZ |
 | --- | ---: | ---: | ---: | ---: |
@@ -517,7 +877,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 > `llama.cpp` data is pre-compressed by lzma, and the acceleration efficiency of LZFSE n=40 is much lower than that of claw-code (BVX3 claw 8.26× vs llama 2.18×).
 
-## Conclusion and R42 Direction / Conclusion & R42 Direction
+## Conclusion and R42 direction
 
 | Project | Conclusion |
 |---|---|
@@ -529,17 +889,15 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 ---
 
-# R41-Win Retest: Full Dual-Dataset Windows Benchmark (2026-06-28) / R41-Win Retest: Full Dual-Dataset Windows Benchmark
+# R41-Win Retest: Dual Data Set Complete Windows Benchmark (2026-06-28)
 
 > R41-Win (2026-06-23) only has the results of the first round of claw-code encode; this round is a complete supplementary test:
 > Double data set (claw-code + llama.cpp), dual mode (nul / file write), encode + decode + RSS peak full coverage.
 > All 14 formats have passed decode correctness verification (verify=PASS).
-> R41-Win (2026-06-23) had only claw-code encode; this is the full retest:
-> both datasets, both modes (nul / file write), encode + decode + peak RSS.
 >
-> **Important discovery / Key finding**: On the llama.cpp data set, Windows LZFSE encode speed ** exceeds** Mac (Other3/BVX3 ≈ 1.32–1.35×), and the claw-code is still ahead of Mac.
+> **Important discovery**: On the llama.cpp data set, the Windows LZFSE encode speed ** surpasses** Mac (Other3/BVX3 ≈ 1.32–1.35×), and the claw-code is still ahead of Mac.
 
-## 1a. Encode Speed vs Mac (claw-code, n=40)/ Encode MB/s — Win vs Mac
+## 1a. Encode speed vs Mac (claw-code, n=40)
 
 | Format | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac |
 | --- | ---: | ---: | ---: | ---: |
@@ -551,7 +909,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | TLZ4 | 201.74 | 8.469 | 418.75 | 0.482 |
 | ZSTD | 110.34 | 4.631 | 368.84 | 0.299 |
 
-## 1b. Encode Speed vs Mac (llama.cpp, n=40)/ Encode MB/s — Win vs Mac
+## 1b. Encode speed vs Mac (llama.cpp, n=40)
 
 | Format | Win MB/s | Win/TGZ | Mac MB/s | Win/Mac |
 | --- | ---: | ---: | ---: | ---: |
@@ -566,7 +924,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 > **claw-code**: Windows is 0.30–0.73× for Mac, Mac is obviously ahead (source code contains a large number of duplicate patterns, and NEON is more advantageous).
 > **llama.cpp**: Windows LZFSE encode surpasses Mac (Other3/BVX3 ≈ 1.32–1.35×). Llama.cpp is pre-compressed binary, with low match density; x86 hash chain visit speed is better than ARM in this scenario. TGZ and Optimal are still faster than Mac.
 
-## 1c. Decode speed (file write mode, claw-code n=40)/ Decode MB/s — File Write Mode
+## 1c. Decode speed (file write mode, claw-code n=40)
 
 > decode-win.bat measures the end-to-end speed output to the disk after decoding in "writing mode", including disk I/O overhead.
 
@@ -580,7 +938,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | TLZ4 | 189.33 | 313.11 | 0.605 | PASS |
 | ZSTD | 171.20 | 422.27 | 0.405 | PASS |
 
-## 1d. Decode speed (file write mode, llama.cpp n=40)/ Decode MB/s — File Write Mode (llama.cpp)
+## 1d. Decode speed (file write mode, llama.cpp n=40)
 
 | Format | Win MB/s | Mac MB/s | Win/Mac | Verify |
 | --- | ---: | ---: | ---: | --- |
@@ -595,7 +953,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 > Under Write-to-file decode, Windows is slower than Mac (claw: 0.40–0.61×; llama: 0.29–0.50×). Mac SSD write throughput advantage dominates this measurement.
 > Note: The first round of R41-Win (nul mode, no write disk) Windows decode speed once reached 1.7–4.3× of Mac; the difference between write mode and null mode reflects the disk I/O rather than the codec itself.
 
-## 1e. Encode null vs file mode comparison / Encode: Nul vs File Mode
+## 1e. Encode null vs file mode comparison
 
 > null mode = output discard after compression (no disk), measure the pure CPU compression speed; file mode = output to the compressed file (including I/O).
 > claw-code uncompressed ≈ 1416.8 MB, llama.cpp ≈ 1322.4 MB (reverse by comparison.csv TGZ encode time).
@@ -627,7 +985,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 > **claw-code**: null ≈ file (within the error range). The compressed output is about 366–550 MiB, and the writing disk has no significant impact on the overall time. BVX3 null is 10% slower than file, which is a measurement error.
 > **llama.cpp**: null is stable and fast 4–11%, Lazy2 is the most obvious (1.112×). The compressed output reaches 535–616 MiB, and the omission of disk I/O has a significant acceleration.
 
-## 1f. Decode nul mode speed (two data sets)/ Decode: Nul Mode MB/s
+## 1f. Decode null mode speed (two data sets)
 
 > null mode = lzfse/lz4/zstd Discard the output after decompression to measure the pure decoding throughput; file mode = decompress and extract to disk.
 > The null/file ratio of TGZ is < 1 (anomaly), the reason is explained below.
@@ -660,7 +1018,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 > **llama.cpp nul/file ratio is very large (20–85×)**: file mode needs to decompress ~1.3 GB and write data to Windows disk (measured 24–42 MB/s disk write), while null mode only does CPU decoding (~840–870 MB/s); disk I/O is the main cause of the file mode bottleneck by 30–85× times.
 > **TGZ decode null is slower than file (0.74–0.83×) anomaly**: The TGZ null path of decode-win.bat actually performs complete extraction + verify (not a simple list), which is completely different from `tar -tzf` (pure list, 648 MB/s). File mode directly `tar xzf` to the directory, kernel buffered write is faster in large tar. This is an actual path difference, not a problem of codec itself. It has been independently tested and confirmed by `helper_windows/tar_benchmark/Findings.md`.
 
-## two Compress Size & Ratio / Compress Size & Ratio
+## two Compression size and ratio
 
 ### claw-code (n=40)
 
@@ -688,7 +1046,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 > llama.cpp The compression ratio difference is < 0.4%, and Win/Mac is almost the same. ZSTD Win on claw-code is slightly better (-0.0432), and the rest of the gap is < 3%.
 
-## three. RSS Peak (Windows, n=40)/ Peak RSS — Windows
+## three. RSS peak (Windows, n=40)
 
 ### claw-code
 
@@ -714,8 +1072,6 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | LZ4 | 8.3 | 8.3 | 8.3 | 8.3 |
 | ZSTD | 8.3 | 8.8 | 8.3 | 8.3 |
 
-> **Optimal encode RSS**: llama.cpp 760.5 MB vs claw-code 512.5 MB (+48%).
-> **Lazy2 encode RSS**: llama.cpp 649.8 MB vs claw-code 485.1 MB (+34%).
 > llama.cpp The chain table search path of each chunk is longer (pre-compressed binary, match is not easy to early-exit halfway), resulting in higher chain memory pressure.
 > Decode RSS varies much across formats (LZFSE about 240–350 MB; LZ4/ZSTD/TGZ < 10 MB).
 
@@ -733,7 +1089,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 > Each format change is within the measurement error range (±5–15%); Optimal is slightly faster this time (+14%), and the rest remains the same.
 
-## Conclusion / Conclusion
+## Conclusion
 
 | Project | Conclusion |
 |---|---|
@@ -749,18 +1105,16 @@ See `lzfse-ui/README-UI-Win.md` for details.
 
 ---
 
-# R41 Summary / R41 Summary
+# R41 Summary
 
 > Integrate the results of the four rounds of R41-Mac, R41-Mac-Retest, R41-Win and R41-Win-Retest.
-> Synthesizes all four R41 rounds: R41-Mac, R41-Mac-Retest, R41-Win, R41-Win-Retest.
 
-## Code Change / Code Change
+## Code change
 
 R27's tag-packed hash chain reintroduces the R40 code base: `head[h]` / `chain[c]` to `(tag<<24)|index` packed Int32; each chain visit is relatively high 8 bits tag, skip directly if it does not match (pure register operation), no need to unpack index. Synchronously apply to `lzParseChain` (Other3/BVX3/Lazy2) and `lzParseOptimal` (Optimal).
 
-Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `(tag<<24)|index` as packed Int32. Each chain candidate checks the upper 8-bit tag first; mismatches skip without unpacking the index. Applied to both `lzParseChain` (Other3/BVX3/Lazy2) and `lzParseOptimal` (Optimal).
 
-## Mac Encode speed vs R40 (claw-code, n=40, Retest final value) / Mac Encode Speed vs R40
+## Mac Encode speed vs R40 (claw-code, n=40, Retest final value)
 
 | Format | R40 MB/s | R41 Retest MB/s | Change |
 | --- | ---: | ---: | --- |
@@ -773,7 +1127,7 @@ Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `
 
 > tag filter eliminates invalid candidates for chain visits early, and the number of parse loop iterations of Lazy2/Optimal is effectively reduced, which is the most significant beneficiary. Other3/BVX3 The number is low due to heat throttling in the first round; the number is normal after Retest excludes hot throttling.
 
-## Windows Encode Main Discovery / Windows Encode — Key Finding
+## Windows Encode Main Discoveries
 
 | Data Set | Win/Mac Scope | Description |
 | --- | --- | --- |
@@ -782,7 +1136,7 @@ Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `
 
 > llama.cpp is a pre-compressed binary, with low match density, and chain traversal is dominated by throughput; in this scenario, the x86 hash chain visit speed is equivalent to or even faster than ARM NEON.
 
-## Decode Performance Summary / Decode Performance Summary
+## Decode Performance Summary
 
 | Measurement | Number | Meaning |
 | --- | ---: | --- |
@@ -794,7 +1148,7 @@ Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `
 
 > Windows decode file mode low speed confirmed as **bsdtar file creation + NTFS overhead**, not codec problem. `tar -tzf` list = 648–844 MB/s vs `tar -xzf` extract = 36–174 MB/s. Nul mode should be used for cross-platform fair comparison.
 
-## RSS Peak / RSS Summary
+## RSS peak
 
 | Format | Mac claw | Win claw | Win llama | Description |
 | --- | ---: | ---: | ---: | --- |
@@ -803,7 +1157,7 @@ Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `
 
 > The match search path of llama.cpp pre-compressed binary is longer (not easy to early-exit), and the chain table memory pressure is greater.
 
-## R42 Direction / R42 Direction
+## R42 direction
 
 | Direction | Based on |
 |---|---|
@@ -813,11 +1167,11 @@ Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `
 
 ---
 
-# R40-Mac: macOS Complete Benchmark Results (2026-06-22) / R40-Mac: Full macOS Benchmark Results
+# R40-Mac: macOS Complete Benchmark Results (2026-06-22)
 
 > Run three batches of `-n 40 / 8 / 4` full benchmarks on claw-code / llama.cpp with R40 code (3652 lines), covering encode/decode speed, RSS peak value, CPU energy ratio, and compare the encode speed with R40-Win.
 
-## 1a. Encode speed vs Windows (claw-code, n=40)/ Encode MB/s — Win/Mac Comparison
+## 1a. Encode speed vs Windows (claw-code, n=40)
 
 | Format | Mac MB/s | Mac/TGZ | Win MB/s | Win/TGZ | Win/Mac |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -831,7 +1185,7 @@ Re-introduced tag-packed hash chain from R27: `head[h]` / `chain[c]` now store `
 
 Mac is significantly faster than Win (0.38–0.72×) in all formats. ZSTD Win/Mac ratio is the lowest (0.38), which may come from ZSTD. The degree of Apple Silicon vector instruction is higher than x86.
 
-## 1b. Decode speed (Mac only, claw-code n=40)/ Decode MB/s
+## 1b. Decode speed (Mac only, claw-code n=40)
 
 | Format | Mac MB/s | Mac/TGZ |
 | --- | ---: | ---: |
@@ -843,7 +1197,7 @@ Mac is significantly faster than Win (0.38–0.72×) in all formats. ZSTD Win/Ma
 | BVX3 | 355.84 | 0.94 |
 | Optimal | 355.61 | 0.94 |
 
-## two RSS peak (Mac only, claw-code n=40)/ Peak RSS
+## two RSS peak (Mac only, claw-code n=40)
 
 | Format | Encode RSS | Enc/TGZ | Decode RSS | Dec/TGZ |
 | --- | ---: | ---: | ---: | ---: |
@@ -857,7 +1211,7 @@ Mac is significantly faster than Win (0.38–0.72×) in all formats. ZSTD Win/Ma
 
 > `-n 40` Encode RSS is a peak with inflight buffer; Decode RSS is mainly driven by the decompression output size.
 
-## three. CPU Energy (Mac only, claw-code n=40)/ CPU Energy Ratio vs TGZ
+## three. CPU Energy (Mac only, claw-code n=40)
 
 > ⚠ Decode energy n=40 is not reliable due to the sampling coverage rate <5%, for reference only (standard `*`).
 
@@ -871,7 +1225,7 @@ Mac is significantly faster than Win (0.38–0.72×) in all formats. ZSTD Win/Ma
 | Lazy2 | 135.09 | 0.740 | 4.58* | 0.359* |
 | Optimal | 537.44 | 2.943 | 4.51* | 0.354* |
 
-## four. Best Points All n / Best Points Across All n
+## four. Best Points All n Reconciliation
 
 ### claw-code
 
@@ -901,11 +1255,11 @@ Mac is significantly faster than Win (0.38–0.72×) in all formats. ZSTD Win/Ma
 
 ---
 
-# R40-Win: Optimal Cross-Segment Match OOB Fix (2026-06-21) / R40-Win: Optimal Cross-Segment Match OOB Fix
+# R40-Win: Optimal cross-segment match cross-border repair (2026-06-21)
 
 > When Windows tested the R40 code, it was found that the low-repetition greedy fast path of the Optimal encoder had a memory cross-boundary bug, causing the Release version to crash with `VCRUNTIME140.dll 0xc0000005` (access violation), and the Debug version clearly returned `Fatal error: UnsafeBufferPointer with negative count`. In theory, this problem also exists in macOS, but the behavior under Release compilation is not defined and does not necessarily crash immediately.
 
-## Root Cause Analysis / Root Cause
+## Root cause analysis
 
 When calculating the match length of the low-repetition segment greedy path of Optimal (in `lzParseOptimal`, `coverage < optPrescreenMinCoverage` branch), the `limit` parameter uses the global input length `n - i - 4`, which is not limited by the `segEnd` of the current segment.
 
@@ -924,7 +1278,7 @@ When calculating the match length of the low-repetition segment greedy path of O
 - Windows event records multiple crash records of the same module and the same fault offset
 - Some of the output before the crash is stopped at the legal block boundary, but the `bvx$` end mark is missing (truncated stream)
 
-## Fix / Fix
+## Repair
 
 **File: `lzfse-cli.swift` about 1264 line** (Optimal greedy quick path match limit)
 
@@ -935,7 +1289,7 @@ When calculating the match length of the low-repetition segment greedy path of O
 
 Both match calculations are stopped at `segEnd` to prevent `litStart` from crossing the segment boundary.
 
-## Validation / Validation
+## Verification results
 
 | Project | Result |
 |---|---|
@@ -948,7 +1302,7 @@ Both match calculations are stopped at `segEnd` to prevent `litStart` from cross
 
 > Note: The difference between the compressed output of 406,284,948 bytes and macOS R39 baseline (407,098,957 bytes) is 814,009 bytes. The reason is that the match of the greedy segment no longer crosses the segment after repair, resulting in some matches being slightly shorter. Bitstream is legal but not bitstream-identical. Output-identical acceptance passed.
 
-## Windows Benchmark Test (Run C, 2026-06-21) / Windows Baseline
+## Windows Benchmark Test (Run C, 2026-06-21)
 
 Perform a complete benchmark test on `claw-code` (n=40 inflight) with the repaired binary ( `lzfse.exe`) with R40-Win. The subsequent R{N}-Win takes this as a comparison benchmark.
 
@@ -964,7 +1318,7 @@ Perform a complete benchmark test on `claw-code` (n=40 inflight) with the repair
 
 MB/s is based on 1351 MiB × 1.048576 = 1416.63 MB (consistent with macOS format). Windows does not measure decode speed, RSS and CPU energy (macOS powermetrics is required).
 
-## Win/Mac Comparison Report Structure / Comparison Report Structure
+## Win/Mac Compare Report Structure
 
 Each round process: run **R{N}-Mac** first, then **R{N}-Win**, and finally run `comparison_win.py` to generate a three-section comparison report:
 
@@ -977,7 +1331,7 @@ Each round process: run **R{N}-Mac** first, then **R{N}-Win**, and finally run `
 
 ---
 
-# R40: Streaming decode Recovery and Encode Pipeline Correction (2026-06-21) / R40: Restore Streaming Decode & Fix Encode Pipeline
+# R40: Streaming decode recovery and encode pipeline correction (2026-06-21)
 
 > Take R39 (3379 lines) as the starting point, make up for the streaming decode path removed by R39, and correct the two regressions of `runParallelEncode` introduced by R39. No algorithm change, encode / decode output should be R39 bitstream-identical.
 
@@ -1012,7 +1366,7 @@ CLI decode path ( `-i <file>`): First, try `decodeStreamFromFile` → `.fallback
 | R39 | ✅ | ❌ (whole-buffer) | ❌ (activeProcessorCount) | N/A |
 | **R40** | ✅ | ✅ | ✅ | ✅ |
 
-## n40 represents the result (Encode / Decode CPU Energy Ratio vs TGZ)
+## n40 represents the result (Encode
 
 | Format | claw enc ratio | claw enc MB/s | claw dec ratio | claw dec MB/s | llama enc ratio | llama enc MB/s | llama dec ratio | llama dec MB/s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -1065,7 +1419,7 @@ The magnification of BVX3 greedy (2.20×) is much greater than lazy2/optimal (~1
 
 ---
 
-# R39: 92221a02 encode Retest (2026-06-21) / R39 Encode-Optimization Revert Retest
+# R39: 92221a02 encode retest back version (2026-06-21)
 
 > Replace R35 code (3957 lines) with 92221a02 ( `lzfse-cli.swift` 3379 lines) and execute the complete benchmark. This version removes all advanced encode optimizations in R35 (R6/R10/R17/R18/R26/R27/R28/R30/R32), and the decode core algorithm is exactly the same as R35, but the decode CLI path is changed from streaming ( `decodeStreamFromFile`) back to whole-buffer `readToEnd()`. The same benchmark run also supplemented the original log analysis of decode energy corrected by powermetrics `-i 500ms`.
 
@@ -1181,7 +1535,7 @@ Only the average of TGZ decode (1.35s, 3 samples) is relatively stable. Although
 
 ---
 
-# R38: R35 code retest (2026-06-20)/ R38 Revert Baseline Retest
+# R38: R35 code retest (2026-06-20)
 
 > R37 After determining that rep1/rep2 dominated-range skip has no reproducible performance gains, revert the `lzfse-cli.swift` to R35 code (remove the `repLen0/repLen1` declaration of R36 and the rep1/rep2 skip logic), and trigger the complete benchmark (starting at 15:08, 18:51 BENCH_DONE). The purpose is to confirm that the compressed output after revert returns to R35 bitstream, and the encoding speed restores the R35 water level.
 
@@ -1208,9 +1562,9 @@ Only the average of TGZ decode (1.35s, 3 samples) is relatively stable. Although
 - encode energy −3.3 ~ −5.1%: the direction is the same, but the magnitude is not enough to claim improvement; when R35 committed, the heat state of the system is high, and the low energy consumption of this retest is a reasonable fluctuation.
 - **decode power / energy**: This retest decode power is only 499 / 169 mW (vs. general 5,000–7,000 mW), which is obviously low. It is speculated that the powermetrics sampling window is not aligned with the decode execution period, and the decode energy results cannot be used.
 
-## Decode energy measurement reliability analysis (R35 / R36 / R37 / R38 four-wheel comparison)
+## Decode energy measurement reliability analysis (R35 / R36
 
-### Phenomenon 1: TGZ / TLZ4 / ZSTD decode energy is exactly the same as the same n=4 / 8 / 40 of the same run
+### Phenomenon I: TGZ
 
 | run | claw-code TGZ n4 | n8 | n40 |
 |---|---:|---:|---:|---:|
@@ -1257,7 +1611,7 @@ Each decode measurement of powermetrics only captures about 0.5–1.0 seconds, b
 
 ** If the subsequent decode energy needs to be measured reliably, it should be changed to `powermetrics -i 500` continuous sampling and cover the entire n-iteration decode execution period, instead of the current single short window sampling. **
 
-## Encode energy four-wheel comparison analysis (R35 / R36 / R37 / R38)
+## Encode energy four-wheel comparison analysis (R35 / R36 / R37
 
 ### Measurement reliability: high encode energy coverage
 
@@ -1321,7 +1675,7 @@ Under n40, R38 (R35-code) consumes 1.5–1.6% lower energy than R37 (R36-code) a
 
 ---
 
-# Round 37: R36 rep1/rep2 Dominance skips the same code retest (performance gains are not reproduced) (2026-06-20) / Round 37: Same-Code Retest of R36
+# Thirty-seventh round: R36 rep1/rep2 domination skips the same code retest (performance gains are not reproduced) (2026-06-20)
 
 > The compression kernel has not been modified in this round, the purpose is to retest the rep1/rep2 dominated-range skip of R36. Both data sets have completed encode, decode and extract compare in n40 / n8 / n4, and **output-identical passed**; however, the speed and energy consumption improvement relative to R35 have not reached the acceptance threshold of `>=10%`, so the performance benefits of R36 have not been confirmed.
 
@@ -1389,7 +1743,7 @@ Relative R35 baseline:
 
 ---
 
-# Round 36: Optimal Energy Consumption/Speed — rep1/rep2 Output-identical Pass (2026-06-19)/ Round 36: rep1/rep2 Dominated-Range Skip
+# Round 36: Optimal Energy Consumption/Speed - rep1/rep2 Dominance Skip (output-identical Pass) (2026-06-19)
 
 > Directional: The ratio route (#1/R33, #3, #4) has been exhausted, and this round will be changed to Optimal energy consumption/time optimization. The two data sets are all decompressed and compared, so **output-identical acceptance is established**; there is a slight change in the size of the compressed bitstream, which is also listed as non-bitstream-identical. Only move `lzfse-cli.swift`.
 
@@ -1453,7 +1807,7 @@ Relative R35 n40 baseline:
 - At the application level, the main value of Optimal is a large number of client distribution after offline compression of server/CDN: the encoding cost is only paid once, and the transmission and client-side energy savings brought by smaller update packages can be accumulated repeatedly. In the next step, in addition to the stand-alone benchmark, energy break-even analysis under different downloads should be added.
 
 
-## TODO (in order of priority)/ Backlog
+## TODO (in order of priority)
 
 1. The acceptance conclusion of R36 is "correctness/output-identical passed, but the performance success conditions are not met". In the next round, establish the same round of A/B with feature switch or revert, and retest n40 benchmark + power in a fixed thermal state; if the speed is still lower than `+10%` and the energy is not improved, rep1/rep2 skip will not be retained.
 2. (Middle) Optimal further output-identical micro-optimization: extract/compare must still be maintained; if bitstream-identical is required, it needs to be clearly listed as an independent acceptance condition. Profiling has confirmed that the main direction is still `lzParseOptimal`, `matchLength`, `rebuildPrices` and Swift Array/COW, and the next single point should make attributable changes from one of them.
@@ -1522,7 +1876,7 @@ Relative R35 n40 baseline:
 
 ---
 
-# Round 34: Codex #4 — tag-less length-4 Supplementary Inspection (2026-06-19)/ Round 34: Recover length-4 matches filtered by tag-packing
+# Round 34: Codex #4 — tag-less length-4 Supplementary inspection (2026-06-19)
 
 > Only move `lzfse-cli.swift`. Accept the four points of Codex's research on xz. **Clarify the status first** and then do it.
 
@@ -1659,11 +2013,11 @@ The output of this round of power measurement is complete, and `power_summary_in
 
 ---
 
-# Round 30: Optimal cheap-probe gating + literal UBP DOE Results (2026-06-16) / Round 30: Cheap-Probe Gating + Literal UBP DOE
+# Round 30: Optimal cheap-probe gating + literal UBP DOE Results (2026-06-16)
 
 > Only move `lzfse-cli.swift`. This round of simultaneous experiments **#1** (cheap-probe gating) and **#2** (literal UBP). Benchmark result: #1 effective, **#2 causes BVX3 regression −12.4%**. **Both have been committed** (see lzfse-cli.swift difference); #2's revert is queued into **R31**. #3 (power measurement hardening) belongs to harness, not moved.
 
-## benchmark results (claw-code n40)/ Results
+## benchmark result (claw-code n40)
 
 | Format | R30 MB/s | vs R27 | vs R29 | Judge |
 | --- | ---: | ---: | ---: | --- |
@@ -1692,13 +2046,13 @@ The output of this round of power measurement is complete, and `power_summary_in
 
 The correction point is in `helper/power_benchmark.command` (shell), not in `lzfse-cli.swift`. Option: (a) Relax the constraint I change harness (short decode loop N times and then average); (b) I add `-repeat N` supply measurement in CLI. To be designated.
 
-## Remarks / Caveat
+## Remarks
 
 This round of benchmark data (BenchMarkResult.csv) is **containing #1 and #2 at the same time** measured (so BVX3 shows a regression −12.4%). **Lzfse-cli.swift This commit still contains #2** ( `litEnc.withUnsafeBufferPointer`); BVX3 regression source has been confirmed as #2. **R31 will revert #2**, and the next round of benchmark should be seen BVX3 back to ~672 MB/s water level for reverse confirmation (this round will not be rerun according to the agreement). Other3 −17% is machine noise (n40 is slower than n8).
 
 ---
 
-# Round 29: R2612 + R28 Combined DOE Results + First power/energy Measurement (2026-06-16)/ Round 29: Combined DOE + First Power Measurement
+# Twenty-ninth round: R2612 + R28 combined DOE results + the first power/energy measurement (2026-06-16)
 
 > This round combines three sets of **output-identical** changes on the basis of R27 (tag-packing): R28 ( `encodeBlockV3` LMD `withUnsafeBufferPointer`), R261 ( `localHead` of `lzParseOptimal`, per-call configuration), R262 (3-rep expansion). And the CPU/GPU/DRAM power and energy consumption of `powerResults/` are included for the first time. Only move `lzfse-cli.swift` and `OPTIMIZATION.md`.
 
@@ -1716,7 +2070,7 @@ This round of benchmark data (BenchMarkResult.csv) is **containing #1 and #2 at 
 - **R2612 (Optimal) is only slightly +0.7–1.7%**, **does not reach the ≥10% target**: because they save DP *peripheral* overhead (prescreen's `localHead` configuration, rep transform loop), and the top symbol is still the **DP core closure** of `lzParseOptimal` - to be faster, you must move the DP itself or do segment-level gating.
 - `*` Lazy2 There is no new change in this round (R6 is within the R27 benchmark), and the increase in the value belongs to the whole machine/scheduling noise, not attributed to this round.
 
-## powerResult Segment Summary / Power & Energy Summary (first included)
+## powerResult segment summary (first included)
 
 Measurement method: `helper/power_benchmark.command` takes the CPU/GPU/ANE/DRAM power (mW) and energy consumption (J) of each (format, encode/decode, n) in macOS `powermetrics`, integrated into `powerResults/power_summary.csv`, and best_points is also brought into the CPU power/energy field.
 
@@ -1743,7 +2097,7 @@ Optimal **0.85**, Lazy2 1.45, BVX3 2.06 J, **lower than ** ZSTD 4.08, TGZ 5.40 J
 2. **BVX3 / Other3 encode energy consumption is at the same level as zstd/tar.lz4** (39–47 J vs 36–51 J), no need to optimize energy consumption; decode The whole family is very provincial, and there is no need to deal with it.
 3. ⚠️ **Measurement limit**: Multiple extremely short decodes appear `POWER_NO_SAMPLES` (other3 n40 decode, llama's bvx3/lazy2/optimal n40 decode), due to decompression <~0.3–0.5s shorter than the powermetrics sampling interval. These decode energy consumption is empty and requires a long batch or a smaller `-n` to obtain; it does not affect the conclusion of encode energy consumption.
 
-## Power Cause Explanation (with the latest code)/ Why the Power Numbers Look This Way
+## Explanation of the cause of power (compared with the latest code)
 
 Mental model: **energy consumption J = average power W × time s**; and **power ≈ core busyness (IPC)**. Computing is dense and data is in cache → kernel full load → high power; memory dense (cache miss / pointer chase) → kernel stops in equal memory → low power, but it takes a long time to run.
 
@@ -1865,7 +2219,7 @@ CPU call tree shows that tag-packing has a partial parser cost reduction, but no
 
 ---
 
-# The 26th round of acceptance supplement: Benchmark / Trace / CPU fields have been rebuilt (2026-06-16)
+# The 26th round of acceptance supplement: Benchmark
 
 ## Data status
 
@@ -1879,7 +2233,7 @@ The latest trace products have been used to make up `helper/cpu_call_tree_analys
 
 `lzfse-test.txt` shows correctness case maintenance pass: Other3 self-back-trip compatible with Apple, bvx3 / lazy2 / optimal self-back-trip, parallel decoding, private bvx3 Apple rejection, single-stream support and Apple mutual solution paths are all normal.
 
-## Latest Speed / Compression Ratio / RSS
+## The latest speed / compression ratio
 
 `best_points/best_points.md` shows the best points of this round as follows:
 
@@ -1915,18 +2269,18 @@ RSS trade-off is still clear: n40 usually gives the LZFSE family the highest com
 
 ---
 
-# Round 26: BVX3 / Lazy2 CPU Single-Point Optimization (2026-06-15) / Round 26: BVX3 & Lazy2 Single-Point CPU Opts
+# Round 26: BVX3 / Lazy2 CPU Single Point Promization (2026-06-15)
 
 > Only move `lzfse-cli.swift`. Undertake the top symbol of R25 cpu_call_tree (BVX3→`encodeBlockV3`, Lazy2→`lzParseChain.bestMatch`), do a single-point acceleration of two ** output bytes exactly the same, without changing the compression ratio **; pending benchmark/memProbe acceptance.
 
-## Change 1: `encodeBlockV3` Three passes into one / Fuse 3 passes into 1
+## Change 1: `encodeBlockV3` Three trips are integrated into a single trip
 
 - Originally three trips to nMatches: (a) build `lVals/mVals/dVals` by triplets, (b) 3 deep rep-offset transform, (c) calculate `lSyms/mSyms/dSyms` and frequency `lOcc/mOcc/dOcc`.
 - Change to **single `for t in triplets` loop** one-time completion value intercept, rep-offset, symbol and frequency; array change one-time configuration ( `repeating:count:`) instead of `append`.
 - Effect: The visit to nMatches is from 3 times to 1 time, removing `append` reconfiguration and a large number of Swift Array visits ( `encode` + `swift_array` hotspot of R25 trace). `lVals/mVals/dVals` is still reserved for the extra bits of the latter segment LMD encoding, so it only integrates the front segment and does not delete the array.
 - Correctness: MTF state machine of rep-offset, M=0 → send 0, symbol calculation order is completely consistent with the input value → **output byte unchanged**.
 
-## Change 2: `lzParseChain.bestMatch`'s rep length cache / Cache rep lengths
+## Change 2: Rep length cache of `lzParseChain.bestMatch`
 
 - 1 (rep pre-trial) of `bestMatch` has been calculated rep0/1/2 length with `repLen` (including `matchLength` scan); but 3 (rep is selected when it is close to the best) ** recalculated again ** `repLen`.
 - Instead, calculate `l0/l1/l2` at 1 time (directly shared at the same distance, without repeated scanning), 3 direct reuse, remove up to 3 `matchLength` scans each time `bestMatch`.
@@ -2070,19 +2424,19 @@ The valid LZFSE trace of this round of cpu call tree is in `claw-code`:
 
 ---
 
-# Round 24: `-n` Scan Result Integration (2026-06-15)/ Round 24: `-n` Sweep Consolidation
+# Round 24: `-n` Scan Result Integration (2026-06-15)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 This round will rebuild `BenchMarkResult.csv` according to `lz4bench_log/lz4bench-{dataset}-n4/n8/n40.txt`, `lzfse-test.txt` and `memprobeResults/`. This time, it is clear that ** did not rerun `helper/tracer.command` or `helper/trace_analysis.command` **; the old trace and the old `trace/analysis` products have been cleaned up, and there will be no new hotspot reading in this round.
 
 `BenchMarkResult.csv` is currently 48 rows: 2 data sets × 3 N × 8 formats. The speed bar still calculates decimal MB/s in raw bytes / ns; CSV and `best_points/best_points.csv` are both output in UTF-8 BOM, which is convenient for Excel reading. `lzfse-test.txt` shows that the built-in correctness cases continue to pass: other3 Apple compatibility, own bvx3/lazy2/optimal round-trip, parallel decoding, private bvx3 Apple rejection, single-stream backup and Apple mutual solution path are all normal.
 
-## Throughput Summary / Throughput Summary
+## Speed summary
 
 The speed comparison is based on the `compression MB/s` / `decompression MB/s` of `BenchMarkResult.csv`. The compression size is included in the reference, but even if the data of TGZ, Apple, ZSTD and multi-threaded external tools is the same, they may cause small fluctuations due to metadata, tool version, threading and operating environment; this round only lists obvious trends as conclusions.
 
-### Best Points / Best Points
+### The best point
 
 > `log nX` of TGZ / Apple / TLZ4 / ZSTD only represents the source log batch, and `-n` does not affect these algorithms; `-n` is only meaningful to LZFSE other3 / bvx3 / lazy2 / optimal path.
 
@@ -2127,7 +2481,7 @@ Decode RSS has not yet dropped to the expected tens of MB or semi-compressed fil
 
 Trace has not been rerun this time, and the old `trace/analysis` export has been removed. The previous analysis confirmed that the external compressor trace is available, but most of the old trace of LZFSE family profiles to `zsh` wrapper, which cannot be used as a hotspot basis. `helper/tracer.command` has been changed to clear the old `*.trace` before re-running, and change to direct launch + `--target-stdin`; next time, if you want to make a hotspot, you must first reborn trace before running `trace_analysis.command`.
 
-## This round of script and output sorting / Script and Output Updates
+## This round of styp and output sorting
 
 - `helper/benchmark_result_rebuild.command` only reads `lz4bench_log/lz4bench-*-n*.txt`, no longer fallback root directory old log; output `BenchMarkResult.csv` as UTF-8 BOM.
 - `benchmark.sh` has written the results of lz4bench to `lz4bench_log/`, and the last step will rebuild `BenchMarkResult.csv` and generate Best Points.
@@ -2142,7 +2496,7 @@ Trace has not been rerun this time, and the old `trace/analysis` export has been
 3. **Optimal change income gate**: `claw-code` has 4.72% volume gain, which can be used for high-yield segments; `llama.cpp` is only 1.79%, which is not worth the whole segment DP. The next step is to add cheap probe. The low-yield segment will go Lazy2/BVX3, and the high-yield segment will enter Optimal.
 4. **Trace is reborn and then change the hotspot**: At present, match loop or DP inner loop is not changed according to the old trace XML. If you want to re-run trace in the next round, verify `contains_lzfse_profile=yes` first, and then draw top self-time/heavy stack.
 
-## Next Round Acceptance Criteria / Next Acceptance Criteria
+## Next round of acceptance conditions
 
 - `swiftc -O lzfse-cli.swift -o lzfse` can be compiled.
 - `./lzfse -test` Maintain all cases passed.
@@ -2150,9 +2504,9 @@ Trace has not been rerun this time, and the old `trace/analysis` export has been
 - If decode streaming is changed: `claw-code` Optimal decode RSS should be significantly lower than 831.6MB, and `llama.cpp` Optimal decode RSS should be significantly lower than 1117.1MB.
 - If Optimal is changed: recalculate MB/s with raw bytes/ns, the compression speed of `claw-code` Optimal is increased by at least 10%, or the revenue gate can make the `llama.cpp` low-yield segment avoid Optimal DP.
 
-# Round 23: benchmark / memProbe / trace (2026-06-14) / Round 23: Consolidated Benchmark Refresh
+# Twenty-third round: benchmark / memProbe / trace unified recalculation (2026-06-14)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 This round re-read `lz4bench-claw-code.txt`, `lz4bench-llama.cpp.txt`, `lzfse-test.txt`, `memprobeResults/` and `trace/`. `BenchMarkResult.csv` has been refreshed into the same table. The speed column calculates decimal MB/s in raw bytes / ns, and keeps `Encode RSS(MB)`, `Decode RSS(MB)`, `Trace wall time(seconds)`, so that the overlay status of throughput, peak RSS and Time Profiler can be compared with the same column.
 
@@ -2160,9 +2514,9 @@ This round of helper has moved the memProbe to the compression and decompression
 
 `lzfse-test.txt` is still positioned as an correctness and compatibility test, which is not included in the MB/s calculation; there is no failure mark in this round, and the lazy2 / optimal self-round-trip, parallel decoding, and Apple compatibility/rejection path are all maintained.
 
-## Latest Speed Results / Latest Throughput (decimal MB/s, raw bytes / ns)
+## The latest speed results
 
-### Compression MB/s / Compression
+### Compressed MB/s
 
 | Format | claw-code | llama.cpp |
 | --- | ---: | ---: |
@@ -2175,7 +2529,7 @@ This round of helper has moved the memProbe to the compression and decompression
 | TLZ4 | 500.44 | 363.81 |
 | ZSTD | 327.97 | 470.05 |
 
-### Decompression MB/s / Decompression
+### Decompress MB/s
 
 | Format | claw-code | llama.cpp |
 | --- | ---: | ---: |
@@ -2190,7 +2544,7 @@ This round of helper has moved the memProbe to the compression and decompression
 
 > The speed value of this round is still floating with the front wheel. After llama.cpp moves back to memProbe, the decompression MB/s returns significantly to the 220–273 MB/s range; the decompression of claw-code still shows large disk/cache fluctuations, especially the BVX3 single point is low. Therefore, the comparison is still based on the same-round relative relationship and multi-round trend, and the small difference in compression size of Apple/ZSTD/TGZ is not regarded as evidence of algorithm change.
 
-## Compression ratio and cost / Ratio and Cost
+## Compression ratio and cost
 
 | Data Set | Lazy2 ratio | Optimal ratio | Optimal Extra Volume Gain | Optimal/Lazy2 Compression Time |
 | --- | ---: | ---: | ---: | ---: |
@@ -2199,7 +2553,7 @@ This round of helper has moved the memProbe to the compression and decompression
 
 The conclusion remains unchanged: optimal has a visible volume benefit for claw-code, but it only saves 1.80% more for llama.cpp, but it still requires 2.89x lazy2 compression time. In the next round, the optimal should not be taken as the global strategy, but should be changed to the segment level cheap probe: the high-yield segment should enter the optimal segment, and the low-yield segment should go lazy2 or bvx3.
 
-## MemProbe Results / Peak RSS
+## MemProbe Results
 
 | Format | claw encode | claw decode | llama encode | llama decode |
 | --- | ---: | ---: | ---: | ---: |
@@ -2214,7 +2568,7 @@ The conclusion remains unchanged: optimal has a visible volume benefit for claw-
 
 The latest memProbe shows that decode RSS is stable at about 473MB–1.24GB, and no longer returns to 2GB+ of R21, but it is still much higher than external tools; encode RSS is more clearly the main problem. LZFSE / bvx3 family encode is about 1.16–1.66GB, compared with TLZ4 about 75–84MB and ZSTD about 392–508MB, representing parallel encode, the in-way chunk, parser workspace, compressed body, sorting buffer or `Data` copy still need to be suppressed independently. The default value of `-n` does not allow RSS to fall automatically. The next step is to scan with a smaller N.
 
-## Trace Summary / Trace Summary
+## Trace integration
 
 `trace/tracer_status.txt` shows that 16 Time Profiler bundles have been completed, the file name is `<dataset>-<algo>.trace`, and the LZFSE family maintains `-si` stdin path. Trace wall time can only confirm the coverage and relative magnitude, cannot replace benchmark MB/s, and cannot declare hotspot ranking before CLI export fails.
 
@@ -2231,14 +2585,14 @@ The latest memProbe shows that decode RSS is stable at about 473MB–1.24GB, and
 
 The available conclusion of Trace is very narrow: lazy2 / optimal is a long segment, especially claw-code optimal; but the first two hotspots still need to open the `.trace` bundle with Instruments GUI and record the top self-time / heavy stack.
 
-## bvx3 Family Next Plan / Next Plan
+## bvx3 Family Next Step Plan
 
 1. ** Do a small N scan first, instead of directly claiming that encode RSS has been solved**: The default N still allows the bvx3 family encode RSS to fall to 1.16–1.66GB. The next round needs to fix the same code, scan `-n 40 / 8 / 4` or similar values, and confirm whether the smaller N can reduce any encode RSS of bvx3/lazy2/optimal by ≥20%, and the compression MB/s/ rate is acceptable.
 2. **Redo the optimal cost gate**: Use cheap probe to estimate the benefits of lazy2→optimal at the segment level. Low-yield data such as llama.cpp should not be optimized in all sections; claw-code high-yield segments are worth paying DP costs.
 3. **decode RSS is still a problem, but the ranking is lower than encode**: decode is currently about 0.47–1.24GB, which is still one or two orders of magnitude higher than zstd/tlz4; but the most unreasonable thing in this round is encode 1.16–1.66GB. The decode bounded streaming window should be scheduled independently to avoid mixing with the optimal DP acceleration in the same round.
 4. **Profiling only picks specific hotspots after GUI reading**: Next time you want to change the DP / match loop, first extract the top two hotspots from `trace/claw-code-optimal.trace` and `trace/llama.cpp-optimal.trace`, and then make a single-point change; the speed success condition maintains the same-round claw optimal compression time improvement ≥10%.
 
-## Implementation Acceptance Observation / Implemented This Round
+## This practical acceptance observation
 
 **Item 1 (encode decoupling in transit) - done + investment evaluation**
 - `-n <N>` knob (encode / decode shared, decoupled with the number of cores): the sem upper limit of `runParallelEncode` is determined by N. Default = number of cores × 2, upper limit < number of cores × 4, lower limit 1.
@@ -2250,12 +2604,12 @@ The available conclusion of Trace is very narrow: lazy2 / optimal is a long segm
 - **Acceptance results**: decode RSS is maintained at 473MB–1.24GB, which has not returned to 2GB+ of R21; but it has not yet reached dozens of MB, which means that `scanBlocks` / `src` incrementalization is still necessary follow-up work.
 - To "tens of MB", the second stage is required b: `scanBlocks` incremental scanning + `src` stream reading (not yet done).
 
-**Decode file reading to double (R24 follow-up, done)/ Eliminate read-time input doubling**
+**Decode read the file to double copy (R24 follow-up, done)**
 - R24 data shows decode peak ≈ **2× compressed file** (claw optimal 422MB→829MB, other3 485MB→950MB), the bottleneck is not in the output but "at the time of reading the file": `readToEnd()` The whole portion of `Data` And `[UInt8](...)` It exists at the same time at the moment of conversion.
 - Method: CLI decoding end is changed to **single buffer incremental read**-- `-i` File first `attributesOfItem` Take the size, once `reserveCapacity`, and then with 1MiB small pieces `read(upToCount:)` Append block by block and release temporary storage `Data` ( `-si` When the size of stdin is unknown, it will be returned to append block by block). The peak value of the input terminal is reduced from 2× compressed gear to **≈ 1× compressed gear + 1MiB**.
 - Expected decode peak ≈ `1× compressed file + N×4MiB` (claw optimal `-n4` estimated ~0.44GB, about cut in half). Wait for your benchmark + memProbe acceptance; `-test` keep 7/7 and Apple to solve each other unchanged.
 
-**Decode stream input (receive 1× compressed input) - done (to be accepted) / Streaming input**
+**Decode stream input (receive 1× compressed input) - done (to be accepted)**
 - R24 clean round shows that the decode is still ~0.83–1.18GB, because **the whole compressed input is still stationed** ( `src` whole file + `scanBlocks` whole sweep). This time, the `-i` file decoding is changed to real streaming:
 - Add `decodeStreamFromFile`: read into the compressed stream block by block, accumulate into groups according to the chunkRaw boundary, ** write and release in order after the whole batch of N groups are successfully decoded in parallel, and release **, and the whole process does not hold the whole compressed input. Reading window ~1MiB + N× in the flying group (a set of compression + a set of output).
 - Expected decode RSS ≈ **inflight × (≤4MiB compression + 4MiB output) + ~1MiB**, no longer linear with file size ( `-n4` tens of MB; `-n40` about hundreds of MB).
@@ -2278,25 +2632,25 @@ The available conclusion of Trace is very narrow: lazy2 / optimal is a long segm
 
 ---
 
-# Suggestion of modification direction: bvx3 family memory overall solution (R23 design notes)/ Direction: Holistic Memory Fix for the Whole LZFSE Family
+# Suggestion of modification direction: bvx3 family memory overall solution (R23 design notes)
 
 > This section is the design direction, not the actual measurement. B-line/C-line of R21/R23 memProbe and R22: encode RSS about 1.16–1.66GB, decode RSS about 0.47–1.24GB is **architecture-level** cost, and **all formats are shared** (other3 / Apple is also affected, not exclusive to bvx3). Therefore, the solution must be solved once in the common layer and ensure that it is compatible with other3/Apple.
 
-## 1. Problem positioning (common layer, non-format exclusive) / Root Cause in the Shared Layer
+## 1. Problem positioning (common layer, non-format exclusive)
 
 `decodeStream` (2677 lines) and `runParallelEncode` (3342 lines) are the I/O pipelines shared by all algorithms:
 
 - **decode still has a whole file-level cost**: (a) 2678 lines `let src = [UInt8](input)` holds the whole compressed input (~0.4–0.6GB); (b) After batch output, the peak value is still about 0.47–1.24GB, which means that the compressed input, group temporary storage, `Data` copy / staging are still not fully bounded.
 - **encode number of binding cores in transit**: 3345 lines `maxTasks = activeProcessorCount` (this machine 20). Each in-trang chunk has its own input 4MiB + output + parser workspace + hash-chain/DP array, peak ≈ number of cores × working set per chunk, currently about 1.16–1.66GB.
 
-## two Pivlic point: The maximum backtracking distance is determined by the "format" and is very small / The Enabling Invariant
+## two Pivot: The maximum backtracking distance is determined by the "format", and it is very small.
 
 - `maxDValue = 262139` (55 lines) → other3 / Apple maximum match distance ≈ **256KB** (i.e. Apple `LZFSE_ENCODE_MAX_D_VALUE`).
 - `maxD3 = 4194299` (125 lines) → bvx3 ≈ **4MiB** (= `parallelChunkSize`).
 
 Inference: **Any format decoding only needs to keep the "last W bytes" history** (W = 256KB or 4MiB), and the whole output is not required. This is also the implicit premise that the current parallel grouping (2692 rows on chunkRaw boundary tangent group, 2532 lines `dd <= w - historyFloor` boundary) can be established - but it has not been used to define decode memory. This is how gzip (32KB window) and zstd (frame window) maintain constant memory that has nothing to do with the file size.
 
-## three. Overall solution: single bounded streaming I/O layer (three knobs, covering full format) / One Bounded Streaming Layer
+## three. Overall solution: single bounded stream I/O layer (three knobs, covering the full format)
 
 | Knob | Meaning |
 |---|---|
@@ -2308,22 +2662,22 @@ Inference: **Any format decoding only needs to keep the "last W bytes" history**
 - **encode**: The number of in transit is changed from `maxTasks` to N + scratch pool to reuse workspace → RSS ≈ N × (chunkSize + workspace).
 - **Apple/other3 compatibility zero impact**: The "bytes" of input/output remain completely unchanged, and only the buffer policy is changed; compatibility is a format problem, not a memory policy problem.
 
-## four. Code Anchors / Code Anchors
+## four. Program code landing point
 
 - decode: `decodeStream` API changed from "return the whole data" to "write output FileHandle while solving"; 2705 lines whole `allocate` → bounded ring window; 2678 lines `[UInt8](input)` + `scanBlocks` (2610 lines) change incremental scanning (read magic/header → read block body → solve → forward).
 - encode: `runParallelEncode` (3342 lines) decouple `maxTasks` from the "in-the-way upper limit" and add N; `scratchPool` (772 lines) expands to parser/DP workspace.
 
-## five. Memory Estimation and User Knob / Estimates & `-mem`
+## five. Memory estimation and user knob
 
 - decode N=4 + after incremental scanning: 0.47–1.24GB → ≈ N×4MiB + 4MiB ≈ **20–24MB**.
 - After encode N=8 + scratch pool: 1.16–1.66GB → ≈ 8×(4MiB + workspace) ≈ **hundreds of MB**.
 - It is recommended to make `-mem low|balanced|max` (N = 2 / 8 / cores) externally: `max` maintains today's speed and memory, and `low` changes to low RSS.
 
-## six Trade-off / Trade-off
+## six Weighing
 
 The only price: N becomes smaller → decoding parallelism decreases → decoding MB/s approaches zstd (claw may 700→300–400). The current high decoding speed of lzfse was originally bought with "whole configuration + full-core parallel"; this solution makes it **optional** instead of mandatory.
 
-## seven Phased Plan corresponds to the success conditions of R23 / Phased Plan
+## seven Installment corresponds to the success conditions of R23
 
 - **The second stage a (implemented, this time) / decode output bounded streaming**: Add `decodeStreamToHandle` (lzfse-cli.swift), and change the CLI decoding path ( `-decode` of `.other3` / `.bvx3`) from "configure the whole output at a time (~1.3GB) + write at a time" to "** batch parallel decoding → write stdout in order → release immediately**".
 - Effective for all **other3 and bvx3 families** (both follow this path); the output bytes are exactly the same → Apple compatibility has no impact.
@@ -2336,13 +2690,13 @@ The only price: N becomes smaller → decoding parallelism decreases → decodin
 
 ---
 
-# Round 22: Time Profiler trace Full Coverage (2026-06-14)/ Round 22: Full Time Profiler Trace Coverage
+# Round 22: Time Profiler trace full coverage (2026-06-14)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 This round did not rerun the benchmark; `BenchMarkResult.csv` follows the latest MB/s calculated by R21 by raw bytes / ns. The new work is to expand `helper/tracer.command` into two data sets × 8 format Time Profiler batch tracing, output in `trace/`, file name alignment memProbe style: `<dataset>-<algo>.trace`. Two large tar input and profiling compression outputs have been cleared, and 16 `.trace` bundles are kept.
 
-## Trace Completeness / Trace Completeness
+## Trace Completeness
 
 - ✅ `TRACE_DONE 13:55:59`, 16 `.trace` bundles have been produced.
 - ✅ COVERS `claw-code` / `llama.cpp` × `tgz`, `zstd`, `tar.lz4`, `other3`, `apple`, `bvx3`, `lazy2`, `optimal`.
@@ -2372,7 +2726,7 @@ This round did not rerun the benchmark; `BenchMarkResult.csv` follows the latest
 4. **Decompression and encode profiling need to be disassembled**: The decompression MB/s of R21 is significantly slowed down by the complete memProbe; if you want to decompress in the future, you should be independent of the profiling/memProbe round.
 Five. **At present, hotspot ranking cannot be claimed**: Before CLI export fails, "chain walk" or `matchLength` should not be written as top hotspot; they can only be listed as candidates that need to be confirmed by Instruments GUI.
 
-## Memory Pressure Observation / Memory Pressure
+## Memory pressure observation
 
 | Category | External Tools | LZFSE/bvx3 Family |
 | --- | --- | --- |
@@ -2381,7 +2735,7 @@ Five. **At present, hotspot ranking cannot be claimed**: Before CLI export fails
 
 > Conclusion: The bvx3 family is not "only a little more buffer than external tools" at present, but one to two orders of magnitude higher. Decode RSS is the most sensitive to users, because decompression is usually expected to be low-cost, parallel, and stable under disk pressure; encode RSS is also unreasonable, because the baseline BVX3 has reached 1.3–1.5GB, and lazy2/optimal is higher. This problem and optimal DP speed are two lines: speed optimization cannot cover up too high RSS.
 
-## bvx3 Family Next Strategy / Next Strategy
+## bvx3 family next step strategy
 
 - **A line: First read `trace/claw-code-optimal.trace` and `trace/llama.cpp-optimal.trace` ** with Instruments GUI, take the top self-time / heavy stack, and then decide whether to change to `matchLength`, chain walk, dense relax, `rebuildPrices` or pre-screen.
 - **B line: reduce bvx3 family encode RSS**. Give priority to check whether parallel encode retains input chunk, compressed body, match/price workspace, hash-chain table, result sorting buffer and `Data` copy at the same time; the goal is to reduce encode RSS from 1.3–1.8GB to close to the interpretable upper bound of "chunkSize × maxTasks + parser workspace".
@@ -2392,13 +2746,13 @@ Five. **At present, hotspot ranking cannot be claimed**: Before CLI export fails
 
 ---
 
-# Round 21: Full memProbe Coverage and Re-run (2026-06-14)/ Round 21: Full memProbe Coverage and Re-run
+# Round 21: Complete memProbe coverage and retest (2026-06-14)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 In this round, first modify the benchmark helper, and then re-run `run_round.command`. The key is to let `round_status.txt` judge success/failure, and let `memprobeResults` cover all benchmark formats: `tgz`, `zstd`, `tar.lz4`, `other3`, `apple`, `bvx3`, `lazy2`, `optimal`. `BenchMarkResult.csv` has recalculated decimal MB/s with the raw bytes / ns of the latest `lz4bench-claw-code.txt` and `lz4bench-llama.cpp.txt`.
 
-## Measure the completeness / Completeness
+## Measure the completeness
 
 - ✅ `run_round.command`: `TEST_OK 12:46:41`, `BENCH_DONE 13:08:24`.
 - ✅ `claw-code` / `llama.cpp`: Compression and decompression of each 8 formats is completed, and 7/7 consistently passed.
@@ -2406,9 +2760,9 @@ In this round, first modify the benchmark helper, and then re-run `run_round.com
 - ✅ `memprobeResults`: Both data sets output 8 formats encode + decode peak RSS.
 - ✅ helper correction: `benchmark.sh` uses zsh safe glob, `run_round.command` returns the benchmark exit code correctly; `zshrc.sh`'s `extract` / `lzfseX` / `lz4bench` supports lazy2/optimal product and complete probe.
 
-## Measured Results (decimal MB/s, bytes/ns)
+## The actual measurement results
 
-### Compression MB/s / Compression
+### Compressed MB/s
 
 | Format | claw-code | llama.cpp |
 | --- | ---: | ---: |
@@ -2421,7 +2775,7 @@ In this round, first modify the benchmark helper, and then re-run `run_round.com
 | TLZ4 | 490.55 | 257.22 |
 | ZSTD | 324.59 | 289.45 |
 
-### Decompression MB/s / Decompression
+### Decompress MB/s
 
 | Format | claw-code | llama.cpp |
 | --- | ---: | ---: |
@@ -2436,14 +2790,14 @@ In this round, first modify the benchmark helper, and then re-run `run_round.com
 
 > This round of decompression MB/s is significantly lower than R20, especially llama.cpp. Adding a complete encode/decode memProbe before decompression in this round will change the state of page-cache and the whole machine memory; therefore, decompression MB/s can only be recorded in the same round and should not be used as evidence of algorithm regression. Compressing MB/s and the lazy2/optimal multiple of the same wheel is still the main basis for comparison.
 
-### Compression ratio and in-round cost / Ratio and Within-Run Cost
+### Compression ratio and co-cycle cost
 
 | Data Set | Lazy2 ratio | Optimal ratio | Optimal Extra Volume Gain | Optimal/Lazy2 Compression Time |
 | --- | ---: | ---: | ---: | ---: |
 | claw-code | 0.9016 | 0.8590 | 4.72% smaller vs lazy2 | 1.72x |
 |llama.cpp|0.9587|0.9415|1.80% smaller vs lazy2|3.34x|
 
-## MemProbe Results / Peak RSS
+## MemProbe Results
 
 | Format | claw encode | claw decode | llama encode | llama decode |
 | --- | ---: | ---: | ---: | ---: |
@@ -2458,14 +2812,14 @@ In this round, first modify the benchmark helper, and then re-run `run_round.com
 
 > LZFSE/bvx3 series encode RSS is about 0.95–1.76 GB and decode RSS is about 1.45–2.34 GB, both of which are much higher than external tools, which is an independent memory pressure problem. Optimal encode is about 55 MB (claw) and 102 MB (llama) higher than lazy2, and the gap is less than the speed cost; therefore, the main difference between optimal and lazy2 is still DP calculation, but the overall encode/decode RSS of the bvx3 family must be listed separately.
 
-## Lazy2 / Optimal Improvement Strategy / Strategy
+## Lazy2 / Optimal Improvement Strategy
 
 1. **Profiling first and then move DP**: claw optimal 27.11 MB/s, still not close to 40+ MB/s. The next step is to use Time Profiler to find out the top two hot spots, and you can't change `lzParseOptimal` with the overall feeling.
 2. **The cost gate is more valuable than the global optimal**: llama.cpp optimal spends 3.34x more compression time and only saves 1.8% of the volume; cheap probe should estimate the return at the segment level, and the low-income segment goes lazy2/bvx3.
 3. **encode/decode RSS must be listed separately**: bvx3/lazy2/optimal encoding RSS about 1.3–1.8GB, decoding RSS about 2GB or more, significantly higher than TGZ/ZSTD/TLZ4; single-point improvement should be established for parallel encode/decode staging, workspace, output buffer, `Data` copy, do not mix with optimal DP acceleration.
 4. **Conditions for the next round of success**: Profiling outputs the referenceable hotspot ranking, and proves that the compression time of the same round of claw optimal is improved by ≥10% with a single-point change, and the compression ratio does not regress.
 
-## Next Round Plan / Next (R22)
+## The next round of planning
 
 - Use `helper/tracer.command` or Instruments to make Time Profiler for claw optimal, and put the output in `trace/`.
 - Maintain the `-si` input path; do not use `-i` instead of pipeline measurement.
@@ -2474,15 +2828,15 @@ In this round, first modify the benchmark helper, and then re-run `run_round.com
 
 ---
 
-# Round 20: Full Benchmark + Memprobe Refresh (2026-06-14)/ Round 20: Full Benchmark + Memprobe Refresh
+# Round 20: Complete benchmark + memprobe refresh (2026-06-14)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 This round re-reads the latest `lz4bench-claw-code.txt`, `lz4bench-llama.cpp.txt`, `lzfse-test.txt`, `memprobeResults/lazy2-memprobe.txt`, `memprobeResults/optimal-memprobe.txt`, and recalculate the MB/s of `BenchMarkResult.csv` with exact raw bytes / nanoseconds. `lzfse-test.txt` is a function and compatibility test output, not a similar throughput benchmark, so it is used to confirm the compatibility of lazy2/optimal with Apple, and is not included in the MB/s table of CSV.
 
 MB/s calculation is changed to decimal MB/s: `raw_bytes / elapsed_ns * 1000`. The original size bar still follows the existing CSV display convention (rounded after raw KiB to MiB). After compression, the size is rounded by exact compressed bytes to MB, and the compression ratio is calculated by "relative TGZ compressed bytes".
 
-## Measure the completeness / Completeness
+## Measure the completeness
 
 - ✅ `claw-code`: 8 format compression and decompression completed, 7/7 consistency passed.
 - ✅ `llama.cpp`: 8 format compression and decompression completed, 7/7 consistency passed.
@@ -2490,9 +2844,9 @@ MB/s calculation is changed to decimal MB/s: `raw_bytes / elapsed_ns * 1000`. Th
 - ✅ `memprobeResults`: Get lazy2 / optimal encode and decode peak RSS of llama.cpp.
 - ⚠️ `round_status.txt` still records the zsh `nomatch` message of `benchmark.sh`; the result file is still fully output, but the helper cleaning section needs to be modified to `NULL_GLOB` or glob qualifier to avoid misleading the status file.
 
-## Measured Results (decimal MB/s, bytes/ns)
+## The actual measurement results
 
-### Compression MB/s / Compression
+### Compressed MB/s
 
 | Format | claw-code | llama.cpp |
 | --- | ---: | ---: |
@@ -2505,7 +2859,7 @@ MB/s calculation is changed to decimal MB/s: `raw_bytes / elapsed_ns * 1000`. Th
 | TLZ4 | 627.54 | 370.01 |
 | ZSTD | 489.21 | 442.07 |
 
-### Decompression MB/s / Decompression
+### Decompress MB/s
 
 | Format | claw-code | llama.cpp |
 | --- | ---: | ---: |
@@ -2518,7 +2872,7 @@ MB/s calculation is changed to decimal MB/s: `raw_bytes / elapsed_ns * 1000`. Th
 | TLZ4 | 836.46 | 288.55 |
 | ZSTD | 891.94 | 271.47 |
 
-### Ratio and Within-Run Cost / Ratio and Within-Run Cost
+### Compression ratio and time multiple of the same round
 
 | Data Set | Lazy2 ratio | Optimal ratio | Optimal Extra Volume Gain | Optimal/Lazy2 Compression Time |
 | --- | ---: | ---: | ---: | ---: |
@@ -2527,7 +2881,7 @@ MB/s calculation is changed to decimal MB/s: `raw_bytes / elapsed_ns * 1000`. Th
 
 > The same-round comparison is still the most reliable indicator: claw-code optimal spends about 1.8x more compression time to change 4.7% volume; llama.cpp spends about 2.85x more to exchange only 1.8% volume. This supports the direction of "default or automatic policy bias lazy2, optimal only for high-volume sensitive segments".
 
-## Memprobe Results / Peak RSS
+## Memprobe Results
 
 | Mode | Encode peak RSS | Decode peak RSS |
 | --- | ---: | ---: |
@@ -2536,14 +2890,14 @@ MB/s calculation is changed to decimal MB/s: `raw_bytes / elapsed_ns * 1000`. Th
 
 > optimal encode peak RSS is only about 69.8 MB (about +4.5%) higher than lazy2, which means that the main problem of optimal at present is not the memory peak, but the DP calculation time. Decode RSS are close to each other, and the optimal decode is slightly lower, which does not constitute the optimization spindle for the time being.
 
-## Lazy2 / Optimal Improvement Strategy / Strategy
+## Lazy2 / Optimal Improvement Strategy
 
 1. **Short-term success conditions are changed to profiling verification**: 40+ MB/s can be reserved as a medium-term target, but do not directly promise the speed in the next round; first use Time Profiler to find out the top two hot spots in about 49 seconds of claw optimal, and use at least one single-point change to prove that the same round ≥10% improvement.
 2. **Segment hierarchical cost gate takes precedence over global optimal**: make a cheap probe for each segment to estimate the possible return of optimal relative lazy2; the low-yield segment goes directly to lazy2/greedy, and the high-yield segment enters DP. The optimal of llama.cpp only saves 1.8% more volume but takes 2.85x time, which is the most obvious candidate.
 3. **DP core still needs UnsafePointer/SIMD, but it needs to be pointed by profiling**: The direction of R19 is still valid, but this round of data shows that the performance benefits cannot be exaggerated. If the profiler display costs are concentrated in chain walk, `matchLength`, dense relax, `rebuildPrices` or pre-screening, only the first and second hotspots will be changed to avoid large-scale rewriting.
 4. **helper needs to clean up the status credibility first**: the `nomatch` message of `round_status.txt` will interfere with the reading; before the next benchmark, fix `benchmark.sh` to clean up the glob, and let `run_round.command` write `BENCH_FAILED` when the benchmark is not 0.
 
-## Next Round Plan / Next (R21)
+## The next round of planning
 
 - Fix helper's zsh glob cleaning and failure status return, so that `round_status.txt` can directly judge whether the whole round is successful.
 - Use `helper/tracer.command` or Instruments to measure claw optimal, and put the output into `trace/`, do not use `-i`, and the stin path must use `-si`.
@@ -2552,21 +2906,20 @@ MB/s calculation is changed to decimal MB/s: `raw_bytes / elapsed_ns * 1000`. Th
 
 ---
 
-# Round 19: Re-measurement After Landing Bounded-Buffer Backpressure (2026-06-14) / Round 19: Re-measurement After Landing Bounded-Buffer Backpressure
+# Round 19: Parallel coding bounded buffer (backpressure) retest after landing (2026-06-14)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 There is a code change in this round, but **not on the compression algorithm**: `runParallelEncode` binds `sem.signal()` from "task completed" to "chunk write", so that "read but not written" strictly ≤ maxTasks (memory upper bound ≈ maxTasks × chunkSize), fix the slow chunk in the front time pressure back body in `results` boundless accumulation (→ OOM) In order to exclude the single measurement deviation, this round uses ** the same program code three times** (R19a / R19b / R19c) two data sets 8 formats, answer: (1) whether this correction ** does not move to the compression ratio and single flow throughput ** (should only affect memory); (2) How much MB/s in bytes/ns fluctuates between "same code rerun" - thus separating the "algorithm effect" and "whole machine noise".
 
-This round changes code but **not the compression algorithm**. To separate algorithm effect from machine noise, we ran the *same binary three times* (R19a/b/c). MB/s is calculated as `raw_bytes / ns × 1000` (bytes/ns).
 
-## Measure the completeness / Completeness
+## Measure the completeness
 
 ✅ claw-code / llama.cpp 8 format compression + decompression, 7/7 decompression is the same; lzfse-test 112/112 full green (0 ✗); warm-cache takes effect. The **R19c** column in the following table is the latest retest (consistent with `BenchMarkResult.csv`), and the "three-round range" is listed to quantify the same code floating. All three rounds **no probe**; R20 has prepared `LZFSE_MEMPROBE=1` (see below).
 
-## Measured Results / Measured Results (MB/s, bytes/ns)
+## The actual measurement results
 
-### Compression MB/s (main indicator: three-round stability)/ Compression — the reliable metric
+### Compression MB/s (main indicator: three-round stability)
 
 | Format | claw R19c | claw three-wheel range | llama R19c | llama three-wheel range |
 | --- | ---: | :--- | ---: | :--- |
@@ -2581,7 +2934,7 @@ This round changes code but **not the compression algorithm**. To separate algor
 
 > **Compression MB/s is a stable and comparable indicator**: focus's optimal / lazy2 three-wheel floating is only ±2–7%. Claw optimal three-wheel 28.3 / 28.8 / 29.5 MB/s, lazy2 49.7 / 52.6 / 53.3 MB/s - this is the real algorithm throughput.
 
-### Decompression MB/s (three wheels of the same code are extremely noisy and incomparable) / Decompression — too noisy to compare
+### Decompression MB/s (the noise of the same code three wheels is extremely noisy, incomparable)
 
 | Format (claw) | Three-round range | Muntation |
 |---|:---|---:|
@@ -2596,7 +2949,7 @@ This round changes code but **not the compression algorithm**. To separate algor
 
 > **This is the strongest evidence of this round**: three runs are **the same binary, the same data**, and the claw zstd decompression MB/s swings between 380 ↔ 1059 (**±88%**), and the optimal / bvx3 also reaches ±42–45%, and the direction is irregular. It proves that the decompression throughput is mainly determined by the hit rate and scheduling of OS page-cache. **A single decompression MB/s cross-wheel is incomparable and cannot be attributed to the algorithm**. The comparison compression side is only ±1–7% - so this report is based on **compression MB/s + relative amount in the same wheel**, and decompression is for reference only.
 
-### Compression ratio (deterministic, reliable indicator)/ Ratio
+### Compression ratio (deterministic, reliable indicator)
 
 | Format | claw R18 | claw R19 | llama R18 | llama R19 |
 | --- | ---: | ---: | ---: | ---: |
@@ -2606,7 +2959,7 @@ This round changes code but **not the compression algorithm**. To separate algor
 
 > After compression, the number of bytes is exactly the same in R19a / R19b / R19c ** three rounds ** (determinitive compression), and the difference from R18 is < 0.05% (it is a data set floating step by step + Apple/zstd size will fluctuate with the data). **Key verification: backpressure correction zero ratio influence** - The change of signal timing and memory boundary is indeed only moving to the sched, and did not touch `compressBody` and chunk cutting.
 
-### Relative within the same round: Optimal / Lazy2 Compression Time Multiple (Most Reliable) / Within-Run Ratio
+### Relative within the same round: Optimal / Lazy2 compression time multiple (most reliable)
 
 | Data Set | R18 | R19a | R19b | R19c |
 | --- | ---: | ---: | ---: | ---: |
@@ -2615,7 +2968,7 @@ This round changes code but **not the compression algorithm**. To separate algor
 
 > In the same round, the time multiple of optimal relative lazy2 in three rounds is stable in claw ~1.8×, llama ~2.8×. This is a credible comparison that is not polluted by the noise of the whole machine: **Optimal takes about 1.8–2.9× more time, in exchange for only about 4% of the extra volume**.
 
-## Lazy2 vs Optimal Improvement Strategy / Strategy
+## Lazy2 vs Optimal Improvement Strategy
 
 1. **The sweet point of the ratio is still lazy2**: claw lazy2 0.9016 (vs optimal 0.8590), with ~1.8× compression time in the same round for the additional ~4.3% volume of optimal; lazy2 is more cost-effective in most situations. It is only cost-effective when it is "one pressure, multiple transmission/resolve" and volume sensitivity.
 
@@ -2623,14 +2976,14 @@ This round changes code but **not the compression algorithm**. To separate algor
 
 3. **The measurement method has been partially hardened and still needs to be continued**: The decompression noise ±88% proves that warm-cache is not enough to stabilize the decompression timing. This round has: (a) reported that the spindle was changed to compression MB/s; (b) prepared the peak-RSS probe for R20. The next step is to take the medidium for "decompression" many times.
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **Modify in line with the design intention**: backpressure changes to "read and unwritten ≤ maxTasks", the upper boundary of memory ≈ maxTasks × chunkSize; the ratio is zero regression, and the compression path remains unchanged.
 2. **The throughput difference is noise (proved by the same code three runs)**: The same binary three runs decompression MB/s can be different from ±88%, so the single decompression MB/s cannot be attributed to the algorithm; the compression MB/s (±1–7%) and the relative amount in the same round can be trusted.
 3. **The ratio can be reproduced**: optimal claw 0.8590 / llama 0.9415, lazy2 claw 0.9016 / llama 0.9587, span R16–R19 (including three runs of the same size) is completely stable.
 4. **The direction remains unchanged**: The next step of optimal acceleration is the DP kernel, not the parallel architecture (parallel has been fixed to a security boundary).
 
-## Next Round Plan / Next (R20)
+## The next round of planning
 
 - **Prepared probe**: `benchmark.sh` defaults to `export LZFSE_MEMPROBE=1`, and the next round will automatically measure the **encode + decode** peak RSS of lazy2 / optimal ( `zshrc.sh`'s `memProbe` has been modified to " `time -l` direct prefix lzfse" instead of the package `sh -c` pipeline, otherwise it will be a a shell). Expected empirically optimal at the upper bound of 1.3GB GGUF memory ≈ maxTasks × chunkSize. To close: `export LZFSE_MEMPROBE=0`.
 - **DP core UnsafePointer + SIMD**: Comprehensively index the price/match heat cycle of `lzParseOptimal`, eliminate Swift bounds-check and ARC overhead, and target claw optimal 29→40+ MB/s.
@@ -2639,19 +2992,18 @@ This round changes code but **not the compression algorithm**. To separate algor
 
 ---
 
-# Round 18: R17 Changed Clean Environment Re-measurement (2026-06-14) / Round 18: Clean-Environment Re-measurement of R17
+# Round 18: R17 Changed Clean Environment Retest (2026-06-14)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 No code change. Both measurements of R17 were contaminated by the system load (even tgz dropped to 21 MB/s). In this round, it re-runs when the system is relatively idle, obtains a reliable absolute MB/s, and answers "Has the entropy gate parameter (7.2 / 35% / three-point sampling / text protection) makes the optimal faster?"
 
-No code change. R17's measurements were load-contaminated; this clean re-run answers whether the entropy-gate tuning actually speeds up optimal.
 
-## Measure the completeness / Completeness
+## Measure the completeness
 
 ✅ The two data sets are compressed in 8 formats + decompressed, 7/7 is consistent; lzfse-test is all green; warm-cache is effective. The system is relatively idle in this round - tgz/zstd/bvx3 has returned to normal speed (claw tgz 48.35, zstd 460, bvx3 511 MB/s), confirming the non-load wheel.
 
-## Measured Results / Measured Results (MB/s, bytes/ns)
+## The actual measurement results
 
 ### Compressed MB/s (focus optimal) vs R16
 
@@ -2682,20 +3034,20 @@ No code change. R17's measurements were load-contaminated; this clean re-run ans
 
 > Completely consistent with R16/R17. **Text protection unsacrificed ratio** - This is the real value of R17 modification: the possible text misjudgment of R16 is corrected under the fixed rate. The size of Apple/ZSTD will fluctuate slightly with the data set.
 
-## Lazy2 vs Optimal Improvement Strategy / Strategy
+## Lazy2 vs Optimal Improvement Strategy
 
 1. **The effect of entropy gate for these data sets is limited**: claw is text (entropy < 7.2, and text protection is mandatory DP) → optimal cannot be accelerated by jumping DP; although llama contains binary, optimal still takes 2.9× time relative to lazy2. The real value of the entropy gate lies in the "**ratio-neutral safety net**" (to avoid waste of DP in random paragraphs and do not damage the text by mistake), rather than general acceleration.
 2. **Optimal speed bottleneck is in DP itself**: claw optimal 28 MB/s vs lazy2 55 MB/s vs zstd 460 MB/s. To approach zstd, you must move the DP core thermal circulation knife.
 3. **lazy2 is still the sweet spot of speed/ratio**: claw 54.58 MB/s, ratio 0.9020; most situations are better than the optimal 1.95× cost conversion rate of 4.3%.
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **Clean wheel confirmation**: This round of non-load wheel, absolute MB/s reliable.
 2. **Entropy gate parameter no net acceleration**: the multiple of optimal/lazy2 in the same round does not decrease (claw 1.95×, llama 2.93×); the absolute improvement of optimal comes from the system state rather than the algorithm.
 3. **Ratio zero regression and reproducible**: optimal claw 0.8590 / llama 0.9416 cross-wheel consistency; text protection is the real harvest of R17.
 4. **Direction established**: Optimal acceleration must follow the DP core UnsafePointer/SIMD, instead of continuing to adjust the entropy gate parameters.
 
-## Next Round Plan / Next (R19)
+## The next round of planning
 
 - **DP core UnsafePointer + SIMD**: Fully index the price/match heat cycle of `lzParseOptimal`, eliminate Swift bounds-check and ARC expenses, and target claw optimal 28→40+ MB/s.
 - **Encoder adjuster**: automatically select bvx1/bvx2/bvx3 according to the block entropy, and introduce -lazy/-optimal.
@@ -2703,15 +3055,14 @@ No code change. R17's measurements were load-contaminated; this clean re-run ans
 
 ---
 
-# Round 17: Entropy Gate Tuning + Three-Point Sampling + Text Protection + warm-cache (2026-06-14)/ Round 17: Entropy-Gate Tuning + 3-Point Sampling + Text Guard + Warm-Cache
+# Round 17: Entropy gate parameter adjustment + three-point sampling + text protection + warm-cache (2026-06-14)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 According to Gemini's suggestion, refine the R16 entropy gate and improve the measurement stability: (1) entropy threshold 7.5→7.2, (2) pre-screen coverage threshold 28→35%, (3) `sampleEntropy` change three points (front/middle/back 512B each) sampling + text protection, (4) `lz4bench` plus warm-cache pre-read data set.
 
-Implement Gemini's suggestions to refine the R16 entropy gate and stabilise measurement.
 
-## Changes in this round / Changes
+## This round of changes
 
 ** `lzfse-cli.swift` ( `lzParseOptimal`):**
 
@@ -2724,12 +3075,12 @@ Implement Gemini's suggestions to refine the R16 entropy gate and stabilise meas
 
 ** `zshrc.sh` ( `lz4bench`): ** Before compression timing, `tar -cf - "$1" > /dev/null` pre-reads the entire data set into the OS cache to eliminate the timing deviation of "the first format cold-cache, subsequent warm-cache".
 
-## Test Completeness / Benchmark Completeness
+## Test completeness
 
 - **claw-code / llama.cpp**: ✅ Each 8 format compression + decompression, 7/7 consistency passed; lzfse-test all green; warm-cache has taken effect.
 - ⚠️ **This round of measurement is carried out under the system load** (see below).
 
-## ⚠️ Measurement Condition Warning / Measurement Caveat
+## ⚠️ Warning of measurement conditions
 
 This round (and the previous rerun) **Compression MB/s of all formats has decreased comprehensively**, including tgz / zstd / bvx3 / lazy2 unrelated to the changes of this round:
 
@@ -2743,7 +3094,7 @@ This round (and the previous rerun) **Compression MB/s of all formats has decrea
 
 > tgz/zstd/bvx3/lazy2 have nothing to do with the entropy gate but decreased by 15-60% synchronously, which can be determined to be caused by **system load** (background check.sh, caffeinate, dispatch, Claude running at the same time), **non-algorithm regression**. Therefore, this round of "absolute compression MB/s" cannot be compared across wheels.
 
-## Reliable Metric: Ratio (deterministic)/ Reliable Metric: Ratio
+## Trusted Indicator: Compression Ratio (deterministic)
 
 | Format | claw R16 | claw R17 | llama R16 | llama R17 |
 | --- | ---: | ---: | ---: | ---: |
@@ -2752,7 +3103,7 @@ This round (and the previous rerun) **Compression MB/s of all formats has decrea
 
 > The compression ratio is almost exactly the same as that of R16 (the difference is < 0.2%, which is a floating data set version). **Key conclusion: After adding text protection, the optimal ratio did not regress** - it proves that the entropy gate of R16 did not skip text segments by mistake due to the 7.5 threshold (claw is text, isText is still DP throughout the whole process after guarding the door, and the ratio remains unchanged). The size of Apple/ZSTD will fluctuate slightly with the data set.
 
-## Lazy2 vs Optimal (R17, only relatively effective in the same round)/ Within-Run Relative
+## Lazy2 vs Optimal (R17, only relatively effective in the same round)
 
 | Pointer | claw Lazy2 | claw Optimal | llama Lazy2 | llama Optimal |
 | --- | ---: | ---: | ---: | ---: |
@@ -2763,14 +3114,14 @@ This round (and the previous rerun) **Compression MB/s of all formats has decrea
 
 > In the same round, the optimal time multiple claw 2.31×, llama 2.90× (consistent with the same trend as R16). Due to the load of the whole machine, it is impossible to determine the "net acceleration" brought about by the entropy gate adjustment from this round of numbers.
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **All four changes have been implemented and correct**: compilation passed, lzfse-test 7/7, consistency 7/7, warm-cache effective.
 2. **The ratio has not regressed**: The text protection is effective, and the claw/llama optimal compression ratio is the same as R16 - confirm that the three-point sampling + isText gatekeeper does not destroy the compression quality.
 3. **Absolute speed comparison cannot be made in this round**: the full format (including irrelevant tgz/zstd/bvx3/lazy2) is slowed down by 15-60% by the system load; the net acceleration effect of entropy gate parameter adjustment** has not been measured**.
 4. **warm-cache is in place**: In the future, cold-cache can reduce the interference of compression timing under clean conditions.
 
-## Next Round Plan / Next (R18)
+## The next round of planning
 
 - **Clean environment measurement**: Rerun a round under the system idle (pause check.sh / dispatch) to isolate the real acceleration of 7.2 threshold + 35% coverage rate + three-point sampling for llama optimal.
 - **Encoder adjuster**: automatically select bvx1/bvx2/bvx3 according to the block entropy, and introduce -lazy/-optimal.
@@ -2778,15 +3129,14 @@ This round (and the previous rerun) **Compression MB/s of all formats has decrea
 
 ---
 
-# Round 16: Entropy Perception Gate (Data-Driven GGUF Partition) (2026-06-13) / Round 16: Entropy-Aware Gate (Data-Driven GGUF Partitioning)
+# Round 16: Entropy Perception Gate (Data-driven GGUF Subdistrict) (2026-06-13)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 In view of the observation that "GGUF tensor weight accounts for ~99% of volume, content is chaotic, and the difference between optimal and greedy ratio is < 0.5%", add ** segment hierarchical entropy sampler ** as the cheapest first gate for optimal: pseudo-random segment directly greedy launch, completely skip expensive DP in exchange for compression throughput. Purely look at the content, do not sniff the GGUF format/ofset (fragile).
 
-Add a segment-level Shannon-entropy sampler as optimal's cheapest first gate: pseudo-random segments emit greedy and skip DP entirely, trading away DP cost for throughput. Content-driven - no fragile GGUF format/offset sniffing.
 
-## Changes in this round / Changes
+## This round of changes
 
 ** `lzfse-cli.swift` - `lzParseOptimal` Add Entropy Gate (R10 Design, This Round Of Practical Install):**
 
@@ -2800,14 +3150,14 @@ Add a segment-level Shannon-entropy sampler as optimal's cheapest first gate: ps
 
 `sampleEntropy()` 1KB before sampling Shannon entropy (bits/byte); `greedyEmitSegment()` is reconstructed by R15's inline greedy into a reusable function for two gates to share. Lazy2 parsing path is not affected (entropy gate is only in optimal).
 
-## Test Completeness / Benchmark Completeness
+## Test completeness
 
 - **claw-code**: ✅ All completed (8 format compression + decompression, 7 consistency passed)
 - **llama.cpp**: ✅ All completed (8 format compression + decompression, 7 consistency approved)
 - **lzfse-test**: ✅ All green (including bvx3 lazy2/optimal self-round-trip and parallel decoding)
 - ✅ **Sufficient disk**: benchmark.sh double diskcheck passed (28GB at the beginning, 26GB before the llama segment, both ≥25GB threshold); EXIT 0, BENCH_DONE 19:57:21.
 
-## Measured Results / Measured Results (R16 vs R15, MB/s in actual bytes/ns)
+## Actual measurement results (R16 vs R15, MB/s in actual bytes/ns)
 
 ### Compression MB/s (Compression Throughput) - Focus: optimal (entropy gate only acts on optimal)
 
@@ -2828,7 +3178,7 @@ Add a segment-level Shannon-entropy sampler as optimal's cheapest first gate: ps
 >
 > ** Core conclusion: the entropy gate allows llama optimal to compress +7.4% (the random GGUF weighted segment skips), DPclaw optimal +1.6% (low text entropy, fewer segments that trigger the gate). ** The direction is consistent with the design expectations: high-entropy data benefits the most.
 
-### Compression Size (Precise byte)/ Compression Sizes
+### Compression size (precise byte)
 
 | Format | claw R15 (bytes) | claw R16 (bytes) | Difference | llama R15 (bytes) | llama R16 (bytes) | Difference |
 | --- | ---: | ---: | --- | ---: | ---: | --- |
@@ -2837,7 +3187,7 @@ Add a segment-level Shannon-entropy sampler as optimal's cheapest first gate: ps
 
 > Optimal is changed to greedy due to the high entropy segment, and the compression ratio is slightly reduced (claw 0.8588→0.8594, llama ~0.9416→0.9411 interval), and the cost is < 0.25% - it is a reasonable trade-off of "DP cost vs < 0.5% ratio difference". ‡ The difference between lazy2 comes from the fluctuation of the data set version (there is a new commit in the llama.cpp repository). The compression size of Apple/ZSTD will fluctuate slightly even if the data is the same, and the cross-wheel comparison takes MB/s as the main indicator.
 
-## Lazy2 vs Optimal Analysis (R16)/ Lazy2 vs Optimal Analysis
+## Lazy2 vs Optimal Analysis (R16)
 
 | Pointer | claw Lazy2 | claw Optimal | llama Lazy2 | llama Optimal |
 | --- | ---: | ---: | ---: | ---: |
@@ -2849,7 +3199,7 @@ Add a segment-level Shannon-entropy sampler as optimal's cheapest first gate: ps
 
 **R16 trade-off:** The entropy gate presses the time multiple of llama optimal from 3.26× of R15 to **2.76×** (the random section no longer enters DP), and the ratio remains almost unchanged (−0.05 pt). Claw optimal multiple 1.87× (the same as R15 1.85×, most text segments are still in DP). Decompression optimal is still slightly faster than lazy2 (shared bvx3 bit stream, the difference is noise).
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **Entropy gate is effective for high entropy data**: llama optimal compression +7.4%, time multiple 3.26×→2.76×, ratio cost < 0.25%. The design goal has been achieved.
 2. **The benefit of text data is limited**: claw optimal is only +1.6% - the text entropy is low (most segments < 7.5 bits/byte), and it still follows DP; the optimal bottleneck of the text is still DP itself.
@@ -2857,7 +3207,7 @@ Add a segment-level Shannon-entropy sampler as optimal's cheapest first gate: ps
 4. **Measurement discipline**: The cache conditions of this round are better than R15, and the BVX3/Apple/TLZ4/ZSTD compression MB/s rebounded significantly due to the condition difference; cross-wheel only compares the same conditions, with optimal/lazy2 compression MB/s + compression ratio as the main indicator.
 Five. **Consistency and test are all green**: The two data sets are 7/7 consistent, lzfse-test is fully passed, and the disk double inspection is passed.
 
-## Next Round Plan / Next (R17)
+## The next round of planning
 
 - **Lower the entropy threshold**: 7.5 is conservative; you can try 7.0–7.3, so that more "medium and high entropy" llama segments can skip DP (expected optimal will be accelerated by 5–15%, and the ratio cost < 0.5%). It is necessary to protect the text data to avoid the text segment with high local entropy mistakenly jumping DP and losing the rate.
 - **Encoder dispatcher**: Automatically select bvx1/bvx2/bvx3 according to the block entropy, and introduce -lazy and -optimal (an extension of the R10 concept).
@@ -2866,9 +3216,9 @@ Five. **Consistency and test are all green**: The two data sets are 7/7 consiste
 
 ---
 
-# Round 15: Two-Pass Prescreen + Search Budget Counter (2026-06-13) / Round 15: Two-Pass Prescreen + Search Budget Counter
+# Round 15: Two-stage pre-screening + search budget counter (2026-06-13)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 Fix and fully complete the two missing strategies of R14 (attachment code, R9 design):
 
@@ -2877,7 +3227,7 @@ Fix and fully complete the two missing strategies of R14 (attachment code, R9 de
 
 R14's rough estimate `totalBarren` entropy agent (70% desert threshold) has been replaced by the real greedy pre-sweeping. `optSufficientLen` is reduced to 192 (with pre-screen protection, no need for R14 radical 128 truncation).
 
-## Changes in this round / Changes
+## This round of changes
 
 ** `lzfse-cli.swift` — `lzParseOptimal` Changes (R9 Strategy):**
 
@@ -2891,7 +3241,7 @@ R14's rough estimate `totalBarren` entropy agent (70% desert threshold) has been
 
 **Bug repair (discovered in the first round of R15)**: The match `limit` of the pre-screening segment was originally `n - i - 4`, allowing the match to cross `segEnd`, resulting in the next DP `litStart > segStart`, `pushRun` gets negative L length → stream damage (decode failed). Fix it to `limit: max(0, segEnd - i - 4)` to ensure that the match does not cross segments.
 
-## Test Completeness / Benchmark Completeness
+## Test completeness
 
 - **claw-code**: ✅ All completed (8 format compression + decompression, 8 consistency all passed)
 - **llama.cpp**: ✅ All completed (8 format compression + decompression, 8 consistency all passed)
@@ -2899,7 +3249,7 @@ R14's rough estimate `totalBarren` entropy agent (70% desert threshold) has been
 - ✅ **Disk sufficient**: Final rerun disk **43 GB available** (≫25 GB threshold), compression and decompression numbers are reliable. The first round (disk 15 GB + residual file) decompression number has been abandoned, subject to this rerun.
 - ✅ **benchmark.sh Enhancement**: Add double disk space check (before the beginning + llama segment, < 25 GB → `"Benchmark aborted: insufficient disk space"` and stop) and `rm -rf llama.cpp.*` residual file cleaning to prevent the next rerun from being affected by disk pressure.
 
-## Measured Results / Measured Results (R15 rerun vs R14, disk 43 GB)
+## Test results (R15 rerun vs R14, disk 43 GB)
 
 ### Compression MB/s (Compression Throughput) - Focus: lazy2 / optimal
 
@@ -2920,7 +3270,7 @@ R14's rough estimate `totalBarren` entropy agent (70% desert threshold) has been
 >
 > **Core conclusion (rerun): llama.cpp optimal +1.9%, llama Lazy2 +1.4% (vs R14)**. Optimal improvement is more conservative than the first round (+11.5%), because the first round of disk pressure also lowers the reference baseline of the first round of R15. The rerun results are more reliable: the two-stage pre-screening brings a stable and small improvement to llama optimal under clean conditions, and the claw slightly regresses (−3–6%) is a measurement noise.
 
-### Compression Sizes / Compression Sizes
+### Compress size
 
 | Format | claw R14 (bytes) | claw R15 rerun (bytes) | Difference | llama R14 (bytes) | llama R15 rerun (bytes) | Difference |
 | --- | ---: | ---: | --- | ---: | ---: | --- |
@@ -2929,7 +3279,7 @@ R14's rough estimate `totalBarren` entropy agent (70% desert threshold) has been
 
 > The size difference of Lazy2 is only 28 / 59 bytes, which comes from **data set version floating** (claw-code / llama.cpp source code repository has a new commit), which is not a different algorithm output. Optimal changes to the greedy path in some segments, and the compression ratio decreases slightly (llama: 0.9416 vs R14 0.9343, +0.73 percentage points). The compression size of Apple and ZSTD will also fluctuate slightly with the data set version, and the cross-round comparison takes MB/s as the main indicator. This is a reasonable choice of speed exchange rate.
 
-## Lazy2 vs Optimal Analysis (R15 Rerun) / Lazy2 vs Optimal Analysis
+## Lazy2 vs Optimal Analysis (R15 Rerun)
 
 | Pointer | claw Lazy2 | claw Optimal | llama Lazy2 | llama Optimal |
 | --- | ---: | ---: | ---: | ---: |
@@ -2942,7 +3292,7 @@ R14's rough estimate `totalBarren` entropy agent (70% desert threshold) has been
 
 **R15 trade-off (rerun): ** claw optimal time multiple 1.85× (vs R13's 2.3×, significantly improved). Llama optimal time multiple 3.26× (3.3× of vs R13, slight improvement). Decompression of optimal is slightly faster than lazy2 (the same bvx3 bit stream, the decoder path is the same, the difference is measurement noise). Optimal's ratio advantage (relative to lazy2) maintains −4.3% (claw)/ −1.7% (llama), and still needs to pay 2–3× compression time than lazy2.
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **The two-stage pre-screening is slightly effective for binary data**: llama.cpp optimal +1.9%, llama Lazy2 +1.4% (vs R14) under the condition of heavy running clean. The first round +11.5% includes disk pressure noise, and it is more reliable to run again.
 2. **Text data (claw-code) regressed slightly**: The final claw optimal −5.9%, Lazy2 −3.4%, in the measured noise range, the non-algorithm regressed significantly.
@@ -2951,7 +3301,7 @@ R14's rough estimate `totalBarren` entropy agent (70% desert threshold) has been
 Five. **Decompression digital (rerun) reliable**: claw optimal 622.95 MB/s, llama optimal 197.97 MB/s, extremely fast decompression under sufficient disk conditions, and the advantage of bvx3 family shared bit flow is obvious.
 6. **benchmark.sh improvement**: New disk insufficient abort (< 25 GB) + llama front residual file cleaning to avoid future rerun data contamination by disk pressure.
 
-## Next Round Plan / Next (R16)
+## The next round of planning
 
 Llama.cpp optimal is still 3× slower than zstd (9.18s → 137 MB/s), and claw optimal is 1.85× slower than TGZ. The next direction:
 
@@ -2961,13 +3311,13 @@ Llama.cpp optimal is still 3× slower than zstd (9.18s → 137 MB/s), and claw o
 
 ---
 
-# Round 14: Gemini Search Budget + Entropy Agent (2026-06-13) / Round 14: Gemini Budget Counter + Entropy Proxy
+# Round 14: Gemini Search Budget + Entropy Agent (2026-06-13)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 For the optimal compression bottleneck of R13 (claw 22.45 MB/s, llama 38.84 MB/s), five improvement strategies are proposed according to Gemini.
 
-## Changes in this round / Changes
+## This round of changes
 
 ** `lzfse-cli.swift` — `lzParseOptimal` Five R14 OPTIMIZATION:**
 
@@ -2977,13 +3327,13 @@ For the optimal compression bottleneck of R13 (claw 22.45 MB/s, llama 38.84 MB/s
 4. `totalBarren` Segment-level entropy agent (70% desert → mandatory minimum depth, strategy 2/6)
 5. The depth calculation is changed to `effectiveDepthCap` to replace the fixed `optSearchDepth`
 
-## Test Completeness / Benchmark Completeness
+## Test completeness
 
 - **claw-code**: ✅ All completed (8 formats, all passed)
 - **llama.cpp**: ✅ All completed (8 formats, all passed)
 - **lzfse-test**: ✅ All green
 
-## Measured Results (R14 vs R13)
+## The actual measurement results
 
 ### Compression MB/s (Compression Throughput)
 
@@ -2997,37 +3347,36 @@ For the optimal compression bottleneck of R13 (claw 22.45 MB/s, llama 38.84 MB/s
 
 > **Optimal significant improvement**: claw +18.2% (22.45→26.53 MB/s), llama +10.4% (38.84→42.88 MB/s).
 
-### Compression Sizes / Compression Sizes
+### Compress size
 
 | Format | claw R13 (bytes) | claw R14 (bytes) | Difference | llama R13 (bytes) | llama R14 (bytes) | Difference |
 | --- | ---: | ---: | --- | ---: | ---: | --- |
 | **Optimal** | 420,637,504 | 421,706,858 | +0.25% | 566,261,130 | 567,544,521 | +0.23% |
 
-## Conclusions / Conclusions
+## Conclusion
 
 The five strategies of R14 practice bring significant improvement to optimal (+10–18% compression speed), at the cost of a slight regression of the compression ratio (+0.25%), acceptable trade-off.
 
 ---
 
-# Round 13: Full Reliable Benchmark After Disk Recovery (2026-06-13) / Round 13: Full Reliable Benchmark After Disk Recovery
+# Round 13: Complete and reliable benchmark after disk recovery (2026-06-13)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 No algorithm code change. R12 because the disk is only 10–12 GB distortion and llama.cpp decompression is truncated; this round is rerun under the disk recovery to **claw 32 GB / llama 31 GB available** (≫ 25 GB alert value) to obtain the reliable data of the two data sets ** full 8 formats, compression + decompression complete**, and verify that the lazy2/optimal product is correct.
 
-No algorithm code change. This round re-runs the benchmark with disk restored to **claw 32 GB / llama 31 GB free** (well above the 25 GB threshold), producing a complete, reliable dataset for both corpora — all 8 formats, compression *and* decompression — and confirming lazy2/optimal artifacts are correct.
 
-## Changes in this round / Changes
+## This round of changes
 
 ** `zshrc.sh` - `lz4bench` PICKS BACK `diskcheck`: ** AFTER R11 EXTRACTED THE DISK PRE-INSPECTING INTO AN INDEPENDENT `diskcheck()`, `lz4bench` WAS NOT RECEPTED BACK, SO THAT THE PRE-INSPECTION BECAME A DEAD CODE. Add `diskcheck "$1"` at the beginning of `lz4bench` in this round, and actively return the disk available space before each round of benchmark run (this round: sufficient claw 32 GB / llama 31 GB) to avoid the generation of distortion data under disk pressure again. `extract`, `lzfseX` processing of lazy2/optimal ( `-lazy2` / `-optimal` flag, `-algo bvx3` decoding) has been checked correctly and maintained.
 
-## Test Completeness / Benchmark Completeness
+## Test completeness
 
 - **claw-code**: ✅ All completed (8 format compression + decompression, 7 consistency passed)
 - **llama.cpp**: ✅ All completed (8 format compression + decompression, 7 consistency all passed) - R12's Apple/TLZ4/ZSTD decompression truncation has been restored
 - **lzfse-test**: ✅ All green (including bvx3 `-lazy2` / `-optimal` self-round-trip and parallel decoding)
 
-## Measured Results / Measured Results (R13 vs R11 Reliable Baseline)
+## Measurement results (R13 vs R11 reliable baseline)
 
 ### Compression MB/s (Compression Throughput) - Focus: lazy2 / optimal
 
@@ -3068,7 +3417,7 @@ No algorithm code change. This round re-runs the benchmark with disk restored to
 
 > The offset of the compressed output byte size relative to R11 is < 0.05% (from the data set/tar metadata fluctuates slightly), **confirm that the algorithm output is deterministic**, and the lazy2/optimal product is correct.
 
-## Lazy2 vs Optimal Analysis (R13)/ Lazy2 vs Optimal Analysis
+## Lazy2 vs Optimal Analysis (R13)
 
 | Pointer | claw Lazy2 | claw Optimal | llama Lazy2 | llama Optimal |
 | --- | ---: | ---: | ---: | ---: |
@@ -3080,7 +3429,7 @@ No algorithm code change. This round re-runs the benchmark with disk restored to
 
 **Core trade-off:** Optimal exchanges the compression time of **2.1× (claw)/ 3.3×(llama)** for the relative Lazy2 only **−3.7%(claw)/−2.1%(llama) file size**. Optimal's compression throughput (claw 22.45 MB/s) is the slowest in the whole table and the main bottleneck; Lazy2 is the best sweet spot in terms of speed/ratio.
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **R13 is a reliable round**: Disk claw 32 GB / llama 31 GB, the two data sets are compressed and decompressed in 8 formats, and the R12 truncated llama decompression data is completed.
 2. **Compressed MB/s stable and reproducible**: The gap between lazy2/optimal and R11 is only 1–6% (noise range).
@@ -3088,7 +3437,7 @@ No algorithm code change. This round re-runs the benchmark with disk restored to
 4. **lazy2/optimal product correct**: byte size offset < 0.05% (deterministic), consistent with lzfse-test all green.
 Five. **Optimal compression throughput is the bottleneck**: claw 22.45 MB/s (the slowest in the whole table), the DP optimal analysis cost is high, and the ratio gain relative to Lazy2 is limited.
 
-## Next Round Plan / Next (R14)
+## The next round of planning
 
 Profiling for **claw-code `-optimal` compression hotspot (22.45 MB/s)**, and evaluate the following lazy2/optimal improvement strategies:
 
@@ -3104,14 +3453,14 @@ df -h ~                 # 需 ≥25 GB
 
 ---
 
-# Round 12: Benchmark Under Disk Pressure (2026-06-13) / Round 12: Benchmark Under Disk Pressure
+# Round 12: Benchmark retest under disk pressure (2026-06-13)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 No algorithm code change - run a round again under the same benchmark architecture to see if the reliable data of R11 can be reproduced.
 The results show that the available space of the disk is seriously insufficient, resulting in data distortion, **R12 unreliable measurement round**.
 
-## Disk Status / Disk Conditions
+## Disk status
 
 | Data set | Available space at the beginning | Alert value | Status |
 | --- | ---: | ---: | --- |
@@ -3120,12 +3469,12 @@ The results show that the available space of the disk is seriously insufficient,
 
 Only 10 GB of claw-code is available, and the disk I/O is very competitive during the compression process; although the claw-code is temporarily stored in the llama.cpp stage, there is still only 12 GB left.
 
-## Test Completeness / Benchmark Completeness
+## Test completeness
 
 - **claw-code**: ✅ All completed (8 format compression + decompression, 7 consistency passed)
 - **llama.cpp**: ⚠️ Decompression truncation - Apple/TLZ4/ZSTD decompression is not completed (benchmark is suspended in the Apple decompression stage)
 
-## Measured Results / Measured Results
+## The actual measurement results
 
 ### Compression MB/s (Compression Throughput)
 
@@ -3171,7 +3520,7 @@ Only 10 GB of claw-code is available, and the disk I/O is very competitive durin
 > The M unit of `du -sh` is configured for disk blocks (non-precise bytes), and small fluctuations are normal.
 > byte-level precise size ( `[SIZE]`) shows that the output of the compression algorithm is completely consistent (deterministic).
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **R12 is an unreliable round**: The available space of the disk 10–12 GB is far lower than the recommended ≥25 GB, and both compression and decompression are seriously distorted.
 2. **Disk pressure has a particularly heavy impact on decompression**: claw decompression decreases -40 to -65%, which is much greater than the compression -20 to -40%.
@@ -3179,7 +3528,7 @@ Only 10 GB of claw-code is available, and the disk I/O is very competitive durin
 4. **Compressed byte size is the same**: The algorithm output is still deterministic, and the exact size of R12 and R11 coincides.
 Five. **R11 is still a valid baseline**: Please take R11 as the benchmark for the next round of comparison.
 
-## Next Round Plan / Next (R13)
+## The next round of planning
 
 **Clean the disk to ≥25 GB first, and then run profiling or the next round of benchmark:**
 
@@ -3191,14 +3540,14 @@ df -h ~
 
 ---
 
-# Round 11: lz4bench Repair + Decompression Baseline Reconstruction (2026-06-13) / Round 11: Benchmark Fix & Decompression Baseline
+# The eleventh round: lz4bench repair + decompression baseline reconstruction (2026-06-13)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 No algorithm code change - fix the disk space management problem of lz4bench (disk-full defect found in R10),
 Rebuild reliable decompression baseline data.
 
-## Changes in this round / Changes
+## This round of changes
 
 ** `zshrc.sh` — `lz4bench` function reconstruction (inline cleanup mode):**
 
@@ -3207,7 +3556,7 @@ Rebuild reliable decompression baseline data.
 - llama.cpp ZSTD decompression failed in R10 due to full disk load; this round has been completed normally ✓
 - Add disk available space pre-check (recommended ≥25GB)
 
-## Measured Results (11:28–11:36)/ Measured Results
+## Measurement results (11:28–11:36)
 
 ✅ All 7 format consistency of the two data sets passed; lzfse-test 112 items are all green.
 
@@ -3250,7 +3599,7 @@ Rebuild reliable decompression baseline data.
 
 There is no change in the compression algorithm, and the size is completely reproduced - confirming that the baseline is stable.
 
-## R11 Reliable Baseline (for subsequent round comparison) / R11 Reliable Baseline
+## R11 Reliable baseline (for subsequent round comparison)
 
 ### claw-code
 
@@ -3278,7 +3627,7 @@ There is no change in the compression algorithm, and the size is completely repr
 | TLZ4 | 626M | 273.93 | 244.49 | 1.055 |
 | ZSTD -9 | 544M | 338.85 | 231.66 | 0.912 |
 
-## Lazy2 vs Optimal Analysis / Lazy2 vs Optimal Analysis
+## Lazy2 vs Optimal Analysis
 
 | Pointer | claw Lazy2 | claw Optimal | llama Lazy2 | llama Optimal |
 | --- | ---: | ---: | ---: | ---: |
@@ -3289,7 +3638,7 @@ There is no change in the compression algorithm, and the size is completely repr
 
 **Optimal's decompression speed is faster than Lazy2** (claw: 548 vs 460 MB/s; the difference comes from Optimal's generation of shorter and more regular match sequences, and the FSE symbol path is shorter). This is the first reliable data observed by R11.
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **lz4bench inline cleanup repair successful**: llama.cpp ZSTD decompression returns to normal (231.66 MB/s).
 2. **R10 decompression data confirmation distortion**: BVX3/Apple/Optimal is seriously slow under the accumulated disk pressure; R11 is the first reliable decompression baseline.
@@ -3297,7 +3646,7 @@ There is no change in the compression algorithm, and the size is completely repr
 4. **Optimal decompression speed is brilliant**: claw 548 MB/s > Lazy2 460 MB/s; decompression vs ZSTD: Optimal 548 vs 356, Lazy2 460 vs 356 (both 1.3–1.5 times faster).
 Five. **The next step is still profiling**: run profiling on a reliable baseline to find out the real hotspot of compressed MB/s.
 
-## Next Round Plan / Next (R12)
+## The next round of planning
 
 **Execute profiling and measure compression hotspots (especially claw-code bvx3 -optimal's 23.99 MB/s):**
 
@@ -3318,13 +3667,13 @@ According to the R9 candidate strategy (selected under the guidance of profiling
 
 ---
 
-# Round 10: Baseline Re-confirmation + Disk Full Load Warning (2026-06-13) / Round 10: Baseline Re-confirmation
+# Round 10: Baseline Reconfirmation + Disk Full Load Warning (2026-06-13)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 No code change - reconfirm the stability of the R8/R9 baseline and record the full load problem of this round of disk.
 
-## Measured Results (10:53–11:02)/ Measured Results
+## Measurement results (10:53–11:02)
 
 ⚠️ **Disk space is exhausted in the test** (insufficient space after the decompression test of llama.cpp → xbenchTest totals 14G, cleaned up):
 - claw-code all 8 formats compression and decompression completed ✓
@@ -3352,14 +3701,14 @@ The later format of claw-code (Apple 9.1s) may also be affected by thermal throt
 
 The compression ratio is exactly the same as that of R9, confirming **baseline stability, no code return**.
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **Compressed MB/s stable** (±3% noise): Optimal claw 22.4→22.8, llama 37.6; Lazy2 claw 45.9→46.6, llama 118→121.
 2. **Compression ratio remains unchanged**: Optimal 417M/544M, Lazy2 432M/571M.
 3. ⚠️ **Decompressed data is unreliable** (disk pressure/heat throttling), please use R9 data as a decompression reference reference.
 4. **The next step is still profiling**: Compressing MB/s improvement needs to measure the hot spot first.
 
-## Next Round Plan / Next (R11)
+## The next round of planning
 
 **Run profiling, and then decide the direction according to the hot spot:**
 
@@ -3374,15 +3723,15 @@ open run_profile.command   # 取 claw-code bvx3 -optimal 20 秒樣本
 
 ---
 
-# Round 9: Baseline Verification + MB/s Comparison Benchmark Establishment (2026-06-13) / Round 9: Baseline Verification
+# Round 9: Baseline Verification + MB/s Comparison Benchmark Establishment (2026-06-13)
 
-## Purpose of this round / Purpose
+## The purpose of this round
 
 No code change - purely rerun benchmark to confirm the stability of the R8 baseline and formally establish
 **MB/s is the main cross-wheel comparison indicator** (the data set is an active working directory, and the size will fluctuate with time;
 After natization with MB/s, it can be compared fairly across wheels).
 
-## Measured Results (01:20–01:26)/ Measured Results
+## Measurement results (01:20–01:26)
 
 ✅ The consistency of the two data sets has passed (7/7 × 2); R8 numbers are fully reproduced - baseline stability ✓
 
@@ -3412,7 +3761,7 @@ After natization with MB/s, it can be compared fairly across wheels).
 | TLZ4 | 614M | 246.2 | 122.7 | 1.035 |
 | ZSTD -9 | 544M | 297.4 | 87.5 | 0.917 |
 
-## MB/s Analysis / MB/s Analysis
+## MB/s Analysis
 
 ### Optimal Status
 
@@ -3431,7 +3780,7 @@ After natization with MB/s, it can be compared fairly across wheels).
 **The biggest advantage of decompressing to lzfse2**: claw optimal 370.7 MB/s, lazy2 524.6 MB/s——
 ZSTD is only 145 MB/s, and we are fast **2.6–3.6 times**.
 
-## Conclusions / Conclusions
+## Conclusion
 
 1. **Baseline stability**: R8 vs R9 MB/s error <0.1%, reliable measurement, MB/s can be used as a cross-wheel benchmark.
 2. **Optimal bottleneck**: compression MB/s behind ZSTD 8–17 times; R8 SIMD skip is effective in llama (−4.7%)
@@ -3440,7 +3789,7 @@ But claw is flat - claw's 58s / 22.4 MB/s real hotspot is unknown, ** must be pr
 It is close to the upper limit.
 4. **Profiling has not been executed yet**: `run_profile.command` is ready, and R10 must be measured before working.
 
-## Next Round Plan / Next (R10)
+## The next round of planning
 
 **Must do: Run profiling first to find out the real hotspot of claw optimal 22.4 MB/s**
 
@@ -3461,9 +3810,9 @@ Choose the direction according to the profiling results:
 
 ---
 
-# Round 8: DP Relaxation SIMDization (2026-06-13) / Round 8: SIMD Relaxation
+# Round 8: DP Relaxation SIMDization (2026-06-13)
 
-## This round of changes / Changes (R4 candidate #2 landing)
+## This round of changes (R4 candidate #2 landing)
 
 The two relaxation cycles of optimal's rep / frontier, the dense area (length 4..64) is changed to
 `SIMD4<Int32>` View 4 cells at a time: c2 constant in the bucket, 4 lane all
@@ -3471,7 +3820,7 @@ The two relaxation cycles of optimal's rep / frontier, the dense area (length 4.
 Only omit writing and branching that must be invalid) - small sample output byte level unchanged
 (30453B / 29041B) is the proof.
 
-## Measured Results (09:17–09:26)/ Measured Results
+## Measurement results (09:17–09:26)
 
 ✅ 112 self-tests are all green; consistency 7/7 × 2; the output size is exactly the same as R7b ✓
 
@@ -3492,7 +3841,7 @@ After that, it is no longer established. Claw's 58s flowers are in other places 
 Per-cell 6 array write, or emit/backtracking).
 - Change retention (zero risk, llama with small profit).
 
-## Next Round Suggestions / Next (R9)
+## Suggestions for the next round
 
 1. ** Measure first and then do it**: Blind tuning has been neutral for two consecutive rounds - use
 `xcrun xctrace record --template "Time Profiler"` Yes
@@ -3504,9 +3853,9 @@ Word, reps delayed reconstruction) can halve the writing bandwidth.
 
 ---
 
-# Round 7: BT match finder Experiment (2026-06-13) / Round 7: BT Experiment — Negative Result
+# Round 7: BT match finder experiment (2026-06-13)
 
-## This round of experiment / Experiment
+## This round of experiments
 
 Practice zstd btlazy2 style **binary-tree match finder** to replace the hash chain of lazy2
 (R4 candidate #1, R6 suggestion #3): a suffix sorting tree per hash bucket, search is inserted,
@@ -3518,7 +3867,7 @@ The consistency of the two data sets has passed - ** The correctness is safe, bu
 | claw lazy2 | 432M / 28.8s | 432M / 46.1s | **+60% time**, ratio 0 |
 | llama lazy2 | 570M / 10.5s | 565M / 68.3s | **+550% time**, ratio −0.9% |
 
-## Root Cause / Root Cause
+## Root cause
 
 **The insertion of BT also needs to be visited (O(depth)), and the hash chain insertion is O(1). **
 Llama's GGUF long match has a large number of "pure insertion" positions in the body - BT pays each position
@@ -3527,7 +3876,7 @@ Llama's GGUF long match has a large number of "pure insertion" positions in the 
 The residual chain visit cost has no room for improvement as claimed by BT.
 **Reverted to the R6 hash chain version** (negative result, the code is not retained).
 
-## Conclusions & Next / Conclusions & Next (R8)
+## Conclusion and next step
 
 1. **lazy2's hash chain + hash5 + probe combination is close to the speed ceiling of this architecture**
 (Claw 28.8s, llama 10.5s); BT route is officially closed.
@@ -3540,9 +3889,9 @@ Time 2.6–8.1 times; optimal distance from zstd +1.5–4.3%, decompression fast
 
 ---
 
-# Round 6: Attribution Tuning (2026-06-13) / Round 6: Attribution Tuning
+# The sixth round: Attribution transfer (2026-06-13)
 
-## This round of changes / Changes (landed according to R5's R6 suggestion)
+## This round of changes (landing according to R5's R6 recommendation)
 
 | Project | Change | Reason |
 | --- | --- | --- |
@@ -3551,7 +3900,7 @@ Time 2.6–8.1 times; optimal distance from zstd +1.5–4.3%, decompression fast
 
 Zshrc.sh has been verified to fully support optimal (extract/lzfseX/lz4bench) without modification.
 
-## Measured Results (07:50–07:59)/ Measured Results
+## Measurement results (07:50–07:59)
 
 ✅ 112 self-tests are all green; decompression consistency 7/7 × 2.
 Small sample: lazy2 30453B, optimal 29041B - exactly the same as R5 (the change is neutral for the small sample).
@@ -3577,7 +3926,7 @@ It is flat after time correction - the insertion cost is not the bottleneck of l
 - Both rounds of "attribution experiments" were interfered by the drift of the data set - live directory (claw-code is the working area,
 Llama.cpp will be updated) It is not feasible to do A/B.
 
-## Next Round of Suggestions / Next (R7)
+## Suggestions for the next round
 
 1. **Freeze Data Set Snapshot** (Priority): `tar -cf claw-code.snapshot.tar claw-code`
 Once, after that, all benchmarks are executed on the snapshot tar file - the data set drift is zero,
@@ -3588,9 +3937,9 @@ The attribution experiment is effective.
 
 ---
 
-# The fifth round: lazy2/optimal speed adjustment (2026-06-13)/ Round 5
+# The fifth round: lazy2/optimal speed adjustment (2026-06-13)
 
-## This round of changes / Changes (landing according to the R4 candidate strategy)
+## This round of changes (landing according to the R4 candidate strategy)
 
 | Project | Change | Reason |
 | --- | --- | --- |
@@ -3599,7 +3948,7 @@ The attribution experiment is effective.
 | optHugeLen (new, 256) | DP relaxation ≥ 256 change stride-16 | long match adjacent length price difference is extremely small |
 | optRepStrongLen (new, 64) | bestRep ≥ 64 → Chain visit down to depth 4 | Strong rep is almost inevitable at DP price |
 
-## Measured Results / Measured Results
+## The actual measurement results
 
 ✅ 112 self-tests are all green; decompression consistency is all passed (7/7 × 2 data sets).
 Text sample: lazy2 30686→**30453B (smaller)**, optimal 29029→29041B (+0.04%, can be ignored).
@@ -3624,7 +3973,7 @@ Continuous change - tgz 480→481M, zstd 396→403M - cross-wheel cannot be dire
 - optimal time 52.3s not improved compared with R4: stride-16/strong rep shallow search saving is
 The data set becomes large and offset; the DP cost center of gravity of the claw is still relaxing the cycle itself.
 
-## Next Round Suggestions / Next (R6)
+## Suggestions for the next round
 
 1. **claw optimal ratio +3.5% attribution A/B**: fixed data set snapshot respectively
 Switch optRepStrongLen and optHugeLen to confirm whether it is the loss introduced by R5;
@@ -3635,12 +3984,12 @@ cPrice and other six arrays SoA + simd_int4 one-time relaxation 4 length.
 
 ---
 
-# Round 4: Memory & Multi-core Efficiency (2026-06-13) / Round 4: Memory & Multi-core
+# Round 4: Memory overhead + multi-core efficiency (2026-06-13)
 
 Goal (user specified): Re-examine the zstd / LZ4 algorithm, reduce memory overhead, and make good use of multi-core,
 Shorten the compression time of bvx3 / lazy2 / optimal.
 
-## Review Findings / Code-Review Findings
+## Review the conclusion
 
 The multi-core architecture itself has been improved: 4MiB block × `DispatchQueue.concurrentPerform`
 Worker (semaphore flow limit = number of cores), lazy2/optimal also has zstd
@@ -3665,7 +4014,7 @@ The quota is spent on candidates who may really be longer; the sacrifice of len-
 The short block (tar | lzfse is the pipe), which makes the block fragmented - the ratio becomes worse,
 Each fixed overhead becomes more, and the parallel decoding grouping fails. It should be accumulated to read.
 
-## Changes in this round / Changes
+## This round of changes
 
 | Project | Change | Corresponding Skills |
 | --- | --- | --- |
@@ -3679,7 +4028,7 @@ Memory effect: steady-state peak ≈ number of cores × (chain 16MiB + DP ~4MiB)
 But **the memset/malloc traffic of ~21MB per piece is zero**;
 The speed effect is mainly in the chain visit quality (hash5) and configuration overhead of lazy2/optimal.
 
-## Measured Results (2026-06-13)/ Measured Results
+## Measurement results (2026-06-13)
 
 ✅ 112 self-tests are all green; the decompression consistency of the two data sets is all passed; the small sample ratio is flat (29030→29029B).
 
@@ -3701,7 +4050,7 @@ Full block reading ensures the 4MiB block particle size under the pipe input.
 - Ratio to zstd gap: optimal +1.3% (claw)/ +1.1% (llama);
 Decompression optimal 5.2s/8.0s vs zstd 10.3s/14.6s (1.8–2.0 times faster).
 
-## Next-Round Candidates (R5)
+## Candidate strategy for the next round
 
 1. **lazy2 to BT (binary tree) match finder** (zstd btlazy2 real body):
 The hash chain is still O(depth×len) comparison on high-repetition text; BT insertion is sorting,
@@ -3714,9 +4063,9 @@ SIMD (simd_int4) relaxes 4 lengths at a time; or raise stride-4 to stride-8.
 
 ---
 
-# Round 3: Compression-Time Optimization (2026-06-12)/ Round 3: Compression-Time Optimization
+# The third round: Compression time-consuming optimization (2026-06-12)
 
-## Current Situation Analysis / Bottleneck Analysis
+## Current situation analysis
 
 The ratio target was achieved in the second round (optimal 368M/544M ≈ zstd 372M/543M), but the compression time gap is huge:
 
@@ -3736,7 +4085,7 @@ DP does depth-32 search in every position, unlike lazy, which has jump accelerat
 lm3BaseValue is accessed with Swift Array in the hottest loop.
 4. lazy2 adjustment (4096/8) correction: claw 34.5s to 401M, the deep search ratio is too high.
 
-## Changes in this round / Changes
+## This round of changes
 
 | Project | Change | Expected effect |
 | --- | --- | --- |
@@ -3750,7 +4099,7 @@ lm3BaseValue is accessed with Swift Array in the hottest loop.
 Correctness: Python model re-verifies after joining stride - text/structured/runs ratio
 Delta 0.00%, 150 groups of random round trips + all constraints passed.
 
-## Measured Results (2026-06-13 Early Morning)/ Measured Results
+## Measurement results (2026-06-13 early morning)
 
 ✅ Compile once and pass; `-test` 112 items are all green; the small sample ratio remains unchanged (text large sample or even 29041→29030B).
 
@@ -3814,12 +4163,11 @@ Chain-table pre-built (one-time table, multi-segment sharing).
 
 ---
 
-# Round 2: Optimal Parsing Strategy (2026-06-12) / Round 2: Optimal Parsing Strategy
+# Second Round: Optimal Parsing Strategy (2026-06-12)
 
-## Current Situation Analysis / Gap Analysis
+## Current situation analysis
 
 The last round of benchmark (BenchMarkResult.csv) shows the gap with zstd -9:
-The previous benchmark showed the remaining gap vs zstd -9:
 
 | Data set | bvx3 -lazy2 | zstd -9 | gap |
 |---|---:|---:|---:|---:|
@@ -3834,15 +4182,13 @@ Therefore, the ratio vomits back. The speed fix (early-exit at 512, aggressive s
 The ratio btlazy2 had won (384M/545M).
 2. **The structural upper limit of greedy/lazy analysis**: Each position only makes local optimal decisions. Zstd high distance
 (Btopt/btultra) The real source of the ratio is "price-driven full-segment optimal analysis" - this is the main course of this round.
-Greedy/lazy parsing is locally optimal only; zstd's high levels win via
 Price-driven optimal parsing.
 
 Another benchmark tool bug was found and fixed: `lzfseX` of `zshrc.sh` has never put `-lazy2`
 The flag is passed to the encoder, and the "Lazy2" line of the previous CSV actually runs the default bvx3.
-Also fixed: `lzfseX` never actually passed `-lazy2`, so previous "Lazy2" rows
 Were really default bvx3 runs.
 
-## This Round's Changes / This Round's Changes
+## This round of changes
 
 ### 1. `-optimal`: Segmented DP optimal analysis (zstd btultra)
 
@@ -3868,7 +4214,7 @@ On the model, the analysis cost of text/structured data is reduced by 9–10% re
 
 It is expected that the -lazy2 ratio will recover to 384M/545M, and the compression time will rebound slightly from 2.0s (still much faster than apple).
 
-### three. Speed/Ratio Gear Overview / Speed-ratio ladder
+### three. Overview of speed/ratio gear
 
 | Gear | Parser | Positioning |
 | --- | --- | --- |
@@ -3876,7 +4222,7 @@ It is expected that the -lazy2 ratio will recover to 384M/545M, and the compress
 | bvx3 -lazy2 | Hash chain deep search 32 | Middle file |
 | bvx3 -optimal | Segment DP optimal analysis | Ratio priority, target approach zstd -9 |
 
-## Measured Results (2026-06-12, M-series Mac)/ Measured Results
+## Measurement results (2026-06-12, M-series Mac)
 
 ✅ Compilation passed once; `-test` 112 items are all green; benchmark two data sets decompression consistency all passed.
 
