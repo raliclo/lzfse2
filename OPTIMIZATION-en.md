@@ -170,6 +170,168 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R42-Mac: other3 -optimal3 DP Optimal Parsing Introduction (2026-07-05)/ R42-Mac: other3 -optimal3 DP-Optimal Parsing
+
+> Add `lzParseOptimal2`: and bvx3's `lzParseOptimal` The same set of segmented DP optimal analysis mechanism (hash chain frontier, entropy pre-screening, search budget all follow the same set of constants), but change the L/M/D symbol table of the standard LZFSE ( `lBaseValue` / `mBaseValue` / `dBaseValue`, instead of bvx3 merged `lm3` Table) and the smaller upper limit ( `maxLValue` / `maxMValue` / `maxDValue`), through the new flag `-optimal3` Connect `-algo other3`.
+> The output is still the standard bvx2 (with the existing `encodeBlock`), which can be solved by Apple and any compatible decoder - this is the biggest difference from bvx3-optimal: bvx3-optimal sacrifices compatibility for compression rate, and other3-optimal3 has both.
+> Execute `-n 40 / 8 / 4` three batches of complete benchmark + tracer/CPU/power full-process integration for claw-code / llama.cpp.
+
+## Optimization Strategy / Optimization Strategy
+
+| Project | Description |
+|---|---|
+| **KERNEL CHANGE** | NEW `lzParseOptimal2`, THE DP MECHANISM IS THE SAME AS `lzParseOptimal`, AND THE SYMBOL TABLE AND UPPER LIMIT ARE CHANGED TO THE STANDARD FORMAT |
+| **Single rep (key difference)** | The standard format only has a single discount of "the same distance as the previous one" ( `encodeBlock`'s `dPrev`→`d=0` conversion), non-bvx3's 3 deep rep-offset; DP only needs to track one `rep0`, saving 3 slots MTF logic |
+| **M / D symbol table** | M with independent `mBaseValue` / `mExtraBits` (20 symbols), D with `dBaseValue` / `dExtraBits` (64 symbols) - non-bvx3 combined `lm3` (22 symbols) / `d3` (80 symbols) table |
+| **L Pricing** | Follow the floating constant `matchConst=80` (approximimate to the `lzParseOptimal` scale, which can be measured and adjusted in the future) |
+| **Compatibility** | Output `encodeBlock` (standard bvx2), non- `encodeBlockV3`; Apple Compression framework can be directly solved |
+| **CLI** | `-optimal3` (only `-algo other3` is effective, the rest of the algo ignores and prompts); the decode end does not need any flags, which is the same as the general other3 |
+
+## Verification / Verification
+
+- Built-in `-test` passed all numbers (including cross-segment match return test), added `other3 -optimal3 self-round-trip', ` parallel decoding `, `→ Apple decoding ` three checks, all of which are output-identical and bitstream can be correctly decoded by Apple ` compression_decode_buffer`.
+- The actual machine is verified by claw-code tar (about 460 MB): This tool decoding and Apple decoding are exactly the same as the original data `cmp`.
+- The whole R42-Mac round (tracer, power benchmark, CPU call tree, `BenchMarkResult.csv` reconstruction, `best_points`, Win/Mac comparison report, md-translate) finished, `TEST_OK`, `BENCH_DONE`, zero failure.
+
+## 1. Compression ratio and speed (n=40, two datasets)/ Ratio & Speed (n=40, both datasets)
+
+| Data Set | Format | Compression Ratio | Enc MB/s | Dec MB/s |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 47.56 | 392.56 |
+| claw-code | Other3 | 0.9865 | 339.49 | 402.20 |
+| claw-code | **Optimal3** | **0.9401** | **62.85** | **435.87** |
+| claw-code | BVX3 (private format reference) | 0.9492 | 371.09 | 410.21 |
+| claw-code | BVX3-Optimal (private format reference) | 0.8574 | 33.73 | 377.00 |
+| llama.cpp | TGZ | 1.0000 | 39.63 | 88.65 |
+| llama.cpp | Other3 | 0.9957 | 87.49 | 80.41 |
+| llama.cpp | **Optimal3** | **0.9731** | **64.07** | **83.85** |
+| llama.cpp | BVX3 (private format reference) | 0.9787 | 87.79 | 77.59 |
+| llama.cpp | BVX3-Optimal (private format reference) | 0.9387 | 48.01 | 76.76 |
+
+> **Key points**: The compression ratio of Optimal3 (0.9401) on claw-code is better than that of private format BVX3 (0.9492), at the cost of ~18.5% of the encode speed to Other3 (62.85 vs 339.49 MB/s); the decode speed is no different from Other3 (the same bvx2 decoding path). The improvement of llama.cpp (low repetition rate data) is relatively small (0.9957→0.9731, about -2.3%).
+
+## two Peak RSS (Mac only, n=40)
+
+| Data Set | Format | Encode RSS | Decode RSS |
+| --- | --- | ---: | ---: |
+| claw-code | Other3 | 228.9 MB | 299.3 MB |
+| claw-code | **Optimal3** | **550.8 MB** | **316.4 MB** |
+| llama.cpp | Other3 | 354.5 MB | 349.0 MB |
+| llama.cpp | **Optimal3** | **821.7 MB** | **350.9 MB** |
+
+> The encode RSS of Optimal3 is about 2.3–2.4× higher than that of Other3. The cell array from the segmented DP and the frontier storage area (consistent with the memory characteristics of bvx3-optimal); decode RSS is the same as Other3 (the decoding logic is completely shared).
+
+## three. CPU Energy (Mac only, n=40)
+
+| Data Set | Format | Enc J | Enc J/TGZ |
+| --- | --- | ---: | ---: |
+| claw-code | Other3 | 28.16 | 0.1789 |
+| claw-code | **Optimal3** | **370.85** | **2.3557** |
+| llama.cpp | Other3 | 18.38 | 0.1104 |
+| llama.cpp | **Optimal3** | **289.48** | **1.7384** |
+
+> Energy consumption increases in proportion with speed (DP is CPU-bound), which is similar to the energy consumption level of bvx3-optimal (the same strategy of "compression rate priority, speed/energy consumption second"). Decode energy n=40 The sampling coverage rate is insufficient and will not be included in this round of comparison.
+
+## four. Best Points (Optimal3, all n)
+
+| Data Set | Best Compression Ratio | Best Enc MB/s | Best Dec MB/s | Lowest Enc RSS | Highest Enc RSS | Lowest Enc J | Highest Enc J |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.9401 ( `n4`) | 62.85 ( `n40`) | 440.72 ( `n8`) | 190.0 MB ( `n4`) | 550.8 MB ( `n40`) | 370.85 ( `n40`) | 533.01 ( `n4`) |
+| llama.cpp | 0.9731 ( `n4`) | 64.07 ( `n40`) | 83.85 ( `n40`) | 221.7 MB ( `n4`) | 821.7 MB ( `n40`) | 289.48 ( `n40`) | 419.46 ( `n4`)|
+
+> The compression ratio is not affected in each n (DP analysis has nothing to do with block parallelism), and the optimal value appears in `n4`; the speed/RSS/energy consumption becomes worse with the increase of `-n` (parallelism), which is consistent with the existing law of Other3/Lazy2/Optimal (higher parallelism = more coding context that survives at the same time).
+
+## To be done / Next Steps
+
+- Windows round has been completed in **R42-Win (2026-07-05)**, `helper_windows/run_round.bat` is complete, and `LZFSE (Optimal3)` is no longer `Windows result missing` (see the next section).
+- `matchConst` (L symbol spread constant) follows the approximate value of bvx3-optimal, which has not been adjusted individually for the smaller L/M upper limit of the standard format. In the future round, the actual measurement ratio of claw-code/llama.cpp can be converged.
+
+---
+
+# R42-Win: other3 -optimal3 Windows round (2026-07-05)/ R42-Win: Windows Benchmark for other3 -optimal3
+
+> Run `helper_windows/run_round.bat` on Windows to complete the missing `other3 -optimal3` Windows test after R42-Mac.
+> This round includes: `lzfse.exe -test`, encode-to-file, encode-to-nul, decode-to-file, decode-to-nul, RSS probe, `BenchMarkResult-Win.csv` and Win/Mac `comparison.csv` reconstruction.
+> Test data set: `claw-code`, `llama.cpp`; Windows `-n 40` means inflight chunk count (single time), macOS `n=40` is an average of 40 times.
+
+## Verification / Verification
+
+- `run_round.bat` exit code 0, `windows_round_status.txt` ends with `DONE 19:01:23`.
+- `lzfse.exe -test` passed all, and the new `other3 -optimal3` self-round-trip and parallel decoding passed.
+- `encode_summary.csv`: 32 rows.
+- `decode_summary.csv`: 32 rows.
+- `BenchMarkResult-Win.csv`: 16 rows.
+- `comparison.csv`: 8 rows for each dataset, including `LZFSE (Optimal3)`.
+- All Windows decode verify is `PASS`.
+
+> **Correction record (2026-07-05 make-up test)/ Correction note (2026-07-05 re-run)**: `helper_windows/decode-win.bat`'s
+> `decodeOptimal3` BLOCK ORIGINALLY FOLLOWED THE OLD `:appendFileSize` (RECORD COMPRESSED FILE SIZE), AND THE REMAINING 7 FORMATS HAVE BEEN CORRECTED IN THE SAME ROUND TO
+> `:appendDecodedFolderSize` (record the actual decompression folder size). This makes the decode MB/s of `LZFSE (Optimal3)` misuse Mac.
+> Terminal `raw_size_mib` estimate, not the decompression size of Windows actual measurement; `comparison_win.py`'s `compute_win_decode_speed`
+> There is also the same problem (Mac `raw_mb` is used in all formats, and `decoded_bytes` is not read). Both have been corrected, and the two data sets have been re-executed.
+> decode benchmark (nul + file mode) and `comparison.csv` reconstruction. The following numbers in Sections 1–3 are the revised results; decode timing
+> There is a run-to-run mutation itself (especially the file mode, see the R41 bsdtar/NTFS bottleneck chapter), so except for Optimal3, the rest of the formats
+> decode MB/s is also slightly different from the first version of this section, which does not mean that the algorithm itself has changed.
+
+## 1. Windows actual test results (n=40 inflight, corrected / corrected)/ Windows Results
+
+| Data Set | Format | Win Compression Ratio | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS | Verify |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| claw-code | TGZ | 1.0000 | 33.92 | 145.90 | 6.4 MB | 6.2 MB | PASS |
+| claw-code | Other3 | 0.9818 | 296.96 | 152.19 | 131.7 MB | 247.0 MB | PASS |
+| claw-code | **Optimal3** | **0.9351** | **47.11** | **150.96** | **496.7 MB** | **244.9 MB** | PASS |
+| claw-code | BVX3 | 0.9254 | 289.21 | 150.93 | 139.0 MB | 245.6 MB | PASS |
+| claw-code | Lazy2 | 0.8704 | 51.55 | 154.04 | 484.4 MB | 242.5 MB | PASS |
+| claw-code | Optimal | 0.8274 | 24.26 | 155.59 | 513.3 MB | 240.7 MB | PASS |
+| claw-code | TLZ4 | 1.1739 | 258.08 | 208.76 | 8.3 MB | 8.3 MB | PASS |
+| claw-code | ZSTD | 0.7813 | 146.12 | 186.81 | 8.8MB | 8.3 MB | PASS |
+| llama.cpp | TGZ | 1.0000 | 38.32 | 21.54 | 6.6 MB | 7.0 MB | PASS |
+| llama.cpp | Other3 | 0.9970 | 182.44 | 30.25 | 145.9 MB | 346.1 MB | PASS |
+| llama.cpp | **Optimal3** | **0.9743** | **66.00** | **28.79** | **758.9 MB** | **346.0 MB** | PASS |
+| llama.cpp | BVX3 | 0.9810 | 178.34 | 28.55 | 180.4MB | 346.3 MB | PASS |
+| llama.cpp | Lazy2 | 0.9576 | 126.49 | 28.43 | 659.3 MB | 345.9 MB | PASS |
+| llama.cpp | Optimal | 0.9412 | 45.29 | 28.46 | 741.3 MB | 346.4 MB | PASS |
+| llama.cpp | TLZ4 | 1.0503 | 154.57 | 30.59 | 8.3MB | 8.8 MB | PASS |
+| llama.cpp | ZSTD | 0.9123 | 145.30 | 30.05 | 8.3MB | 8.3 MB | PASS |
+
+## two Optimal3 Key Points / Optimal3 Takeaways
+
+| Data Set | Other3 Ratio | Optimal3 Ratio | Ratio Improvement | Other3 Enc | Optimal3 Enc | Optimal3/Other3 Enc | Other3 Dec | Optimal3 Dec |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.9818 | 0.9351 | -4.75% | 296.96 MB/s | 47.11 MB/s | 15.9% | 152.19 MB/s | 150.96 MB/s |
+| llama.cpp | 0.9970 | 0.9743 | -2.28% | 182.44 MB/s | 66.00 MB/s | 36.2% | 30.25 MB/s | 28.79 MB/s |
+
+> **Conclusion**: `other3 -optimal3` on Windows has been verified, decode all PASS, and still output standard compatible with bvx2 bitstream.
+> The compression ratio is significantly improved compared with Other3: claw-code is about -4.75%, and llama.cpp is about -2.28%. The price is that the encode speed and RSS: Optimal3 encode RSS is close to the DP path such as bvx3-optimal/lazy2, which belongs to the "compression rate priority" model; the decode speed/RSS is the same as the other3 (the gap is <1–5%), which is in line with the expectation of the shared bvx2 decode path.
+
+## 2a. Why Optimal3 and Optimal compression ratio are still much worse / Why Optimal3 Still Trails Optimal
+
+The main difference between `Optimal3` and `Optimal` is not DP search ability, but **output format expression ability**:
+
+- `Optimal3` = `other3 -optimal3`: Use `lzParseOptimal2` for segmented DP optimal analysis, but the output still follows the standard LZFSE/bvx2 `encodeBlock`, must use the standard `lBaseValue` / `mBaseValue` / `dBaseValue` table, and be limited by `maxLValue=315`, `maxMValue=2359`, `maxDValue=262139` (about 256 KB).
+- `Optimal` = `bvx3 -optimal`: Using Private bvx3 `encodeBlockV3`, L/M Merged `lm3BaseValue` / `lm3ExtraBits` Table, The Match Length Can Be To `maxM3=69947`, And The Distance Can Also Cover The Entire 4 MB chunk Level; Therefore, Long Match, Long-Distance Repetition And A Large Number Of Similar Files Can Be Expressed With Fewer Tokens.
+- `Optimal3` retains Apple-compatible standard bitstream; `Optimal` sacrifices Apple compatibility for stronger L/M/D expression ability.
+
+| Data Set | Optimal3 Ratio | Optimal Ratio | Main Cause of Gap |
+| --- | ---: | ---: | --- |
+| claw-code | 0.9351 | 0.8274 | There are many duplicates in the code/directory structure, and the advantages of bvx3 long match and long-distance match are obvious |
+| llama.cpp | 0.9743 | 0.9412 | The repetition rate is low, and the format ability gap still exists but the magnitude is smaller |
+
+> Therefore, the positioning of `Optimal3` is "the optimal parse that can be done within the standard compatible format", not a replacement for the compression ratio of `bvx3 -optimal`.
+> If the target is Apple/standard LZFSE compatible, `Optimal3` is a reasonable path with an upper limit; if the goal is the highest compression rate, the private `bvx3 -optimal` still has a format hierarchy advantage.
+
+## three. Win/Mac Comparison / Win-Mac Comparison
+
+| Data Set | Format | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | Optimal3 | 47.11 | 62.85 | 0.750 | 150.96 | 435.87 | 0.346 |
+| llama.cpp | Optimal3 | 66.00 | 64.07 | 1.030 | 28.79 | 83.85 | 0.343 |
+
+> Windows Optimal3 encode on `claw-code` is about 75% of Mac; Windows encode on `llama.cpp` is close to Mac (1.03×).
+> Decode-end Windows is slower (about 0.34–0.35×), which is related to this round of Windows write-to-file/tar extraction path and NTFS/bsdtar I/O cost (see R41 bsdtar/NTFS bottleneck chapter).
+
+---
+
 # Pre-R42: LZFSE_Win_UI — Windows Graphical Interface and Packaging Toolchain (2026-06-27) / Pre-R42: LZFSE_Win_UI — Windows GUI & Packaging Toolchain
 
 > Infrastructure round (non-algorithmization): add Windows GUI front-end and self-contained packaging process for lzfse.
