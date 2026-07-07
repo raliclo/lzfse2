@@ -3298,12 +3298,14 @@ public enum LZFSEv1 {
         while !streamEnded {
             nonisolated(unsafe) var batch: [(comp: [UInt8], blks: [Blk], raw: Int)] = []
             while batch.count < N && !streamEnded {
-                guard let g = nextGroup() else { break }
+                guard let g = nextGroup() else {
+                    if misaligned {
+                        if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+                        return wroteAny ? .error : .fallback
+                    }
+                    break
+                }
                 batch.append(g)
-            }
-            if misaligned {
-                if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
-                return wroteAny ? .error : .fallback
             }
             if batch.isEmpty { break }
 
