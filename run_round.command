@@ -36,6 +36,8 @@ if [[ "$USE_SWIFT_TAR" == "1" ]]; then
     echo "USING_SWIFT_TAR $(command -v swift_tar) $(date +%H:%M:%S)" >> round_status.txt
 fi
 
+echo PATH="$PATH" >> round_status.txt
+
 git gc --prune=now --aggressive >> round_status.txt 2>&1
 echo "RUNNING compile $(date +%H:%M:%S)" >> round_status.txt
 rm -f ./lzfse

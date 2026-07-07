@@ -3193,7 +3193,6 @@ public enum LZFSEv1 {
         let N = max(1, inflight)
         var wroteAny = false
         var streamEnded = false
-        var misaligned = false
 
         func ensure(_ need: Int) -> Bool {
             while buf.count - pos < need {
@@ -3211,61 +3210,62 @@ public enum LZFSEv1 {
         }
 
         struct Blk { let off: Int; let magic: UInt32; let raw: Int }
+        enum NGResult { case group(comp: [UInt8], blks: [Blk], raw: Int); case eof; case misaligned }
 
         #if PROFILING
         @inline(never)
         #endif
-        func nextGroup() -> (comp: [UInt8], blks: [Blk], raw: Int)? {
+        func nextGroup() -> NGResult {
             var comp = [UInt8]()
             var blks = [Blk]()
             var cumRaw = 0
             while true {
                 guard ensure(4) else {
-                    if comp.isEmpty { return nil }
-                    misaligned = true; return nil
+                    if comp.isEmpty { return .eof }
+                    return .misaligned
                 }
                 let magic = get32(buf, pos)
                 if magic == magicEndOfStream {
                     pos += 4; streamEnded = true
-                    return comp.isEmpty ? nil : (comp, blks, cumRaw)
+                    return comp.isEmpty ? .eof : .group(comp: comp, blks: blks, raw: cumRaw)
                 }
                 var size = 0, raw = 0
                 switch magic {
                 case magicUncompressed:
-                    guard ensure(8) else { misaligned = true; return nil }
+                    guard ensure(8) else { return .misaligned }
                     raw = Int(get32(buf, pos + 4)); size = 8 + raw
                 case magicCompressedV1:
-                    guard ensure(v1HeaderSize) else { misaligned = true; return nil }
+                    guard ensure(v1HeaderSize) else { return .misaligned }
                     raw = Int(get32(buf, pos + 4)); size = v1HeaderSize + Int(get32(buf, pos + 8))
                 case magicCompressedV2:
-                    guard ensure(32) else { misaligned = true; return nil }
+                    guard ensure(32) else { return .misaligned }
                     raw = Int(get32(buf, pos + 4))
                     let v0 = get64(buf, pos + 8), v1f = get64(buf, pos + 16), v2f = get64(buf, pos + 24)
                     let hdr = Int(v2f & 0xFFFF_FFFF)
-                    guard hdr >= 32 else { misaligned = true; return nil }
+                    guard hdr >= 32 else { return .misaligned }
                     size = hdr + Int((v0 >> 20) & 0xFFFFF) + Int((v1f >> 40) & 0xFFFFF)
                 case magicLZVN:
-                    guard ensure(12) else { misaligned = true; return nil }
+                    guard ensure(12) else { return .misaligned }
                     raw = Int(get32(buf, pos + 4)); size = 12 + Int(get32(buf, pos + 8))
                 case magicBVX3:
-                    guard ensure(v3FixedHeaderSize) else { misaligned = true; return nil }
+                    guard ensure(v3FixedHeaderSize) else { return .misaligned }
                     raw = Int(get32(buf, pos + 4))
                     let hdr = Int(get16(buf, pos + 52))
-                    guard hdr >= v3FixedHeaderSize else { misaligned = true; return nil }
+                    guard hdr >= v3FixedHeaderSize else { return .misaligned }
                     size = hdr + Int(get32(buf, pos + 8))
                 default:
-                    misaligned = true; return nil
+                    return .misaligned
                 }
-                guard size > 0, ensure(size) else { misaligned = true; return nil }
+                guard size > 0, ensure(size) else { return .misaligned }
                 blks.append(Blk(off: comp.count, magic: magic, raw: raw))
                 comp.append(contentsOf: buf[pos ..< pos + size])
                 pos += size
                 cumRaw += raw
                 if cumRaw > chunkRaw {
                     if debug { fputs("[DBG] overshoot cumRaw=\(cumRaw) chunkRaw=\(chunkRaw) nBlks=\(blks.count) lastBlkRaw=\(raw)\n", stderr) }
-                    misaligned = true; return nil
+                    return .misaligned
                 }
-                if cumRaw == chunkRaw { return (comp, blks, cumRaw) }
+                if cumRaw == chunkRaw { return .group(comp: comp, blks: blks, raw: cumRaw) }
             }
         }
 
@@ -3297,15 +3297,16 @@ public enum LZFSEv1 {
 
         while !streamEnded {
             nonisolated(unsafe) var batch: [(comp: [UInt8], blks: [Blk], raw: Int)] = []
-            while batch.count < N && !streamEnded {
-                guard let g = nextGroup() else {
-                    if misaligned {
-                        if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
-                        return wroteAny ? .error : .fallback
-                    }
-                    break
+            innerLoop: while batch.count < N && !streamEnded {
+                switch nextGroup() {
+                case .group(let comp, let blks, let raw):
+                    batch.append((comp: comp, blks: blks, raw: raw))
+                case .misaligned:
+                    if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+                    return wroteAny ? .error : .fallback
+                case .eof:
+                    break innerLoop
                 }
-                batch.append(g)
             }
             if batch.isEmpty { break }
 
