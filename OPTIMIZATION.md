@@ -373,6 +373,133 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R43-Win：swift_tar Windows 移植 + -swift_tar round + scoop 發佈流程（2026-07-08）
+
+> **目標**：把 R43-Mac 的 `swift_tar` 移植到 Windows（原本完全沒有 Windows 支援：`compile_tar.sh` 連結 Homebrew 的 zlib/libbz2/liblzma/libzstd/liblz4，`swift_tar.swift` 也大量用 POSIX `lstat`/`symlink`/`link`/`chmod`），打包成可攜式 `swift_tar_win.zip`，建立 scoop bucket 讓 `swift_tar`／`lzfse` 可用 `scoop install` 發佈，並跑一輪帶 `-swift_tar` 的 `run_round.bat`，實測拿 swift_tar 取代系統 tar 對 Windows benchmark 的實際影響。
+
+## 本輪變更
+
+| 項目 | 說明 |
+| --- | --- |
+| **swift_tar 壓縮引擎（Windows）** | Windows 不連結任何 C 庫；`gzip`/`bzip2`/`xz`/`zstd`/`lz4` 全部改為 `Process` shell out 呼叫 scoop 安裝的對應 CLI 工具（同 `encode-win.bat`/`decode-win.bat` 既有的 lz4/zstd 呼叫方式）；僅 LZFSE 家族（`other3`/`bvx3`）維持原生 Swift，沿用 lzfse2 既有的 Windows CLI 移植。 |
+| **swift_tar 檔案識別（Windows）** | 用 `GetFileAttributesW`/`CreateFileW`/`GetFileInformationByHandle` 取代 `lstat`（reparse point ⟺ symlink，volume serial + file index 取代 dev/ino 做 hardlink 去重）；`CreateSymbolicLinkW`/`CreateHardLinkW` 取代 `symlink()`/`link()`，失敗時只警告並略過（不中止整個 extract）；Windows 無 Unix 權限位元，`chmod` 為 no-op，新建項目一律給慣例值 `0o755`/`0o644`。 |
+| **`swift_tar/compile_tar-win.bat`** | 新增：編譯 `swift_tar.exe`（不需連結 C 庫，比 macOS 版簡單），並自動呼叫 `package_win.ps1` 打包 `swift_tar_win.zip`。 |
+| **`swift_tar/package_win.ps1`** | 新增：從 `swiftc` 路徑自動偵測 Swift runtime 目錄，把 `swift_tar.exe` + 32 個 runtime DLL 打包成可攜式 `swift_tar_win.zip`（24.5 MB，跟既有 `lzfse-cli.zip` 同量級）。 |
+| **`swift_tar/build_tool_install-win.sh`** | 新增：檢查/安裝建置工具鏈（Swift toolchain、MSVC C++ build tools、scoop、`gzip`/`bzip2`/`xz`/`zstd`/`lz4`/`lzip`）；用 `vswhere` 而非 PATH 判斷 MSVC 是否已裝（避免誤判 MSYS 附帶的無關 `link.exe`），用 `scoop list` 而非 PATH 判斷壓縮工具是否已裝（避免誤判 busybox 附帶的閹割版 applet）。執行時順手發現 `xz`、`bzip2` 的 scoop shim 都被 busybox 的閹割版蓋掉（只能解壓、不能壓縮），已改裝正牌套件。 |
+| **`bucket/swift_tar.json`、`bucket/lzfse.json`** | 新增：標準 scoop manifest，供本 repo 直接當 scoop bucket 使用（`scoop bucket add <name> <repo>`）。`swift_tar.json` 宣告 `depends: [gzip, bzip2, xz, zstd, lz4, lzip]`。 |
+| **`swift_tar/scoop_release.bat`、`helper_windows/scoop_release.bat`** | 新增：各自重建 zip 後，呼叫 `update_scoop_manifest.ps1` 用文字替換（非 `ConvertTo-Json`，避免整檔重排格式）更新對應 manifest 的 `hash` 欄位。 |
+| **`helper_windows/run_round.bat` `-swift_tar` 旗標** | 仿照 `run_round.command` 的 `-swift_tar`：帶旗標時建立 PATH shim（`tar.exe` 複製指向已編譯好的 `swift_tar.exe`，非系統 PATH），prepend 進本 session PATH；不帶旗標維持原行為。 |
+| **README.md／README.zh-TW.md** | 新增「測試機硬體比較」表格（macOS M4 Mac mini vs Windows ASUS TUF A15），中英對照。 |
+
+## 驗證
+
+- `compile_tar-win.bat` 編譯成功，`swift_tar_win.zip` 解壓到全新資料夾、PATH 砍到只剩 `System32`（完全隔離 Swift 工具鏈與 scoop）仍可正常建檔/列出內容，確認真可攜。
+- 7 種 codec round-trip 全過：`other3-fast`、`bvx3-fast`、`gzip`、`bzip2`、`xz`、`zstd`、`lz4`。
+- hardlink 去重＋還原正確（`ls -la` link count 2）；symlink 建立程式碼邏輯正確（呼叫失敗會警告不會 crash），但此測試機無系統管理員權限／開發者模式，無法驗證「成功建立」路徑。
+- scoop manifest 用暫時的 `file://` URL 建假 bucket 實測 `scoop install`：hash 驗證、shim 建立、`swift_tar -c/-x`、`lzfse -test` 全過，測完解除安裝、砍掉測試 bucket。
+- `run_round.bat -swift_tar` 完整跑完一輪（`DONE 14:30:08`），`USING_SWIFT_TAR` log 確認 PATH shim 生效，全 16 組（8 格式 × 2 資料集）`win_decode_verify` 皆為 `PASS`。
+
+## 1. Windows 實測結果（`-swift_tar`，n=40 inflight）
+
+| 資料集 | 格式 | Win 壓縮比 | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS | Verify |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| claw-code | TGZ | 1.0000 | 64.05 | 32.77 | 6.7 MB | 6.4 MB | PASS |
+| claw-code | Other3 | 0.9861 | 199.89 | 56.83 | 132.5 MB | 259.2 MB | PASS |
+| claw-code | **Optimal3** | **0.9391** | **28.18** | **57.79** | **497.4 MB** | **257.1 MB** | PASS |
+| claw-code | BVX3 | 0.9289 | 196.77 | 57.01 | 137.9 MB | 249.3 MB | PASS |
+| claw-code | Lazy2 | 0.8730 | 39.81 | 59.43 | 486.3 MB | 247.7 MB | PASS |
+| claw-code | Optimal | 0.8293 | 17.39 | 59.99 | 510.1 MB | 245.2 MB | PASS |
+| claw-code | TLZ4 | 1.1792 | 177.45 | 65.13 | 8.9 MB | 8.9 MB | PASS |
+| claw-code | ZSTD | 0.7844 | 94.08 | 55.75 | 8.4 MB | 8.9 MB | PASS |
+| llama.cpp | TGZ | 1.0000 | 49.47 | 6.96 | 6.6 MB | 7.0 MB | PASS |
+| llama.cpp | Other3 | 0.9966 | 58.10 | 8.84 | 144.5 MB | 347.0 MB | PASS |
+| llama.cpp | **Optimal3** | **0.9739** | **37.66** | **8.88** | **756.5 MB** | **346.9 MB** | PASS |
+| llama.cpp | BVX3 | 0.9792 | 56.96 | 8.92 | 181.8 MB | 345.9 MB | PASS |
+| llama.cpp | Lazy2 | 0.9572 | 53.19 | 9.47 | 676.1 MB | 346.3 MB | PASS |
+| llama.cpp | Optimal | 0.9390 | 30.24 | 10.01 | 754.3 MB | 346.4 MB | PASS |
+| llama.cpp | TLZ4 | 1.0500 | 56.06 | 10.07 | 8.9 MB | 8.4 MB | PASS |
+| llama.cpp | ZSTD | 0.9123 | 54.80 | 9.67 | 8.4 MB | 8.4 MB | PASS |
+
+## 2. R42-Win（系統 tar／bsdtar）vs R43-Win（`-swift_tar`）速度對照
+
+> R42-Win 與本輪除了「tar 實作」以外的一切條件相同（同機器、同資料集、同 `-n 40`），因此速度差異可直接歸因於 swift_tar 取代系統 tar 的效果。壓縮比也有極小幅變動（例如 claw-code Other3 0.9818→0.9861），與 R43-Mac 觀察到的現象一致：swift_tar 產生的 tar byte stream 與 bsdtar 略有不同（header/padding 差異），改變了 LZ window 的重複區段分佈。
+
+### claw-code（n=40）
+
+| 格式 | R42 Enc MB/s | R43 Enc MB/s | Enc 變化 | R42 Dec MB/s | R43 Dec MB/s | Dec 變化 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 33.92 | 64.05 | **+88.8%** | 145.90 | 32.77 | **−77.5%** |
+| Other3 | 296.96 | 199.89 | −32.7% | 152.19 | 56.83 | **−62.7%** |
+| Optimal3 | 47.11 | 28.18 | −40.2% | 150.96 | 57.79 | **−61.7%** |
+| BVX3 | 289.21 | 196.77 | −32.0% | 150.93 | 57.01 | **−62.2%** |
+| Lazy2 | 51.55 | 39.81 | −22.8% | 154.04 | 59.43 | **−61.4%** |
+| Optimal | 24.26 | 17.39 | −28.3% | 155.59 | 59.99 | **−61.4%** |
+| TLZ4 | 258.08 | 177.45 | −31.2% | 208.76 | 65.13 | **−68.8%** |
+| ZSTD | 146.12 | 94.08 | −35.6% | 186.81 | 55.75 | **−70.2%** |
+
+### llama.cpp（n=40）
+
+| 格式 | R42 Enc MB/s | R43 Enc MB/s | Enc 變化 | R42 Dec MB/s | R43 Dec MB/s | Dec 變化 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 38.32 | 49.47 | **+29.1%** | 21.54 | 6.96 | **−67.7%** |
+| Other3 | 182.44 | 58.10 | **−68.2%** | 30.25 | 8.84 | **−70.8%** |
+| Optimal3 | 66.00 | 37.66 | −42.9% | 28.79 | 8.88 | **−69.2%** |
+| BVX3 | 178.34 | 56.96 | **−68.1%** | 28.55 | 8.92 | **−68.8%** |
+| Lazy2 | 126.49 | 53.19 | −57.9% | 28.43 | 9.47 | **−66.7%** |
+| Optimal | 45.29 | 30.24 | −33.2% | 28.46 | 10.01 | **−64.8%** |
+| TLZ4 | 154.57 | 56.06 | **−63.7%** | 30.59 | 10.07 | **−67.1%** |
+| ZSTD | 145.30 | 54.80 | **−62.3%** | 30.05 | 9.67 | **−67.8%** |
+
+> **解讀**：
+> - **swift_tar 原生 TGZ（`--gzip`）encode 比 bsdtar 快**：兩資料集皆有提升（+29%～+89%），是本輪唯一的正面結果。
+> - **swift_tar 當純 tar 管線（`-cf -` 接 lzfse.exe/lz4/zstd）時 encode 反而變慢**：其餘 7 種格式全部負成長，llama.cpp 上多數格式掉了 60% 以上（Other3 −68%、BVX3 −68%、TLZ4 −64%、ZSTD −62%）。
+> - **decode／extract 全面大幅退步，是本輪最主要的發現**：不分格式，只要走 `-swift_tar` 的 PATH shim，decode 速度全數腰斬到剩不到一半，多數落在慢 2.6～4.5 倍（claw-code −61%～−78%，llama.cpp −65%～−71%）。這代表 swift_tar 目前的 extract 路徑（`TarReader.run()` 逐筆 1 MB 區塊 `FileHandle.write`）在 Windows/NTFS 上效率明顯不如 bsdtar，且此影響涵蓋所有格式的 decode 步驟，不只 TGZ。
+> - 正確性不受影響：全部 16 組 `win_decode_verify` 皆為 `PASS`。
+
+> **結論**：目前階段 swift_tar **不適合當作 Windows 系統 tar 的直接替代品**——它自己的 TGZ codec 值得保留使用，但拿它取代 bsdtar 做管線輸入／extract，會讓 benchmark 的 decode 數字失真變差，不反映 lzfse2 引擎本身的效能。若未來要正式採用，swift_tar 的 decode/extract 路徑值得重新檢視效能瓶頸（例如檔案寫入區塊大小、是否可用更貼近 Win32 API 的寫入方式取代逐段 `FileHandle.write`）。
+
+## 3. Win/Mac 對照（R43-Win vs R43-Mac，兩輪都用 swift_tar）
+
+| 資料集 | 格式 | Win Enc MB/s | Mac Enc MB/s | Win/Mac Enc | Win Dec MB/s | Mac Dec MB/s | Win/Mac Dec |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 64.05 | 310.83 | 0.206 | 32.77 | 396.15 | 0.083 |
+| claw-code | Other3 | 199.89 | 550.38 | 0.363 | 56.83 | 599.68 | 0.095 |
+| claw-code | **Optimal3** | **28.18** | **64.48** | **0.437** | **57.79** | **553.04** | **0.105** |
+| claw-code | BVX3 | 196.77 | 540.22 | 0.364 | 57.01 | 500.02 | 0.114 |
+| claw-code | Lazy2 | 39.81 | 70.27 | 0.566 | 59.43 | 481.84 | 0.123 |
+| claw-code | Optimal | 17.39 | 35.55 | 0.489 | 59.99 | 394.46 | 0.152 |
+| claw-code | TLZ4 | 177.45 | 586.33 | 0.303 | 65.13 | 636.66 | 0.102 |
+| claw-code | ZSTD | 94.08 | 429.27 | 0.219 | 55.75 | 559.66 | 0.100 |
+| llama.cpp | TGZ | 49.47 | 243.69 | 0.203 | 6.96 | 138.41 | 0.050 |
+| llama.cpp | Other3 | 58.10 | 247.42 | 0.235 | 8.84 | 140.43 | 0.063 |
+| llama.cpp | **Optimal3** | **37.66** | **88.62** | **0.425** | **8.88** | **128.70** | **0.069** |
+| llama.cpp | BVX3 | 56.96 | 405.01 | 0.141 | 8.92 | 135.99 | 0.066 |
+| llama.cpp | Lazy2 | 53.19 | 190.31 | 0.279 | 9.47 | 133.80 | 0.071 |
+| llama.cpp | Optimal | 30.24 | 62.11 | 0.487 | 10.01 | 130.52 | 0.077 |
+| llama.cpp | TLZ4 | 56.06 | 363.08 | 0.154 | 10.07 | 131.00 | 0.077 |
+| llama.cpp | ZSTD | 54.80 | 451.24 | 0.121 | 9.67 | 135.13 | 0.072 |
+
+> **對照 R42-Win 的 Win/Mac decode 比率**（`other3 -optimal3`：0.346／0.343，約 0.34–0.35×，見 R42-Win 第 3 節）：本輪同一組 `Optimal3` 的 Win/Mac decode 掉到 **0.105／0.069**，即 Windows decode 相對 Mac 從「慢 3 倍」惡化到「慢 10–14 倍」。由於兩輪的差異只有「Windows 是否用 `-swift_tar`」，這進一步證實第 2 節的結論：decode 端的退步幾乎全部來自 swift_tar 在 Windows 上的 extract 路徑，而不是平台本身或 lzfse2 引擎。
+
+## 4. Decode 退步根因調查（2026-07-08）
+
+> 用三個獨立的 Swift 微基準（跟 `swift_tar.swift` 的實際程式碼路徑對齊）在同一台機器上量測，逐步逼近真實情境，找出兩個可量化的主要瓶頸：
+
+| 測試情境 | 吞吐量 | 說明 |
+| --- | --- | --- |
+| 單一 200 MB 檔案，直接 `FileHandle.write`（無/有 `SetEndOfFile` 預先配置大小） | **~1100–1200 MB/s** | 兩者幾乎相同，排除「NTFS 增量配置」假說；純寫入吞吐量本身完全不是瓶頸。 |
+| 同一 payload 經過兩層 `Pipe()`（模擬 swift_tar 內部 filter chain 的 pipe 轉接） | **~750 MB/s** | 有下降但幅度有限，不足以解釋觀察到的 30–65 MB/s。 |
+| 依真實 claw-code 檔案數與大小分布（5403 檔，中位數僅 14.6 KB、平均 260 KB、最大 57 MB）逐檔 `createDirectory`＋`createFile`＋`FileHandle` 開檔＋寫入＋`close`＋`setAttributes`（無 pipe，payload 直接來自記憶體） | **~120–135 MB/s** | **單一最大的瓶頸**：每個檔案的固定成本約 2 ms（4–5 次獨立 Win32 API 往返：建目錄檢查、建檔、開檔、寫入、關檔、設定 mtime）。目錄快取（避免重複 `createDirectory`）幾乎沒有幫助（僅 ~2%），代表瓶頸不是重複建目錄，而是**逐檔 create+open+write+close+setAttributes 拆成多次系統呼叫**本身。 |
+| 同上，但改成從 `Pipe()` 讀取 payload（同時疊加兩個因子） | **~95.6 MB/s** | 兩個因子疊加後更接近實測值，但仍高於觀察到的 32–65 MB/s。 |
+
+> **claw-code 資料集的真實檔案分布**（`5403` 檔，共 ~1.4 GB）是關鍵背景：中位數只有 14.6 KB，63% 的檔案小於 32 KB——這代表**每檔固定成本主導總時間，檔案本身的位元組吞吐量幾乎無關緊要**。這解釋了為什麼單一大檔測試（>1000 MB/s）完全無法預測真實 decode 速度。
+
+> **與實測數字的差距**：TGZ（32.77 MB/s）比其他格式（55–65 MB/s）更慢，推測是因為 TGZ 額外多一層「呼叫外部 `gzip.exe` 子行程」的 pipe（跨行程，而非本測試的同行程 thread pipe），疊加真正的解壓縮 CPU 成本；其餘格式（Other3/BVX3/Lazy2/Optimal/TLZ4/ZSTD）雖然 codec 不同，但走的都是同一條 `TarReader` extract 路徑，速度集中在 55–65 MB/s 這個窄區間，與「per-file overhead + pipe 讀取」的合成基準（~95.6 MB/s）量級一致，剩餘差距合理歸因於實際 tar 標頭解析／checksum 運算與未模擬到的環境變異（例如即時防毒掃描）。
+
+> **結論**：主要根因是 **`TarReader.run()` 對每個檔案分別呼叫 `FileManager.createFile` + `FileHandle(forWritingAtPath:)` + 逐段 `write` + `close` + `setAttributes`**，在 Windows 上每個檔案要付出約 2 ms 的固定 API 往返成本；claw-code／llama.cpp 這類「大量中小型檔案」資料集因此被固定成本主導，而非位元組級的寫入吞吐量。**可能的修復方向**：改用單一 `CreateFileW` 呼叫同時完成建立＋開啟（而非 `createFile` 後再 `FileHandle(forWritingAtPath:)` 兩次往返）、將 `setAttributes`（mtime）批次延後處理、以及評估是否能像 libarchive 的 Windows disk writer 一樣減少每檔案的系統呼叫次數。
+
+---
+
 # R42-Mac：other3 -optimal3 DP 最優解析導入（2026-07-05）
 
 > 新增 `lzParseOptimal2`：與 bvx3 的 `lzParseOptimal` 同一套分段 DP 最優解析機制（雜湊鏈 frontier、熵預篩、搜尋預算全部沿用同一組常數），但改接標準 LZFSE 的 L/M/D 符號表（`lBaseValue`/`mBaseValue`/`dBaseValue`，而非 bvx3 合併的 `lm3` 表）與較小上限（`maxLValue`/`maxMValue`/`maxDValue`），透過新旗標 `-optimal3` 接上 `-algo other3`。  

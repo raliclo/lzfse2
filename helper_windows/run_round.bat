@@ -1,5 +1,14 @@
 @echo off
 chcp 65001 > nul
+:: Usage: run_round.bat [-swift_tar]
+::   -swift_tar : test mode, points tar at the already-built swift_tar.exe
+::                (PATH shim, system PATH untouched); without this flag,
+::                behaves exactly as before (system tar). Requires running
+::                swift_tar\compile_tar-win.bat first to produce
+::                release\swift_tar.exe.
+:: NOTE: comments below stay English-only where newly added -- non-ASCII
+:: bytes on a comment line were found to corrupt cmd.exe's parsing of
+:: subsequent lines in this environment (reproduced independent of chcp).
 setlocal EnableDelayedExpansion
 :: 每輪開始前清除舊狀態檔，確保本輪資料全新 / Clear status file so this round starts fresh
 type nul > windows_round_status.txt
@@ -8,6 +17,27 @@ echo [INFO] 時間戳記 / Timestamp: %TIME:~0,8% >> windows_round_status.txt
 echo [INFO] 目前路徑 / Current directory: %CD% >> windows_round_status.txt
 echo [INFO] 目前磁碟空間 / Current disk space: >> windows_round_status.txt
 powershell -Command "Get-CimInstance Win32_LogicalDisk | Select-Object Caption,@{N='Size_GB';E={[math]::Round($_.Size/1GB,1)}},@{N='Free_GB';E={[math]::Round($_.FreeSpace/1GB,1)}} | Format-Table -AutoSize"   >> windows_round_status.txt 2>&1
+
+:: swift_tar test PATH shim (system PATH untouched): only when -swift_tar is
+:: explicitly passed, copy the already-built release\swift_tar.exe to
+:: tar.exe in a shim dir and prepend it to this session's PATH, so every
+:: child process (encode-win.bat/decode-win.bat etc.) resolves bare `tar` to
+:: swift_tar; PATH is left untouched otherwise.
+set "USE_SWIFT_TAR=0"
+for %%A in (%*) do if /i "%%~A"=="-swift_tar" set "USE_SWIFT_TAR=1"
+if "%USE_SWIFT_TAR%"=="1" (
+    set "_swift_tar_exe=..\swift_tar\release\swift_tar.exe"
+    if not exist "!_swift_tar_exe!" (
+        echo SWIFT_TAR_NOT_FOUND %TIME:~0,8% >> windows_round_status.txt
+        echo [Error] -swift_tar requested but !_swift_tar_exe! not found. Run swift_tar\compile_tar-win.bat first. / 已指定 -swift_tar 但找不到 !_swift_tar_exe!，請先執行 swift_tar\compile_tar-win.bat。 >&2
+        exit /b 1
+    )
+    set "_swift_tar_shim_dir=%TEMP%\lzfse2-swift-tar-shim"
+    if not exist "!_swift_tar_shim_dir!" mkdir "!_swift_tar_shim_dir!"
+    copy /Y "!_swift_tar_exe!" "!_swift_tar_shim_dir!\tar.exe" > nul
+    set "PATH=!_swift_tar_shim_dir!;%PATH%"
+    echo USING_SWIFT_TAR !_swift_tar_shim_dir!\tar.exe %TIME:~0,8% >> windows_round_status.txt
+)
 
 :: 確保 bench_logs 存在，並把本目錄既有的 *-results.txt 先移入（保持本目錄乾淨）
 :: Ensure bench_logs exists and move any existing *-results.txt there first (keep cwd clean)

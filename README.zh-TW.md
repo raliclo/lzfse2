@@ -316,6 +316,21 @@ raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true, /Users/raliclo
 
 R42 Windows round 已補齊 `other3 -optimal3`，Windows 結果位於 [`helper_windows/bench_results_csv/BenchMarkResult-Win.csv`](helper_windows/bench_results_csv/BenchMarkResult-Win.csv)，跨平台合併比較位於 [`helper_windows/bench_results_csv/comparison.csv`](helper_windows/bench_results_csv/comparison.csv)。Windows 本輪 `-n 40` 表示單次 inflight chunk count；macOS `n=40` 是 40 次平均，兩者的測試語意不同，尤其 decode 寫檔路徑會受到 NTFS / bsdtar / file creation 成本影響。
 
+### 測試機硬體比較
+
+Windows 資訊由 [`helper_windows/system-info-win.bat`](helper_windows/system-info-win.bat) 產生，原始 log 位於 [`helper_windows/bench_logs/system-info.txt`](helper_windows/bench_logs/system-info.txt)，時間戳記為 `2026-07-05 18:06:28`。Mac 欄位依本輪 README / benchmark 記錄；未在 log 中保存的細節以「未記錄」標示。
+
+| 項目 | macOS 測試機 | Windows 測試機 |
+| --- | --- | --- |
+| 系統 / 機型 | Mac mini | ASUS TUF Gaming A15 `FA507NV_FA507NV` |
+| CPU | Apple M4 | AMD Ryzen 5 7535HS with Radeon Graphics |
+| CPU cores / threads | 10 cores（thread 數未記錄；Apple Silicon 為核心數配置） | 6 cores / 12 threads |
+| CPU frequency | 未記錄於本輪 README；Apple Silicon 動態頻率 | Max clock 3301 MHz |
+| CPU cache | 未記錄 | L2 3072 KB；L3 16384 KB |
+| 記憶體 | 16 GB unified memory | 31.25 GB total；2×16 GB DDR5 SO-DIMM，模組速度 5600 MT/s，configured 4800 MT/s |
+| GPU | Apple M4 integrated GPU（核心數未記錄） | AMD Radeon(TM) Graphics（WMI VRAM 512 MB）+ NVIDIA GeForce RTX 4060 Laptop GPU（nvidia-smi: 8188 MiB） |
+| Storage | 256 GB internal storage | Micron `MTFDKBA512QGN-1BN1AABGA` NVMe SSD，476.94 GB，Healthy |
+
 ### R42 Mac / Windows 效能對照（n=40）
 
 下表摘自 `comparison.csv`。壓縮比以 TGZ 為 1.0000；數值越低代表檔案越小。Decode 為 write-to-file / tar extract 路徑，因此更接近 UI 實際解包體驗。
