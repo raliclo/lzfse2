@@ -10,6 +10,7 @@ chcp 65001 > nul
 :: bytes on a comment line were found to corrupt cmd.exe's parsing of
 :: subsequent lines in this environment (reproduced independent of chcp).
 setlocal EnableDelayedExpansion
+cd /d "%~dp0"
 :: 每輪開始前清除舊狀態檔，確保本輪資料全新 / Clear status file so this round starts fresh
 type nul > windows_round_status.txt
 echo [INFO] 開始新一輪測試 / Starting a new round of testing  >> windows_round_status.txt
@@ -23,6 +24,14 @@ powershell -Command "Get-CimInstance Win32_LogicalDisk | Select-Object Caption,@
 :: tar.exe in a shim dir and prepend it to this session's PATH, so every
 :: child process (encode-win.bat/decode-win.bat etc.) resolves bare `tar` to
 :: swift_tar; PATH is left untouched otherwise.
+:: Retry with backoff: the shim tar.exe can be transiently locked right after
+:: being (re)written (AV real-time scan on the freshly copied exe). A plain
+:: "copy /Y" failing here was observed to leave a stale/missing shim in
+:: place while the script still continued -- every later `tar` call
+:: throughout encode-win.bat/decode-win.bat then fails fast, and
+:: summarize_win.py silently falls back to reporting old bench_logs results
+:: instead of fresh data, making a broken round look like it succeeded. Same
+:: retry pattern already used for installing lzfse.exe below.
 set "USE_SWIFT_TAR=0"
 for %%A in (%*) do if /i "%%~A"=="-swift_tar" set "USE_SWIFT_TAR=1"
 if "%USE_SWIFT_TAR%"=="1" (
@@ -34,7 +43,12 @@ if "%USE_SWIFT_TAR%"=="1" (
     )
     set "_swift_tar_shim_dir=%TEMP%\lzfse2-swift-tar-shim"
     if not exist "!_swift_tar_shim_dir!" mkdir "!_swift_tar_shim_dir!"
-    copy /Y "!_swift_tar_exe!" "!_swift_tar_shim_dir!\tar.exe" > nul
+    powershell -NoProfile -Command "$src='!_swift_tar_exe!'; $dst='!_swift_tar_shim_dir!\tar.exe'; for ($i=1; $i -le 10; $i++) { try { Copy-Item -LiteralPath $src -Destination $dst -Force; exit 0 } catch { Write-Output ('shim copy retry '+$i+': '+$_.Exception.Message); Start-Sleep -Milliseconds 500 } }; exit 1" >> windows_round_status.txt 2>&1
+    if errorlevel 1 (
+        echo SWIFT_TAR_SHIM_FAILED %TIME:~0,8% >> windows_round_status.txt
+        echo [Error] could not install swift_tar PATH shim after retries. / 重試多次後仍無法安裝 swift_tar PATH shim。 >&2
+        exit /b 1
+    )
     set "PATH=!_swift_tar_shim_dir!;%PATH%"
     echo USING_SWIFT_TAR !_swift_tar_shim_dir!\tar.exe %TIME:~0,8% >> windows_round_status.txt
 )

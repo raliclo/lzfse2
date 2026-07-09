@@ -500,6 +500,29 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R44-Win: swift_tar -test self-test + WinSDK removal + build-script hardening (2026-07-09)
+
+> **Goal**: follow up R43-Win by giving swift_tar the self-test capability it was missing (`-test`), proving its output is genuinely interchangeable with the Windows standard tar in both directions, and removing `swift_tar.swift`'s direct dependency on WinSDK. Two real bugs were caught along the way.
+
+## Changes this round
+
+| Item | Description |
+| --- | --- |
+| **`-test` self-test flag** | Added a bidirectional round-trip check against the platform's standard tar (plain tar and `.tar.gz`, create with one side, extract with the other, both directions), verified via actual content comparison (not just exit codes); reuses the existing `check()`/✓/✗ output style. |
+| **`findStandardTar()`** | On Windows, explicitly prefers `System32\tar.exe` (a genuine bsdtar) over whatever a dev-tool PATH turns up first (e.g. Git's bundled MSYS tar.exe, which has its own translation semantics for `/...`-style paths that would mislead the test); a file-size comparison rules out a candidate that's actually a PATH shim pointing back at swift_tar itself (e.g. the `-swift_tar` shim). |
+| **`-debug` flag** | Prints which standard-tar candidates were found/skipped while searching; routed to stdout (`print`) rather than stderr — writes via `FileHandle.standardError` were observed to go missing in this environment when spawned through Bash/MSYS or piped through PowerShell's `2>&1`, while `print()` was reliable both ways. |
+| **WinSDK dependency removed (`swift_tar.swift`)** | `import WinSDK` and every direct WinSDK call (`GetFileAttributesW`/`CreateFileW`/`GetFileInformationByHandle`/`CreateSymbolicLinkW`/`CreateHardLinkW`) are gone, replaced with plain Foundation APIs: `FileManager.attributesOfItem`'s `.type`/`.systemFileNumber`/`.systemNumber`/`.referenceCount` (verified to correctly map to lstat's S_IFLNK/dev/ino/nlink) and `FileManager.createSymbolicLink` (verified to already carry the modern unprivileged-creation flag). Hardlinks did **not** move to `FileManager.linkItem` — verified it silently creates a symlink instead of a true hardlink on Windows — so hardlink creation shells out to `fsutil hardlink create` instead (no admin required, verified). The compiled `swift_tar.exe` still transitively links `swiftWinSDK.dll` via `Foundation.dll`; that's Foundation's own dependency, outside this project's control. |
+| **`archiveName()` fix (real bug)** | Previously only stripped a leading `/`, so a Windows drive-letter absolute path (e.g. `C:\Users\...`) was archived verbatim, colon and backslashes included, which bsdtar couldn't extract. Fixed to normalize `\` to `/` and strip a drive-letter prefix, producing a portable POSIX-relative path on every platform. This bug was caught directly by the new `-test`. |
+| **`compile_tar-win.bat` build-stability fix (real bug)** | Installing the freshly-built exe into `release/` via `move /Y` could silently fail with "Access is denied" whenever the file was transiently locked (real-time antivirus scan, a previous test run's process not yet releasing its handle), and the script never checked move's own exit code -- leaving the old exe in place while still printing `[OK]`. This cost a large chunk of this round chasing a phantom stderr/print buffering issue that turned out to just be testing a 20-minute-old binary. Fixed with a retry + 500ms backoff loop (up to 10 attempts), the same pattern `run_round.bat` already uses for `lzfse.exe`. |
+
+## Verification
+
+- `swift_tar -test -debug`: 4/4 round-trips pass (plain tar and `.tar.gz`, swift_tar↔standard tar both directions), exit code 0, `findStandardTar` correctly reports `C:\Windows\System32\tar.exe`.
+- The full existing codec regression suite (`other3-fast`/`bvx3-fast`/`gzip`/`bzip2`/`xz`/`zstd`/`lz4`) plus hardlink dedup/restore and symlink create/restore all still pass, confirming neither the `archiveName()` fix nor the WinSDK removal introduced a regression.
+- `llvm-objdump -p` confirms no more source-level `WinSDK` dependency (only `Foundation.dll`'s own transitive link, outside this project's control).
+
+---
+
 # R42-Mac: other3 -optimal3 DP Optimal Analysis Introduction (2026-07-05)
 
 > Add `lzParseOptimal2`: and bvx3's `lzParseOptimal` The same set of segmented DP optimal analysis mechanism (hash chain frontier, entropy pre-screening, search budget all follow the same set of constants), but change the L/M/D symbol table of the standard LZFSE ( `lBaseValue` / `mBaseValue` / `dBaseValue`, instead of bvx3 merged `lm3` Table) and the smaller upper limit ( `maxLValue` / `maxMValue` / `maxDValue`), through the new flag `-optimal3` Connect `-algo other3`.

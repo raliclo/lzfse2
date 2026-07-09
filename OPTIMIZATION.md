@@ -397,28 +397,28 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 - 7 種 codec round-trip 全過：`other3-fast`、`bvx3-fast`、`gzip`、`bzip2`、`xz`、`zstd`、`lz4`。
 - hardlink 去重＋還原正確（`ls -la` link count 2）；symlink 建立程式碼邏輯正確（呼叫失敗會警告不會 crash），但此測試機無系統管理員權限／開發者模式，無法驗證「成功建立」路徑。
 - scoop manifest 用暫時的 `file://` URL 建假 bucket 實測 `scoop install`：hash 驗證、shim 建立、`swift_tar -c/-x`、`lzfse -test` 全過，測完解除安裝、砍掉測試 bucket。
-- `run_round.bat -swift_tar` 完整跑完一輪（`DONE 14:30:08`），`USING_SWIFT_TAR` log 確認 PATH shim 生效，全 16 組（8 格式 × 2 資料集）`win_decode_verify` 皆為 `PASS`。
+- `run_round.bat -swift_tar` 完整跑完一輪（2026-07-09 `DONE 9:26:30`），`USING_SWIFT_TAR` log 確認 PATH shim 生效，全 16 組（8 格式 × 2 資料集）`win_decode_verify` 皆為 `PASS`。
 
 ## 1. Windows 實測結果（`-swift_tar`，n=40 inflight）
 
 | 資料集 | 格式 | Win 壓縮比 | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS | Verify |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| claw-code | TGZ | 1.0000 | 64.05 | 32.77 | 6.7 MB | 6.4 MB | PASS |
-| claw-code | Other3 | 0.9861 | 199.89 | 56.83 | 132.5 MB | 259.2 MB | PASS |
-| claw-code | **Optimal3** | **0.9391** | **28.18** | **57.79** | **497.4 MB** | **257.1 MB** | PASS |
-| claw-code | BVX3 | 0.9289 | 196.77 | 57.01 | 137.9 MB | 249.3 MB | PASS |
-| claw-code | Lazy2 | 0.8730 | 39.81 | 59.43 | 486.3 MB | 247.7 MB | PASS |
-| claw-code | Optimal | 0.8293 | 17.39 | 59.99 | 510.1 MB | 245.2 MB | PASS |
-| claw-code | TLZ4 | 1.1792 | 177.45 | 65.13 | 8.9 MB | 8.9 MB | PASS |
-| claw-code | ZSTD | 0.7844 | 94.08 | 55.75 | 8.4 MB | 8.9 MB | PASS |
-| llama.cpp | TGZ | 1.0000 | 49.47 | 6.96 | 6.6 MB | 7.0 MB | PASS |
-| llama.cpp | Other3 | 0.9966 | 58.10 | 8.84 | 144.5 MB | 347.0 MB | PASS |
-| llama.cpp | **Optimal3** | **0.9739** | **37.66** | **8.88** | **756.5 MB** | **346.9 MB** | PASS |
-| llama.cpp | BVX3 | 0.9792 | 56.96 | 8.92 | 181.8 MB | 345.9 MB | PASS |
-| llama.cpp | Lazy2 | 0.9572 | 53.19 | 9.47 | 676.1 MB | 346.3 MB | PASS |
-| llama.cpp | Optimal | 0.9390 | 30.24 | 10.01 | 754.3 MB | 346.4 MB | PASS |
-| llama.cpp | TLZ4 | 1.0500 | 56.06 | 10.07 | 8.9 MB | 8.4 MB | PASS |
-| llama.cpp | ZSTD | 0.9123 | 54.80 | 9.67 | 8.4 MB | 8.4 MB | PASS |
+| claw-code | TGZ | 1.0000 | 87.71 | 36.73 | 6.3 MB | 6.1 MB | PASS |
+| claw-code | Other3 | 0.9861 | 242.74 | 66.98 | 189.2 MB | 257.1 MB | PASS |
+| claw-code | **Optimal3** | **0.9391** | **29.69** | **67.15** | **497.0 MB** | **255.1 MB** | PASS |
+| claw-code | BVX3 | 0.9289 | 183.05 | 68.06 | 191.5 MB | 248.7 MB | PASS |
+| claw-code | Lazy2 | 0.8730 | 29.86 | 69.26 | 491.0 MB | 248.2 MB | PASS |
+| claw-code | Optimal | 0.8293 | 13.65 | 68.38 | 515.1 MB | 244.7 MB | PASS |
+| claw-code | TLZ4 | 1.1792 | 178.02 | 59.58 | 8.3 MB | 8.3 MB | PASS |
+| claw-code | ZSTD | 0.7844 | 91.17 | 61.00 | 8.3 MB | 8.3 MB | PASS |
+| llama.cpp | TGZ | 1.0000 | 54.09 | 8.18 | 6.6 MB | 7.0 MB | PASS |
+| llama.cpp | Other3 | 0.9966 | 59.47 | 10.65 | 216.6 MB | 345.6 MB | PASS |
+| llama.cpp | **Optimal3** | **0.9739** | **34.17** | **10.03** | **759.6 MB** | **345.2 MB** | PASS |
+| llama.cpp | BVX3 | 0.9792 | 60.21 | 10.54 | 217.3 MB | 345.4 MB | PASS |
+| llama.cpp | Lazy2 | 0.9572 | 53.70 | 10.37 | 695.4 MB | 345.3 MB | PASS |
+| llama.cpp | Optimal | 0.9390 | 26.83 | 10.41 | 755.0 MB | 344.6 MB | PASS |
+| llama.cpp | TLZ4 | 1.0500 | 55.88 | 10.58 | 8.4 MB | 8.4 MB | PASS |
+| llama.cpp | ZSTD | 0.9123 | 57.42 | 10.67 | 8.4 MB | 8.4 MB | PASS |
 
 ## 2. R42-Win（系統 tar／bsdtar）vs R43-Win（`-swift_tar`）速度對照
 
@@ -428,32 +428,32 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 | 格式 | R42 Enc MB/s | R43 Enc MB/s | Enc 變化 | R42 Dec MB/s | R43 Dec MB/s | Dec 變化 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| TGZ | 33.92 | 64.05 | **+88.8%** | 145.90 | 32.77 | **−77.5%** |
-| Other3 | 296.96 | 199.89 | −32.7% | 152.19 | 56.83 | **−62.7%** |
-| Optimal3 | 47.11 | 28.18 | −40.2% | 150.96 | 57.79 | **−61.7%** |
-| BVX3 | 289.21 | 196.77 | −32.0% | 150.93 | 57.01 | **−62.2%** |
-| Lazy2 | 51.55 | 39.81 | −22.8% | 154.04 | 59.43 | **−61.4%** |
-| Optimal | 24.26 | 17.39 | −28.3% | 155.59 | 59.99 | **−61.4%** |
-| TLZ4 | 258.08 | 177.45 | −31.2% | 208.76 | 65.13 | **−68.8%** |
-| ZSTD | 146.12 | 94.08 | −35.6% | 186.81 | 55.75 | **−70.2%** |
+| TGZ | 33.92 | 87.71 | **+158.6%** | 145.90 | 36.73 | **−74.8%** |
+| Other3 | 296.96 | 242.74 | −18.3% | 152.19 | 66.98 | **−56.0%** |
+| Optimal3 | 47.11 | 29.69 | −37.0% | 150.96 | 67.15 | **−55.5%** |
+| BVX3 | 289.21 | 183.05 | −36.7% | 150.93 | 68.06 | **−54.9%** |
+| Lazy2 | 51.55 | 29.86 | −42.1% | 154.04 | 69.26 | **−55.0%** |
+| Optimal | 24.26 | 13.65 | −43.7% | 155.59 | 68.38 | **−56.1%** |
+| TLZ4 | 258.08 | 178.02 | −31.0% | 208.76 | 59.58 | **−71.5%** |
+| ZSTD | 146.12 | 91.17 | −37.6% | 186.81 | 61.00 | **−67.3%** |
 
 ### llama.cpp（n=40）
 
 | 格式 | R42 Enc MB/s | R43 Enc MB/s | Enc 變化 | R42 Dec MB/s | R43 Dec MB/s | Dec 變化 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| TGZ | 38.32 | 49.47 | **+29.1%** | 21.54 | 6.96 | **−67.7%** |
-| Other3 | 182.44 | 58.10 | **−68.2%** | 30.25 | 8.84 | **−70.8%** |
-| Optimal3 | 66.00 | 37.66 | −42.9% | 28.79 | 8.88 | **−69.2%** |
-| BVX3 | 178.34 | 56.96 | **−68.1%** | 28.55 | 8.92 | **−68.8%** |
-| Lazy2 | 126.49 | 53.19 | −57.9% | 28.43 | 9.47 | **−66.7%** |
-| Optimal | 45.29 | 30.24 | −33.2% | 28.46 | 10.01 | **−64.8%** |
-| TLZ4 | 154.57 | 56.06 | **−63.7%** | 30.59 | 10.07 | **−67.1%** |
-| ZSTD | 145.30 | 54.80 | **−62.3%** | 30.05 | 9.67 | **−67.8%** |
+| TGZ | 38.32 | 54.09 | **+41.2%** | 21.54 | 8.18 | **−62.0%** |
+| Other3 | 182.44 | 59.47 | **−67.4%** | 30.25 | 10.65 | **−64.8%** |
+| Optimal3 | 66.00 | 34.17 | −48.2% | 28.79 | 10.03 | **−65.2%** |
+| BVX3 | 178.34 | 60.21 | **−66.2%** | 28.55 | 10.54 | **−63.1%** |
+| Lazy2 | 126.49 | 53.70 | −57.5% | 28.43 | 10.37 | **−63.5%** |
+| Optimal | 45.29 | 26.83 | −40.8% | 28.46 | 10.41 | **−63.4%** |
+| TLZ4 | 154.57 | 55.88 | **−63.8%** | 30.59 | 10.58 | **−65.4%** |
+| ZSTD | 145.30 | 57.42 | **−60.5%** | 30.05 | 10.67 | **−64.5%** |
 
 > **解讀**：
-> - **swift_tar 原生 TGZ（`--gzip`）encode 比 bsdtar 快**：兩資料集皆有提升（+29%～+89%），是本輪唯一的正面結果。
-> - **swift_tar 當純 tar 管線（`-cf -` 接 lzfse.exe/lz4/zstd）時 encode 反而變慢**：其餘 7 種格式全部負成長，llama.cpp 上多數格式掉了 60% 以上（Other3 −68%、BVX3 −68%、TLZ4 −64%、ZSTD −62%）。
-> - **decode／extract 全面大幅退步，是本輪最主要的發現**：不分格式，只要走 `-swift_tar` 的 PATH shim，decode 速度全數腰斬到剩不到一半，多數落在慢 2.6～4.5 倍（claw-code −61%～−78%，llama.cpp −65%～−71%）。這代表 swift_tar 目前的 extract 路徑（`TarReader.run()` 逐筆 1 MB 區塊 `FileHandle.write`）在 Windows/NTFS 上效率明顯不如 bsdtar，且此影響涵蓋所有格式的 decode 步驟，不只 TGZ。
+> - **swift_tar 原生 TGZ（`--gzip`）encode 比 bsdtar 快**：兩資料集皆有提升（claw-code +158.6%、llama.cpp +41.2%），是本輪最穩定的正面結果。
+> - **swift_tar 當純 tar 管線（`-cf -` 接 lzfse.exe/lz4/zstd）時 encode 多數變慢**：除 TGZ 外，lzfse/tlz4/zstd 的 file-output encode 仍全部負成長；llama.cpp 上多數格式掉了 57%～67%，claw-code 上 I/O 型格式掉 18%～38%，CPU-bound 的 Lazy2/Optimal 也因管線成本增加而下降。
+> - **decode／extract 全面大幅退步，是本輪最主要的發現**：不分格式，只要走 `-swift_tar` 的 PATH shim，decode write-to-file 速度均顯著低於 bsdtar（claw-code −55%～−75%，llama.cpp −62%～−65%）。這代表 swift_tar 目前的 extract 路徑（`TarReader.run()` 逐筆 1 MB 區塊 `FileHandle.write`）在 Windows/NTFS 上效率明顯不如 bsdtar，且此影響涵蓋所有格式的 decode 步驟，不只 TGZ。
 > - 正確性不受影響：全部 16 組 `win_decode_verify` 皆為 `PASS`。
 
 > **結論**：目前階段 swift_tar **不適合當作 Windows 系統 tar 的直接替代品**——它自己的 TGZ codec 值得保留使用，但拿它取代 bsdtar 做管線輸入／extract，會讓 benchmark 的 decode 數字失真變差，不反映 lzfse2 引擎本身的效能。若未來要正式採用，swift_tar 的 decode/extract 路徑值得重新檢視效能瓶頸（例如檔案寫入區塊大小、是否可用更貼近 Win32 API 的寫入方式取代逐段 `FileHandle.write`）。
@@ -462,24 +462,24 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 | 資料集 | 格式 | Win Enc MB/s | Mac Enc MB/s | Win/Mac Enc | Win Dec MB/s | Mac Dec MB/s | Win/Mac Dec |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| claw-code | TGZ | 64.05 | 310.83 | 0.206 | 32.77 | 396.15 | 0.083 |
-| claw-code | Other3 | 199.89 | 550.38 | 0.363 | 56.83 | 599.68 | 0.095 |
-| claw-code | **Optimal3** | **28.18** | **64.48** | **0.437** | **57.79** | **553.04** | **0.105** |
-| claw-code | BVX3 | 196.77 | 540.22 | 0.364 | 57.01 | 500.02 | 0.114 |
-| claw-code | Lazy2 | 39.81 | 70.27 | 0.566 | 59.43 | 481.84 | 0.123 |
-| claw-code | Optimal | 17.39 | 35.55 | 0.489 | 59.99 | 394.46 | 0.152 |
-| claw-code | TLZ4 | 177.45 | 586.33 | 0.303 | 65.13 | 636.66 | 0.102 |
-| claw-code | ZSTD | 94.08 | 429.27 | 0.219 | 55.75 | 559.66 | 0.100 |
-| llama.cpp | TGZ | 49.47 | 243.69 | 0.203 | 6.96 | 138.41 | 0.050 |
-| llama.cpp | Other3 | 58.10 | 247.42 | 0.235 | 8.84 | 140.43 | 0.063 |
-| llama.cpp | **Optimal3** | **37.66** | **88.62** | **0.425** | **8.88** | **128.70** | **0.069** |
-| llama.cpp | BVX3 | 56.96 | 405.01 | 0.141 | 8.92 | 135.99 | 0.066 |
-| llama.cpp | Lazy2 | 53.19 | 190.31 | 0.279 | 9.47 | 133.80 | 0.071 |
-| llama.cpp | Optimal | 30.24 | 62.11 | 0.487 | 10.01 | 130.52 | 0.077 |
-| llama.cpp | TLZ4 | 56.06 | 363.08 | 0.154 | 10.07 | 131.00 | 0.077 |
-| llama.cpp | ZSTD | 54.80 | 451.24 | 0.121 | 9.67 | 135.13 | 0.072 |
+| claw-code | TGZ | 87.71 | 310.83 | 0.282 | 36.73 | 396.15 | 0.093 |
+| claw-code | Other3 | 242.74 | 550.38 | 0.441 | 66.98 | 599.68 | 0.112 |
+| claw-code | **Optimal3** | **29.69** | **64.48** | **0.460** | **67.15** | **553.04** | **0.121** |
+| claw-code | BVX3 | 183.05 | 540.22 | 0.339 | 68.06 | 500.02 | 0.136 |
+| claw-code | Lazy2 | 29.86 | 70.27 | 0.425 | 69.26 | 481.84 | 0.144 |
+| claw-code | Optimal | 13.65 | 35.55 | 0.384 | 68.38 | 394.46 | 0.173 |
+| claw-code | TLZ4 | 178.02 | 586.33 | 0.304 | 59.58 | 636.66 | 0.094 |
+| claw-code | ZSTD | 91.17 | 429.27 | 0.212 | 61.00 | 559.66 | 0.109 |
+| llama.cpp | TGZ | 54.09 | 243.69 | 0.222 | 8.18 | 138.41 | 0.059 |
+| llama.cpp | Other3 | 59.47 | 247.42 | 0.240 | 10.65 | 140.43 | 0.076 |
+| llama.cpp | **Optimal3** | **34.17** | **88.62** | **0.386** | **10.03** | **128.70** | **0.078** |
+| llama.cpp | BVX3 | 60.21 | 405.01 | 0.149 | 10.54 | 135.99 | 0.078 |
+| llama.cpp | Lazy2 | 53.70 | 190.31 | 0.282 | 10.37 | 133.80 | 0.077 |
+| llama.cpp | Optimal | 26.83 | 62.11 | 0.432 | 10.41 | 130.52 | 0.080 |
+| llama.cpp | TLZ4 | 55.88 | 363.08 | 0.154 | 10.58 | 131.00 | 0.081 |
+| llama.cpp | ZSTD | 57.42 | 451.24 | 0.127 | 10.67 | 135.13 | 0.079 |
 
-> **對照 R42-Win 的 Win/Mac decode 比率**（`other3 -optimal3`：0.346／0.343，約 0.34–0.35×，見 R42-Win 第 3 節）：本輪同一組 `Optimal3` 的 Win/Mac decode 掉到 **0.105／0.069**，即 Windows decode 相對 Mac 從「慢 3 倍」惡化到「慢 10–14 倍」。由於兩輪的差異只有「Windows 是否用 `-swift_tar`」，這進一步證實第 2 節的結論：decode 端的退步幾乎全部來自 swift_tar 在 Windows 上的 extract 路徑，而不是平台本身或 lzfse2 引擎。
+> **對照 R42-Win 的 Win/Mac decode 比率**（`other3 -optimal3`：0.346／0.343，約 0.34–0.35×，見 R42-Win 第 3 節）：本輪同一組 `Optimal3` 的 Win/Mac decode 掉到 **0.121／0.078**，即 Windows decode 相對 Mac 從「慢 3 倍」惡化到「慢 8–13 倍」。由於兩輪的差異只有「Windows 是否用 `-swift_tar`」，這進一步證實第 2 節的結論：decode 端的退步幾乎全部來自 swift_tar 在 Windows 上的 extract 路徑，而不是平台本身或 lzfse2 引擎。
 
 ## 4. Decode 退步根因調查（2026-07-08）
 
@@ -494,9 +494,32 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 > **claw-code 資料集的真實檔案分布**（`5403` 檔，共 ~1.4 GB）是關鍵背景：中位數只有 14.6 KB，63% 的檔案小於 32 KB——這代表**每檔固定成本主導總時間，檔案本身的位元組吞吐量幾乎無關緊要**。這解釋了為什麼單一大檔測試（>1000 MB/s）完全無法預測真實 decode 速度。
 
-> **與實測數字的差距**：TGZ（32.77 MB/s）比其他格式（55–65 MB/s）更慢，推測是因為 TGZ 額外多一層「呼叫外部 `gzip.exe` 子行程」的 pipe（跨行程，而非本測試的同行程 thread pipe），疊加真正的解壓縮 CPU 成本；其餘格式（Other3/BVX3/Lazy2/Optimal/TLZ4/ZSTD）雖然 codec 不同，但走的都是同一條 `TarReader` extract 路徑，速度集中在 55–65 MB/s 這個窄區間，與「per-file overhead + pipe 讀取」的合成基準（~95.6 MB/s）量級一致，剩餘差距合理歸因於實際 tar 標頭解析／checksum 運算與未模擬到的環境變異（例如即時防毒掃描）。
+> **與實測數字的差距**：TGZ（36.73 MB/s）比多數 lzfse/tlz4/zstd 格式（約 59–69 MB/s）更慢，推測是因為 TGZ 額外多一層「呼叫外部 `gzip.exe` 子行程」的 pipe（跨行程，而非本測試的同行程 thread pipe），疊加真正的解壓縮 CPU 成本；其餘格式（Other3/BVX3/Lazy2/Optimal/TLZ4/ZSTD）雖然 codec 不同，但走的都是同一條 `TarReader` extract 路徑，速度集中在 59–69 MB/s 這個窄區間，與「per-file overhead + pipe 讀取」的合成基準（~95.6 MB/s）量級一致，剩餘差距合理歸因於實際 tar 標頭解析／checksum 運算與未模擬到的環境變異（例如即時防毒掃描）。
 
 > **結論**：主要根因是 **`TarReader.run()` 對每個檔案分別呼叫 `FileManager.createFile` + `FileHandle(forWritingAtPath:)` + 逐段 `write` + `close` + `setAttributes`**，在 Windows 上每個檔案要付出約 2 ms 的固定 API 往返成本；claw-code／llama.cpp 這類「大量中小型檔案」資料集因此被固定成本主導，而非位元組級的寫入吞吐量。**可能的修復方向**：改用單一 `CreateFileW` 呼叫同時完成建立＋開啟（而非 `createFile` 後再 `FileHandle(forWritingAtPath:)` 兩次往返）、將 `setAttributes`（mtime）批次延後處理、以及評估是否能像 libarchive 的 Windows disk writer 一樣減少每檔案的系統呼叫次數。
+
+---
+
+# R44-Win：swift_tar -test 自我測試 + WinSDK 移除 + 建置腳本補強（2026-07-09）
+
+> **目標**：延續 R43-Win，補上 swift_tar 缺的自我測試能力（`-test`），驗證其輸出真的能跟 Windows 標準 tar 雙向互通，並移除 `swift_tar.swift` 對 WinSDK 的直接依賴。過程中另外抓到兩個真實 bug。
+
+## 本輪變更
+
+| 項目 | 說明 |
+| --- | --- |
+| **`-test` 自我測試旗標** | 新增與平台標準 tar 的雙向 round-trip 驗證（純 tar 與 `.tar.gz`，兩邊互建互解），用實際內容比對（非僅 exit code）確認相容性；沿用 `check()`/✓/✗ 的既有輸出風格。 |
+| **`findStandardTar()`** | Windows 上明確優先找 `System32\tar.exe`（貨真價實的 bsdtar），而非 PATH 上先找到的 Git 內附 MSYS tar（對 `/...`-style 路徑有自己一套轉換語意，會誤導測試）；用檔案大小比對排除掉指回 swift_tar 自己的 PATH shim（例如 `-swift_tar` shim）。 |
+| **`-debug` 旗標** | 印出尋找標準 tar 過程中找到／略過的候選項目；訊息走 stdout（`print`）而非 stderr——實測發現此環境下透過 Bash/MSYS 執行或 PowerShell `2>&1` 時，`FileHandle.standardError` 寫入的內容會遺失，`print()` 兩種呼叫方式下都可靠。 |
+| **WinSDK 依賴移除（`swift_tar.swift`）** | `import WinSDK` 與所有直接 WinSDK 呼叫（`GetFileAttributesW`/`CreateFileW`/`GetFileInformationByHandle`/`CreateSymbolicLinkW`/`CreateHardLinkW`）全部移除，改用純 Foundation API：`FileManager.attributesOfItem` 的 `.type`/`.systemFileNumber`/`.systemNumber`/`.referenceCount`（實測正確對應 lstat 的 S_IFLNK/dev/ino/nlink）、`FileManager.createSymbolicLink`（實測本身已帶現代版免權限建立旗標）。硬連結**沒有**改用 `FileManager.linkItem`——實測它在 Windows 上會靜默建立 symlink 而非真正的 hardlink，改呼叫外部 `fsutil hardlink create`（不需系統管理員權限，已實測）。編譯後的 `swift_tar.exe` 仍會透過 `Foundation.dll` 間接連到 `swiftWinSDK.dll`，這是 Foundation 自己的相依，非本專案程式碼可控制。 |
+| **`archiveName()` 修正（真實 bug）** | 原本只去除開頭的 `/`，沒處理 Windows 磁碟機代號絕對路徑（例如 `C:\Users\...`），導致 tar 項目名稱原封不動含冒號與反斜線，bsdtar 解不開。修正：正規化 `\` 為 `/`、去除磁碟機代號前綴，全平台一致產生可攜的 POSIX 相對路徑。此 bug 是透過新增的 `-test` 直接測出來的。 |
+| **`compile_tar-win.bat` 建置穩定性修正（真實 bug）** | `move /Y` 把新編譯的 exe 裝到 `release/` 時，若檔案被暫時鎖住（防毒即時掃描、上一次測試行程還沒放開檔案控制代碼）會靜默失敗成 "Access is denied"，且腳本從未檢查 move 自身的結束碼，導致舊 exe 留著不動、腳本卻仍印 `[OK]`——這造成本輪除錯時一度花大量時間追查一個不存在的 stderr/print 緩衝問題，實際上只是一直在測 20 分鐘前的舊 binary。修正為 retry + 500ms 退避（最多 10 次），同 `run_round.bat` 對 `lzfse.exe` 已用的做法。 |
+
+## 驗證
+
+- `swift_tar -test -debug`：4/4 round-trip 全過（plain tar 與 `.tar.gz`，swift_tar↔std tar 雙向），exit code 0，`findStandardTar` 正確回報 `C:\Windows\System32\tar.exe`。
+- 全套既有 codec 回歸測試（`other3-fast`／`bvx3-fast`／`gzip`／`bzip2`／`xz`／`zstd`／`lz4`）＋ hardlink 去重還原 ＋ symlink 建立還原，皆維持通過，確認 `archiveName()` 修正與 WinSDK 移除都沒有引入新的回歸。
+- `llvm-objdump -p` 確認原始碼層級不再有 `WinSDK` 相依（僅 `Foundation.dll` 自身的間接連結，非本專案控制範圍）。
 
 ---
 
