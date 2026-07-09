@@ -347,7 +347,8 @@ def power_cell(row: dict[str, str], key: str) -> str:
 
 def integrate_best_points(benchmark_rows: list[dict[str, str]]) -> None:
     if not best_points_csv.exists():
-        raise SystemExit(f"missing best points CSV: {best_points_csv}")
+        print(f"[Info] best_points.csv not found, skipping best-points integration: {best_points_csv}", file=sys.stderr)
+        return
 
     fieldnames, rows = read_csv_rows(best_points_csv)
     if not rows:

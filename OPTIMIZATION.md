@@ -167,6 +167,163 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R44-Mac：swift_tar -test 驗證 + pipeline 修正（2026-07-10）
+
+> **目標**：以 R44-Win 更新後的 swift_tar（含 `-test -debug` 自我測試、WinSDK 移除、archiveName 修正）在 Mac 上執行完整 benchmark，確認新版 swift_tar 與 benchmark pipeline 全程相容。lzfse-cli.swift 與 R43 完全相同，本輪不含演算法變更。
+
+## 本輪變更
+
+| 項目 | 說明 |
+| --- | --- |
+| **swift_tar submodule 更新** | 同步至 R44-Win 版本（`11076e6`）：新增 `-test -debug` 自我測試旗標、移除 WinSDK 直接相依、修正 `archiveName()` 磁碟機代號路徑問題、修正 `compile_tar-win.bat` move retry 問題。詳見 R44-Win 章節。 |
+| **run_round.command：swift_tar test 無條件化** | 原本 swift_tar compile + `-test -debug` 只在 `-swift_tar` 旗標時執行；改為**無條件**在最前面執行（與 lzfse `-test` 相同地位），PATH shim 仍僅在 `-swift_tar` 時設定。 |
+| **benchmark2.sh：power_summary_integrate 順序修正** | 原本 Step 12 跑 `best_points_analysis`（需要 BenchMarkResult.csv 含 power 欄），Step 13 才跑 `power_summary_integrate`（補寫 power 欄），順序錯誤導致 `BEST_POINTS_ANALYSIS_FAILED`。已對調為：Step 12 = `power_summary_integrate`、Step 13 = `best_points_analysis`；並讓 `power_summary_integrate` 在 `best_points.csv` 尚未產生時跳過 best_points 更新而不中斷。 |
+
+## 驗證
+
+- `swift_tar -test -debug`：4/4 round-trip 全過（plain tar 與 `.tar.gz`，swift_tar↔系統 tar 雙向），exit code 0，`SWIFT_TAR_TEST_OK`。
+- `lzfse -test`：`TEST_OK`（lzfse-cli.swift 與 R43 相同，預期通過）。
+- 全 R44-Mac round 跑畢（power_summary_integrate 手動補跑）：54 rows，`BenchMarkResult.csv` 重建成功，`best_points_analysis` 通過，`BEST_POINTS_ANALYSIS_DONE`。
+
+## 1. 壓縮比與速度（n=40，兩資料集）
+
+| 資料集 | 格式 | 壓縮比 | Enc MB/s | Dec MB/s |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 300.90 | 396.00 |
+| claw-code | Other3 | 0.9812 | 548.77 | 497.32 |
+| claw-code | **Optimal3** | **0.9344** | **63.19** | **508.77** |
+| claw-code | Lazy2 | 0.8683 | 64.59 | 354.38 |
+| claw-code | Optimal | 0.8253 | 34.21 | 451.86 |
+| claw-code | BVX3 | 0.9244 | 576.20 | 482.48 |
+| claw-code | Apple | 0.9820 | 155.33 | 526.10 |
+| claw-code | TLZ4 | 1.1786 | 579.46 | 487.55 |
+| claw-code | ZSTD | 0.7805 | 451.88 | 499.60 |
+| llama.cpp | TGZ | 1.0000 | 231.34 | 131.56 |
+| llama.cpp | Other3 | 0.9965 | 247.13 | 131.90 |
+| llama.cpp | **Optimal3** | **0.9737** | **85.88** | **135.20** |
+| llama.cpp | Lazy2 | 0.9576 | 176.09 | 126.91 |
+| llama.cpp | Optimal | 0.9408 | 58.51 | 127.18 |
+| llama.cpp | BVX3 | 0.9810 | 404.84 | 123.53 |
+| llama.cpp | Apple | 0.9994 | 166.37 | 119.83 |
+| llama.cpp | TLZ4 | 1.0535 | 340.57 | 117.96 |
+| llama.cpp | ZSTD | 0.9113 | 438.93 | 124.81 |
+
+> **壓縮比**：與 R43 完全一致（lzfse-cli.swift 未改動，bitstream 相同）。
+
+## 2. Encode 速度對照：R43-Mac vs R44-Mac（n=40）
+
+> lzfse-cli.swift 未變動，速度差異為量測噪音（±10% 以內為正常）。
+
+### claw-code（n=40）
+
+| 格式 | R43 Enc MB/s | R44 Enc MB/s | 變化 |
+| --- | ---: | ---: | ---: |
+| TGZ | 310.83 | 300.90 | −3% |
+| Other3 | 550.38 | 548.77 | −0% |
+| Optimal3 | 64.48 | 63.19 | −2% |
+| Lazy2 | 70.27 | 64.59 | −8% |
+| Optimal | 35.55 | 34.21 | −4% |
+| BVX3 | 540.22 | 576.20 | +7% |
+| Apple | 153.86 | 155.33 | +1% |
+| TLZ4 | 586.33 | 579.46 | −1% |
+| ZSTD | 429.27 | 451.88 | +5% |
+
+### llama.cpp（n=40）
+
+| 格式 | R43 Enc MB/s | R44 Enc MB/s | 變化 |
+| --- | ---: | ---: | ---: |
+| TGZ | 243.69 | 231.34 | −5% |
+| Other3 | 247.42 | 247.13 | −0% |
+| Optimal3 | 88.62 | 85.88 | −3% |
+| Lazy2 | 190.31 | 176.09 | −7% |
+| Optimal | 62.11 | 58.51 | −6% |
+| BVX3 | 405.01 | 404.84 | −0% |
+| Apple | 169.01 | 166.37 | −2% |
+| TLZ4 | 363.08 | 340.57 | −6% |
+| ZSTD | 451.24 | 438.93 | −3% |
+
+## 3. Peak RSS（n=40）
+
+> RSS 與 R43 基本一致，符合「相同程式碼、相同資料集」的預期。
+
+| 資料集 | 格式 | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: |
+| claw-code | TGZ | 2930.5 MB | 3197.7 MB |
+| claw-code | Other3 | 379.3 MB | 305.5 MB |
+| claw-code | **Optimal3** | **550.4 MB** | **323.3 MB** |
+| claw-code | Lazy2 | 498.0 MB | 324.2 MB |
+| claw-code | Optimal | 575.4 MB | 335.7 MB |
+| claw-code | BVX3 | 363.2 MB | 320.4 MB |
+| claw-code | Apple | 1356.3 MB | 470.0 MB |
+| claw-code | TLZ4 | 79.9 MB | 33.7 MB |
+| claw-code | ZSTD | 397.3 MB | 9.9 MB |
+| llama.cpp | TGZ | 2556.5 MB | 2650.7 MB |
+| llama.cpp | Other3 | 224.1 MB | 349.6 MB |
+| llama.cpp | **Optimal3** | **560.4 MB** | **350.7 MB** |
+| llama.cpp | Lazy2 | 865.8 MB | 347.5 MB |
+| llama.cpp | Optimal | 593.6 MB | 348.7 MB |
+| llama.cpp | BVX3 | 360.9 MB | 348.9 MB |
+| llama.cpp | Apple | 1197.7 MB | 592.2 MB |
+| llama.cpp | TLZ4 | 77.9 MB | 33.8 MB |
+| llama.cpp | ZSTD | 490.0 MB | 9.8 MB |
+
+## 4. CPU Energy（n=40）
+
+| 資料集 | 格式 | Enc J | Enc J/TGZ |
+| --- | --- | ---: | ---: |
+| claw-code | TGZ | 125.01 | 1.0000 |
+| claw-code | Other3 | 58.17 | 0.4653 |
+| claw-code | **Optimal3** | **578.92** | **4.6308** |
+| claw-code | Lazy2 | 336.38 | 2.6908 |
+| claw-code | Optimal | 902.73 | 7.2210 |
+| claw-code | BVX3 | 59.22 | 0.4737 |
+| claw-code | Apple | 126.40 | 1.0111 |
+| claw-code | TLZ4 | 52.12 | 0.4169 |
+| claw-code | ZSTD | 62.01 | 0.4960 |
+| llama.cpp | TGZ | 109.72 | 1.0000 |
+| llama.cpp | Other3 | 44.26 | 0.4034 |
+| llama.cpp | **Optimal3** | **397.58** | **3.6234** |
+| llama.cpp | Lazy2 | 128.54 | 1.1715 |
+| llama.cpp | Optimal | 532.13 | 4.8497 |
+| llama.cpp | BVX3 | 47.18 | 0.4300 |
+| llama.cpp | Apple | 97.90 | 0.8922 |
+| llama.cpp | TLZ4 | 52.73 | 0.4806 |
+| llama.cpp | ZSTD | 43.88 | 0.3999 |
+
+### CPU Energy 對照：R43 vs R44（n=40）
+
+> R44 TGZ 能耗較 R43 高 +19%（claw-code）／+9%（llama.cpp），為 powermetrics 量測批次的機器狀態差異；J/TGZ ratio 因此基準線走高，各格式相對值小幅下降。
+
+#### claw-code（n=40）
+
+| 格式 | R43 Enc J | R44 Enc J | Enc J 變化 | R43 J/TGZ | R44 J/TGZ | J/TGZ 變化 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 104.96 | 125.01 | +19% | 1.0000 | 1.0000 | — |
+| Other3 | 43.82 | 58.17 | +33% | 0.4175 | 0.4653 | +11% |
+| Optimal3 | 513.65 | 578.92 | +13% | 4.8939 | 4.6308 | −5% |
+| Lazy2 | 277.61 | 336.38 | +21% | 2.6450 | 2.6908 | +2% |
+| Optimal | 797.79 | 902.73 | +13% | 7.6012 | 7.2210 | −5% |
+| BVX3 | 45.74 | 59.22 | +29% | 0.4358 | 0.4737 | +9% |
+| Apple | 110.60 | 126.40 | +14% | 1.0538 | 1.0111 | −4% |
+| TLZ4 | 44.06 | 52.12 | +18% | 0.4198 | 0.4169 | −1% |
+| ZSTD | 52.26 | 62.01 | +19% | 0.4979 | 0.4960 | −0% |
+
+#### llama.cpp（n=40）
+
+| 格式 | R43 Enc J | R44 Enc J | Enc J 變化 | R43 J/TGZ | R44 J/TGZ | J/TGZ 變化 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 100.79 | 109.72 | +9% | 1.0000 | 1.0000 | — |
+| Other3 | 34.15 | 44.26 | +30% | 0.3388 | 0.4034 | +19% |
+| Optimal3 | 347.82 | 397.58 | +14% | 3.4509 | 3.6234 | +5% |
+| Lazy2 | 101.88 | 128.54 | +26% | 1.0108 | 1.1715 | +16% |
+| Optimal | 462.73 | 532.13 | +15% | 4.5909 | 4.8497 | +6% |
+| BVX3 | 36.48 | 47.18 | +29% | 0.3619 | 0.4300 | +19% |
+| Apple | 85.05 | 97.90 | +15% | 0.8438 | 0.8922 | +6% |
+| TLZ4 | 41.07 | 52.73 | +28% | 0.4075 | 0.4806 | +18% |
+| ZSTD | 33.62 | 43.88 | +30% | 0.3335 | 0.3999 | +20% |
+
+---
+
 # R43-Mac：swift_tar 驗證 + NGResult 程式碼品質修正（2026-07-07）
 
 > **目標**：以自製多核心 tar 工具 `swift_tar` 取代系統 tar，驗證 benchmark pipeline（`getar`、`power_benchmark`、`extract` decode 管線）的全程相容性。同步修正 Swift `-O` 編譯器對 `misaligned` captured variable 的 dead-code 警告。

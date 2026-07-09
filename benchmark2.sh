@@ -121,17 +121,8 @@ if [[ $rc -ne 0 ]]; then
 fi
 roundStatus "BENCHMARK_RESULT_REBUILD_DONE"
 
-# Step.12 產生 Best Points 分析，輸出至 best_points/ / Generate Best Points analysis into best_points/.
-roundStatus "RUNNING_BEST_POINTS_ANALYSIS"
-./helper/best_points_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
-rc=$?
-if [[ $rc -ne 0 ]]; then
-    roundStatus "BEST_POINTS_ANALYSIS_FAILED $rc"
-    exit $rc
-fi
-roundStatus "BEST_POINTS_ANALYSIS_DONE"
-
-# Step.13 整合 powermetrics CPU power 到 CSV / Integrate CPU power into CSV outputs.
+# Step.12 整合 powermetrics CPU power 到 BenchMarkResult.csv / Integrate CPU power into BenchMarkResult.csv.
+# （best_points.csv 尚未產生，power_summary_integrate 僅更新 BenchMarkResult.csv）
 roundStatus "RUNNING_POWER_SUMMARY_INTEGRATE"
 ./helper/power_summary_integrate.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
@@ -140,6 +131,16 @@ if [[ $rc -ne 0 ]]; then
     exit $rc
 fi
 roundStatus "POWER_SUMMARY_INTEGRATE_DONE"
+
+# Step.13 產生 Best Points 分析，輸出至 best_points/ / Generate Best Points analysis into best_points/.
+roundStatus "RUNNING_BEST_POINTS_ANALYSIS"
+./helper/best_points_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "BEST_POINTS_ANALYSIS_FAILED $rc"
+    exit $rc
+fi
+roundStatus "BEST_POINTS_ANALYSIS_DONE"
 
 # Step.14 產生 Win/Mac 比較報告 / Generate Win/Mac comparison report.
 roundStatus "RUNNING_COMPARISON"
