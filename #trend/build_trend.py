@@ -1,6 +1,6 @@
 """
-Build lzfse2_R1_R41_trend.xlsx
-Formats: TGZ, BVX3, Other3, Lazy2, Optimal, ZSTD, TLZ4 (7 formats)
+Build lzfse2_R1_R45_trend.xlsx
+Formats: TGZ, BVX3, Other3, Optimal3, Lazy2, Optimal, Apple, ZSTD, TLZ4 (9 formats)
 Metrics: Encode/Decode Speed, RSS, Energy, Compress Ratio
 Charts:  Actual LineChart objects embedded in each chart sheet
 
@@ -8,7 +8,7 @@ Era colour coding:
   Yellow  R3-R22  : single-run, speed + ratio only
   Green   R23-R24 : single-run, speed + ratio + RSS
   Blue    R25-R26 : n=40, speed + RSS + ratio
-  White   R27-R41 : n=40, full (speed + RSS + energy + ratio)
+  White   R27-R45 : n=40, full (speed + RSS + energy + ratio)
 """
 import subprocess, openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -32,18 +32,21 @@ ROUND_ORDER = [
     'R23','R24','R25','R26',
     'R27','R28','R29','R30','R31','R32','R33','R34',
     'R35','R36','R37','R38','R39','R40','R41',
+    'R42','R43','R44','R45',
 ]
-FORMATS = ['TGZ', 'BVX3', 'Other3', 'Lazy2', 'Optimal', 'ZSTD', 'TLZ4']
+FORMATS = ['TGZ', 'BVX3', 'Other3', 'Optimal3', 'Lazy2', 'Optimal', 'Apple', 'ZSTD', 'TLZ4']
 FORMAT_KEYS = {
     'TGZ':            'TGZ',
     'LZFSE (BVX3)':   'BVX3',
     'LZFSE (Other3)': 'Other3',
+    'LZFSE (Optimal3)': 'Optimal3',
     'LZFSE (Lazy2)':  'Lazy2',
     'LZFSE (Optimal)':'Optimal',
+    'LZFSE (Apple)':  'Apple',
     'ZSTD':           'ZSTD',
     'TLZ4':           'TLZ4',
 }
-NF = len(FORMATS)  # 7
+NF = len(FORMATS)  # 9
 
 # Column layout in Raw sheet (1-indexed), NF=7:
 #  A=1   : Round
@@ -72,8 +75,10 @@ SERIES_COLORS = {
     'TGZ':    '7F7F7F',
     'BVX3':   'ED7D31',
     'Other3': '4472C4',
+    'Optimal3': '5B9BD5',
     'Lazy2':  '70AD47',
     'Optimal':'FFC000',
+    'Apple':  '00B0F0',
     'ZSTD':   'FF0000',
     'TLZ4':   'A020F0',
 }
@@ -97,6 +102,12 @@ def git_csv(commit):
     if commit == 'local':
         try:
             with open(f'{REPO_ROOT}/BenchMarkResult.csv', encoding='utf-8-sig') as f:
+                return f.read()
+        except Exception:
+            return ''
+    if commit == 'win-local':
+        try:
+            with open(f'{REPO_ROOT}/helper_windows/bench_results_csv/BenchMarkResult-Win.csv', encoding='utf-8-sig') as f:
                 return f.read()
         except Exception:
             return ''
@@ -157,14 +168,20 @@ def extract_row(commit):
         )
     return result
 
-# All R27-R40 commits — extract all 7 formats directly from git CSV
-R27_40_COMMITS = {
+# All R27-R45 commits — extract all formats directly from git/local CSV
+R27_45_COMMITS = {
     'R27': 'd6987a0', 'R28': '55da799', 'R29': 'c3b5af8', 'R30': '996e16e',
     'R31': '068737c', 'R32': '2fa46a7', 'R33': '3b38b4d', 'R34': 'c1b510d',
     'R35': 'c2f0721', 'R36': 'edaa07e', 'R37': '7dfe4b3', 'R38': 'd1247d6',
-    'R39': '65d1e67', 'R40': 'c288335', 'R41': 'local',
+    'R39': '65d1e67', 'R40': 'c288335',
+    'R41': '7a46d57',
+    'R42': '0286a0d',
+    'R43': 'a2e4202',
+    'R44': 'd5b35ec',
+    # R45 is the latest Windows retest round and lives in the Windows CSV.
+    'R45': 'win-local',
 }
-ALL_COMMITS = {**ROUND_COMMITS, **R27_40_COMMITS}
+ALL_COMMITS = {**ROUND_COMMITS, **R27_45_COMMITS}
 
 # ── Extract data ─────────────────────────────────────────────────────────
 print("Extracting all rounds from git history...")

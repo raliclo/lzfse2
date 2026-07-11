@@ -51,6 +51,24 @@ if "%USE_SWIFT_TAR%"=="1" (
     )
     set "PATH=!_swift_tar_shim_dir!;%PATH%"
     echo USING_SWIFT_TAR !_swift_tar_shim_dir!\tar.exe %TIME:~0,8% >> windows_round_status.txt
+
+    :: Self-test: verify swift_tar round-trips correctly against the
+    :: platform's standard tar before trusting it for the whole round.
+    :: Calls the bare `tar` name (PATH-resolved), the same way
+    :: encode-win.bat/decode-win.bat will, so this also validates the shim
+    :: itself, not just swift_tar.exe in isolation. Catches a broken
+    :: build/shim immediately instead of discovering it an hour later as
+    :: silently-stale benchmark data.
+    tar -test > .\swift_tar-test-windows.txt 2>&1
+    if errorlevel 1 (
+        echo SWIFT_TAR_TEST_FAILED %TIME:~0,8% >> windows_round_status.txt
+        type .\swift_tar-test-windows.txt >> windows_round_status.txt
+        echo [FAIL] swift_tar self-test failed, see swift_tar-test-windows.txt / swift_tar 自我測試失敗，詳見 swift_tar-test-windows.txt >&2
+        pause
+        exit /b 1
+    )
+    type .\swift_tar-test-windows.txt >> windows_round_status.txt
+    echo SWIFT_TAR_TEST_OK %TIME:~0,8% >> windows_round_status.txt
 )
 
 :: 確保 bench_logs 存在，並把本目錄既有的 *-results.txt 先移入（保持本目錄乾淨）

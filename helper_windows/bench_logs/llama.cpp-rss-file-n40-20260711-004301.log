@@ -1,0 +1,58 @@
+﻿[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\llama.cpp-rss-file-n40-20260711-004301.log
+[rss] start: 2026-07-11 00:43:01
+[rss] cwd: C:\Users\lowei\proj\lzfse2\helper_windows
+[rss] dataset: ..\llama.cpp
+[rss] n: 40
+[rss] output: write to file
+[rss] Other3 (file) ...
+  encode RSS = 147.4 MB   decode RSS = 346.3 MB
+[rss] Optimal3 (file) ...
+  encode RSS = 758.2 MB   decode RSS = 346 MB
+[rss] BVX3 (file) ...
+  encode RSS = 159.9 MB   decode RSS = 346.2 MB
+[rss] Lazy2 (file) ...
+  encode RSS = 722.2 MB   decode RSS = 345.7 MB
+[rss] Optimal (file) ...
+  encode RSS = 757.4 MB   decode RSS = 346 MB
+[rss] LZ4 (file) ...
+  encode RSS = 8.8 MB   decode RSS = 8.3 MB
+[rss] ZSTD (file) ...
+  encode RSS = 8.3 MB   decode RSS = 8.3 MB
+[rss] Tgz (file) ...
+  encode RSS = 6.5 MB   decode RSS = 6.9 MB
+
+[OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\rss_summary.csv written (peak RSS = Peak Working Set, n=40, output=file):
+  dataset,format,output_mode,encode_rss_mb,decode_rss_mb
+  claw-code,Other3,nul,128.8,247.1
+  claw-code,Optimal3,nul,525.5,245.2
+  claw-code,BVX3,nul,152.1,245.6
+  claw-code,Lazy2,nul,487.6,241.9
+  claw-code,Optimal,nul,507.7,240.5
+  claw-code,LZ4,nul,8.3,8.3
+  claw-code,ZSTD,nul,8.3,8.3
+  claw-code,Tgz,nul,6.3,5.7
+  claw-code,Other3,file,156.9,246.9
+  claw-code,Optimal3,file,499.7,245.1
+  claw-code,BVX3,file,138,245.3
+  claw-code,Lazy2,file,483.2,242.1
+  claw-code,Optimal,file,510.6,240.9
+  claw-code,LZ4,file,8.8,8.3
+  claw-code,ZSTD,file,8.3,8.3
+  claw-code,Tgz,file,6.4,5.8
+  llama.cpp,Other3,nul,146,346.1
+  llama.cpp,Optimal3,nul,760,346.1
+  llama.cpp,BVX3,nul,183.6,346.3
+  llama.cpp,Lazy2,nul,708.1,345.7
+  llama.cpp,Optimal,nul,705.9,346.2
+  llama.cpp,LZ4,nul,8.3,8.3
+  llama.cpp,ZSTD,nul,8.8,8.3
+  llama.cpp,Tgz,nul,6.5,5.8
+  llama.cpp,Other3,file,147.4,346.3
+  llama.cpp,Optimal3,file,758.2,346
+  llama.cpp,BVX3,file,159.9,346.2
+  llama.cpp,Lazy2,file,722.2,345.7
+  llama.cpp,Optimal,file,757.4,346
+  llama.cpp,LZ4,file,8.8,8.3
+  llama.cpp,ZSTD,file,8.3,8.3
+  llama.cpp,Tgz,file,6.5,6.9
+[rss] finish: 2026-07-11 00:47:59

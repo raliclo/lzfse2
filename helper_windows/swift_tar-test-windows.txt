@@ -1,0 +1,8 @@
+[swift_tar -test] standard tar (which tar): C:\Windows\System32\tar.exe
+       plain tar: swift_tar create → std tar extract: ✓
+       plain tar: std tar create → swift_tar extract: ✓
+       .tar.gz: swift_tar create → std tar extract: ✓
+       .tar.gz: std tar create → swift_tar extract: ✓
+       write backend -write_foundation: extract → compare: ✓
+       write backend -write_ucrt: extract → compare: ✓
+       timing, 400 small files / 計時（400 小檔）: foundation 0.71s / ucrt 0.32s

@@ -576,7 +576,8 @@ def main():
     win_rss = load_rss_summary(win_rss_path, args.dataset) if win_rss_path and win_rss_path.exists() else {}
 
     tgz_mac = mac.get("TGZ", {})
-    raw_mb  = (parse_mib(tgz_mac.get("raw_size_mib")) or 0) * 1.048576  # MiB → MB
+    raw_mib = parse_mib(tgz_mac.get("raw_size_mib"))
+    raw_mb  = raw_mib * 1.048576 if raw_mib is not None else None  # MiB → MB
 
     print()
     print("=" * 78)

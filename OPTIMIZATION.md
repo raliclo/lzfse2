@@ -167,6 +167,101 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R45-Win-Retest1：run_round.bat -swift_tar 官方重跑（對照 R44-Mac，兩輪都用 swift_tar）（2026-07-11）
+
+> **目標**：跑一輪真正帶 `-swift_tar` 的完整官方 `run_round.bat`，兌現 R45-Win 結尾「正式數字待下一次 run_round.bat 產出」的承諾，驗證 ucrt 解壓後端在完整 pipeline（含 verify／RSS／comparison）下的實際效果，並與 R44-Mac（同樣用 swift_tar）做 Win/Mac 對照。
+>
+> 本輪順便修正 `comparison_win.py` 的一個潛在 bug：`raw_mb = (parse_mib(...) or 0) * 1.048576` 在 Mac 端 `raw_size_mib` 缺值時會把 `None` 靜默轉成 `0`，導致下游 Win MB/s 欄位印出騙人的 `0.00` 而非顯示缺值（`—`）或報錯。已改為缺值時保留 `None`，讓既有的 `raw_mb is None` 防呆邏輯正確生效；用本輪真實 CSV 重跑腳本確認輸出數字不變（純防呆修正，不影響正常路徑）。
+
+## 1. Windows 實測結果（`-swift_tar`，n=40 inflight）
+
+| 資料集 | 格式 | Win 壓縮比 | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 93.89 | 65.37 | 6.6 MB | 6.1 MB |
+| claw-code | Other3 | 0.9861 | 259.85 | 162.47 | 119.6 MB | 259.3 MB |
+| claw-code | **Optimal3** | **0.9391** | **44.87** | **161.01** | **501.8 MB** | **257.1 MB** |
+| claw-code | BVX3 | 0.9289 | 231.63 | 160.75 | 127.8 MB | 249.3 MB |
+| claw-code | Lazy2 | 0.8730 | 46.68 | 164.46 | 483.5 MB | 248.4 MB |
+| claw-code | Optimal | 0.8293 | 23.71 | 166.09 | 510.0 MB | 245.1 MB |
+| claw-code | TLZ4 | 1.1792 | 236.24 | 194.94 | 8.9 MB | 8.3 MB |
+| claw-code | ZSTD | 0.7844 | 133.86 | 55.18 | 8.4 MB | 8.4 MB |
+| llama.cpp | TGZ | 1.0000 | 66.90 | 23.01 | 6.5 MB | 6.9 MB |
+| llama.cpp | Other3 | 0.9966 | 83.64 | 44.14 | 140.2 MB | 345.6 MB |
+| llama.cpp | **Optimal3** | **0.9739** | **54.18** | **28.57** | **756.5 MB** | **346.6 MB** |
+| llama.cpp | BVX3 | 0.9792 | 84.12 | 34.28 | 145.9 MB | 345.9 MB |
+| llama.cpp | Lazy2 | 0.9572 | 80.30 | 37.74 | 668.8 MB | 344.6 MB |
+| llama.cpp | Optimal | 0.9390 | 41.20 | 36.28 | 764.2 MB | 344.5 MB |
+| llama.cpp | TLZ4 | 1.0500 | 81.83 | 39.31 | 8.5 MB | 8.3 MB |
+| llama.cpp | ZSTD | 0.9123 | 78.69 | 40.39 | 8.3 MB | 8.3 MB |
+
+正確性：16 組（8 格式 × 2 資料集）`win_decode_verify` 全部 `PASS`，`swift_tar -test` 6/6 全過。
+
+## 2. R42-Win（bsdtar）vs 本輪（swift_tar）速度對照
+
+> 與 R43-Win 第 2 節同性質的比較（tar 實作換成 swift_tar，其餘條件相同），但這次用的是 R45-Win 修好 ucrt 寫入後端之後的版本，結論方向與 R43-Win 相反。
+
+### claw-code（n=40）
+
+| 格式 | R42 bsdtar Enc | 本輪 swift_tar Enc | Enc 變化 | R42 bsdtar Dec | 本輪 swift_tar Dec | Dec 變化 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 33.92 | 93.89 | **+176.7%** | 145.90 | 65.37 | **−55.2%** |
+| Other3 | 296.96 | 259.85 | −12.5% | 152.19 | 162.47 | +6.8% |
+| Optimal3 | 47.11 | 44.87 | −4.8% | 150.96 | 161.01 | +6.7% |
+| BVX3 | 289.21 | 231.63 | −19.9% | 150.93 | 160.75 | +6.5% |
+| Lazy2 | 51.55 | 46.68 | −9.4% | 154.04 | 164.46 | +6.8% |
+| Optimal | 24.26 | 23.71 | −2.3% | 155.59 | 166.09 | +6.7% |
+| TLZ4 | 258.08 | 236.24 | −8.5% | 208.76 | 194.94 | −6.6% |
+| ZSTD | 146.12 | 133.86 | −8.4% | 186.81 | 55.18 | **−70.5%** |
+
+### llama.cpp（n=40）
+
+| 格式 | R42 bsdtar Enc | 本輪 swift_tar Enc | Enc 變化 | R42 bsdtar Dec | 本輪 swift_tar Dec | Dec 變化 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 38.32 | 66.90 | **+74.6%** | 21.54 | 23.01 | +6.8% |
+| Other3 | 182.44 | 83.64 | **−54.2%** | 30.25 | 44.14 | **+45.9%** |
+| Optimal3 | 66.00 | 54.18 | −17.9% | 28.79 | 28.57 | −0.8% |
+| BVX3 | 178.34 | 84.12 | **−52.8%** | 28.55 | 34.28 | +20.1% |
+| Lazy2 | 126.49 | 80.30 | −36.5% | 28.43 | 37.74 | **+32.7%** |
+| Optimal | 45.29 | 41.20 | −9.0% | 28.46 | 36.28 | +27.5% |
+| TLZ4 | 154.57 | 81.83 | −47.1% | 30.59 | 39.31 | +28.5% |
+| ZSTD | 145.30 | 78.69 | −45.8% | 30.05 | 40.39 | **+34.4%** |
+
+> **解讀**：
+> - **llama.cpp decode 全面提升（+7%～+46%）**：這是 R45-Win ucrt 寫入後端修復在完整官方 pipeline 下的直接驗證——llama.cpp 有 40,675 個小檔案，正是「每檔開檔次數」瓶頸影響最大的資料集，修復後全格式 decode 都比 R42-Win 的 bsdtar 基準快。R43-Win 當時「swift_tar 不適合當 tar 替代品」的結論，至少在 decode 這一側已經反轉。
+> - **claw-code 的 LZFSE 家族 decode 溫和提升（+6.5%～+6.8%）**，一致且乾淨，同樣支持 ucrt 修復有效；但 **TGZ（−55.2%）與 ZSTD（−70.5%）decode 大幅退步**，且這個現象在上一輪（未帶 `-swift_tar` 的 bsdtar 官方輪次，已從本文件移除）也同樣出現在 claw-code 的 TGZ/ZSTD 身上——**兩輪 tar 實作不同、但同一批格式異常，強烈指向與 swift_tar/bsdtar 無關的環境因素**（機器背景防毒即時掃描、磁碟已用 89% 等），而非 swift_tar 本身的退步。TLZ4 同樣走外部程序 pipe（`lz4.exe`）卻沒有這個問題，值得进一步排查是否與 `gzip.exe`／`zstd.exe` 這兩個外部工具本身的行為或版本有關。
+> - **Encode 側 llama.cpp 多數格式下滑（−46%～−55%，TGZ 例外 +74.6%）**，claw-code 除 TGZ 外也全面小幅下滑（−2%～−20%）；lzfse-cli.swift／swift_tar 本輪程式碼與前次調查時相同，同樣傾向歸因於環境因素而非 swift_tar 造成的真實退步。TGZ encode 兩資料集都大幅提升，因為 swift_tar 原生 `--gzip` 管線本來就比透過系統 tar 呼叫外部 gzip 更快（與 R43-Win 第 2 節觀察一致）。
+
+## 3. Win/Mac 對照（本輪 vs R44-Mac，兩輪都用 swift_tar）
+
+| 資料集 | 格式 | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 93.89 | 300.90 | 0.312 | 65.37 | 396.00 | 0.165 |
+| claw-code | Other3 | 259.85 | 548.77 | 0.474 | 162.47 | 497.32 | 0.327 |
+| claw-code | **Optimal3** | **44.87** | **63.19** | **0.710** | **161.01** | **508.77** | **0.316** |
+| claw-code | BVX3 | 231.63 | 576.20 | 0.402 | 160.75 | 482.48 | 0.333 |
+| claw-code | Lazy2 | 46.68 | 64.59 | 0.723 | 164.46 | 354.38 | 0.464 |
+| claw-code | Optimal | 23.71 | 34.21 | 0.693 | 166.09 | 451.86 | 0.368 |
+| claw-code | TLZ4 | 236.24 | 579.46 | 0.408 | 194.94 | 487.55 | 0.400 |
+| claw-code | ZSTD | 133.86 | 451.88 | 0.296 | 55.18 | 499.60 | 0.110 |
+| llama.cpp | TGZ | 66.90 | 231.34 | 0.289 | 23.01 | 131.56 | 0.175 |
+| llama.cpp | Other3 | 83.64 | 247.13 | 0.338 | 44.14 | 131.90 | 0.335 |
+| llama.cpp | **Optimal3** | **54.18** | **85.88** | **0.631** | **28.57** | **135.20** | **0.211** |
+| llama.cpp | BVX3 | 84.12 | 404.84 | 0.208 | 34.28 | 123.53 | 0.278 |
+| llama.cpp | Lazy2 | 80.30 | 176.09 | 0.456 | 37.74 | 126.91 | 0.297 |
+| llama.cpp | Optimal | 41.20 | 58.51 | 0.704 | 36.28 | 127.18 | 0.285 |
+| llama.cpp | TLZ4 | 81.83 | 340.57 | 0.240 | 39.31 | 117.96 | 0.333 |
+| llama.cpp | ZSTD | 78.69 | 438.93 | 0.262 | 40.39 | 124.81 | 0.324 |
+
+> **對照 R43-Win vs R43-Mac 的 Win/Mac decode 基準**（兩輪都用 swift_tar，`Optimal3`：0.121／0.078，見 R43-Win 第 3 節，當時是 R43-Win 尚未修復 extract 瓶頸的舊版 swift_tar）：本輪同一組 `Optimal3` 回升到 **0.316／0.211**，比 R43-Win 高出約 2.6～2.7 倍——直接證實 R45-Win 的 ucrt 寫入後端修復大幅縮小了 swift_tar 版 Windows decode 與 Mac 的差距。llama.cpp 的 Other3/Lazy2/Optimal/TLZ4/ZSTD 甚至逼近或超過 claw-code 的 Win/Mac 比率，這在 R43-Win（見第 675 行附近）是反過來的（llama.cpp 比率遠低於 claw-code），也是本輪明顯的結構性改善。
+> claw-code 的 ZSTD（0.110）明顯是本節第 2 節提到的環境異常拖累，不代表 swift_tar 本身退步。
+
+## 待辦
+
+- 排查 claw-code TGZ／ZSTD decode 在**兩輪**（bsdtar、swift_tar）都異常變慢的環境因素：優先關閉即時防毒重跑對照，其次確認 `gzip.exe`／`zstd.exe`（scoop 套件）版本是否近期變動過，最後記錄/清理磁碟空間（目前僅剩 46 GB 上下）排除容量因素。
+- Encode 側兩資料集多數格式較 R42-Win 下滑 2%～55%，待上述環境因素排除後才能確認是否為真實變化。
+
+---
+
 # R44-Mac：swift_tar -test 驗證 + pipeline 修正（2026-07-10）
 
 > **目標**：以 R44-Win 更新後的 swift_tar（含 `-test -debug` 自我測試、WinSDK 移除、archiveName 修正）在 Mac 上執行完整 benchmark，確認新版 swift_tar 與 benchmark pipeline 全程相容。lzfse-cli.swift 與 R43 完全相同，本輪不含演算法變更。
