@@ -175,8 +175,9 @@ R27_45_COMMITS = {
     'R35': 'c2f0721', 'R36': 'edaa07e', 'R37': '7dfe4b3', 'R38': 'd1247d6',
     'R39': '65d1e67', 'R40': 'c288335',
     'R41': '7a46d57',
+    'R42': 'd8563cc',
     'R42': '0286a0d',
-    'R43': 'a2e4202',
+    'R43': '1cef7e9',
     'R44': 'd5b35ec',
     # R45 is the latest Windows retest round and lives in the Windows CSV.
     'R45': 'win-local',
