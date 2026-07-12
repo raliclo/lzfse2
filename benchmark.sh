@@ -94,13 +94,13 @@ unset LZFSE_BENCH_N
 unset LZFSE_BENCH_SUFFIX
 
 # Step.6 執行 Time Profiler trace / Run Time Profiler traces.
-roundStatus "RUNNING_TRACER"
-./helper/tracer.command
-rc=$?
-if [[ $rc -ne 0 ]]; then
-    roundStatus "TRACER_FAILED $rc"
-    exit $rc
-fi
-roundStatus "TRACER_DONE"
+# roundStatus "RUNNING_TRACER"
+# ./helper/tracer.command
+# rc=$?
+# if [[ $rc -ne 0 ]]; then
+#     roundStatus "TRACER_FAILED $rc"
+#     exit $rc
+# fi
+# roundStatus "TRACER_DONE"
 
 echo "Step1. Done. Please run sudo ./benchmark2.sh to continue the benchmark process."

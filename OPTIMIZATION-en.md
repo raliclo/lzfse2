@@ -167,6 +167,470 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R46-Mac: Disable the generation of Time Profiler Trace, and change the analysis steps to follow the old data (2026-07-12)
+
+> **Goal**: From this round, Mac benchmark will no longer run Time Profiler trace ( `tracer.command`), but the downstream analysis step (Step 8/9) **not the whole segment is disabled** - instead, it will elegantly skip and follow the results of the previous round of `trace/analysis` when detecting "no new trace in this round", instead of interrupting the entire pipeline. This section records the pipeline change itself; the benchmark results will be supplemented after the actual operation of this round is completed.
+
+## Changes in this round
+
+| Project | Description |
+|---|---|
+| `benchmark.sh`: Step 6 Disable | `./helper/tracer.command` Call the whole paragraph annotation (including `RUNNING_TRACER` / `TRACER_DONE` status bar), and no new `.trace` files will be generated from this round. |
+| `helper/trace_analysis.command`: `package_count -eq 0` BRANCH CHANGED TO ELEGANT SKIP | ORIGINALLY `exit 1` ( `TRACE_ANALYSIS_FAILED no_trace_found`) WILL INTERRUPT `sudo ./benchmark2.sh`; CHANGE TO `TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data` AND `exit 0`. The judgment point is before the existing `rm -rf "$ANALYSIS_DIR"` **, so the output of the previous round of `trace/analysis/*` will not be cleared, and pipeline continues to run down with the old data. |
+| `helper/cpu_call_tree_analysis.command`: `trace_count_start -eq 0` BRANCH SYNCHRONIZATION CORRECTION | ALSO CHANGE `exit 1` ( `source_trace_missing`) TO `CPU_CALL_TREE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data` AND `exit 0`. THE JUDGMENT POINT IS ALSO BEFORE `rm -rf "$OUT_DIR"`, AND THE OLD DATA OF `cpu_call_tree_summary/` IS RETAINED. |
+| `benchmark2.sh`: Step 8/9 Restore call | Because Step 8/9 itself can elegantly handle the "no new trace" situation, there is no need to skip the whole annotation; change back to normal call, rely on the script's own exit 0 to protect the pipeline. |
+
+## Scope of influence
+
+- `trace/` The original `.trace` Bundle will no longer be generated from this round ( `tracer.command` Of `CLEAN_OLD_TRACES` The cleaning steps are also not executed), but this does not affect the judgment logic: `trace_analysis.command` / `cpu_call_tree_analysis.command` Purely with `*.trace(N)` Whether glob is empty or not determines whether to re-analyze.
+- `BenchMarkResult.csv`'s `Trace wall time(seconds)`, `CPU Symbol Status`, `CPU Top Symbol` and other fields follow the `trace_summary.csv` / `cpu_call_tree_summary.csv` of **R45-Mac's last successful analysis** from this round, and the value will not be updated with the code change of R46+ - when interpreting, it should be noted that these fields reflect the behavior of the old code, which is not the real-time measurement of this round.
+- `helper/benchmark_result_rebuild.command` is completely unaffected: Whether the data is newly generated or follows the old file, `load_trace_summaries()` / `load_cpu_summaries()` is a simple file reading.
+- If you really need to refresh the trace data in the future, you need to manually re-enable `benchmark.sh` Step 6 (cancel the annotation `tracer.command` call). **Re-enable timing**: The next time `lzfse-cli.swift` itself has a program code change, it should be reopened - the meaning of trace is to write the "measured code". If the code code does not change, there is no need to re-profile.
+
+---
+
+# R45-Mac: Decode Power 3× Repeat Correction (2026-07-12)
+
+> **Goal**: Fix the problem that powermetrics decode measurement is missing sampling ( `ok:no_samples`) when the sampling interval is shorter than 500ms in high-speed format (such as llama.cpp BVX3 n=40, single decode ~546ms). Change the lzfse series decode to run 3 times in a row, divide the energy calculation by repeat and reduce it to a single value, and the power (time-weasted average) is theoretically not affected. Lzfse-cli.swift has not changed, and this round does not include algorithm changes.
+
+## Changes in this round
+
+| Project | Description |
+|---|---|
+| `helper/power_benchmark.command`: `runDecode` change 3 cycles | lzfse series algorithm (other3/optimal3, apple, bvx3/lazy2/optimal) decode changed to `for i in 1 2 3; do ... done`; tgz/zstd/tar.lz4 maintained 1 time (external tool, a single time is long enough, not affected by short window leakage sampling). |
+| `parsePowerLog` Add `repeat` parameters | `cpu_energy` and `energy` are calculated and divided by `repeat` ( `(duration_ns / repeat / 1e9) × power`), which is reduced to a single decode energy consumption; `cpu_power_mw` (time-wed average power) is not affected. |
+| `measurePower` Judge repeat | phase=decode and when the algorithm is not tgz/zstd/tar.lz4, `repeat=$LZFSE_DECODE_REPEAT` (default 3), and the rest `repeat=1`. |
+
+## Verification
+
+- Before correction: llama.cpp BVX3 n=40 decode is only 546ms (< 500ms sampling interval), powermetrics catches 0 samples, `power_summary.csv` marks `ok:no_samples`, resulting in `best_points_analysis.command` crash with `ValueError` due to `Decode CPU Power(mW)` empty value.
+- After correction: the decode duration of the same combination becomes ~1.66s (3×546ms), spanning multiple 500ms sampling windows, `power_summary.csv` mark `ok`; `Decode CPU Energy(J)` restore formula verification: `(1.657659054s / 3) × 13298.5mW / 1000 = 7.348126J`, consistent with the CSV record value.
+- Full R45-Mac round run: `BENCHMARK_RESULT_REBUILD_DONE` → `POWER_SUMMARY_INTEGRATE_DONE` → `BEST_POINTS_ANALYSIS_DONE`, the pipeline did not fail the whole process, and there is no `no_samples` record in `powerResults/power_summary.csv`.
+- **Known limit**: 3 consecutive `exec` lzfse binary needs to be re-frequency ramp-up, and the energy after the restoration of the short decode format (especially BVX3) may be slightly higher (see Section 5), which is not the target of this revision, and it is left for the subsequent evaluation of whether to use the same process internal cycle measurement.
+
+## 1. Compression ratio and speed (n=40, two data sets)
+
+| Data Set | Format | Compression Ratio | Enc MB/s | Dec MB/s |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 309.38 | 395.47 |
+| claw-code | Other3 | 0.9812 | 443.55 | 555.44 |
+| claw-code | **Optimal3** | **0.9344** | **68.07** | **446.06** |
+| claw-code | Lazy2 | 0.8683 | 72.36 | 570.10 |
+| claw-code | Optimal | 0.8253 | 37.28 | 528.27 |
+| claw-code | BVX3 | 0.9244 | 549.57 | 462.78 |
+| claw-code | Apple | 0.9820 | 156.73 | 439.58 |
+| claw-code | TLZ4 | 1.1786 | 582.72 | 551.27 |
+| claw-code | ZSTD | 0.7805 | 458.18 | 552.78 |
+| llama.cpp | TGZ | 1.0000 | 282.52 | 140.33 |
+| llama.cpp | Other3 | 0.9965 | 370.17 | 141.33 |
+| llama.cpp | **Optimal3** | **0.9737** | **87.95** | **143.14** |
+| llama.cpp | Lazy2 | 0.9576 | 187.08 | 140.69 |
+| llama.cpp | Optimal | 0.9408 | 61.24 | 133.94 |
+| llama.cpp | BVX3 | 0.9810 | 398.34 | 135.70 |
+| llama.cpp | Apple | 0.9994 | 168.27 | 130.64 |
+| llama.cpp | TLZ4 | 1.0535 | 356.59 | 132.88 |
+| llama.cpp | ZSTD | 0.9113 | 433.73 | 139.15 |
+
+> **Compression ratio**: exactly the same as R44 (lzfse-cli.swift has not changed, bitstream is the same).
+
+## two Encode Speed Comparison: R44-Mac vs R45-Mac (n=40)
+
+> lzfse-cli.swift has not changed, and the speed difference is measured noise (within ±10% is normal). Llama.cpp Other3 (+50%) and TGZ (+22%) exceed the normal noise range, which is presumed to be caused by the difference in background process load during the measurement, not an algorithm change.
+
+### claw-code (n=40)
+
+| Format | R44 Enc MB/s | R45 Enc MB/s | Change |
+|---|---:|---:|---:|---:|
+|TGZ|300.90|309.38|+3%|
+| Other3 | 548.77 | 443.55 | −19% |
+| Optimal3 | 63.19 | 68.07 | +8% |
+| Lazy2 | 64.59 | 72.36 | +12% |
+| Optimal | 34.21 | 37.28 | +9% |
+| BVX3 | 576.20 | 549.57 | −5% |
+| Apple | 155.33 | 156.73 | +1% |
+| TLZ4 | 579.46 | 582.72 | +1% |
+| ZSTD | 451.88 | 458.18 | +1% |
+
+### llama.cpp (n=40)
+
+| Format | R44 Enc MB/s | R45 Enc MB/s | Change |
+|---|---:|---:|---:|---:|
+| TGZ | 231.34 | 282.52 | +22% |
+| Other3 | 247.13 | 370.17 | +50% |
+| Optimal3 | 85.88 | 87.95 | +2% |
+| Lazy2 | 176.09 | 187.08 | +6% |
+| Optimal | 58.51 | 61.24 | +5% |
+| BVX3 | 404.84 | 398.34 | −2% |
+| Apple | 166.37 | 168.27 | +1% |
+| TLZ4 | 340.57 | 356.59 | +5% |
+| ZSTD | 438.93 | 433.73 | −1% |
+
+## three. Peak RSS (n=40)
+
+> RSS is basically consistent with R44, which is in line with the expectation of "same code, same data set".
+
+| Data Set | Format | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: |
+| claw-code | TGZ | 2944.9 MB | 3265.5 MB |
+| claw-code|Other3|300.2MB|305.4MB|
+| claw-code | **Optimal3** | **559.1 MB** | **323.2 MB** |
+| claw-code | Lazy2 | 499.5 MB | 323.7 MB |
+| claw-code | Optimal | 574.8 MB | 335.6 MB |
+| claw-code | BVX3 | 372.4 MB | 319.4 MB |
+| claw-code | Apple | 1356.3 MB | 470.0 MB |
+| claw-code | TLZ4 | 81.1MB | 33.7 MB |
+| claw-code | ZSTD | 397.1 MB | 9.2 MB |
+| llama.cpp | TGZ | 2537.6 MB | 3021.9 MB |
+| llama.cpp | Other3 | 228.2 MB | 350.6 MB |
+| llama.cpp | **Optimal3** | **556.0 MB** | **349.3 MB** |
+| llama.cpp | Lazy2 | 853.5MB | 347.4MB |
+| llama.cpp | Optimal | 570.8 MB | 347.9 MB |
+| llama.cpp | BVX3 | 229.1 MB | 348.8 MB |
+| llama.cpp | Apple | 1197.6 MB | 592.2 MB |
+| llama.cpp | TLZ4 | 77.9MB | 33.8 MB |
+| llama.cpp | ZSTD | 490.6MB | 9.4MB |
+
+## four. CPU Energy (n=40, including Decode - the first complete and reliable after this round of 3× repeat correction)
+
+| Data Set | Format | Enc J | Enc J/TGZ | Dec J | Dec J/TGZ |
+| --- | --- | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 104.38 | 1.0000 | 29.25 | 1.0000 |
+| claw-code | Other3 | 45.89 | 0.4396 | 8.56 | 0.2927 |
+| claw-code | **Optimal3** | **497.21** | **4.7634** | **6.64** | **0.2270** |
+| claw-code | Lazy2 | 270.12 | 2.5878 | 8.30 | 0.2839 |
+| claw-code | Optimal | 782.39 | 7.4955 | 8.97 | 0.3066 |
+| claw-code | BVX3 | 47.81 | 0.4580 | 12.69 | 0.4339 |
+| claw-code | Apple | 109.50 | 1.0490 | 10.13 | 0.3462 |
+| claw-code | TLZ4 | 41.46 | 0.3972 | 5.69 | 0.1944 |
+| claw-code | ZSTD | 50.80 | 0.4867 | 16.36 | 0.5591 |
+| llama.cpp | TGZ | 114.70 | 1.0000 | 27.12 | 1.0000 |
+| llama.cpp | Other3 | 40.70 | 0.3549 | 4.56 | 0.1681 |
+| llama.cpp | **Optimal3** | **345.75** | **3.0144** | **4.21** | **0.1554** |
+| llama.cpp | Lazy2 | 104.67 | 0.9126 | 6.66 | 0.2455 |
+| llama.cpp | Optimal | 465.99 | 4.0627 | 5.13 | 0.1893 |
+| llama.cpp | BVX3 | 38.98 | 0.3399 | 7.35 | 0.2710 |
+| llama.cpp | Apple | 89.22 | 0.7778 | 9.84 | 0.3629 |
+| llama.cpp | TLZ4 | 45.83 | 0.3996 | 4.64 | 0.1709 |
+| llama.cpp | ZSTD | 39.41 | 0.3436 | 6.09 | 0.2246 |
+
+### Encode Energy Comparison: R44-Mac vs R45-Mac (n=40)
+
+> R45 encode energy is generally lower than R44 ~13%–21% (the difference in machine state belongs to the measurement noise, and the direction is opposite to R43→R44).
+
+#### claw-code (n=40)
+
+| Format | R44 Enc J | R45 Enc J | Change |
+|---|---:|---:|---:|---:|
+| TGZ | 125.01 | 104.38 | −17% |
+| Other3 | 58.17 | 45.89 | −21% |
+| Optimal3 | 578.92 | 497.21 | −14% |
+| Lazy2 | 336.38 | 270.12 | −20% |
+| Optimal | 902.73 | 782.39 | −13% |
+| BVX3 | 59.22 | 47.81 | −19% |
+| Apple | 126.40 | 109.50 | −13% |
+| TLZ4 | 52.12 | 41.46 | −20% |
+| ZSTD | 62.01 | 50.80 | −18% |
+
+#### llama.cpp (n=40)
+
+| Format | R44 Enc J | R45 Enc J | Change |
+|---|---:|---:|---:|---:|
+| TGZ | 109.72 | 114.70 | +5% |
+| Other3 | 44.26 | 40.70 | −8% |
+| Optimal3 | 397.58 | 345.75 | −13% |
+| Lazy2 | 128.54 | 104.67 | −19% |
+| Optimal | 532.13 | 465.99 | −12% |
+| BVX3 | 47.18 | 38.98 | −17% |
+| Apple | 97.90 | 89.22 | −9% |
+| TLZ4 | 52.73 | 45.83 | −13% |
+| ZSTD | 43.88 | 39.41 | −10% |
+
+## five. Decode Energy Comparison: R44-Mac vs R45-Mac (n=40, verify 3× repeat correction consistency)
+
+> R44-Mac This sub-measure did not trigger `no_samples` (the trigger conditions of this round of correction are intermittent, see "this round of changes" for details), so both rounds of decode J are valid values and can be directly compared. The difference (+6% to +69%) is obviously greater than Encode Energy (−21% to +5%). In addition to the difference in machine state, it is also related to the short time consumption of decode itself and susceptibility to transient influence; the difference in short decode formats such as BVX3/Other3 is large, which is consistent with the direction of the 3× exec ramp-up effect described in the "known limit". The value is for reference only and is not used as the basis for judging the performance of the algorithm.
+
+### claw-code (n=40)
+
+| Format | R44 Dec J | R45 Dec J | Change |
+|---|---:|---:|---:|---:|
+| TGZ | 25.94 | 29.25 | +13% |
+| Other3 | 5.56 | 8.56 | +54% |
+| Optimal3 | 5.65 | 6.64 | +18% |
+| Lazy2 | 6.76 | 8.30 | +23% |
+| Optimal | 6.75 | 8.97 | +33% |
+|BVX3|7.53|12.69|+69%|
+| Apple | 11.45 | 10.13 | −12% |
+| TLZ4 | 5.36 | 5.69 | +6% |
+| ZSTD | 12.28 | 16.36 | +33% |
+
+### llama.cpp (n=40)
+
+| Format | R44 Dec J | R45 Dec J | Change |
+|---|---:|---:|---:|---:|
+| TGZ | 18.48 | 27.12 | +47% |
+| Other3 | 3.83 | 4.56 | +19% |
+| Optimal3 | 3.80 | 4.21 | +11% |
+| Lazy2 | 4.17 | 6.66 | +60% |
+| Optimal | 4.63 | 5.13 | +11% |
+| BVX3 | 4.75 | 7.35 | +55% |
+| Apple | 10.25 | 9.84 | −4% |
+| TLZ4 | 3.55 | 4.64 | +30% |
+| ZSTD | 5.62 | 6.09 | +8% |
+
+---
+
+# R45-Win-Retest1: run_round.bat -swift_tar official rerun (compared with R44-Mac, use swift_tar in both rounds) (2026-07-11)
+
+> **Goal**: Run a round of full official `run_round.bat` with `-swift_tar`, fulfill the promise of "official number waiting for the next run_round.bat output" at the end of R45-Win, verify the actual effect of ucrt decompression backend under the complete pipeline (including verify/RSS/comparison), and compare with R44-Mac (also using swift_tar) for Win/Mac.
+>
+> This round will be corrected by the way `comparison_win.py` A potential bug of: `raw_mb = (parse_mib(...) or 0) * 1.048576` On the Mac side `raw_size_mib` When there is a lack of value, it will `None` Silence turns into `0`, resulting in the downstream Win MB/s field printing deceptive `0.00` Instead of showing the missing value ( `—`) or report an error. It has been changed to retain when the value is missing. `None`, let the existing `raw_mb is None` The anti-dumb logic is effective correctly; use this round of real CSV rerun the text to confirm that the output number remains unchanged (pure anti-dumb correction does not affect the normal path).
+
+## 1. Windows actual measurement result ( `-swift_tar`, n=40 inflight)
+
+| Data Set | Format | Win Compression Ratio | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 93.89 | 65.37 | 6.6 MB | 6.1 MB |
+| claw-code | Other3 | 0.9861 | 259.85 | 162.47 | 119.6MB | 259.3 MB |
+| claw-code | **Optimal3** | **0.9391** | **44.87** | **161.01** | **501.8 MB** | **257.1 MB** |
+| claw-code | BVX3 | 0.9289 | 231.63 | 160.75 | 127.8 MB | 249.3 MB |
+| claw-code | Lazy2 | 0.8730 | 46.68 | 164.46 | 483.5 MB | 248.4 MB |
+| claw-code | Optimal | 0.8293 | 23.71 | 166.09 | 510.0MB | 245.1 MB |
+| claw-code | TLZ4 | 1.1792 | 236.24 | 194.94 | 8.9MB | 8.3 MB |
+| claw-code | ZSTD | 0.7844 | 133.86 | 55.18 | 8.4MB | 8.4 MB |
+| llama.cpp | TGZ | 1.0000 | 66.90 | 23.01 | 6.5MB | 6.9 MB |
+| llama.cpp | Other3 | 0.9966 | 83.64 | 44.14 | 140.2MB | 345.6 MB |
+| llama.cpp | **Optimal3** | **0.9739** | **54.18** | **28.57** | **756.5 MB** | **346.6 MB** |
+| llama.cpp | BVX3 | 0.9792 | 84.12 | 34.28 | 145.9 MB | 345.9 MB |
+| llama.cpp | Lazy2 | 0.9572 | 80.30 | 37.74 | 668.8MB | 344.6 MB |
+| llama.cpp | Optimal | 0.9390 | 41.20 | 36.28 | 764.2 MB | 344.5 MB |
+| llama.cpp | TLZ4 | 1.0500 | 81.83 | 39.31 | 8.5MB | 8.3 MB |
+| llama.cpp | ZSTD | 0.9123 | 78.69 | 40.39 | 8.3MB | 8.3 MB |
+
+Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`, `swift_tar -test` 6/6 all passed.
+
+## two R42-Win (bsdtar) vs this round (swift_tar) speed comparison
+
+> Comparison with the same nature as R43-Win Section 2 (tar is changed to swift_tar, and the rest of the conditions are the same), but this time it is the version after R45-Win fixes ucrt writing to the back-end, and the conclusion is opposite to R43-Win.
+
+### claw-code (n=40)
+
+| Format | R42 bsdtar Enc | This round swift_tar Enc | Enc change | R42 bsdtar Dec | This round swift_tar Dec | Dec change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 33.92 | 93.89 | **+176.7%** | 145.90 | 65.37 | **−55.2%** |
+| Other3 | 296.96 | 259.85 | −12.5% | 152.19 | 162.47 | +6.8% |
+| Optimal3 | 47.11 | 44.87 | −4.8% | 150.96 | 161.01 | +6.7% |
+| BVX3 | 289.21 | 231.63 | −19.9% | 150.93 | 160.75 | +6.5% |
+| Lazy2 | 51.55 | 46.68 | −9.4% | 154.04 | 164.46 | +6.8% |
+| Optimal | 24.26 | 23.71 | −2.3% | 155.59 | 166.09 | +6.7% |
+| TLZ4 | 258.08 | 236.24 | −8.5% | 208.76 | 194.94 | −6.6% |
+| ZSTD | 146.12 | 133.86 | −8.4% | 186.81 | 55.18 | **−70.5%** |
+
+### llama.cpp (n=40)
+
+| Format | R42 bsdtar Enc | This round swift_tar Enc | Enc change | R42 bsdtar Dec | This round swift_tar Dec | Dec change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 38.32 | 66.90 | **+74.6%** | 21.54 | 23.01 | +6.8% |
+| Other3 | 182.44 | 83.64 | **−54.2%** | 30.25 | 44.14 | **+45.9%** |
+| Optimal3 | 66.00 | 54.18 | −17.9% | 28.79 | 28.57 | −0.8% |
+| BVX3 | 178.34 | 84.12 | **−52.8%** | 28.55 | 34.28 | +20.1% |
+| Lazy2 | 126.49 | 80.30 | −36.5% | 28.43 | 37.74 | **+32.7%** |
+| Optimal | 45.29 | 41.20 | −9.0% | 28.46 | 36.28 | +27.5% |
+| TLZ4 | 154.57 | 81.83 | −47.1% | 30.59 | 39.31 | +28.5% |
+| ZSTD | 145.30 | 78.69 | −45.8% | 30.05 | 40.39 | **+34.4%** |
+
+> **Interpretation**:
+> - **llama.cpp decode comprehensive improvement (+7%~+46%)**: This is the direct verification of R45-Win ucrt writing back-end repair under the complete official pipeline - llama.cpp has 40,675 small files, which is the data set with the biggest impact of the bottleneck of "the number of files opened per file". After repair, the full format decode is faster than the bsdtar benchmark of R42-Win. R43-Win's conclusion that "swift_tar is not suitable as a tar substitute" at that time has been reversed, at least on this side of decode.
+> - **claw-code's LZFSE family decode is mildly upgraded (+6.5%~+6.8%)**, consistent and clean, and also supports ucrt repair effectively; however, **TGZ (−55.2%) and ZSTD (−70.5%) decode regressed significantly**, and this phenomenon also appeared in the last round (the official round of bsdtar without `-swift_tar`, which has been removed from this document) also appeared on the TGZ/ZSTD of claw-code - ** The two rounds of tar implementations are different, but the same batch of abnormal format, strongly pointing to environmental factors unrelated to swift_tar/bsdtar** (machine background anti-virus instant scanning, disk used 89%, etc.), not the regression of swift_tar itself. TLZ4 also goes to the external process pipe ( `lz4.exe`), but there is no problem. It is worth further investigating whether it is related to the behavior or version of the two external tools `gzip.exe` / `zstd.exe`.
+> - **Encode side llama.cpp most formats declined (−46%～−55%, TGZ exception +74.6%)**, claw-code also declined slightly in addition to TGZ (−2%～−20%); lzfse-cli.swift/swift_tar This round of code is the same as in the previous survey, and also tends to be attributed to environmental factors rather than the real regression caused by swift_tar. Both TGZ encode data sets have been greatly improved, because the swift_tar native `--gzip` pipeline is already faster than calling external gzip through the system tar (consistent with the observation in Section 2 of R43-Win).
+
+## three. Win/Mac comparison (this round vs R44-Mac, use swift_tar in both rounds)
+
+| Data Set | Format | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 93.89 | 300.90 | 0.312 | 65.37 | 396.00 | 0.165 |
+| claw-code | Other3 | 259.85 | 548.77 | 0.474 | 162.47 | 497.32 | 0.327 |
+| claw-code | **Optimal3** | **44.87** | **63.19** | **0.710** | **161.01** | **508.77** | **0.316** |
+| claw-code | BVX3 | 231.63 | 576.20 | 0.402 | 160.75 | 482.48 | 0.333 |
+| claw-code | Lazy2 | 46.68 | 64.59 | 0.723 | 164.46 | 354.38 | 0.464 |
+| claw-code | Optimal | 23.71 | 34.21 | 0.693 | 166.09 | 451.86 | 0.368 |
+| claw-code | TLZ4 | 236.24 | 579.46 | 0.408 | 194.94 | 487.55 | 0.400 |
+| claw-code | ZSTD | 133.86 | 451.88 | 0.296 | 55.18 | 499.60 | 0.110 |
+| llama.cpp | TGZ | 66.90 | 231.34 | 0.289 | 23.01 | 131.56 | 0.175 |
+| llama.cpp | Other3 | 83.64 | 247.13 | 0.338 | 44.14 | 131.90 | 0.335 |
+| llama.cpp | **Optimal3** | **54.18** | **85.88** | **0.631** | **28.57** | **135.20** | **0.211**
+| llama.cpp | BVX3 | 84.12 | 404.84 | 0.208 | 34.28 | 123.53 | 0.278 |
+| llama.cpp | Lazy2 | 80.30 | 176.09 | 0.456 | 37.74 | 126.91 | 0.297 |
+| llama.cpp | Optimal | 41.20 | 58.51 | 0.704 | 36.28 | 127.18 | 0.285 |
+| llama.cpp | TLZ4 | 81.83 | 340.57 | 0.240 | 39.31 | 117.96 | 0.333 |
+| llama.cpp | ZSTD | 78.69 | 438.93 | 0.262 | 40.39 | 124.81 | 0.324 |
+
+> **Compared with the Win/Mac decode benchmark of R43-Win vs R43-Mac** (swift_tar was used in both rounds, `Optimal3`: 0.121/0.078, see Section 3 of R43-Win, which was the old version of swift_tar that R43-Win had not repaired the extract bottleneck at that time): The same group of `Optimal3` in this round rebounded to **0.316/0.211**, about 2.6 to 2.7 times higher than R43-Win - directly confirming that R45-Win's ucrt write back-end repair greatly narrowed the gap between swift_tar version of Windows decode and Mac. Llama.cpp's Other3/Lazy2/Optimal/TLZ4/ZSTD even approaches or exceeds the Win/Mac ratio of claw-code, which is the other way around R43-Win (see line 675) (the llama.cpp ratio is much lower than claw-code) and is also a significant structural improvement in this round.
+> The ZSTD (0.110) of claw-code is obviously an abnormal environmental drag mentioned in Section 2 of this section, which does not mean that swift_tar itself has regressed.
+
+## To be done
+
+- Troubleshoot the environmental factors that the claw-code TGZ/ZSTD decode is abnormally slow in **two rounds** (bsdtar, swift_tar): give priority to closing the instant anti-virus rerun control, and then confirm whether the `gzip.exe` / `zstd.exe` (scoop suite) version has changed recently, and finally record/clean up the disk space (currently only about 46 GB left) to eliminate the capacity factor.
+- Most of the formats of the two data sets on the Encode side are 2% to 55% less than those of R42-Win. Only after the above environmental factors are excluded can it be confirmed whether it is a real change.
+
+---
+
+# R44-Mac: swift_tar -test verification + pipeline correction (2026-07-10)
+
+> **Goal**: Run the complete benchmark on Mac with R44-Win updated swift_tar (including `-test -debug` self-test, WinSDK removal, archiveName correction) to confirm that the new version of swift_tar is fully compatible with the benchmark pipeline. Lzfse-cli.swift is exactly the same as R43, and this round does not include algorithm changes.
+
+## Changes in this round
+
+| Project | Description |
+|---|---|
+| **swift_tar submodule update** | Synchronize to R44-Win version ( `11076e6`): add `-test -debug` self-test flag, remove WinSDK direct dependence, fix `archiveName()` disk drive code path problem, fix `compile_tar-win.bat` move retry problem. For details, please refer to the R44-Win chapter. |
+| **run_round.command: swift_tar test unconditional** | Originally swift_tar compile + `-test -debug` only runs with the `-swift_tar` flag; changed to **unconditionally** to run at the front (the same status as lzfse `-test`), PATH shim is still only set when `-swift_tar`. |
+| **benchmark2.sh: power_summary_integrate order correction** | Originally, Step 12 ran `best_points_analysis` (Requires BenchMarkResult.csv with power column), Step 13 ran `power_summary_integrate` (make-up power column), the order error led to `BEST_POINTS_ANALYSIS_FAILED`. It has been adjusted to: Step 12 = `power_summary_integrate`, Step 13 = `best_points_analysis`; and let `power_summary_integrate` skip the best_points update without interruption when `best_points.csv` has not been generated. |
+
+## Verification
+
+- `swift_tar -test -debug`: 4/4 round-trip all over (plain tar and `.tar.gz`, swift_tar↔system tar two-way), exit code 0, `SWIFT_TAR_TEST_OK`.
+- `lzfse -test`: `TEST_OK` (lzfse-cli.swift is the same as R43, expected to be approved).
+- Full R44-Mac round completed (power_summary_integrate manual rerun): 54 rows, `BenchMarkResult.csv` reconstruction successful, `best_points_analysis` passed, `BEST_POINTS_ANALYSIS_DONE`.
+
+## 1. Compression ratio and speed (n=40, two data sets)
+
+| Data Set | Format | Compression Ratio | Enc MB/s | Dec MB/s |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 300.90 | 396.00 |
+| claw-code | Other3 | 0.9812 | 548.77 | 497.32 |
+| claw-code | **Optimal3** | **0.9344** | **63.19** | **508.77** |
+| claw-code | Lazy2 | 0.8683 | 64.59 | 354.38 |
+| claw-code | Optimal | 0.8253 | 34.21 | 451.86 |
+| claw-code | BVX3 | 0.9244 | 576.20 | 482.48 |
+| claw-code | Apple | 0.9820 | 155.33 | 526.10 |
+| claw-code | TLZ4 | 1.1786 | 579.46 | 487.55 |
+| claw-code | ZSTD | 0.7805 | 451.88 | 499.60 |
+| llama.cpp | TGZ | 1.0000 | 231.34 | 131.56 |
+| llama.cpp | Other3 | 0.9965 | 247.13 | 131.90 |
+| llama.cpp | **Optimal3** | **0.9737** | **85.88** | **135.20**
+| llama.cpp | Lazy2 | 0.9576 | 176.09 | 126.91 |
+| llama.cpp | Optimal | 0.9408 | 58.51 | 127.18 |
+| llama.cpp | BVX3 | 0.9810 | 404.84 | 123.53 |
+| llama.cpp | Apple | 0.9994 | 166.37 | 119.83 |
+| llama.cpp | TLZ4 | 1.0535 | 340.57 | 117.96 |
+| llama.cpp | ZSTD | 0.9113 | 438.93 | 124.81 |
+
+> **Compression ratio**: completely consistent with R43 (lzfse-cli.swift has not been changed, bitstream is the same).
+
+## two Encode speed comparison: R43-Mac vs R44-Mac (n=40)
+
+> lzfse-cli.swift has not changed, and the speed difference is measured noise (within ±10% is normal).
+
+### claw-code (n=40)
+
+| Format | R43 Enc MB/s | R44 Enc MB/s | Change |
+|---|---:|---:|---:|---:|
+| TGZ | 310.83 | 300.90 | −3% |
+| Other3 | 550.38 | 548.77 | −0% |
+| Optimal3 | 64.48 | 63.19 | −2% |
+| Lazy2 | 70.27 | 64.59 | −8% |
+| Optimal | 35.55 | 34.21 | −4% |
+| BVX3 | 540.22 | 576.20 | +7% |
+| Apple | 153.86 | 155.33 | +1% |
+| TLZ4 | 586.33 | 579.46 | −1% |
+| ZSTD | 429.27 | 451.88 | +5% |
+
+### llama.cpp (n=40)
+
+| Format | R43 Enc MB/s | R44 Enc MB/s | Change |
+|---|---:|---:|---:|---:|
+| TGZ | 243.69 | 231.34 | −5% |
+| Other3 | 247.42 | 247.13 | −0% |
+| Optimal3 | 88.62 | 85.88 | −3% |
+| Lazy2 | 190.31 | 176.09 | −7% |
+| Optimal | 62.11 | 58.51 | −6% |
+| BVX3 | 405.01 | 404.84 | −0% |
+| Apple | 169.01 | 166.37 | −2% |
+| TLZ4 | 363.08 | 340.57 | −6% |
+| ZSTD | 451.24 | 438.93 | −3% |
+
+## three. Peak RSS (n=40)
+
+> RSS is basically consistent with R43, which meets the expectation of "same code, same data set".
+
+| Data Set | Format | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: |
+| claw-code | TGZ | 2930.5 MB | 3197.7 MB |
+| claw-code|Other3|379.3MB|305.5MB|
+| claw-code | **Optimal3** | **550.4 MB** | **323.3 MB** |
+| claw-code | Lazy2 | 498.0 MB | 324.2 MB |
+| claw-code | Optimal | 575.4MB | 335.7MB |
+| claw-code | BVX3 | 363.2 MB | 320.4 MB |
+| claw-code | Apple | 1356.3 MB | 470.0 MB |
+| claw-code | TLZ4 | 79.9MB | 33.7MB |
+| claw-code|ZSTD|397.3MB|9.9MB|
+| llama.cpp | TGZ | 2556.5MB | 2650.7 MB |
+| llama.cpp | Other3 | 224.1 MB | 349.6 MB |
+| llama.cpp | **Optimal3** | **560.4MB** | **350.7 MB** |
+| llama.cpp | Lazy2 | 865.8MB | 347.5MB |
+| llama.cpp | Optimal | 593.6 MB | 348.7 MB |
+| llama.cpp | BVX3 | 360.9 MB | 348.9 MB |
+| llama.cpp | Apple | 1197.7 MB | 592.2 MB |
+| llama.cpp | TLZ4 | 77.9MB | 33.8 MB |
+| llama.cpp | ZSTD | 490.0 MB | 9.8 MB |
+
+## four. CPU Energy (n=40)
+
+| Data Set | Format | Enc J | Enc J/TGZ |
+| --- | --- | ---: | ---: |
+| claw-code | TGZ | 125.01 | 1.0000 |
+| claw-code|Other3|58.17|0.4653|
+| claw-code | **Optimal3** | **578.92** | **4.6308** |
+| claw-code | Lazy2 | 336.38 | 2.6908 |
+| claw-code | Optimal | 902.73 | 7.2210 |
+| claw-code|BVX3|59.22|0.4737|
+| claw-code | Apple | 126.40 | 1.0111 |
+| claw-code | TLZ4 | 52.12 | 0.4169 |
+| claw-code | ZSTD | 62.01 | 0.4960 |
+| llama.cpp | TGZ | 109.72 | 1.0000 |
+| llama.cpp | Other3 | 44.26 | 0.4034 |
+| llama.cpp | **Optimal3** | **397.58** | **3.6234** |
+| llama.cpp | Lazy2 | 128.54 | 1.1715 |
+| llama.cpp | Optimal | 532.13 | 4.8497 |
+|llama.cpp|BVX3|47.18|0.4300|
+|llama.cpp|Apple|97.90|0.8922|
+| llama.cpp | TLZ4 | 52.73 | 0.4806 |
+| llama.cpp | ZSTD | 43.88 | 0.3999 |
+
+### CPU Energy Comparison: R43 vs R44 (n=40)
+
+> R44 TGZ energy consumption is +19% (claw-code)/+9% (llama.cpp) higher than that of R43, which is the difference in the machine state of the powermetrics measurement batch; J/TGZ ratio Therefore, the reference line is higher, and the relative value of each format decreases slightly.
+
+#### claw-code (n=40)
+
+| Format | R43 Enc J | R44 Enc J | Enc J Change | R43 J/TGZ | R44 J/TGZ | J/TGZ Change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 104.96 | 125.01 | +19% | 1.0000 | 1.0000 | — |
+| Other3 | 43.82 | 58.17 | +33% | 0.4175 | 0.4653 | +11% |
+| Optimal3 | 513.65 | 578.92 | +13% | 4.8939 | 4.6308 | −5% |
+| Lazy2 | 277.61 | 336.38 | +21% | 2.6450 | 2.6908 | +2% |
+| Optimal | 797.79 | 902.73 | +13% | 7.6012 | 7.2210 | −5% |
+| BVX3 | 45.74 | 59.22 | +29% | 0.4358 | 0.4737 | +9% |
+| Apple | 110.60 | 126.40 | +14% | 1.0538 | 1.0111 | −4% |
+| TLZ4 | 44.06 | 52.12 | +18% | 0.4198 | 0.4169 | −1% |
+| ZSTD | 52.26 | 62.01 | +19% | 0.4979 | 0.4960 | −0% |
+
+#### llama.cpp (n=40)
+
+| Format | R43 Enc J | R44 Enc J | Enc J Change | R43 J/TGZ | R44 J/TGZ | J/TGZ Change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 100.79 | 109.72 | +9% | 1.0000 | 1.0000 | — |
+| Other3 | 34.15 | 44.26 | +30% | 0.3388 | 0.4034 | +19% |
+| Optimal3 | 347.82 | 397.58 | +14% | 3.4509 | 3.6234 | +5% |
+| Lazy2 | 101.88 | 128.54 | +26% | 1.0108 | 1.1715 | +16% |
+| Optimal | 462.73 | 532.13 | +15% | 4.5909 | 4.8497 | +6% |
+| BVX3 | 36.48 | 47.18 | +29% | 0.3619 | 0.4300 | +19% |
+| Apple | 85.05 | 97.90 | +15% | 0.8438 | 0.8922 | +6% |
+| TLZ4 | 41.07 | 52.73 | +28% | 0.4075 | 0.4806 | +18% |
+| ZSTD | 33.62 | 43.88 | +30% | 0.3335 | 0.3999 | +20% |
+
+---
+
 # R43-Mac: swift_tar verification + NGResult code quality correction (2026-07-07)
 
 > **Goal**: Replace the system tar with the self-made multi-core tar tool `swift_tar` to verify the full compatibility of the benchmark pipeline ( `getar`, `power_benchmark`, `extract` decode pipeline). Synchronously correct the dead-code warning of the Swift `-O` compiler for the `misaligned` captured variable.
@@ -373,153 +837,153 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
-# R43-Win: swift_tar Windows port + -swift_tar round + scoop release pipeline (2026-07-08)
+# R43-Win: swift_tar Windows Porting + -swift_tar round + scoop release process (2026-07-08)
 
-> **Goal**: Port R43-Mac's `swift_tar` to Windows (it previously had zero Windows support: `compile_tar.sh` links Homebrew's zlib/libbz2/liblzma/libzstd/liblz4, and `swift_tar.swift` heavily uses POSIX `lstat`/`symlink`/`link`/`chmod`), package it as a portable `swift_tar_win.zip`, set up a scoop bucket so `swift_tar`/`lzfse` can be released via `scoop install`, and run a `run_round.bat` round with `-swift_tar` to measure the real-world impact of swapping in swift_tar for the system tar on Windows.
+> **Goal**: R43-Mac's `swift_tar` Ported to Windows (originally there was no Windows support at all: `compile_tar.sh` Link Homebrew's zlib/libbz2/liblzma/libzstd/liblz4, `swift_tar.swift` ALSO USE A LOT OF POSIX `lstat` / `symlink` / `link` / `chmod`), packed into portable `swift_tar_win.zip`, create a scoop bucket so that `swift_tar` / `lzfse` Available `scoop install` Release, and run a round with `-swift_tar` Of `run_round.bat`, actually measure the actual impact of swift_tar replacing the system tar on Windows benchmark.
 
-## Changes this round
+## Changes in this round
 
-| Item | Description |
-| --- | --- |
-| **swift_tar compression backend (Windows)** | No C-library linking on Windows; `gzip`/`bzip2`/`xz`/`zstd`/`lz4` all shell out via `Process` to the matching scoop-installed CLI tool (same pattern `encode-win.bat`/`decode-win.bat` already use for lz4/zstd). Only the LZFSE family (`other3`/`bvx3`) stays native Swift, reusing lzfse2's existing Windows CLI port. |
-| **swift_tar file identity (Windows)** | `GetFileAttributesW`/`CreateFileW`/`GetFileInformationByHandle` replace `lstat` (reparse point ⟺ symlink; volume serial + file index stand in for dev/ino for hardlink dedup); `CreateSymbolicLinkW`/`CreateHardLinkW` replace `symlink()`/`link()`, warning and skipping on failure instead of aborting the whole extract; Windows has no Unix permission bits, so `chmod` is a no-op and new entries get conventional `0o755`/`0o644`. |
-| **`swift_tar/compile_tar-win.bat`** | New: builds `swift_tar.exe` (no C-library linking needed, simpler than the macOS build) and automatically calls `package_win.ps1` to produce `swift_tar_win.zip`. |
-| **`swift_tar/package_win.ps1`** | New: auto-detects the Swift runtime directory from `swiftc`'s own path, bundles `swift_tar.exe` with 32 runtime DLLs into a portable `swift_tar_win.zip` (24.5 MB, same ballpark as the existing `lzfse-cli.zip`). |
-| **`swift_tar/build_tool_install-win.sh`** | New: checks/installs the build toolchain (Swift toolchain, MSVC C++ build tools, scoop, `gzip`/`bzip2`/`xz`/`zstd`/`lz4`/`lzip`). Uses `vswhere` rather than PATH to detect MSVC (avoids a false positive from MSYS's unrelated `link.exe`), and `scoop list` rather than PATH to detect the compression tools (avoids a false positive from busybox's crippled applets). Running it found that scoop's `xz` and `bzip2` shims had both been silently overridden by busybox's decompress-only applets; the real packages were installed to fix this. |
-| **`bucket/swift_tar.json`, `bucket/lzfse.json`** | New: standard scoop manifests, letting this repo itself serve as a scoop bucket (`scoop bucket add <name> <repo>`). `swift_tar.json` declares `depends: [gzip, bzip2, xz, zstd, lz4, lzip]`. |
-| **`swift_tar/scoop_release.bat`, `helper_windows/scoop_release.bat`** | New: rebuild the zip, then call `update_scoop_manifest.ps1`, which patches the manifest's `hash` field via a text-level regex replace (not `ConvertTo-Json`, which would reformat the whole file). |
-| **`helper_windows/run_round.bat` `-swift_tar` flag** | Mirrors `run_round.command`'s `-swift_tar`: when passed, builds a PATH shim (`tar.exe` copied to point at the already-built `swift_tar.exe`, not the system PATH) and prepends it for the session; behaves exactly as before without the flag. |
-| **README.md / README.zh-TW.md** | Added a "Test Machine Hardware Comparison" table (macOS M4 Mac mini vs. Windows ASUS TUF A15), bilingual. |
+| Project | Description |
+|---|---|
+| **swift_tar compression engine (Windows)** | Windows does not link to any C library; `gzip` / `bzip2` / `xz` / `zstd` / `lz4` all changed to `Process` shell out call the corresponding CLI tool installed by scoop (with the existing lz4/zstd call method of `encode-win.bat` / `decode-win.bat`); only the LZFSE family ( `other3` / `bvx3`) maintains the native Swift and follow the existing Windows CLI porting of lzfse2. |
+| **swift_tar file recognition (Windows)** | Replace `lstat` with `GetFileAttributesW` / `CreateFileW` / `GetFileInformationByHandle` (reparse point ⟺ symlink, volume serial + file index replace dev/ino for hardlink de-weight); `CreateSymbolicLinkW` / `CreateHardLinkW` replace `symlink()` / `link()`, only warning and skip in case of failure (do not stop the entire extract); Windows has no Unix right bit, `chmod` is no-op, and the new project is given the convention value `0o755` / `0o644`. |
+| ** `swift_tar/compile_tar-win.bat` ** | New: Compile `swift_tar.exe` (no need to link C library, simpler than the macOS version), and automatically call `package_win.ps1` to package `swift_tar_win.zip`. |
+| ** `swift_tar/package_win.ps1` ** | New: Automatically detect the Swift runtime directory from the `swiftc` path, and package `swift_tar.exe` + 32 runtime DLLs into portable `swift_tar_win.zip` (24.5 MB, the same class as the existing `lzfse-cli.zip`). |
+| ** `swift_tar/build_tool_install-win.sh` ** | New: Check/install the build toolchain (Swift toolchain, MSVC C++ build tools, scoop, `gzip` / `bzip2` / `xz` / `zstd` / `lz4` / `lzip`); Use `vswhere` instead of PATH to judge whether MSVC has been installed (to avoid misjudging the irrelevant `link.exe` attached to MSYS), use use `scoop list` instead of PATH to determine whether the compression tool has been installed (avoid misjudgment of the castration version applet attached to busybox). When running, it was found that the scoop shim of `xz` and `bzip2` was covered by the castration version of busybox (can only be decompressed, not compressed) and has been modified to the regular suite. |
+| ** `bucket/swift_tar.json`, `bucket/lzfse.json` ** | Add: standard scoop manifest, for this repo to be used directly as a scoop bucket ( `scoop bucket add <name> <repo>`). `swift_tar.json` Declaration `depends: [gzip, bzip2, xz, zstd, lz4, lzip]`. |
+| ** `swift_tar/scoop_release.bat`, `helper_windows/scoop_release.bat` ** | New: After rebuilding the zip, call `update_scoop_manifest.ps1` to replace it with text (non- `ConvertTo-Json`, avoid the whole file rearrangement format) and update the `hash` field of the corresponding manifest. |
+| ** `helper_windows/run_round.bat` `-swift_tar` flag** | `-swift_tar` based on `run_round.command`: Create PATH shim when flagg ( `tar.exe` copy points to the compiled `swift_tar.exe`, non-system PATH), prepend into this session PATH; maintain the original behavior without flag. |
+| **README.md/README.zh-TW.md** | New "Tester Hardware Comparison" table (macOS M4 Mac mini vs Windows ASUS TUF A15), Chinese and English comparison. |
 
 ## Verification
 
-- `compile_tar-win.bat` builds cleanly; extracting `swift_tar_win.zip` into a fresh folder with PATH trimmed down to `System32` only (fully isolated from the Swift toolchain and scoop) still runs create/list correctly — confirmed genuinely portable.
-- All 7 codecs round-trip cleanly: `other3-fast`, `bvx3-fast`, `gzip`, `bzip2`, `xz`, `zstd`, `lz4`.
-- Hardlink dedup and restore work correctly (link count 2 via `ls -la`); symlink creation code is correct by review (warns and skips on failure instead of crashing), but this dev machine has no admin rights / Developer Mode, so the "successful creation" path couldn't be exercised.
-- The scoop manifests were validated with a temporary `file://`-URL test bucket: `scoop install` succeeded (hash check, shim creation), `swift_tar -c/-x` and `lzfse -test` both passed, then the test install and bucket were fully removed.
-- `run_round.bat -swift_tar` completed a full round (`DONE 14:30:08`); the `USING_SWIFT_TAR` log line confirms the PATH shim took effect, and all 16 rows (8 formats × 2 datasets) show `win_decode_verify` = `PASS`.
+- `compile_tar-win.bat` is successfully compiled. `swift_tar_win.zip` is decompressed to a new folder, and the PATH is cut to only `System32` (completely isolated Swift toolchain and scoop) can still be filed/listed normally to confirm that it is really portable.
+- 7 kinds of codec round-trip all passed: `other3-fast`, `bvx3-fast`, `gzip`, `bzip2`, `xz`, `zstd`, `lz4`.
+- hardlink de-reassuring + restore correct ( `ls -la` link count 2); symlink creation code logic is correct (call failure will warn that it will not crash), but this test machine does not have system administrator authority/developer mode, and cannot verify the "success creation" path.
+- scoop manifest uses temporary `file://` URL to build fake bucket to measure `scoop install`: hash verification, shim creation, `swift_tar -c/-x`, `lzfse -test` all passed, uninstall after testing, cut off the test bucket.
+- `run_round.bat -swift_tar` completes a round (2026-07-09 `DONE 9:26:30`), `USING_SWIFT_TAR` log confirms that PATH shim takes effect, and all 16 groups (8 formats × 2 data sets) `win_decode_verify` are all `PASS`.
 
-## 1. Windows results (`-swift_tar`, n=40 inflight)
+## 1. Windows actual measurement result ( `-swift_tar`, n=40 inflight)
 
-| Dataset | Format | Win Ratio | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS | Verify |
+| Data Set | Format | Win Compression Ratio | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS | Verify |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| claw-code | TGZ | 1.0000 | 64.05 | 32.77 | 6.7 MB | 6.4 MB | PASS |
-| claw-code | Other3 | 0.9861 | 199.89 | 56.83 | 132.5 MB | 259.2 MB | PASS |
-| claw-code | **Optimal3** | **0.9391** | **28.18** | **57.79** | **497.4 MB** | **257.1 MB** | PASS |
-| claw-code | BVX3 | 0.9289 | 196.77 | 57.01 | 137.9 MB | 249.3 MB | PASS |
-| claw-code | Lazy2 | 0.8730 | 39.81 | 59.43 | 486.3 MB | 247.7 MB | PASS |
-| claw-code | Optimal | 0.8293 | 17.39 | 59.99 | 510.1 MB | 245.2 MB | PASS |
-| claw-code | TLZ4 | 1.1792 | 177.45 | 65.13 | 8.9 MB | 8.9 MB | PASS |
-| claw-code | ZSTD | 0.7844 | 94.08 | 55.75 | 8.4 MB | 8.9 MB | PASS |
-| llama.cpp | TGZ | 1.0000 | 49.47 | 6.96 | 6.6 MB | 7.0 MB | PASS |
-| llama.cpp | Other3 | 0.9966 | 58.10 | 8.84 | 144.5 MB | 347.0 MB | PASS |
-| llama.cpp | **Optimal3** | **0.9739** | **37.66** | **8.88** | **756.5 MB** | **346.9 MB** | PASS |
-| llama.cpp | BVX3 | 0.9792 | 56.96 | 8.92 | 181.8 MB | 345.9 MB | PASS |
-| llama.cpp | Lazy2 | 0.9572 | 53.19 | 9.47 | 676.1 MB | 346.3 MB | PASS |
-| llama.cpp | Optimal | 0.9390 | 30.24 | 10.01 | 754.3 MB | 346.4 MB | PASS |
-| llama.cpp | TLZ4 | 1.0500 | 56.06 | 10.07 | 8.9 MB | 8.4 MB | PASS |
-| llama.cpp | ZSTD | 0.9123 | 54.80 | 9.67 | 8.4 MB | 8.4 MB | PASS |
+| claw-code | TGZ | 1.0000 | 87.71 | 36.73 | 6.3MB | 6.1 MB | PASS |
+| claw-code | Other3 | 0.9861 | 242.74 | 66.98 | 189.2MB | 257.1 MB | PASS |
+| claw-code | **Optimal3** | **0.9391** | **29.69** | **67.15** | **497.0 MB** | **255.1 MB** | PASS |
+| claw-code | BVX3 | 0.9289 | 183.05 | 68.06 | 191.5 MB | 248.7 MB | PASS |
+| claw-code | Lazy2 | 0.8730 | 29.86 | 69.26 | 491.0 MB | 248.2 MB | PASS |
+| claw-code | Optimal | 0.8293 | 13.65 | 68.38 | 515.1MB | 244.7 MB | PASS |
+| claw-code | TLZ4 | 1.1792 | 178.02 | 59.58 | 8.3 MB | 8.3 MB | PASS |
+| claw-code | ZSTD | 0.7844 | 91.17 | 61.00 | 8.3 MB | 8.3 MB | PASS |
+| llama.cpp | TGZ | 1.0000 | 54.09 | 8.18 | 6.6MB | 7.0 MB | PASS |
+| llama.cpp | Other3 | 0.9966 | 59.47 | 10.65 | 216.6 MB | 345.6 MB | PASS |
+| llama.cpp | **Optimal3** | **0.9739** | **34.17** | **10.03** | **759.6 MB** | **345.2 MB** | PASS |
+| llama.cpp | BVX3 | 0.9792 | 60.21 | 10.54 | 217.3 MB | 345.4 MB | PASS |
+| llama.cpp | Lazy2 | 0.9572 | 53.70 | 10.37 | 695.4 MB | 345.3 MB | PASS |
+| llama.cpp | Optimal | 0.9390 | 26.83 | 10.41 | 755.0 MB | 344.6 MB | PASS |
+| llama.cpp | TLZ4 | 1.0500 | 55.88 | 10.58 | 8.4MB | 8.4 MB | PASS |
+| llama.cpp | ZSTD | 0.9123 | 57.42 | 10.67 | 8.4 MB | 8.4 MB | PASS |
 
-## 2. R42-Win (system tar / bsdtar) vs R43-Win (`-swift_tar`) speed comparison
+## two R42-Win (system tar/bsdtar) vs R43-Win ( `-swift_tar`) speed comparison
 
-> Everything except the tar implementation is identical between R42-Win and this round (same machine, same datasets, same `-n 40`), so the speed differences can be attributed directly to swapping in swift_tar. Compression ratio also shifted very slightly (e.g. claw-code Other3 0.9818→0.9861), consistent with what R43-Mac observed: swift_tar's tar byte stream differs slightly from bsdtar's (header/padding), shifting the repeated-segment distribution the LZ window sees.
+> R42-Win has the same conditions as this round except for "tar implementation" (the same machine, the same data set, the same `-n 40`), so the speed difference can be directly attributed to the effect of swift_tar replacing the system tar. The compression ratio also has a very small change (such as claw-code Other3 0.9818→0.9861), which is consistent with the phenomenon observed by R43-Mac: the tar byte stream generated by swift_tar is slightly different from that of bsdtar (header/padding difference), which changes the repeat segment distribution of LZ window.
 
 ### claw-code (n=40)
 
-| Format | R42 Enc MB/s | R43 Enc MB/s | Enc change | R42 Dec MB/s | R43 Dec MB/s | Dec change |
+| Format | R42 Enc MB/s | R43 Enc MB/s | Enc Change | R42 Dec MB/s | R43 Dec MB/s | Dec Change |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| TGZ | 33.92 | 64.05 | **+88.8%** | 145.90 | 32.77 | **−77.5%** |
-| Other3 | 296.96 | 199.89 | −32.7% | 152.19 | 56.83 | **−62.7%** |
-| Optimal3 | 47.11 | 28.18 | −40.2% | 150.96 | 57.79 | **−61.7%** |
-| BVX3 | 289.21 | 196.77 | −32.0% | 150.93 | 57.01 | **−62.2%** |
-| Lazy2 | 51.55 | 39.81 | −22.8% | 154.04 | 59.43 | **−61.4%** |
-| Optimal | 24.26 | 17.39 | −28.3% | 155.59 | 59.99 | **−61.4%** |
-| TLZ4 | 258.08 | 177.45 | −31.2% | 208.76 | 65.13 | **−68.8%** |
-| ZSTD | 146.12 | 94.08 | −35.6% | 186.81 | 55.75 | **−70.2%** |
+| TGZ | 33.92 | 87.71 | **+158.6%** | 145.90 | 36.73 | **−74.8%** |
+| Other3 | 296.96 | 242.74 | −18.3% | 152.19 | 66.98 | **−56.0%** |
+| Optimal3 | 47.11 | 29.69 | −37.0% | 150.96 | 67.15 | **−55.5%** |
+| BVX3 | 289.21 | 183.05 | −36.7% | 150.93 | 68.06 | **−54.9%** |
+| Lazy2 | 51.55 | 29.86 | −42.1% | 154.04 | 69.26 | **−55.0%** |
+| Optimal | 24.26 | 13.65 | −43.7% | 155.59 | 68.38 | **−56.1%** |
+| TLZ4 | 258.08 | 178.02 | −31.0% | 208.76 | 59.58 | **−71.5%** |
+| ZSTD | 146.12 | 91.17 | −37.6% | 186.81 | 61.00 | **−67.3%** |
 
 ### llama.cpp (n=40)
 
-| Format | R42 Enc MB/s | R43 Enc MB/s | Enc change | R42 Dec MB/s | R43 Dec MB/s | Dec change |
+| Format | R42 Enc MB/s | R43 Enc MB/s | Enc Change | R42 Dec MB/s | R43 Dec MB/s | Dec Change |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| TGZ | 38.32 | 49.47 | **+29.1%** | 21.54 | 6.96 | **−67.7%** |
-| Other3 | 182.44 | 58.10 | **−68.2%** | 30.25 | 8.84 | **−70.8%** |
-| Optimal3 | 66.00 | 37.66 | −42.9% | 28.79 | 8.88 | **−69.2%** |
-| BVX3 | 178.34 | 56.96 | **−68.1%** | 28.55 | 8.92 | **−68.8%** |
-| Lazy2 | 126.49 | 53.19 | −57.9% | 28.43 | 9.47 | **−66.7%** |
-| Optimal | 45.29 | 30.24 | −33.2% | 28.46 | 10.01 | **−64.8%** |
-| TLZ4 | 154.57 | 56.06 | **−63.7%** | 30.59 | 10.07 | **−67.1%** |
-| ZSTD | 145.30 | 54.80 | **−62.3%** | 30.05 | 9.67 | **−67.8%** |
+| TGZ | 38.32 | 54.09 | **+41.2%** | 21.54 | 8.18 | **−62.0%** |
+| Other3 | 182.44 | 59.47 | **−67.4%** | 30.25 | 10.65 | **−64.8%** |
+| Optimal3 | 66.00 | 34.17 | −48.2% | 28.79 | 10.03 | **−65.2%** |
+| BVX3 | 178.34 | 60.21 | **−66.2%** | 28.55 | 10.54 | **−63.1%** |
+| Lazy2 | 126.49 | 53.70 | −57.5% | 28.43 | 10.37 | **−63.5%** |
+| Optimal | 45.29 | 26.83 | −40.8% | 28.46 | 10.41 | **−63.4%** |
+| TLZ4 | 154.57 | 55.88 | **−63.8%** | 30.59 | 10.58 | **−65.4%** |
+| ZSTD | 145.30 | 57.42 | **−60.5%** | 30.05 | 10.67 | **−64.5%** |
 
 > **Interpretation**:
-> - **swift_tar's own TGZ (`--gzip`) encode is faster than bsdtar**: both datasets improved (+29%～+89%) — the one clear win this round.
-> - **Using swift_tar as a plain tar pipe (`-cf -` into lzfse.exe/lz4/zstd) makes encode slower instead**: all 7 remaining formats regressed, most by over 60% on llama.cpp (Other3 −68%, BVX3 −68%, TLZ4 −64%, ZSTD −62%).
-> - **decode/extract regressed across the board, and is the headline finding of this round**: regardless of format, once the `-swift_tar` PATH shim is active, decode speed drops to less than half, mostly landing at 2.6–4.5x slower (claw-code −61%～−78%, llama.cpp −65%～−71%). This points to swift_tar's current extract path (`TarReader.run()`, writing in 1 MB chunks via `FileHandle.write`) being noticeably less efficient than bsdtar's on Windows/NTFS, and the effect covers every format's decode step, not just TGZ.
-> - Correctness is unaffected: all 16 rows show `win_decode_verify` = `PASS`.
+> - **swift_tar native TGZ ( `--gzip`) encode is faster than bsdtar**: Both data sets have improved (claw-code +158.6%, llama.cpp +41.2%), which is the most stable positive result in this round.
+> - **swift_tar When the pure tar pipeline ( `-cf -` connects to lzfse.exe/lz4/zstd), most of the encode slows down**: Except for TGZ, the file-output encode of lzfse/tlz4/zstd is still negative growth; most formats on llama.cpp have lost 57% to 67%, the I/O format on claw-code has decreased by 18% to 38%, and Lazy2/Optimal of CPU-bound has also decreased due to the increase in pipeline costs.
+> - **decode/extract has completely regressed significantly, which is the main discovery in this round**: No format, as long as you follow the PATH shim of `-swift_tar`, the speed of decode write-to-file is significantly lower than bsdtar (claw-code −55%~−75%, llama.cpp −62%~−65%). This means that the current extract path of swift_tar ( `TarReader.run()` 1 MB block `FileHandle.write`) is obviously less efficient than bsdtar on Windows/NTFS, and this affects the decode steps covering all formats, not just TGZ.
+> - Correctness is not affected: All 16 groups of `win_decode_verify` are `PASS`.
 
-> **Conclusion**: at this stage, swift_tar **is not a good drop-in replacement for the system tar on Windows** — its own TGZ codec is worth keeping, but swapping it in for bsdtar as a pipeline/extract tool skews the benchmark's decode numbers downward in a way that doesn't reflect the lzfse2 engine itself. If it's adopted for real, the decode/extract path is worth profiling for the actual bottleneck (e.g. write chunk size, or a Win32-API-level write path instead of sequential `FileHandle.write` calls).
+> **Conclusion**: At this stage, swift_tar **is not suitable as a direct substitute for Windows system tar** - its own TGZ codec is worth keeping, but replacing bsdtar for pipeline input/extract will make the decode digital distortion of benchmark worse and does not reflect the performance of the lzfse2 engine itself. If it is to be officially adopted in the future, the decode/extract path of swift_tar is worth re-examining the performance bottleneck (such as the size of the file write block, whether the segment `FileHandle.write` can be replaced with a writing method closer to Win32 API).
 
-## 3. Win/Mac comparison (R43-Win vs R43-Mac, both using swift_tar)
+## three. Win/Mac comparison (R43-Win vs R43-Mac, use swift_tar in both rounds)
 
-| Dataset | Format | Win Enc MB/s | Mac Enc MB/s | Win/Mac Enc | Win Dec MB/s | Mac Dec MB/s | Win/Mac Dec |
+| Data Set | Format | Win Enc MB/s | Mac Enc MB/s | Win/Mac Enc | Win Dec MB/s | Mac Dec MB/s | Win/Mac Dec |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| claw-code | TGZ | 64.05 | 310.83 | 0.206 | 32.77 | 396.15 | 0.083 |
-| claw-code | Other3 | 199.89 | 550.38 | 0.363 | 56.83 | 599.68 | 0.095 |
-| claw-code | **Optimal3** | **28.18** | **64.48** | **0.437** | **57.79** | **553.04** | **0.105** |
-| claw-code | BVX3 | 196.77 | 540.22 | 0.364 | 57.01 | 500.02 | 0.114 |
-| claw-code | Lazy2 | 39.81 | 70.27 | 0.566 | 59.43 | 481.84 | 0.123 |
-| claw-code | Optimal | 17.39 | 35.55 | 0.489 | 59.99 | 394.46 | 0.152 |
-| claw-code | TLZ4 | 177.45 | 586.33 | 0.303 | 65.13 | 636.66 | 0.102 |
-| claw-code | ZSTD | 94.08 | 429.27 | 0.219 | 55.75 | 559.66 | 0.100 |
-| llama.cpp | TGZ | 49.47 | 243.69 | 0.203 | 6.96 | 138.41 | 0.050 |
-| llama.cpp | Other3 | 58.10 | 247.42 | 0.235 | 8.84 | 140.43 | 0.063 |
-| llama.cpp | **Optimal3** | **37.66** | **88.62** | **0.425** | **8.88** | **128.70** | **0.069** |
-| llama.cpp | BVX3 | 56.96 | 405.01 | 0.141 | 8.92 | 135.99 | 0.066 |
-| llama.cpp | Lazy2 | 53.19 | 190.31 | 0.279 | 9.47 | 133.80 | 0.071 |
-| llama.cpp | Optimal | 30.24 | 62.11 | 0.487 | 10.01 | 130.52 | 0.077 |
-| llama.cpp | TLZ4 | 56.06 | 363.08 | 0.154 | 10.07 | 131.00 | 0.077 |
-| llama.cpp | ZSTD | 54.80 | 451.24 | 0.121 | 9.67 | 135.13 | 0.072 |
+| claw-code | TGZ | 87.71 | 310.83 | 0.282 | 36.73 | 396.15 | 0.093 |
+| claw-code | Other3 | 242.74 | 550.38 | 0.441 | 66.98 | 599.68 | 0.112 |
+| claw-code | **Optimal3** | **29.69** | **64.48** | **0.460** | **67.15** | **553.04** | **0.121**
+| claw-code | BVX3 | 183.05 | 540.22 | 0.339 | 68.06 | 500.02 | 0.136 |
+| claw-code | Lazy2 | 29.86 | 70.27 | 0.425 | 69.26 | 481.84 | 0.144 |
+| claw-code | Optimal | 13.65 | 35.55 | 0.384 | 68.38 | 394.46 | 0.173 |
+| claw-code | TLZ4 | 178.02 | 586.33 | 0.304 | 59.58 | 636.66 | 0.094 |
+| claw-code | ZSTD | 91.17 | 429.27 | 0.212 | 61.00 | 559.66 | 0.109 |
+| llama.cpp | TGZ | 54.09 | 243.69 | 0.222 | 8.18 | 138.41 | 0.059 |
+| llama.cpp | Other3 | 59.47 | 247.42 | 0.240 | 10.65 | 140.43 | 0.076 |
+| llama.cpp | **Optimal3** | **34.17** | **88.62** | **0.386** | **10.03** | **128.70** | **0.078**
+| llama.cpp | BVX3 | 60.21 | 405.01 | 0.149 | 10.54 | 135.99 | 0.078 |
+| llama.cpp | Lazy2 | 53.70 | 190.31 | 0.282 | 10.37 | 133.80 | 0.077 |
+| llama.cpp | Optimal | 26.83 | 62.11 | 0.432 | 10.41 | 130.52 | 0.080 |
+| llama.cpp | TLZ4 | 55.88 | 363.08 | 0.154 | 10.58 | 131.00 | 0.081 |
+| llama.cpp | ZSTD | 57.42 | 451.24 | 0.127 | 10.67 | 135.13 | 0.079 |
 
-> **Compared to R42-Win's Win/Mac decode ratio** (`other3 -optimal3`: 0.346 / 0.343, roughly 0.34–0.35x, see R42-Win section 3): this round's same `Optimal3` pair drops to **0.105 / 0.069**, i.e. Windows decode goes from "3x slower than Mac" to "10–14x slower than Mac". Since the only difference between the two rounds is whether Windows used `-swift_tar`, this further confirms section 2's conclusion: the decode-side regression comes almost entirely from swift_tar's extract path on Windows, not the platform itself or the lzfse2 engine.
+> **Comparing the Win/Mac decode ratio of R42-Win** ( `other3 -optimal3`: 0.346/0.343, about 0.34–0.35×, see Section 3 of R42-Win): The Win/Mac decode of the same group of `Optimal3` dropped to **0.121/0.078** in this round, that is, the Windows decode relative to Mac deteriorated from "3 times slower" to "8–13 times slower". Due to the only difference between the two rounds, "whether Windows uses `-swift_tar`", which further confirms the conclusion of Section 2: almost all the regression of the decode side comes from the extract path of swift_tar on Windows, not the platform itself or the lzfse2 engine.
 
-## 4. Root-cause investigation for the decode regression (2026-07-08)
+## four. Decode Regression Root Cause Investigation (2026-07-08)
 
-> Three standalone Swift micro-benchmarks (matched to `swift_tar.swift`'s actual code paths) were run on the same machine, progressively narrowing in on the real scenario, and identified two quantifiable dominant bottlenecks:
+> Use three independent Swift micro-baselines (aligned with the actual code path of `swift_tar.swift`) to measure on the same machine, gradually approach the real situation, and find out two main bottlenecks that can be quantified:
 
-| Test scenario | Throughput | Notes |
+| Test situation | Throughput | Description |
 | --- | --- | --- |
-| Single 200 MB file, direct `FileHandle.write` (with/without `SetEndOfFile` preallocation) | **~1100–1200 MB/s** | Nearly identical either way, ruling out an "NTFS incremental-extent-growth" hypothesis; raw write throughput itself is not the bottleneck at all. |
-| Same payload through two `Pipe()` hops (mimicking swift_tar's internal filter-chain handoff) | **~750 MB/s** | Some drop, but not nearly enough to explain the observed 30–65 MB/s. |
-| Per-entry `createDirectory` + `createFile` + `FileHandle` open + write + `close` + `setAttributes`, driven by claw-code's real file count/size distribution (5403 files, median only 14.6 KB, mean 260 KB, max 57 MB), payload from memory (no pipe) | **~120–135 MB/s** | **The single largest bottleneck**: roughly 2 ms of fixed cost per file (4–5 separate Win32 API round trips: directory-exists check, create, open, write, close, set mtime). Caching which directories were already created barely helped (~2%), showing the bottleneck isn't redundant `createDirectory` calls but the **per-file create+open+write+close+setAttributes sequence being split across multiple syscalls** in the first place. |
-| Same as above, but reading the payload from a `Pipe()` instead of memory (stacking both factors) | **~95.6 MB/s** | Closer to the observed numbers once both factors compound, but still above the observed 32–65 MB/s. |
+| Single 200 MB file, directly `FileHandle.write` (no/with `SetEndOfFile` preconfigured size) | **~1100–1200 MB/s** | The two are almost the same, excluding the "NTFS incremental configuration" hypothesis; pure write throughput itself is not a bottleneck at all. |
+| The same payload passes two layers of `Pipe()` (simulating the pipe transfer of the swift_tar internal filter chain) | **~750 MB/s** | There is a decrease but the magnitude is limited, which is not enough to explain the observed 30–65 MB/s. |
+| Distribution according to the number and size of real claw-code files (5403 files, median only 14.6 KB, average 260 KB, maximum 57 MB) `createDirectory`+`createFile`+`FileHandle` Open file + write + `close`+`setAttributes` (no pipe, payload directly from memory) | **~120–135 MB/s** | **Single biggest bottleneck**: The fixed cost of each file is about 2 ms (4–5 times independent Win32 API round-trip: build directory check, file building, file open, write, close file, set mtime). Directory cache (avoid repetition of `createDirectory`) is of little help (only ~2%), which means that the bottleneck is not to repeat the directory, but ** file-by-file create+open+write+close+setAttributes into multiple system calls** itself. |
+| Same as above, but changed to read payload from `Pipe()` (superimposed two factors at the same time) | **~95.6 MB/s** | After superimposed, the two factors are closer to the actual measured value, but still higher than the observed 32–65 MB/s. |
 
-> **claw-code's real file distribution** (5403 files, ~1.4 GB total) is the key context: the median file is only 14.6 KB, and 63% of files are under 32 KB — meaning **per-file fixed cost dominates total time, and per-byte write throughput barely matters**. This is exactly why the single-large-file test (>1000 MB/s) was a useless predictor of real decode speed.
+> **The real file distribution of the claw-code data set** ( `5403` file, a total of ~1.4 GB) is the key background: the medin is only 14.6 KB, and 63% of the files are less than 32 KB - which means that **the fixed cost dominates the total time of each file, and the byte throughput of the file itself is almost irrelevant**. This explains why a single large-scale test (>1000 MB/s) can't predict the real decode speed at all.
 
-> **Remaining gap to the observed numbers**: TGZ (32.77 MB/s) is slower than the other formats (55–65 MB/s), plausibly because TGZ adds one more pipe hop to an external `gzip.exe` subprocess (cross-process, not the same-process thread pipe used in this test), plus real decompression CPU cost. The other formats (Other3/BVX3/Lazy2/Optimal/TLZ4/ZSTD) use different codecs but share the same `TarReader` extract path, and cluster tightly in the 55–65 MB/s range — consistent with the combined per-file-overhead + pipe-read synthetic benchmark (~95.6 MB/s), with the remaining gap reasonably attributable to real tar header parsing/checksum work and unmodeled environmental variance (e.g. real-time antivirus scanning).
+>**The gap with the actual measured number**: TGZ (36.73 MB/s) is slower than most lzfse/tlz4/zstd formats (about 59–69 MB/s). It is speculated that TGZ has an extra layer of "calling external `gzip.exe` sub-travel" pipe (cross-traitch, not the same-stroke thread pipe of this test), superimposed on the real decompression CPU cost; the remaining formats (Other3/BVX3/BVX3/Lazy2/Optimal/TLZ4/ZSTD) codec are different, but they all follow the same `TarReader` extract path, and the speed is concentrated in the narrow range of 59–69 MB/s, which is consistent with the synthetic benchmark (~95.6 MB/s) of "per-file overhead +
 
-> **Conclusion**: the primary root cause is that **`TarReader.run()` calls `FileManager.createFile` + `FileHandle(forWritingAtPath:)` + chunked `write` + `close` + `setAttributes` separately for every single file**, each paying roughly 2 ms of fixed Win32 API round-trip cost on Windows. Datasets like claw-code/llama.cpp, made of large numbers of small-to-medium files, end up dominated by that fixed cost rather than byte-level write throughput. **Possible fixes**: use a single `CreateFileW` call that creates and opens in one step (instead of `createFile` followed by a second `FileHandle(forWritingAtPath:)` round trip), defer/batch the `setAttributes` (mtime) call, and look at whether the number of syscalls per file can be reduced to match libarchive's Windows disk writer.
+> **Conclusion**: The main reason is that ** `TarReader.run()` calls `FileManager.createFile` + `FileHandle(forWritingAtPath:)` + segment `write` + `close` + `setAttributes` ** for each file respectively. On Windows, each file has to pay a fixed API round-trip cost of about 2 ms; claw-code/llama.cpp such "a large number of small and medium-sized file" data sets are therefore dominated by fixed cost, not byte-level write throughput. **Possible repair direction**: Change to a single `CreateFileW` call to complete the creation + open at the same time (instead of `createFile` and then `FileHandle(forWritingAtPath:)` twice back and forth), delay the batch processing of `setAttributes` (mtime), and evaluate whether the number of system calls per file can be reduced like the Windows disk writer of libarchive.
 
 ---
 
-# R44-Win: swift_tar -test self-test + WinSDK removal + build-script hardening (2026-07-09)
+# R44-Win: swift_tar -test self-test + WinSDK removal + build stebot reinforcement (2026-07-09)
 
-> **Goal**: follow up R43-Win by giving swift_tar the self-test capability it was missing (`-test`), proving its output is genuinely interchangeable with the Windows standard tar in both directions, and removing `swift_tar.swift`'s direct dependency on WinSDK. Two real bugs were caught along the way.
+> **Goal**: Continue R43-Win, make up for the lack of swift_tar self-testing ability ( `-test`), verify that its output can really be interoperable with the Windows standard tar in both directions, and remove the direct dependence of `swift_tar.swift` on WinSDK. In the process, two other real bugs were caught.
 
-## Changes this round
+## Changes in this round
 
-| Item | Description |
-| --- | --- |
-| **`-test` self-test flag** | Added a bidirectional round-trip check against the platform's standard tar (plain tar and `.tar.gz`, create with one side, extract with the other, both directions), verified via actual content comparison (not just exit codes); reuses the existing `check()`/✓/✗ output style. |
-| **`findStandardTar()`** | On Windows, explicitly prefers `System32\tar.exe` (a genuine bsdtar) over whatever a dev-tool PATH turns up first (e.g. Git's bundled MSYS tar.exe, which has its own translation semantics for `/...`-style paths that would mislead the test); a file-size comparison rules out a candidate that's actually a PATH shim pointing back at swift_tar itself (e.g. the `-swift_tar` shim). |
-| **`-debug` flag** | Prints which standard-tar candidates were found/skipped while searching; routed to stdout (`print`) rather than stderr — writes via `FileHandle.standardError` were observed to go missing in this environment when spawned through Bash/MSYS or piped through PowerShell's `2>&1`, while `print()` was reliable both ways. |
-| **WinSDK dependency removed (`swift_tar.swift`)** | `import WinSDK` and every direct WinSDK call (`GetFileAttributesW`/`CreateFileW`/`GetFileInformationByHandle`/`CreateSymbolicLinkW`/`CreateHardLinkW`) are gone, replaced with plain Foundation APIs: `FileManager.attributesOfItem`'s `.type`/`.systemFileNumber`/`.systemNumber`/`.referenceCount` (verified to correctly map to lstat's S_IFLNK/dev/ino/nlink) and `FileManager.createSymbolicLink` (verified to already carry the modern unprivileged-creation flag). Hardlinks did **not** move to `FileManager.linkItem` — verified it silently creates a symlink instead of a true hardlink on Windows — so hardlink creation shells out to `fsutil hardlink create` instead (no admin required, verified). The compiled `swift_tar.exe` still transitively links `swiftWinSDK.dll` via `Foundation.dll`; that's Foundation's own dependency, outside this project's control. |
-| **`archiveName()` fix (real bug)** | Previously only stripped a leading `/`, so a Windows drive-letter absolute path (e.g. `C:\Users\...`) was archived verbatim, colon and backslashes included, which bsdtar couldn't extract. Fixed to normalize `\` to `/` and strip a drive-letter prefix, producing a portable POSIX-relative path on every platform. This bug was caught directly by the new `-test`. |
-| **`compile_tar-win.bat` build-stability fix (real bug)** | Installing the freshly-built exe into `release/` via `move /Y` could silently fail with "Access is denied" whenever the file was transiently locked (real-time antivirus scan, a previous test run's process not yet releasing its handle), and the script never checked move's own exit code -- leaving the old exe in place while still printing `[OK]`. This cost a large chunk of this round chasing a phantom stderr/print buffering issue that turned out to just be testing a 20-minute-old binary. Fixed with a retry + 500ms backoff loop (up to 10 attempts), the same pattern `run_round.bat` already uses for `lzfse.exe`. |
+| Project | Description |
+|---|---|
+| ** `-test` self-test flag** | New two-way round-trip verification with the platform standard tar (pure tar and `.tar.gz`, mutual construction on both sides), confirm compatibility with actual content comparison (not only exit code); follow the existing output style of `check()` /✓/✗. |
+| ** `findStandardTar()` ** | On Windows, the priority is clearly given to finding `System32\tar.exe` (real bsdtar), instead of the MSYS tar attached to Git found on PATH first (it has its own set of conversion meanings for the `/...` -style path, which will mislead the test); use the file size comparison to exclude the finger back to swift_tar's own PATH shim (such as `-swift_tar` shim). |
+| ** `-debug` flag** | Print the candidate items found/skiped in the process of finding the standard tar; the message goes to stdout ( `print`) instead of stderr - the actual test found that when running through Bash/MSYS or PowerShell `2>&1` in this environment, the content written by `FileHandle.standardError` will be lost, and the `print()` is reliable in both calls. |
+| **WinSDK dependency removal ( `swift_tar.swift`)** | `import WinSDK` and all direct WinSDK calls ( `GetFileAttributesW` / `CreateFileW` / `GetFileInformationByHandle` / `CreateSymbolicLinkW` / `CreateHardLinkW`) are all removed, and use pure Foundation API: `FileManager.attributesOfItem`'s `.type` / `.systemFileNumber` / `.systemNumber` / `.referenceCount` (the actual test correctly corresponds to lstat's S_IFLNK/dev/ino/nlink), `FileManager.createSymbolicLink` (the actual test itself has a modern version of the free authority creation flag). Hard link ** did not ** change to `FileManager.linkItem` - it was measured that it would silently create a symlink instead of a real hardlink on Windows, and call the external `fsutil hardlink create` instead (without the authority of the system administrator, it has been tested). The compiled `swift_tar.exe` will still be indirectly connected to `swiftWinSDK.dll` through `Foundation.dll`, which is the Foundation's own dependence and can be controlled by non-project code. |
+| ** `archiveName()` Correction (real bug)** | Originally, only the `/` at the beginning was removed, and the absolute path of the Windows disk drive code was not processed (such as `C:\Users\...`), resulting in the original tar project name containing colons and backslashes, and bsdtar could not be solved. Correction: The paradigm `\` is `/`, remove the prefix of the disk drive code, and the whole platform consistently generates a portable POSIX relative path. This bug was directly measured by the added `-test`. |
+| ** `compile_tar-win.bat` build stability correction (real bug)** | `move /Y` When the newly compiled exe is installed to `release/`, if the file is temporarily locked (anti-virus instant scanning, the file handle has not been released in the last test trip), it will fail silently as "Access is denied", and the sthe stable never check the end code of move itself, resulting in the old exe remaining motionless, but the copy is still printing `[OK]` - this round of debugging takes a lot of time to trace a non-existent stderr/print buffer problem, which is actually just testing the old binary 20 minutes ago. Corrected to retry + 500ms retreat (up to 10 times), the same practice as `run_round.bat` to `lzfse.exe`. |
 
 ## Verification
 
-- `swift_tar -test -debug`: 4/4 round-trips pass (plain tar and `.tar.gz`, swift_tar↔standard tar both directions), exit code 0, `findStandardTar` correctly reports `C:\Windows\System32\tar.exe`.
-- The full existing codec regression suite (`other3-fast`/`bvx3-fast`/`gzip`/`bzip2`/`xz`/`zstd`/`lz4`) plus hardlink dedup/restore and symlink create/restore all still pass, confirming neither the `archiveName()` fix nor the WinSDK removal introduced a regression.
-- `llvm-objdump -p` confirms no more source-level `WinSDK` dependency (only `Foundation.dll`'s own transitive link, outside this project's control).
+- `swift_tar -test -debug`: 4/4 round-trip all over (plain tar and `.tar.gz`, swift_tar↔std tar two-way), exit code 0, `findStandardTar` correct return `C:\Windows\System32\tar.exe`.
+- A full set of existing codec return tests ( `other3-fast` / `bvx3-fast` / `gzip` / `bzip2` / `xz` / `zstd` / `lz4`) + hardlink de-resumping restoration + symlink creation restoration, all of which are maintained to pass, confirming that the `archiveName()` correction and WinSDK removal have not introduced a new return.
+- `llvm-objdump -p` CONFIRMS THAT THE SOURCE CODE LEVEL IS NO LONGER DEPENDENT ON `WinSDK` (ONLY THE INDIRECT LINK OF `Foundation.dll` ITSELF, NOT WITHIN THE CONTROL OF THIS PROJECT).
 
 ---
 

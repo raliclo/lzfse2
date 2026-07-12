@@ -1,8 +1,9 @@
 #!/bin/zsh
-# 建立三個 LaunchAgent（登入自動執行）：
+# 建立四個 LaunchAgent（登入自動執行）：
 #   1) caffeinate -d         —— 防止睡眠
 #   2) open -a Claude        —— 重開機後自動開啟 Claude
-#   3) sleep 30; osascript -e 'tell application "Terminal" to do script "cd ~/proj/lzfse2; ./check.sh"' —— 重開機後 30 秒自動在 Terminal 執行 check.sh
+#   3) open -a ChatGpt       —— 重開機後自動開啟 ChatGpt
+#   4) sleep 30; osascript -e 'tell application "Terminal" to do script "cd ~/proj/lzfse2; ./check.sh"' —— 重開機後 30 秒自動在 Terminal 執行 check.sh
 # 本腳本刻意保留於 lzfse2，可重複執行（idempotent）。
 LA="$HOME/Library/LaunchAgents"
 out=/Users/raliclo/proj/lzfse2/_la_verify.txt
@@ -43,6 +44,24 @@ cat > "$LA/com.raliclo.openclaude.plist" <<'PLIST'
 </plist>
 PLIST
 
+cat > "$LA/com.raliclo.openchatgpt.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.raliclo.openchatgpt</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/open</string>
+    <string>-a</string>
+    <string>ChatGpt</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><false/>
+</dict>
+</plist>
+PLIST
+
 cat > "$LA/com.raliclo.checksh.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -63,9 +82,9 @@ PLIST
 
 {
 echo "=== plutil -lint ==="
-for p in caffeinate openclaude checksh; do plutil -lint "$LA/com.raliclo.$p.plist"; done
+for p in caffeinate openclaude openchatgpt checksh; do plutil -lint "$LA/com.raliclo.$p.plist"; done
 echo "=== reload (idempotent) ==="
-for p in caffeinate openclaude checksh; do
+for p in caffeinate openclaude openchatgpt checksh; do
   launchctl unload "$LA/com.raliclo.$p.plist" 2>/dev/null
   launchctl load -w "$LA/com.raliclo.$p.plist" 2>&1 && echo "$p loaded"
 done

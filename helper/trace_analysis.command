@@ -38,9 +38,9 @@ fi
 echo "TRACE_PACKAGE_COUNT_ANALYSIS_START ${package_count} expected=${expected_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
 analysisRoundStatus "TRACE_PACKAGE_COUNT_ANALYSIS_START ${package_count} expected=${expected_count}"
 if [[ $package_count -eq 0 ]]; then
-    echo "TRACE_ANALYSIS_FAILED no_trace_found $(date +%H:%M:%S)" >> "$STATUS_OUT"
-    analysisRoundStatus "TRACE_ANALYSIS_FAILED no_trace_found"
-    exit 1
+    echo "TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data"
+    exit 0
 fi
 if [[ "$expected_count" != "unknown" && "$expected_count" != <-> ]]; then
     echo "TRACE_ANALYSIS_FAILED invalid_expected_count value=${expected_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"

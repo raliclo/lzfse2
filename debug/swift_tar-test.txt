@@ -1,0 +1,9 @@
+[debug] findStandardTar: argv0=/opt/homebrew/bin/swift_tar
+[debug] findStandardTar: ownSize=Optional(572504)
+[debug] findStandardTar: fell through to PATH search
+[debug] findStandardTar: candidate=/usr/bin/tar size=Optional(6)
+[swift_tar -test] standard tar (which tar): /usr/bin/tar
+       plain tar: swift_tar create → std tar extract: ✓
+       plain tar: std tar create → swift_tar extract: ✓
+       .tar.gz: swift_tar create → std tar extract: ✓
+       .tar.gz: std tar create → swift_tar extract: ✓

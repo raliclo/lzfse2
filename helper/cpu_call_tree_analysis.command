@@ -48,9 +48,9 @@ fi
 echo "CPU_CALL_TREE_TRACE_COUNT_START ${trace_count_start} expected=${expected_trace_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"
 analysisRoundStatus "CPU_CALL_TREE_TRACE_COUNT_START ${trace_count_start} expected=${expected_trace_count}"
 if [[ $trace_count_start -eq 0 ]]; then
-    echo "CPU_CALL_TREE_ANALYSIS_FAILED source_trace_missing $(date +%H:%M:%S)" >> "$STATUS_OUT"
-    analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_FAILED source_trace_missing"
-    exit 1
+    echo "CPU_CALL_TREE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data $(date +%H:%M:%S)" >> "$STATUS_OUT"
+    analysisRoundStatus "CPU_CALL_TREE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data"
+    exit 0
 fi
 if [[ "$expected_trace_count" != "unknown" && "$expected_trace_count" != <-> ]]; then
     echo "CPU_CALL_TREE_ANALYSIS_FAILED invalid_expected_count value=${expected_trace_count} $(date +%H:%M:%S)" >> "$STATUS_OUT"

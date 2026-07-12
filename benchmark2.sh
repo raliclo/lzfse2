@@ -82,6 +82,7 @@ fi
 roundStatus "POWER_BENCHMARK_DONE"
 
 # Step.8 匯出並分析 trace / Export and analyze traces.
+# 若本輪未產生新 trace（tracer.command 已停用），trace_analysis.command 會優雅跳過並沿用上一輪的 trace/analysis 結果，exit 0。
 roundStatus "RUNNING_TRACE_ANALYSIS"
 ./helper/trace_analysis.command
 rc=$?
@@ -92,6 +93,7 @@ fi
 roundStatus "TRACE_ANALYSIS_DONE"
 
 # Step.9 彙整 CPU call tree 熱點 / Summarize CPU call tree hotspots.
+# 同上，若無新 trace，cpu_call_tree_analysis.command 沿用上一輪結果並 exit 0。
 roundStatus "RUNNING_CPU_CALL_TREE_ANALYSIS"
 ./helper/cpu_call_tree_analysis.command >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?

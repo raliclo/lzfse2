@@ -420,9 +420,6 @@ def report_rss_win(mac, win, win_rss):
 
 def report_energy(mac):
     section("3. CPU Energy J  能耗  (Mac only — macOS powermetrics required)")
-    print(f"  ⚠  Encode energy n=40: reliable (95-107% sampling coverage).")
-    print(f"  ⚠  Decode energy n=40: NOT reliable (<5% coverage); reference only.")
-    print()
     print(f"  {'Format':<{COL}}  {'Enc J':>9}  {'Enc/TGZ':>8}  {'Dec J':>9}  {'Dec/TGZ':>8}")
     print(f"  {'-'*COL}  {'-'*9}  {'-'*8}  {'-'*9}  {'-'*8}")
 
@@ -434,11 +431,7 @@ def report_energy(mac):
         dec_j  = fv(m.get("decode_cpu_energy_j"))
         enc_rt = fmt_n(fv(m.get("encode_cpu_energy_ratio_tgz")), 4)
         dec_rt = fmt_n(fv(m.get("decode_cpu_energy_ratio_tgz")), 4)
-        flag   = "*" if name != "TGZ" else " "
-        print(f"  {name:<{COL}}  {fmt_n(enc_j):>9}  {enc_rt:>8}  {fmt_n(dec_j):>9}{flag} {dec_rt:>8}")
-
-    print()
-    print("  * Decode energy marked unreliable at n=40.")
+        print(f"  {name:<{COL}}  {fmt_n(enc_j):>9}  {enc_rt:>8}  {fmt_n(dec_j):>9}  {dec_rt:>8}")
 
 
 # ── CSV output ────────────────────────────────────────────────────────────────

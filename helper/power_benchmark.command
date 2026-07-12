@@ -15,6 +15,7 @@ POWER_STATUS="${POWER_STATUS:-${POWER_DIR}/power_status.txt}"
 # 避免短窗口在 CPU 負載驟升瞬間只取到極少樣本，確保覆蓋完整 decode 執行期。
 POWER_INTERVAL_MS="${POWER_INTERVAL_MS:-500}"
 POWER_SAMPLERS="${POWER_SAMPLERS:-cpu_power,gpu_power}"
+LZFSE_DECODE_REPEAT="${LZFSE_DECODE_REPEAT:-3}"
 
 mkdir -p "$POWER_DIR" "$POWER_RAW_DIR" "$POWER_TMP_DIR" "$POWER_TAR_DIR"
 echo "RUNNING_POWER_BENCHMARK $(date +%H:%M:%S)" > "$POWER_STATUS"
@@ -63,8 +64,8 @@ appendCsv() {
 }
 
 parsePowerLog() {
-    local raw_log="$1" duration_ns="$2"
-    awk -v duration_ns="$duration_ns" '
+    local raw_log="$1" duration_ns="$2" repeat="${3:-1}"
+    awk -v duration_ns="$duration_ns" -v repeat="$repeat" '
         function add(name, value) {
             sum[name] += value
             cnt[name] += 1
@@ -100,8 +101,8 @@ parsePowerLog() {
             power_for_energy = combined
             if (power_for_energy == "") power_for_energy = cpu
             if (power_for_energy == "") power_for_energy = 0
-            cpu_energy = cpu == "" ? "" : sprintf("%.6f", (duration_ns / 1000000000.0) * ((cpu + 0) / 1000.0))
-            energy = sprintf("%.6f", (duration_ns / 1000000000.0) * (power_for_energy / 1000.0))
+            cpu_energy = cpu == "" ? "" : sprintf("%.6f", (duration_ns / 1000000000.0 / repeat) * ((cpu + 0) / 1000.0))
+            energy = sprintf("%.6f", (duration_ns / 1000000000.0 / repeat) * (power_for_energy / 1000.0))
             printf "%s|%s|%s|%s|%s|%s|%s|%s\n", samples, cpu, cpu_energy, gpu, ane, dram, combined, energy
         }
     ' "$raw_log"
@@ -196,7 +197,11 @@ measurePower() {
     duration_ns=$(awk -v start="$start_real" -v end="$end_real" 'BEGIN { printf "%.0f", (end - start) * 1000000000.0 }')
     compressed_bytes=$(fileSize "$compressed_file")
     mbps=$(awk -v bytes="$raw_bytes" -v ns="$duration_ns" 'BEGIN { if (ns > 0) printf "%.2f", bytes / ns * 1000.0; else printf "" }')
-    parsed="$(parsePowerLog "$raw_log" "$duration_ns")"
+    local repeat=1
+    if [[ "$phase" == "decode" && "$algo" != "tgz" && "$algo" != "zstd" && "$algo" != "tar.lz4" ]]; then
+        repeat="$LZFSE_DECODE_REPEAT"
+    fi
+    parsed="$(parsePowerLog "$raw_log" "$duration_ns" "$repeat")"
     IFS='|' read -r samples cpu cpu_energy gpu ane dram combined energy <<< "$parsed"
 
     if [[ $stop_rc -ne 0 ]]; then
@@ -252,10 +257,10 @@ runDecode() {
         zstd)     zstd -d -q -f "$input" -o /dev/null ;;
         tar.lz4)  lz4 -d -q -f "$input" /dev/null ;;
         other3|optimal3)
-                  ./lzfse -decode -i "$input" -o /dev/null -algo other3 -n "$n" ;;
-        apple)    ./lzfse -decode -i "$input" -o /dev/null -algo apple -n "$n" ;;
+                  for i in 1 2 3; do ./lzfse -decode -i "$input" -o /dev/null -algo other3 -n "$n"; done ;;
+        apple)    for i in 1 2 3; do ./lzfse -decode -i "$input" -o /dev/null -algo apple -n "$n"; done ;;
         bvx3|lazy2|optimal)
-                  ./lzfse -decode -i "$input" -o /dev/null -algo bvx3 -n "$n" ;;
+                  for i in 1 2 3; do ./lzfse -decode -i "$input" -o /dev/null -algo bvx3 -n "$n"; done ;;
         *)        echo "[Error] unknown decode algorithm: $algo" >&2; return 1 ;;
     esac
 }

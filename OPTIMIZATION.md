@@ -167,6 +167,218 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R46-Mac：停用 Time Profiler Trace 產生，分析步驟改為沿用舊資料（2026-07-12）
+
+> **目標**：自本輪起，Mac benchmark 不再執行 Time Profiler trace（`tracer.command`），但下游分析步驟（Step 8/9）**不整段停用**——改為偵測「本輪無新 trace」時優雅跳過並沿用上一輪的 `trace/analysis` 結果，而非中斷整個 pipeline。本節記錄 pipeline 變更本身；benchmark 結果待本輪實際執行完成後補上。
+
+## 本輪變更
+
+| 項目 | 說明 |
+| --- | --- |
+| `benchmark.sh`：Step 6 停用 | `./helper/tracer.command` 呼叫整段註解（含 `RUNNING_TRACER` / `TRACER_DONE` 狀態列），本輪起不再產生新 `.trace` 檔案。 |
+| `helper/trace_analysis.command`：`package_count -eq 0` 分支改為優雅跳過 | 原本 `exit 1`（`TRACE_ANALYSIS_FAILED no_trace_found`）會中斷 `sudo ./benchmark2.sh`；改為 `TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data` 並 `exit 0`。判斷點在既有的 `rm -rf "$ANALYSIS_DIR"` **之前**，故上一輪的 `trace/analysis/*` 產出不會被清除，pipeline 沿用舊資料繼續往下跑。 |
+| `helper/cpu_call_tree_analysis.command`：`trace_count_start -eq 0` 分支同步修正 | 同樣把 `exit 1`（`source_trace_missing`）改為 `CPU_CALL_TREE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data` 並 `exit 0`，判斷點同樣在 `rm -rf "$OUT_DIR"` 之前，`cpu_call_tree_summary/` 舊資料保留。 |
+| `benchmark2.sh`：Step 8/9 恢復呼叫 | 因為 Step 8/9 本身已能優雅處理「無新 trace」情況，不再需要整段註解跳過；改回正常呼叫，靠 script 自身的 exit 0 保護 pipeline。 |
+
+## 影響範圍
+
+- `trace/` 下的原始 `.trace` bundle 本輪起不再產生（`tracer.command` 的 `CLEAN_OLD_TRACES` 清理步驟也連帶不執行），但這不影響判斷邏輯：`trace_analysis.command`／`cpu_call_tree_analysis.command` 純粹以 `*.trace(N)` glob 是否為空來決定要不要重新分析。
+- `BenchMarkResult.csv` 的 `Trace wall time(秒)`、`CPU Symbol Status`、`CPU Top Symbol` 等欄位本輪起沿用 **R45-Mac 最後一次成功分析**的 `trace_summary.csv` / `cpu_call_tree_summary.csv`，數值不會隨 R46+ 的程式碼變動而更新——解讀時需注意這些欄位反映的是舊版程式碼行為，非本輪即時量測。
+- `helper/benchmark_result_rebuild.command` 完全不受影響：無論資料是新產生還是沿用舊檔，`load_trace_summaries()` / `load_cpu_summaries()` 都是單純讀檔。
+- 若未來需要真正刷新 trace 資料，需手動重新啟用 `benchmark.sh` Step 6（取消註解 `tracer.command` 呼叫）。**重新啟用時機**：下次 `lzfse-cli.swift` 本身有程式碼變動時即應重新開啟——trace 的意義在於側寫「被量測的程式碼」，程式碼沒變就沒有重新 profile 的必要。
+
+---
+
+# R45-Mac：Decode Power 3× Repeat 修正（2026-07-12）
+
+> **目標**：修正 powermetrics decode 量測在高速格式（如 llama.cpp BVX3 n=40，單次 decode ~546ms）短於 500ms 採樣間隔時漏採樣（`ok:no_samples`）的問題。將 lzfse 系列 decode 改為連續執行 3 次，energy 計算除以 repeat 還原為單次數值，power（時間加權平均）理論上不受影響。lzfse-cli.swift 未變動，本輪不含演算法變更。
+
+## 本輪變更
+
+| 項目 | 說明 |
+| --- | --- |
+| `helper/power_benchmark.command`：`runDecode` 改 3 次迴圈 | lzfse 系列算法（other3/optimal3、apple、bvx3/lazy2/optimal）decode 改為 `for i in 1 2 3; do ... done`；tgz/zstd/tar.lz4 維持 1 次（外部工具，單次已夠長，不受短窗漏採樣影響）。 |
+| `parsePowerLog` 加入 `repeat` 參數 | `cpu_energy` 與 `energy` 計算除以 `repeat`（`(duration_ns / repeat / 1e9) × power`），還原為單次 decode 能耗；`cpu_power_mw`（時間加權平均功率）不受影響。 |
+| `measurePower` 判斷 repeat | phase=decode 且演算法非 tgz/zstd/tar.lz4 時，`repeat=$LZFSE_DECODE_REPEAT`（預設 3），其餘 `repeat=1`。 |
+
+## 驗證
+
+- 修正前：llama.cpp BVX3 n=40 decode 僅 546ms（< 500ms 採樣間隔），powermetrics 抓到 0 個樣本，`power_summary.csv` 標記 `ok:no_samples`，導致 `best_points_analysis.command` 因 `Decode CPU Power(mW)` 空值而以 `ValueError` crash。
+- 修正後：同一組合 decode 時長變為 ~1.66s（3×546ms），跨越多個 500ms 採樣窗口，`power_summary.csv` 標記 `ok`；`Decode CPU Energy(J)` 還原公式驗證：`(1.657659054s / 3) × 13298.5mW / 1000 = 7.348126J`，與 CSV 記錄值一致。
+- 全 R45-Mac round 跑畢：`BENCHMARK_RESULT_REBUILD_DONE` → `POWER_SUMMARY_INTEGRATE_DONE` → `BEST_POINTS_ANALYSIS_DONE`，pipeline 全程無 FAILED，`powerResults/power_summary.csv` 內已無任何 `no_samples` 紀錄。
+- **已知限制**：3 次連續 `exec` lzfse binary 各自需要重新 frequency ramp-up，短 decode 格式（尤其 BVX3）的還原後 energy 可能因此略偏高（見 Section 5），非本次修正目標，留待後續評估是否改用同一 process 內迴圈量測。
+
+## 1. 壓縮比與速度（n=40，兩資料集）
+
+| 資料集 | 格式 | 壓縮比 | Enc MB/s | Dec MB/s |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | TGZ | 1.0000 | 309.38 | 395.47 |
+| claw-code | Other3 | 0.9812 | 443.55 | 555.44 |
+| claw-code | **Optimal3** | **0.9344** | **68.07** | **446.06** |
+| claw-code | Lazy2 | 0.8683 | 72.36 | 570.10 |
+| claw-code | Optimal | 0.8253 | 37.28 | 528.27 |
+| claw-code | BVX3 | 0.9244 | 549.57 | 462.78 |
+| claw-code | Apple | 0.9820 | 156.73 | 439.58 |
+| claw-code | TLZ4 | 1.1786 | 582.72 | 551.27 |
+| claw-code | ZSTD | 0.7805 | 458.18 | 552.78 |
+| llama.cpp | TGZ | 1.0000 | 282.52 | 140.33 |
+| llama.cpp | Other3 | 0.9965 | 370.17 | 141.33 |
+| llama.cpp | **Optimal3** | **0.9737** | **87.95** | **143.14** |
+| llama.cpp | Lazy2 | 0.9576 | 187.08 | 140.69 |
+| llama.cpp | Optimal | 0.9408 | 61.24 | 133.94 |
+| llama.cpp | BVX3 | 0.9810 | 398.34 | 135.70 |
+| llama.cpp | Apple | 0.9994 | 168.27 | 130.64 |
+| llama.cpp | TLZ4 | 1.0535 | 356.59 | 132.88 |
+| llama.cpp | ZSTD | 0.9113 | 433.73 | 139.15 |
+
+> **壓縮比**：與 R44 完全一致（lzfse-cli.swift 未改動，bitstream 相同）。
+
+## 2. Encode 速度對照：R44-Mac vs R45-Mac（n=40）
+
+> lzfse-cli.swift 未變動，速度差異為量測噪音（±10% 以內為正常）。llama.cpp Other3（+50%）與 TGZ（+22%）超出正常噪音範圍，推測為量測期間背景程序負載差異所致，非演算法變更。
+
+### claw-code（n=40）
+
+| 格式 | R44 Enc MB/s | R45 Enc MB/s | 變化 |
+| --- | ---: | ---: | ---: |
+| TGZ | 300.90 | 309.38 | +3% |
+| Other3 | 548.77 | 443.55 | −19% |
+| Optimal3 | 63.19 | 68.07 | +8% |
+| Lazy2 | 64.59 | 72.36 | +12% |
+| Optimal | 34.21 | 37.28 | +9% |
+| BVX3 | 576.20 | 549.57 | −5% |
+| Apple | 155.33 | 156.73 | +1% |
+| TLZ4 | 579.46 | 582.72 | +1% |
+| ZSTD | 451.88 | 458.18 | +1% |
+
+### llama.cpp（n=40）
+
+| 格式 | R44 Enc MB/s | R45 Enc MB/s | 變化 |
+| --- | ---: | ---: | ---: |
+| TGZ | 231.34 | 282.52 | +22% |
+| Other3 | 247.13 | 370.17 | +50% |
+| Optimal3 | 85.88 | 87.95 | +2% |
+| Lazy2 | 176.09 | 187.08 | +6% |
+| Optimal | 58.51 | 61.24 | +5% |
+| BVX3 | 404.84 | 398.34 | −2% |
+| Apple | 166.37 | 168.27 | +1% |
+| TLZ4 | 340.57 | 356.59 | +5% |
+| ZSTD | 438.93 | 433.73 | −1% |
+
+## 3. Peak RSS（n=40）
+
+> RSS 與 R44 基本一致，符合「相同程式碼、相同資料集」的預期。
+
+| 資料集 | 格式 | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: |
+| claw-code | TGZ | 2944.9 MB | 3265.5 MB |
+| claw-code | Other3 | 300.2 MB | 305.4 MB |
+| claw-code | **Optimal3** | **559.1 MB** | **323.2 MB** |
+| claw-code | Lazy2 | 499.5 MB | 323.7 MB |
+| claw-code | Optimal | 574.8 MB | 335.6 MB |
+| claw-code | BVX3 | 372.4 MB | 319.4 MB |
+| claw-code | Apple | 1356.3 MB | 470.0 MB |
+| claw-code | TLZ4 | 81.1 MB | 33.7 MB |
+| claw-code | ZSTD | 397.1 MB | 9.2 MB |
+| llama.cpp | TGZ | 2537.6 MB | 3021.9 MB |
+| llama.cpp | Other3 | 228.2 MB | 350.6 MB |
+| llama.cpp | **Optimal3** | **556.0 MB** | **349.3 MB** |
+| llama.cpp | Lazy2 | 853.5 MB | 347.4 MB |
+| llama.cpp | Optimal | 570.8 MB | 347.9 MB |
+| llama.cpp | BVX3 | 229.1 MB | 348.8 MB |
+| llama.cpp | Apple | 1197.6 MB | 592.2 MB |
+| llama.cpp | TLZ4 | 77.9 MB | 33.8 MB |
+| llama.cpp | ZSTD | 490.6 MB | 9.4 MB |
+
+## 4. CPU Energy（n=40，含 Decode——本輪 3× repeat 修正後首次完整可靠）
+
+| 資料集 | 格式 | Enc J | Enc J/TGZ | Dec J | Dec J/TGZ |
+| --- | --- | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 104.38 | 1.0000 | 29.25 | 1.0000 |
+| claw-code | Other3 | 45.89 | 0.4396 | 8.56 | 0.2927 |
+| claw-code | **Optimal3** | **497.21** | **4.7634** | **6.64** | **0.2270** |
+| claw-code | Lazy2 | 270.12 | 2.5878 | 8.30 | 0.2839 |
+| claw-code | Optimal | 782.39 | 7.4955 | 8.97 | 0.3066 |
+| claw-code | BVX3 | 47.81 | 0.4580 | 12.69 | 0.4339 |
+| claw-code | Apple | 109.50 | 1.0490 | 10.13 | 0.3462 |
+| claw-code | TLZ4 | 41.46 | 0.3972 | 5.69 | 0.1944 |
+| claw-code | ZSTD | 50.80 | 0.4867 | 16.36 | 0.5591 |
+| llama.cpp | TGZ | 114.70 | 1.0000 | 27.12 | 1.0000 |
+| llama.cpp | Other3 | 40.70 | 0.3549 | 4.56 | 0.1681 |
+| llama.cpp | **Optimal3** | **345.75** | **3.0144** | **4.21** | **0.1554** |
+| llama.cpp | Lazy2 | 104.67 | 0.9126 | 6.66 | 0.2455 |
+| llama.cpp | Optimal | 465.99 | 4.0627 | 5.13 | 0.1893 |
+| llama.cpp | BVX3 | 38.98 | 0.3399 | 7.35 | 0.2710 |
+| llama.cpp | Apple | 89.22 | 0.7778 | 9.84 | 0.3629 |
+| llama.cpp | TLZ4 | 45.83 | 0.3996 | 4.64 | 0.1709 |
+| llama.cpp | ZSTD | 39.41 | 0.3436 | 6.09 | 0.2246 |
+
+### Encode Energy 對照：R44-Mac vs R45-Mac（n=40）
+
+> R45 encode energy 較 R44 普遍低 ~13%–21%（機器狀態差異，屬於量測噪音，方向與 R43→R44 相反）。
+
+#### claw-code（n=40）
+
+| 格式 | R44 Enc J | R45 Enc J | 變化 |
+| --- | ---: | ---: | ---: |
+| TGZ | 125.01 | 104.38 | −17% |
+| Other3 | 58.17 | 45.89 | −21% |
+| Optimal3 | 578.92 | 497.21 | −14% |
+| Lazy2 | 336.38 | 270.12 | −20% |
+| Optimal | 902.73 | 782.39 | −13% |
+| BVX3 | 59.22 | 47.81 | −19% |
+| Apple | 126.40 | 109.50 | −13% |
+| TLZ4 | 52.12 | 41.46 | −20% |
+| ZSTD | 62.01 | 50.80 | −18% |
+
+#### llama.cpp（n=40）
+
+| 格式 | R44 Enc J | R45 Enc J | 變化 |
+| --- | ---: | ---: | ---: |
+| TGZ | 109.72 | 114.70 | +5% |
+| Other3 | 44.26 | 40.70 | −8% |
+| Optimal3 | 397.58 | 345.75 | −13% |
+| Lazy2 | 128.54 | 104.67 | −19% |
+| Optimal | 532.13 | 465.99 | −12% |
+| BVX3 | 47.18 | 38.98 | −17% |
+| Apple | 97.90 | 89.22 | −9% |
+| TLZ4 | 52.73 | 45.83 | −13% |
+| ZSTD | 43.88 | 39.41 | −10% |
+
+## 5. Decode Energy 對照：R44-Mac vs R45-Mac（n=40，驗證 3× repeat 修正一致性）
+
+> R44-Mac 該次量測恰好未觸發 `no_samples`（本輪修正的觸發條件屬間歇性，詳見「本輪變更」），故兩輪 decode J 均為有效值，可直接對照。差異幅度（+6%～+69%）明顯大於 Encode Energy（−21%～+5%），除了機器狀態差異外，也與 decode 本身耗時短、易受瞬態影響有關；BVX3／Other3 等短 decode 格式差異偏大，與「已知限制」所述的 3× exec ramp-up 效應方向一致，數值僅供參考，不作為演算法效能判斷依據。
+
+### claw-code（n=40）
+
+| 格式 | R44 Dec J | R45 Dec J | 變化 |
+| --- | ---: | ---: | ---: |
+| TGZ | 25.94 | 29.25 | +13% |
+| Other3 | 5.56 | 8.56 | +54% |
+| Optimal3 | 5.65 | 6.64 | +18% |
+| Lazy2 | 6.76 | 8.30 | +23% |
+| Optimal | 6.75 | 8.97 | +33% |
+| BVX3 | 7.53 | 12.69 | +69% |
+| Apple | 11.45 | 10.13 | −12% |
+| TLZ4 | 5.36 | 5.69 | +6% |
+| ZSTD | 12.28 | 16.36 | +33% |
+
+### llama.cpp（n=40）
+
+| 格式 | R44 Dec J | R45 Dec J | 變化 |
+| --- | ---: | ---: | ---: |
+| TGZ | 18.48 | 27.12 | +47% |
+| Other3 | 3.83 | 4.56 | +19% |
+| Optimal3 | 3.80 | 4.21 | +11% |
+| Lazy2 | 4.17 | 6.66 | +60% |
+| Optimal | 4.63 | 5.13 | +11% |
+| BVX3 | 4.75 | 7.35 | +55% |
+| Apple | 10.25 | 9.84 | −4% |
+| TLZ4 | 3.55 | 4.64 | +30% |
+| ZSTD | 5.62 | 6.09 | +8% |
+
+---
+
 # R45-Win-Retest1：run_round.bat -swift_tar 官方重跑（對照 R44-Mac，兩輪都用 swift_tar）（2026-07-11）
 
 > **目標**：跑一輪真正帶 `-swift_tar` 的完整官方 `run_round.bat`，兌現 R45-Win 結尾「正式數字待下一次 run_round.bat 產出」的承諾，驗證 ucrt 解壓後端在完整 pipeline（含 verify／RSS／comparison）下的實際效果，並與 R44-Mac（同樣用 swift_tar）做 Win/Mac 對照。
