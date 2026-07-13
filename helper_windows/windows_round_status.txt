@@ -1,14 +1,14 @@
 [INFO] 開始新一輪測試 / Starting a new round of testing  
-[INFO] 時間戳記 / Timestamp: 10:28:25 
+[INFO] 時間戳記 / Timestamp:  6:29:13 
 [INFO] 目前路徑 / Current directory: C:\Users\lowei\proj\lzfse2\helper_windows 
 [INFO] 目前磁碟空間 / Current disk space: 
 
 Caption Size_GB Free_GB
 ------- ------- -------
-C:        447.4    46.5
+C:        447.4    45.3
 
 
-USING_SWIFT_TAR C:\Users\lowei\AppData\Local\Temp\lzfse2-swift-tar-shim\tar.exe 10:28:26 
+USING_SWIFT_TAR C:\Users\lowei\AppData\Local\Temp\lzfse2-swift-tar-shim\tar.exe  6:29:14 
 [swift_tar -test] standard tar (which tar): C:\Windows\System32\tar.exe
        plain tar: swift_tar create → std tar extract: ✓
        plain tar: std tar create → swift_tar extract: ✓
@@ -16,12 +16,12 @@ USING_SWIFT_TAR C:\Users\lowei\AppData\Local\Temp\lzfse2-swift-tar-shim\tar.exe 
        .tar.gz: std tar create → swift_tar extract: ✓
        write backend -write_foundation: extract → compare: ✓
        write backend -write_ucrt: extract → compare: ✓
-       timing, 400 small files / 計時（400 小檔）: foundation 0.71s / ucrt 0.32s
-SWIFT_TAR_TEST_OK 10:28:26 
-[INFO] Cleared encode_summary.csv, decode_summary.csv, rss_summary.csv 10:28:30 
-[INFO] Running system-info-win.bat 10:28:30 
+       timing, 400 small files / 計時（400 小檔）: foundation 0.58s / ucrt 0.33s
+SWIFT_TAR_TEST_OK  6:29:14 
+[INFO] Cleared encode_summary.csv, decode_summary.csv, rss_summary.csv  6:29:18 
+[INFO] Running system-info-win.bat  6:29:18 
 Windows hardware info / Windows 硬體資訊
-Timestamp: 2026-07-11 10:28:30
+Timestamp: 2026-07-13 06:29:18
 Log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\system-info.txt
 
 == Computer ==
@@ -88,15 +88,15 @@ Drive      : C:
 Label      : OS
 FS         : NTFS
 Size       : 447.44 GB
-Free       : 46.38 GB
-Free %     : 10.4%
+Free       : 45.29 GB
+Free %     : 10.1%
 
 == Volumes via Storage cmdlets ==
 Drive      : C
 Label      : OS
 FS         : NTFS
 Size       : 447.44 GB
-Free       : 46.38 GB
+Free       : 45.29 GB
 Health     : Healthy
 
 Drive      : 
@@ -121,209 +121,209 @@ Free       : 61.31 MB
 Health     : Healthy
 
 [OK] System info written to: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\system-info.txt
-RUNNING git gc 10:28:43 
-RUNNING compile 10:29:02 
-   Creating library lzfse-build-29000.lib and object lzfse-build-29000.exp
-COMPILE_OK 10:29:55 
-TEST_OK 10:29:56 
-[INFO] Running encode-win.bat ..\claw-code 40 nul 10:29:56 
+RUNNING git gc  6:29:33 
+RUNNING compile  6:29:58 
+   Creating library lzfse-build-22136.lib and object lzfse-build-22136.exp
+COMPILE_OK  6:31:06 
+TEST_OK  6:31:07 
+[INFO] Running encode-win.bat ..\claw-code 40 nul  6:31:07 
 [Info] Warm-cache dataset / Pre-reading dataset to warm OS cache...
-[Info] Starting tgz, lzfse, tlz4, zstd benchmark... 10:30:05
-[Info] Running tgz encode benchmark... 10:30:06
-[DONE] tgz encode 10:30:23
-[Info] Running lzfse other3 encode benchmark... 10:30:23
-[DONE] lzfse other3 encode 10:30:30
-[Info] Running lzfse other3_optimal3 encode benchmark... 10:30:30
-[DONE] lzfse other3_optimal3 encode 10:31:03
-[Info] Running lzfse bvx3 encode benchmark... 10:31:03
-[DONE] lzfse bvx3 encode 10:31:09
-[Info] Running lzfse lazy2 encode benchmark... 10:31:09
-[DONE] lzfse lazy2 encode 10:31:39
-[Info] Running lzfse optimal encode benchmark... 10:31:39
-[DONE] lzfse optimal encode 10:32:45
-[Info] Running lz4 encode benchmark... 10:32:45
-[DONE] lz4 encode 10:32:54
-[Info] Running zstd encode benchmark... 10:32:54
-[DONE] zstd encode 10:33:06
-[Info] Summarising benchmark results... 10:33:06
+[Info] Starting tgz, lzfse, tlz4, zstd benchmark...  6:31:16
+[Info] Running tgz encode benchmark...  6:31:17
+[DONE] tgz encode  6:31:26
+[Info] Running lzfse other3 encode benchmark...  6:31:26
+[DONE] lzfse other3 encode  6:31:34
+[Info] Running lzfse other3_optimal3 encode benchmark...  6:31:34
+[DONE] lzfse other3_optimal3 encode  6:32:20
+[Info] Running lzfse bvx3 encode benchmark...  6:32:20
+[DONE] lzfse bvx3 encode  6:32:28
+[Info] Running lzfse lazy2 encode benchmark...  6:32:28
+[DONE] lzfse lazy2 encode  6:33:04
+[Info] Running lzfse optimal encode benchmark...  6:33:04
+[DONE] lzfse optimal encode  6:34:28
+[Info] Running lz4 encode benchmark...  6:34:28
+[DONE] lz4 encode  6:34:38
+[Info] Running zstd encode benchmark...  6:34:38
+[DONE] zstd encode  6:34:53
+[Info] Summarising benchmark results...  6:34:53
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             66.17s     491100160 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.65s     482159818 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        44.53s     459206846 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             5.48s     454459578 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           36.92s     427459155 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         90.88s     406317025 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              7.73s     576498775 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            14.18s     383711211 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             55.20s     615383040 bytes  OK
-     encodeTgz-n40             52.37s             0 bytes  OK
-     encodeOther3-n40          10.08s     613545393 bytes  OK
-     encodeOther3-n40           9.85s             0 bytes  OK
-     encodeOptimal3-n40        31.14s     599578658 bytes  OK
-     encodeOptimal3-n40        31.19s             0 bytes  OK
-     encodeBVX3-n40            11.02s     603675997 bytes  OK
-     encodeBVX3-n40            10.09s             0 bytes  OK
-     encodeLazy2-n40           14.29s     589304081 bytes  OK
-     encodeLazy2-n40           14.89s             0 bytes  OK
-     encodeOptimal-n40         42.80s     579176017 bytes  OK
-     encodeOptimal-n40         43.01s             0 bytes  OK
-     encodeLZ4-n40             11.72s     646311357 bytes  OK
-     encodeLZ4-n40             11.40s             0 bytes  OK
-     encodeZSTD-n40            11.49s     561421371 bytes  OK
-     encodeZSTD-n40            11.26s             0 bytes  OK
+     encodeTgz-n40             61.60s     491100160 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           6.78s     482159787 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        54.86s     459206846 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             6.14s     454459571 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           43.64s     427459160 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40        100.20s     406317026 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              8.53s     576498774 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            15.32s     383711211 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             55.49s     615383040 bytes  OK
+     encodeTgz-n40             54.17s             0 bytes  OK
+     encodeOther3-n40          10.04s     613545387 bytes  OK
+     encodeOther3-n40          10.19s             0 bytes  OK
+     encodeOptimal3-n40        31.75s     599578907 bytes  OK
+     encodeOptimal3-n40        31.52s             0 bytes  OK
+     encodeBVX3-n40            10.32s     603676000 bytes  OK
+     encodeBVX3-n40            10.13s             0 bytes  OK
+     encodeLazy2-n40           14.11s     589304078 bytes  OK
+     encodeLazy2-n40           13.58s             0 bytes  OK
+     encodeOptimal-n40         44.79s     579176043 bytes  OK
+     encodeOptimal-n40         44.82s             0 bytes  OK
+     encodeLZ4-n40             11.81s     646311357 bytes  OK
+     encodeLZ4-n40             11.56s             0 bytes  OK
+     encodeZSTD-n40            12.07s     561421371 bytes  OK
+     encodeZSTD-n40            11.71s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             11.26s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             14.80s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40          11.97s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.94s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40        11.07s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.88s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40            10.33s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             2.10s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40           11.30s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.88s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40         10.72s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.77s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40             23.14s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.90s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            21.55s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.53s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             59.68s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             67.69s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          39.24s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           2.41s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        38.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.68s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            38.56s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           39.32s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             12.93s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             13.67s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40          13.07s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.30s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40        12.14s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         2.04s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40            11.51s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             2.12s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40           10.34s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.99s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40         10.13s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          2.41s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              7.85s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.34s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             9.25s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             3.04s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             65.20s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             73.24s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          43.59s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.80s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        44.21s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.60s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            43.63s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.73s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           43.04s    1211649419 bytes  OK  verify=PASS
      decodeLazy2-n40            1.52s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         39.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.60s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             44.23s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.67s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            38.90s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.84s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         42.40s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.66s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             38.96s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.87s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            46.91s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.07s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-[OK] bench_results_csv\encode_summary.csv written 10:33:06
-[DONE] encode nul ..\claw-code 10:33:06 
-[INFO] Running encode-win.bat ..\claw-code 40 write 10:33:06 
+[OK] bench_results_csv\encode_summary.csv written  6:34:54
+[DONE] encode nul ..\claw-code  6:34:54 
+[INFO] Running encode-win.bat ..\claw-code 40 write  6:34:54 
 [Info] Warm-cache dataset / Pre-reading dataset to warm OS cache...
-[Info] Starting tgz, lzfse, tlz4, zstd benchmark... 10:33:09
-[Info] Running tgz encode benchmark... 10:33:09
-[DONE] tgz encode 10:33:25
-[Info] Running lzfse other3 encode benchmark... 10:33:25
-[DONE] lzfse other3 encode 10:33:32
-[Info] Running lzfse other3_optimal3 encode benchmark... 10:33:32
-[DONE] lzfse other3_optimal3 encode 10:34:05
-[Info] Running lzfse bvx3 encode benchmark... 10:34:05
-[DONE] lzfse bvx3 encode 10:34:13
-[Info] Running lzfse lazy2 encode benchmark... 10:34:13
-[DONE] lzfse lazy2 encode 10:34:44
-[Info] Running lzfse optimal encode benchmark... 10:34:44
-[DONE] lzfse optimal encode 10:35:45
-[Info] Running lz4 encode benchmark... 10:35:45
-[DONE] lz4 encode 10:35:52
-[Info] Running zstd encode benchmark... 10:35:52
-[DONE] zstd encode 10:36:03
-[Info] Summarising benchmark results... 10:36:03
+[Info] Starting tgz, lzfse, tlz4, zstd benchmark...  6:34:57
+[Info] Running tgz encode benchmark...  6:34:57
+[DONE] tgz encode  6:35:07
+[Info] Running lzfse other3 encode benchmark...  6:35:07
+[DONE] lzfse other3 encode  6:35:15
+[Info] Running lzfse other3_optimal3 encode benchmark...  6:35:15
+[DONE] lzfse other3_optimal3 encode  6:36:04
+[Info] Running lzfse bvx3 encode benchmark...  6:36:04
+[DONE] lzfse bvx3 encode  6:36:13
+[Info] Running lzfse lazy2 encode benchmark...  6:36:13
+[DONE] lzfse lazy2 encode  6:36:50
+[Info] Running lzfse optimal encode benchmark...  6:36:50
+[DONE] lzfse optimal encode  6:38:11
+[Info] Running lz4 encode benchmark...  6:38:11
+[DONE] lz4 encode  6:38:20
+[Info] Running zstd encode benchmark...  6:38:20
+[DONE] zstd encode  6:38:33
+[Info] Summarising benchmark results...  6:38:33
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             15.09s     488898962 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.45s     482093259 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        31.57s     459102000 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             6.12s     454124470 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           30.35s     426823795 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         59.74s     405422267 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              6.00s     576488517 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            10.58s     383499764 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             55.20s     615383040 bytes  OK
-     encodeTgz-n40             52.37s             0 bytes  OK
-     encodeOther3-n40          10.08s     613545393 bytes  OK
-     encodeOther3-n40           9.85s             0 bytes  OK
-     encodeOptimal3-n40        31.14s     599578658 bytes  OK
-     encodeOptimal3-n40        31.19s             0 bytes  OK
-     encodeBVX3-n40            11.02s     603675997 bytes  OK
-     encodeBVX3-n40            10.09s             0 bytes  OK
-     encodeLazy2-n40           14.29s     589304081 bytes  OK
-     encodeLazy2-n40           14.89s             0 bytes  OK
-     encodeOptimal-n40         42.80s     579176017 bytes  OK
-     encodeOptimal-n40         43.01s             0 bytes  OK
-     encodeLZ4-n40             11.72s     646311357 bytes  OK
-     encodeLZ4-n40             11.40s             0 bytes  OK
-     encodeZSTD-n40            11.49s     561421371 bytes  OK
-     encodeZSTD-n40            11.26s             0 bytes  OK
+     encodeTgz-n40              8.15s     491317350 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           7.36s     482093258 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        46.54s     459102000 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             7.35s     454124496 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           36.35s     426823788 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40         78.68s     405422088 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              7.77s     576488516 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            11.73s     383499763 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             55.49s     615383040 bytes  OK
+     encodeTgz-n40             54.17s             0 bytes  OK
+     encodeOther3-n40          10.04s     613545387 bytes  OK
+     encodeOther3-n40          10.19s             0 bytes  OK
+     encodeOptimal3-n40        31.75s     599578907 bytes  OK
+     encodeOptimal3-n40        31.52s             0 bytes  OK
+     encodeBVX3-n40            10.32s     603676000 bytes  OK
+     encodeBVX3-n40            10.13s             0 bytes  OK
+     encodeLazy2-n40           14.11s     589304078 bytes  OK
+     encodeLazy2-n40           13.58s             0 bytes  OK
+     encodeOptimal-n40         44.79s     579176043 bytes  OK
+     encodeOptimal-n40         44.82s             0 bytes  OK
+     encodeLZ4-n40             11.81s     646311357 bytes  OK
+     encodeLZ4-n40             11.56s             0 bytes  OK
+     encodeZSTD-n40            12.07s     561421371 bytes  OK
+     encodeZSTD-n40            11.71s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             11.26s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             14.80s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40          11.97s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.94s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40        11.07s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.88s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40            10.33s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             2.10s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40           11.30s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.88s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40         10.72s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.77s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40             23.14s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.90s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            21.55s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.53s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             59.68s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             67.69s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          39.24s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           2.41s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        38.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.68s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            38.56s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           39.32s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             12.93s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             13.67s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40          13.07s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.30s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40        12.14s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         2.04s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40            11.51s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             2.12s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40           10.34s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.99s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40         10.13s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          2.41s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              7.85s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.34s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             9.25s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             3.04s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             65.20s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             73.24s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          43.59s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.80s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        44.21s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.60s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            43.63s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.73s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           43.04s    1211649419 bytes  OK  verify=PASS
      decodeLazy2-n40            1.52s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         39.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.60s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             44.23s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.67s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            38.90s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.84s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         42.40s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.66s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             38.96s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.87s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            46.91s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.07s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-[OK] bench_results_csv\encode_summary.csv written 10:36:03
-[DONE] encode write ..\claw-code 10:36:03 
-[INFO] Running decode-win.bat ..\claw-code 40 nul 10:36:03 
-[Info] Warming cache for decode benchmark... 10:36:03
-[Info] Starting decode benchmark... 10:36:06
-[Info] Running tgz decode benchmark... 10:36:06
-[DONE] tgz decode 10:36:26
-[Info] Running lzfse other3 decode benchmark... 10:36:26
-[DONE] lzfse other3 decode 10:36:29
-[Info] Running lzfse other3_optimal3 decode benchmark... 10:36:29
-[DONE] lzfse other3_optimal3 decode 10:36:32
-[Info] Running lzfse bvx3 decode benchmark... 10:36:32
-[DONE] lzfse bvx3 decode 10:36:35
-[Info] Running lzfse lazy2 decode benchmark... 10:36:35
-[DONE] lzfse lazy2 decode 10:36:38
-[Info] Running lzfse optimal decode benchmark... 10:36:38
-[DONE] lzfse optimal decode 10:36:41
-[Info] Running lz4 decode benchmark... 10:36:41
-[DONE] lz4 decode 10:36:43
-[Info] Running zstd decode benchmark... 10:36:43
-[DONE] zstd decode 10:36:46
-[Info] Verifying decode correctness (tar tf check)... 10:36:46
+[OK] bench_results_csv\encode_summary.csv written  6:38:33
+[DONE] encode write ..\claw-code  6:38:33 
+[INFO] Running decode-win.bat ..\claw-code 40 nul  6:38:33 
+[Info] Warming cache for decode benchmark...  6:38:33
+[Info] Starting decode benchmark...  6:38:36
+[Info] Running tgz decode benchmark...  6:38:36
+[DONE] tgz decode  6:38:47
+[Info] Running lzfse other3 decode benchmark...  6:38:47
+[DONE] lzfse other3 decode  6:38:51
+[Info] Running lzfse other3_optimal3 decode benchmark...  6:38:51
+[DONE] lzfse other3_optimal3 decode  6:38:54
+[Info] Running lzfse bvx3 decode benchmark...  6:38:54
+[DONE] lzfse bvx3 decode  6:38:58
+[Info] Running lzfse lazy2 decode benchmark...  6:38:58
+[DONE] lzfse lazy2 decode  6:39:01
+[Info] Running lzfse optimal decode benchmark...  6:39:01
+[DONE] lzfse optimal decode  6:39:04
+[Info] Running lz4 decode benchmark...  6:39:04
+[DONE] lz4 decode  6:39:07
+[Info] Running zstd decode benchmark...  6:39:07
+[DONE] zstd decode  6:39:10
+[Info] Verifying decode correctness (tar tf check)...  6:39:10
 [PASS] TGZ 
 [PASS] LZFSE Other3 
 [PASS] LZFSE Optimal3 
@@ -332,97 +332,97 @@ TEST_OK 10:29:56
 [PASS] LZFSE Optimal 
 [PASS] LZ4 
 [PASS] ZSTD 
-[Info] Summarising decode results... 10:37:27
+[Info] Summarising decode results...  6:39:38
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             15.09s     488898962 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.45s     482093259 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        31.57s     459102000 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             6.12s     454124470 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           30.35s     426823795 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         59.74s     405422267 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              6.00s     576488517 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            10.58s     383499764 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             55.20s     615383040 bytes  OK
-     encodeTgz-n40             52.37s             0 bytes  OK
-     encodeOther3-n40          10.08s     613545393 bytes  OK
-     encodeOther3-n40           9.85s             0 bytes  OK
-     encodeOptimal3-n40        31.14s     599578658 bytes  OK
-     encodeOptimal3-n40        31.19s             0 bytes  OK
-     encodeBVX3-n40            11.02s     603675997 bytes  OK
-     encodeBVX3-n40            10.09s             0 bytes  OK
-     encodeLazy2-n40           14.29s     589304081 bytes  OK
-     encodeLazy2-n40           14.89s             0 bytes  OK
-     encodeOptimal-n40         42.80s     579176017 bytes  OK
-     encodeOptimal-n40         43.01s             0 bytes  OK
-     encodeLZ4-n40             11.72s     646311357 bytes  OK
-     encodeLZ4-n40             11.40s             0 bytes  OK
-     encodeZSTD-n40            11.49s     561421371 bytes  OK
-     encodeZSTD-n40            11.26s             0 bytes  OK
+     encodeTgz-n40              8.15s     491317350 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           7.36s     482093258 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        46.54s     459102000 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             7.35s     454124496 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           36.35s     426823788 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40         78.68s     405422088 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              7.77s     576488516 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            11.73s     383499763 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             55.49s     615383040 bytes  OK
+     encodeTgz-n40             54.17s             0 bytes  OK
+     encodeOther3-n40          10.04s     613545387 bytes  OK
+     encodeOther3-n40          10.19s             0 bytes  OK
+     encodeOptimal3-n40        31.75s     599578907 bytes  OK
+     encodeOptimal3-n40        31.52s             0 bytes  OK
+     encodeBVX3-n40            10.32s     603676000 bytes  OK
+     encodeBVX3-n40            10.13s             0 bytes  OK
+     encodeLazy2-n40           14.11s     589304078 bytes  OK
+     encodeLazy2-n40           13.58s             0 bytes  OK
+     encodeOptimal-n40         44.79s     579176043 bytes  OK
+     encodeOptimal-n40         44.82s             0 bytes  OK
+     encodeLZ4-n40             11.81s     646311357 bytes  OK
+     encodeLZ4-n40             11.56s             0 bytes  OK
+     encodeZSTD-n40            12.07s     561421371 bytes  OK
+     encodeZSTD-n40            11.71s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             11.26s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             18.99s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40          11.97s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.63s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40        11.07s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.54s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40            10.33s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.66s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40           11.30s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.59s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40         10.72s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.54s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40             23.14s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.81s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            21.55s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.38s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             59.68s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             67.69s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          39.24s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           2.41s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        38.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.68s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            38.56s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           39.32s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             12.93s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40              8.77s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40          13.07s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.10s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40        12.14s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.89s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40            11.51s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.94s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40           10.34s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.91s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40         10.13s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.90s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              7.85s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.06s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             9.25s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.73s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             65.20s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             73.24s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          43.59s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.80s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        44.21s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.60s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            43.63s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.73s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           43.04s    1211649419 bytes  OK  verify=PASS
      decodeLazy2-n40            1.52s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         39.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.60s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             44.23s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.67s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            38.90s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.84s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         42.40s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.66s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             38.96s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.87s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            46.91s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.07s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-[OK] bench_results_csv\decode_summary.csv written 10:37:27
-[Info] Decode verification complete. 10:37:27
-[DONE] decode nul ..\claw-code 10:37:27 
-[INFO] Running decode-win.bat ..\claw-code 40 write 10:37:27 
-[Info] Warming cache for decode benchmark... 10:37:27
-[Info] Starting decode benchmark with write output to decoded\claw-code ... 10:37:29
-[Info] Running tgz decode benchmark... 10:37:29
-[DONE] tgz decode 10:37:52
-[Info] Running lzfse other3 decode benchmark... 10:37:52
-[DONE] lzfse other3 decode 10:38:02
-[Info] Running lzfse other3_optimal3 decode benchmark... 10:38:02
-[DONE] lzfse other3_optimal3 decode 10:38:12
-[Info] Running lzfse bvx3 decode benchmark... 10:38:12
-[DONE] lzfse bvx3 decode 10:38:22
-[Info] Running lzfse lazy2 decode benchmark... 10:38:22
-[DONE] lzfse lazy2 decode 10:38:32
-[Info] Running lzfse optimal decode benchmark... 10:38:32
-[DONE] lzfse optimal decode 10:38:42
-[Info] Running lz4 decode benchmark... 10:38:42
-[DONE] lz4 decode 10:38:50
-[Info] Running zstd decode benchmark... 10:38:50
-[DONE] zstd decode 10:39:17
-[Info] Verifying decoded folders against TGZ output... 10:39:17
+[OK] bench_results_csv\decode_summary.csv written  6:39:38
+[Info] Decode verification complete.  6:39:38
+[DONE] decode nul ..\claw-code  6:39:38 
+[INFO] Running decode-win.bat ..\claw-code 40 write  6:39:38 
+[Info] Warming cache for decode benchmark...  6:39:38
+[Info] Starting decode benchmark with write output to decoded\claw-code ...  6:39:41
+[Info] Running tgz decode benchmark...  6:39:41
+[DONE] tgz decode  6:39:54
+[Info] Running lzfse other3 decode benchmark...  6:39:54
+[DONE] lzfse other3 decode  6:40:03
+[Info] Running lzfse other3_optimal3 decode benchmark...  6:40:03
+[DONE] lzfse other3_optimal3 decode  6:40:12
+[Info] Running lzfse bvx3 decode benchmark...  6:40:12
+[DONE] lzfse bvx3 decode  6:40:21
+[Info] Running lzfse lazy2 decode benchmark...  6:40:21
+[DONE] lzfse lazy2 decode  6:40:30
+[Info] Running lzfse optimal decode benchmark...  6:40:30
+[DONE] lzfse optimal decode  6:40:39
+[Info] Running lz4 decode benchmark...  6:40:39
+[DONE] lz4 decode  6:40:46
+[Info] Running zstd decode benchmark...  6:40:46
+[DONE] zstd decode  6:40:54
+[Info] Verifying decoded folders against TGZ output...  6:40:54
 [PASS] TGZ
 [PASS] LZFSE Other3
 [PASS] LZFSE Optimal3
@@ -431,355 +431,355 @@ TEST_OK 10:29:56
 [PASS] LZFSE Optimal
 [PASS] LZ4
 [PASS] ZSTD
-[Info] Summarising decode results... 10:42:42
+[Info] Summarising decode results...  6:44:03
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             15.09s     488898962 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.45s     482093259 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        31.57s     459102000 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             6.12s     454124470 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           30.35s     426823795 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         59.74s     405422267 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              6.00s     576488517 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            10.58s     383499764 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             55.20s     615383040 bytes  OK
-     encodeTgz-n40             52.37s             0 bytes  OK
-     encodeOther3-n40          10.08s     613545393 bytes  OK
-     encodeOther3-n40           9.85s             0 bytes  OK
-     encodeOptimal3-n40        31.14s     599578658 bytes  OK
-     encodeOptimal3-n40        31.19s             0 bytes  OK
-     encodeBVX3-n40            11.02s     603675997 bytes  OK
-     encodeBVX3-n40            10.09s             0 bytes  OK
-     encodeLazy2-n40           14.29s     589304081 bytes  OK
-     encodeLazy2-n40           14.89s             0 bytes  OK
-     encodeOptimal-n40         42.80s     579176017 bytes  OK
-     encodeOptimal-n40         43.01s             0 bytes  OK
-     encodeLZ4-n40             11.72s     646311357 bytes  OK
-     encodeLZ4-n40             11.40s             0 bytes  OK
-     encodeZSTD-n40            11.49s     561421371 bytes  OK
-     encodeZSTD-n40            11.26s             0 bytes  OK
+     encodeTgz-n40              8.15s     491317350 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           7.36s     482093258 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        46.54s     459102000 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             7.35s     454124496 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           36.35s     426823788 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40         78.68s     405422088 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              7.77s     576488516 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            11.73s     383499763 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             55.49s     615383040 bytes  OK
+     encodeTgz-n40             54.17s             0 bytes  OK
+     encodeOther3-n40          10.04s     613545387 bytes  OK
+     encodeOther3-n40          10.19s             0 bytes  OK
+     encodeOptimal3-n40        31.75s     599578907 bytes  OK
+     encodeOptimal3-n40        31.52s             0 bytes  OK
+     encodeBVX3-n40            10.32s     603676000 bytes  OK
+     encodeBVX3-n40            10.13s             0 bytes  OK
+     encodeLazy2-n40           14.11s     589304078 bytes  OK
+     encodeLazy2-n40           13.58s             0 bytes  OK
+     encodeOptimal-n40         44.79s     579176043 bytes  OK
+     encodeOptimal-n40         44.82s             0 bytes  OK
+     encodeLZ4-n40             11.81s     646311357 bytes  OK
+     encodeLZ4-n40             11.56s             0 bytes  OK
+     encodeZSTD-n40            12.07s     561421371 bytes  OK
+     encodeZSTD-n40            11.71s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             21.46s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             18.99s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           8.64s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.63s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         8.71s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.54s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             8.73s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.66s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            8.53s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.59s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          8.45s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.54s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              7.20s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.81s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            25.42s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.38s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             59.68s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             67.69s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          39.24s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           2.41s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        38.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.68s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            38.56s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           39.32s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             11.56s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40              8.77s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           7.32s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.10s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         7.33s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.89s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             7.43s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.94s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            7.51s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.91s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          7.18s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.90s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              5.74s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.06s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             6.11s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.73s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             65.20s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             73.24s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          43.59s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.80s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        44.21s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.60s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            43.63s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.73s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           43.04s    1211649419 bytes  OK  verify=PASS
      decodeLazy2-n40            1.52s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         39.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.60s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             44.23s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.67s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            38.90s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.84s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         42.40s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.66s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             38.96s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.87s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            46.91s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.07s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-[OK] bench_results_csv\decode_summary.csv written 10:42:42
-[Info] Decode verification complete. 10:42:42
-[DONE] decode write ..\claw-code 10:42:42 
-[INFO] Running rss-win.bat ..\claw-code 40 nul 10:42:42 
-[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\claw-code-rss-nul-n40-20260711-104242.log
-[rss] start: 2026-07-11 10:42:42
+[OK] bench_results_csv\decode_summary.csv written  6:44:03
+[Info] Decode verification complete.  6:44:03
+[DONE] decode write ..\claw-code  6:44:03 
+[INFO] Running rss-win.bat ..\claw-code 40 nul  6:44:03 
+[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\claw-code-rss-nul-n40-20260713-064403.log
+[rss] start: 2026-07-13 06:44:03
 [rss] cwd: C:\Users\lowei\proj\lzfse2\helper_windows
 [rss] dataset: ..\claw-code
 [rss] n: 40
 [rss] output: write to nul
 [rss] Other3 (nul) ...
-  encode RSS = 122.9 MB   decode RSS = 259.1 MB
+  encode RSS = 123.4 MB   decode RSS = 258.9 MB
 [rss] Optimal3 (nul) ...
-  encode RSS = 498 MB   decode RSS = 255.6 MB
+  encode RSS = 502.9 MB   decode RSS = 255.2 MB
 [rss] BVX3 (nul) ...
-  encode RSS = 134.5 MB   decode RSS = 249.5 MB
+  encode RSS = 133.6 MB   decode RSS = 248.6 MB
 [rss] Lazy2 (nul) ...
-  encode RSS = 483.1 MB   decode RSS = 248.2 MB
+  encode RSS = 485.5 MB   decode RSS = 249.2 MB
 [rss] Optimal (nul) ...
-  encode RSS = 508.8 MB   decode RSS = 245.1 MB
+  encode RSS = 509.6 MB   decode RSS = 244.9 MB
 [rss] LZ4 (nul) ...
   encode RSS = 8.3 MB   decode RSS = 8.8 MB
 [rss] ZSTD (nul) ...
-  encode RSS = 8.8 MB   decode RSS = 8.8 MB
+  encode RSS = 8.3 MB   decode RSS = 8.3 MB
 [rss] Tgz (nul) ...
-  encode RSS = 6.6 MB   decode RSS = 6.4 MB
+  encode RSS = 6.4 MB   decode RSS = 6.2 MB
 
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\rss_summary.csv written (peak RSS = Peak Working Set, n=40, output=nul):
   dataset,format,output_mode,encode_rss_mb,decode_rss_mb
-  claw-code,Other3,nul,122.9,259.1
-  claw-code,Optimal3,nul,498,255.6
-  claw-code,BVX3,nul,134.5,249.5
-  claw-code,Lazy2,nul,483.1,248.2
-  claw-code,Optimal,nul,508.8,245.1
+  claw-code,Other3,nul,123.4,258.9
+  claw-code,Optimal3,nul,502.9,255.2
+  claw-code,BVX3,nul,133.6,248.6
+  claw-code,Lazy2,nul,485.5,249.2
+  claw-code,Optimal,nul,509.6,244.9
   claw-code,LZ4,nul,8.3,8.8
-  claw-code,ZSTD,nul,8.8,8.8
-  claw-code,Tgz,nul,6.6,6.4
-[rss] finish: 2026-07-11 10:46:10
-[DONE] rss nul ..\claw-code 10:46:10 
-[INFO] Running rss-win.bat ..\claw-code 40 write 10:46:10 
-[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\claw-code-rss-file-n40-20260711-104611.log
-[rss] start: 2026-07-11 10:46:11
+  claw-code,ZSTD,nul,8.3,8.3
+  claw-code,Tgz,nul,6.4,6.2
+[rss] finish: 2026-07-13 06:47:23
+[DONE] rss nul ..\claw-code  6:47:23 
+[INFO] Running rss-win.bat ..\claw-code 40 write  6:47:23 
+[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\claw-code-rss-file-n40-20260713-064724.log
+[rss] start: 2026-07-13 06:47:24
 [rss] cwd: C:\Users\lowei\proj\lzfse2\helper_windows
 [rss] dataset: ..\claw-code
 [rss] n: 40
 [rss] output: write to file
 [rss] Other3 (file) ...
-  encode RSS = 119.6 MB   decode RSS = 259.3 MB
+  encode RSS = 130.3 MB   decode RSS = 257.5 MB
 [rss] Optimal3 (file) ...
-  encode RSS = 501.8 MB   decode RSS = 257.1 MB
+  encode RSS = 499.1 MB   decode RSS = 255.4 MB
 [rss] BVX3 (file) ...
-  encode RSS = 127.8 MB   decode RSS = 249.3 MB
+  encode RSS = 139.3 MB   decode RSS = 248.5 MB
 [rss] Lazy2 (file) ...
-  encode RSS = 483.5 MB   decode RSS = 248.4 MB
+  encode RSS = 482.7 MB   decode RSS = 248.8 MB
 [rss] Optimal (file) ...
-  encode RSS = 510 MB   decode RSS = 245.1 MB
+  encode RSS = 508.8 MB   decode RSS = 244.9 MB
 [rss] LZ4 (file) ...
-  encode RSS = 8.9 MB   decode RSS = 8.3 MB
+  encode RSS = 8.8 MB   decode RSS = 8.8 MB
 [rss] ZSTD (file) ...
-  encode RSS = 8.4 MB   decode RSS = 8.4 MB
+  encode RSS = 8.3 MB   decode RSS = 8.8 MB
 [rss] Tgz (file) ...
-  encode RSS = 6.6 MB   decode RSS = 6.1 MB
+  encode RSS = 6.4 MB   decode RSS = 5.9 MB
 
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\rss_summary.csv written (peak RSS = Peak Working Set, n=40, output=file):
   dataset,format,output_mode,encode_rss_mb,decode_rss_mb
-  claw-code,Other3,nul,122.9,259.1
-  claw-code,Optimal3,nul,498,255.6
-  claw-code,BVX3,nul,134.5,249.5
-  claw-code,Lazy2,nul,483.1,248.2
-  claw-code,Optimal,nul,508.8,245.1
+  claw-code,Other3,nul,123.4,258.9
+  claw-code,Optimal3,nul,502.9,255.2
+  claw-code,BVX3,nul,133.6,248.6
+  claw-code,Lazy2,nul,485.5,249.2
+  claw-code,Optimal,nul,509.6,244.9
   claw-code,LZ4,nul,8.3,8.8
-  claw-code,ZSTD,nul,8.8,8.8
-  claw-code,Tgz,nul,6.6,6.4
-  claw-code,Other3,file,119.6,259.3
-  claw-code,Optimal3,file,501.8,257.1
-  claw-code,BVX3,file,127.8,249.3
-  claw-code,Lazy2,file,483.5,248.4
-  claw-code,Optimal,file,510,245.1
-  claw-code,LZ4,file,8.9,8.3
-  claw-code,ZSTD,file,8.4,8.4
-  claw-code,Tgz,file,6.6,6.1
-[rss] finish: 2026-07-11 10:49:52
-[DONE] rss write ..\claw-code 10:49:54 
-[INFO] Running encode-win.bat ..\llama.cpp 40 nul 10:49:54 
+  claw-code,ZSTD,nul,8.3,8.3
+  claw-code,Tgz,nul,6.4,6.2
+  claw-code,Other3,file,130.3,257.5
+  claw-code,Optimal3,file,499.1,255.4
+  claw-code,BVX3,file,139.3,248.5
+  claw-code,Lazy2,file,482.7,248.8
+  claw-code,Optimal,file,508.8,244.9
+  claw-code,LZ4,file,8.8,8.8
+  claw-code,ZSTD,file,8.3,8.8
+  claw-code,Tgz,file,6.4,5.9
+[rss] finish: 2026-07-13 06:51:12
+[DONE] rss write ..\claw-code  6:51:15 
+[INFO] Running encode-win.bat ..\llama.cpp 40 nul  6:51:15 
 [Info] Warm-cache dataset / Pre-reading dataset to warm OS cache...
-[Info] Starting tgz, lzfse, tlz4, zstd benchmark... 10:50:28
-[Info] Running tgz encode benchmark... 10:50:28
-[DONE] tgz encode 10:50:49
-[Info] Running lzfse other3 encode benchmark... 10:50:49
-[DONE] lzfse other3 encode 10:51:07
-[Info] Running lzfse other3_optimal3 encode benchmark... 10:51:07
-[DONE] lzfse other3_optimal3 encode 10:51:33
-[Info] Running lzfse bvx3 encode benchmark... 10:51:33
-[DONE] lzfse bvx3 encode 10:51:50
-[Info] Running lzfse lazy2 encode benchmark... 10:51:50
-[DONE] lzfse lazy2 encode 10:52:09
-[Info] Running lzfse optimal encode benchmark... 10:52:09
-[DONE] lzfse optimal encode 10:52:43
-[Info] Running lz4 encode benchmark... 10:52:43
-[DONE] lz4 encode 10:53:02
-[Info] Running zstd encode benchmark... 10:53:02
-[DONE] zstd encode 10:53:19
-[Info] Summarising benchmark results... 10:53:19
+[Info] Starting tgz, lzfse, tlz4, zstd benchmark...  6:51:44
+[Info] Running tgz encode benchmark...  6:51:44
+[DONE] tgz encode  6:51:59
+[Info] Running lzfse other3 encode benchmark...  6:51:59
+[DONE] lzfse other3 encode  6:52:15
+[Info] Running lzfse other3_optimal3 encode benchmark...  6:52:15
+[DONE] lzfse other3_optimal3 encode  6:52:40
+[Info] Running lzfse bvx3 encode benchmark...  6:52:40
+[DONE] lzfse bvx3 encode  6:52:56
+[Info] Running lzfse lazy2 encode benchmark...  6:52:56
+[DONE] lzfse lazy2 encode  6:53:14
+[Info] Running lzfse optimal encode benchmark...  6:53:14
+[DONE] lzfse optimal encode  6:53:46
+[Info] Running lz4 encode benchmark...  6:53:46
+[DONE] lz4 encode  6:54:02
+[Info] Running zstd encode benchmark...  6:54:02
+[DONE] zstd encode  6:54:20
+[Info] Summarising benchmark results...  6:54:20
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             15.09s     488898962 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.45s     482093259 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        31.57s     459102000 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             6.12s     454124470 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           30.35s     426823795 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         59.74s     405422267 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              6.00s     576488517 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            10.58s     383499764 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             55.20s     615383040 bytes  OK
-     encodeTgz-n40             20.25s             0 bytes  OK
-     encodeOther3-n40          10.08s     613545393 bytes  OK
-     encodeOther3-n40          16.34s             0 bytes  OK
-     encodeOptimal3-n40        31.14s     599578658 bytes  OK
-     encodeOptimal3-n40        25.23s             0 bytes  OK
-     encodeBVX3-n40            11.02s     603675997 bytes  OK
-     encodeBVX3-n40            15.89s             0 bytes  OK
-     encodeLazy2-n40           14.29s     589304081 bytes  OK
-     encodeLazy2-n40           17.80s             0 bytes  OK
-     encodeOptimal-n40         42.80s     579176017 bytes  OK
-     encodeOptimal-n40         33.49s             0 bytes  OK
-     encodeLZ4-n40             11.72s     646311357 bytes  OK
-     encodeLZ4-n40             17.13s             0 bytes  OK
-     encodeZSTD-n40            11.49s     561421371 bytes  OK
-     encodeZSTD-n40            16.82s             0 bytes  OK
+     encodeTgz-n40              8.15s     491317350 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           7.36s     482093258 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        46.54s     459102000 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             7.35s     454124496 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           36.35s     426823788 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40         78.68s     405422088 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              7.77s     576488516 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            11.73s     383499763 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             55.49s     615383040 bytes  OK
+     encodeTgz-n40             13.47s             0 bytes  OK
+     encodeOther3-n40          10.04s     613545387 bytes  OK
+     encodeOther3-n40          15.34s             0 bytes  OK
+     encodeOptimal3-n40        31.75s     599578907 bytes  OK
+     encodeOptimal3-n40        23.15s             0 bytes  OK
+     encodeBVX3-n40            10.32s     603676000 bytes  OK
+     encodeBVX3-n40            15.43s             0 bytes  OK
+     encodeLazy2-n40           14.11s     589304078 bytes  OK
+     encodeLazy2-n40           16.60s             0 bytes  OK
+     encodeOptimal-n40         44.79s     579176043 bytes  OK
+     encodeOptimal-n40         30.53s             0 bytes  OK
+     encodeLZ4-n40             11.81s     646311357 bytes  OK
+     encodeLZ4-n40             15.71s             0 bytes  OK
+     encodeZSTD-n40            12.07s     561421371 bytes  OK
+     encodeZSTD-n40            15.94s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             21.46s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             18.99s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           8.64s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.63s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         8.71s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.54s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             8.73s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.66s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            8.53s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.59s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          8.45s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.54s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              7.20s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.81s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            25.42s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.38s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             59.68s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             67.69s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          39.24s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           2.41s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        38.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.68s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            38.56s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           39.32s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             11.56s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40              8.77s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           7.32s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.10s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         7.33s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.89s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             7.43s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.94s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            7.51s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.91s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          7.18s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.90s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              5.74s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.06s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             6.11s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.73s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             65.20s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             73.24s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          43.59s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.80s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        44.21s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.60s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            43.63s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.73s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           43.04s    1211649419 bytes  OK  verify=PASS
      decodeLazy2-n40            1.52s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         39.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.60s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             44.23s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.67s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            38.90s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.84s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         42.40s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.66s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             38.96s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.87s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            46.91s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.07s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-[OK] bench_results_csv\encode_summary.csv written 10:53:19
-[DONE] encode nul ..\llama.cpp 10:53:19 
-[INFO] Running encode-win.bat ..\llama.cpp 40 write 10:53:20 
+[OK] bench_results_csv\encode_summary.csv written  6:54:20
+[DONE] encode nul ..\llama.cpp  6:54:20 
+[INFO] Running encode-win.bat ..\llama.cpp 40 write  6:54:20 
 [Info] Warm-cache dataset / Pre-reading dataset to warm OS cache...
-[Info] Starting tgz, lzfse, tlz4, zstd benchmark... 10:53:33
-[Info] Running tgz encode benchmark... 10:53:33
-[DONE] tgz encode 10:53:54
-[Info] Running lzfse other3 encode benchmark... 10:53:54
-[DONE] lzfse other3 encode 10:54:11
-[Info] Running lzfse other3_optimal3 encode benchmark... 10:54:11
-[DONE] lzfse other3_optimal3 encode 10:54:36
-[Info] Running lzfse bvx3 encode benchmark... 10:54:36
-[DONE] lzfse bvx3 encode 10:54:53
-[Info] Running lzfse lazy2 encode benchmark... 10:54:53
-[DONE] lzfse lazy2 encode 10:55:11
-[Info] Running lzfse optimal encode benchmark... 10:55:11
-[DONE] lzfse optimal encode 10:55:44
-[Info] Running lz4 encode benchmark... 10:55:44
-[DONE] lz4 encode 10:56:01
-[Info] Running zstd encode benchmark... 10:56:01
-[DONE] zstd encode 10:56:19
-[Info] Summarising benchmark results... 10:56:19
+[Info] Starting tgz, lzfse, tlz4, zstd benchmark...  6:54:32
+[Info] Running tgz encode benchmark...  6:54:32
+[DONE] tgz encode  6:54:48
+[Info] Running lzfse other3 encode benchmark...  6:54:48
+[DONE] lzfse other3 encode  6:55:04
+[Info] Running lzfse other3_optimal3 encode benchmark...  6:55:04
+[DONE] lzfse other3_optimal3 encode  6:55:29
+[Info] Running lzfse bvx3 encode benchmark...  6:55:29
+[DONE] lzfse bvx3 encode  6:55:45
+[Info] Running lzfse lazy2 encode benchmark...  6:55:45
+[DONE] lzfse lazy2 encode  6:56:03
+[Info] Running lzfse optimal encode benchmark...  6:56:03
+[DONE] lzfse optimal encode  6:56:35
+[Info] Running lz4 encode benchmark...  6:56:35
+[DONE] lz4 encode  6:56:53
+[Info] Running zstd encode benchmark...  6:56:53
+[DONE] zstd encode  6:57:11
+[Info] Summarising benchmark results...  6:57:11
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             15.09s     488898962 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.45s     482093259 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        31.57s     459102000 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             6.12s     454124470 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           30.35s     426823795 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         59.74s     405422267 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              6.00s     576488517 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            10.58s     383499764 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             19.77s     615680839 bytes  OK
-     encodeTgz-n40             20.25s             0 bytes  OK
-     encodeOther3-n40          15.81s     613591448 bytes  OK
-     encodeOther3-n40          16.34s             0 bytes  OK
-     encodeOptimal3-n40        24.40s     599612634 bytes  OK
-     encodeOptimal3-n40        25.23s             0 bytes  OK
-     encodeBVX3-n40            15.72s     602853283 bytes  OK
-     encodeBVX3-n40            15.89s             0 bytes  OK
-     encodeLazy2-n40           16.47s     589321707 bytes  OK
-     encodeLazy2-n40           17.80s             0 bytes  OK
-     encodeOptimal-n40         32.09s     578117231 bytes  OK
-     encodeOptimal-n40         33.49s             0 bytes  OK
-     encodeLZ4-n40             16.16s     646458767 bytes  OK
-     encodeLZ4-n40             17.13s             0 bytes  OK
-     encodeZSTD-n40            16.80s     561681483 bytes  OK
-     encodeZSTD-n40            16.82s             0 bytes  OK
+     encodeTgz-n40              8.15s     491317350 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           7.36s     482093258 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        46.54s     459102000 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             7.35s     454124496 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           36.35s     426823788 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40         78.68s     405422088 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              7.77s     576488516 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            11.73s     383499763 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             14.33s     615676248 bytes  OK
+     encodeTgz-n40             13.47s             0 bytes  OK
+     encodeOther3-n40          15.28s     613591418 bytes  OK
+     encodeOther3-n40          15.34s             0 bytes  OK
+     encodeOptimal3-n40        23.10s     599612634 bytes  OK
+     encodeOptimal3-n40        23.15s             0 bytes  OK
+     encodeBVX3-n40            15.44s     602853279 bytes  OK
+     encodeBVX3-n40            15.43s             0 bytes  OK
+     encodeLazy2-n40           16.23s     589321707 bytes  OK
+     encodeLazy2-n40           16.60s             0 bytes  OK
+     encodeOptimal-n40         30.84s     578117222 bytes  OK
+     encodeOptimal-n40         30.53s             0 bytes  OK
+     encodeLZ4-n40             16.43s     646458763 bytes  OK
+     encodeLZ4-n40             15.71s             0 bytes  OK
+     encodeZSTD-n40            16.56s     561681486 bytes  OK
+     encodeZSTD-n40            15.94s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             21.46s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             18.99s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           8.64s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.63s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         8.71s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.54s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             8.73s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.66s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            8.53s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.59s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          8.45s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.54s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              7.20s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.81s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            25.42s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.38s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             59.68s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             67.69s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          39.24s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           2.41s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        38.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.68s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            38.56s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           39.32s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             11.56s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40              8.77s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           7.32s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.10s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         7.33s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.89s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             7.43s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.94s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            7.51s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.91s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          7.18s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.90s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              5.74s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.06s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             6.11s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.73s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             65.20s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             73.24s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          43.59s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.80s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        44.21s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.60s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            43.63s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.73s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           43.04s    1211649419 bytes  OK  verify=PASS
      decodeLazy2-n40            1.52s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         39.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.60s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             44.23s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.67s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            38.90s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.84s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         42.40s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.66s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             38.96s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.87s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            46.91s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.07s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-[OK] bench_results_csv\encode_summary.csv written 10:56:19
-[DONE] encode write ..\llama.cpp 10:56:19 
-[INFO] Running decode-win.bat ..\llama.cpp 40 nul 10:56:19 
-[Info] Warming cache for decode benchmark... 10:56:19
-[Info] Starting decode benchmark... 10:56:22
-[Info] Running tgz decode benchmark... 10:56:22
-[DONE] tgz decode 10:56:58
-[Info] Running lzfse other3 decode benchmark... 10:56:58
-[DONE] lzfse other3 decode 10:57:04
-[Info] Running lzfse other3_optimal3 decode benchmark... 10:57:04
-[DONE] lzfse other3_optimal3 decode 10:57:09
-[Info] Running lzfse bvx3 decode benchmark... 10:57:09
-[DONE] lzfse bvx3 decode 10:57:15
-[Info] Running lzfse lazy2 decode benchmark... 10:57:15
-[DONE] lzfse lazy2 decode 10:57:19
-[Info] Running lzfse optimal decode benchmark... 10:57:19
-[DONE] lzfse optimal decode 10:57:25
-[Info] Running lz4 decode benchmark... 10:57:25
-[DONE] lz4 decode 10:57:29
-[Info] Running zstd decode benchmark... 10:57:29
-[DONE] zstd decode 10:57:33
-[Info] Verifying decode correctness (tar tf check)... 10:57:33
+[OK] bench_results_csv\encode_summary.csv written  6:57:11
+[DONE] encode write ..\llama.cpp  6:57:11 
+[INFO] Running decode-win.bat ..\llama.cpp 40 nul  6:57:11 
+[Info] Warming cache for decode benchmark...  6:57:11
+[Info] Starting decode benchmark...  6:57:14
+[Info] Running tgz decode benchmark...  6:57:14
+[DONE] tgz decode  6:57:44
+[Info] Running lzfse other3 decode benchmark...  6:57:44
+[DONE] lzfse other3 decode  6:57:49
+[Info] Running lzfse other3_optimal3 decode benchmark...  6:57:49
+[DONE] lzfse other3_optimal3 decode  6:57:55
+[Info] Running lzfse bvx3 decode benchmark...  6:57:55
+[DONE] lzfse bvx3 decode  6:58:00
+[Info] Running lzfse lazy2 decode benchmark...  6:58:00
+[DONE] lzfse lazy2 decode  6:58:05
+[Info] Running lzfse optimal decode benchmark...  6:58:05
+[DONE] lzfse optimal decode  6:58:10
+[Info] Running lz4 decode benchmark...  6:58:10
+[DONE] lz4 decode  6:58:14
+[Info] Running zstd decode benchmark...  6:58:14
+[DONE] zstd decode  6:58:19
+[Info] Verifying decode correctness (tar tf check)...  6:58:19
 [PASS] TGZ 
 [PASS] LZFSE Other3 
 [PASS] LZFSE Optimal3 
@@ -788,97 +788,97 @@ TEST_OK 10:29:56
 [PASS] LZFSE Optimal 
 [PASS] LZ4 
 [PASS] ZSTD 
-[Info] Summarising decode results... 10:58:09
+[Info] Summarising decode results...  6:58:41
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             15.09s     488898962 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.45s     482093259 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        31.57s     459102000 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             6.12s     454124470 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           30.35s     426823795 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         59.74s     405422267 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              6.00s     576488517 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            10.58s     383499764 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             19.77s     615680839 bytes  OK
-     encodeTgz-n40             20.25s             0 bytes  OK
-     encodeOther3-n40          15.81s     613591448 bytes  OK
-     encodeOther3-n40          16.34s             0 bytes  OK
-     encodeOptimal3-n40        24.40s     599612634 bytes  OK
-     encodeOptimal3-n40        25.23s             0 bytes  OK
-     encodeBVX3-n40            15.72s     602853283 bytes  OK
-     encodeBVX3-n40            15.89s             0 bytes  OK
-     encodeLazy2-n40           16.47s     589321707 bytes  OK
-     encodeLazy2-n40           17.80s             0 bytes  OK
-     encodeOptimal-n40         32.09s     578117231 bytes  OK
-     encodeOptimal-n40         33.49s             0 bytes  OK
-     encodeLZ4-n40             16.16s     646458767 bytes  OK
-     encodeLZ4-n40             17.13s             0 bytes  OK
-     encodeZSTD-n40            16.80s     561681483 bytes  OK
-     encodeZSTD-n40            16.82s             0 bytes  OK
+     encodeTgz-n40              8.15s     491317350 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           7.36s     482093258 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        46.54s     459102000 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             7.35s     454124496 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           36.35s     426823788 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40         78.68s     405422088 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              7.77s     576488516 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            11.73s     383499763 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             14.33s     615676248 bytes  OK
+     encodeTgz-n40             13.47s             0 bytes  OK
+     encodeOther3-n40          15.28s     613591418 bytes  OK
+     encodeOther3-n40          15.34s             0 bytes  OK
+     encodeOptimal3-n40        23.10s     599612634 bytes  OK
+     encodeOptimal3-n40        23.15s             0 bytes  OK
+     encodeBVX3-n40            15.44s     602853279 bytes  OK
+     encodeBVX3-n40            15.43s             0 bytes  OK
+     encodeLazy2-n40           16.23s     589321707 bytes  OK
+     encodeLazy2-n40           16.60s             0 bytes  OK
+     encodeOptimal-n40         30.84s     578117222 bytes  OK
+     encodeOptimal-n40         30.53s             0 bytes  OK
+     encodeLZ4-n40             16.43s     646458763 bytes  OK
+     encodeLZ4-n40             15.71s             0 bytes  OK
+     encodeZSTD-n40            16.56s     561681486 bytes  OK
+     encodeZSTD-n40            15.94s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             21.46s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             18.99s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           8.64s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.63s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         8.71s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.54s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             8.73s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.66s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            8.53s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.59s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          8.45s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.54s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              7.20s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.81s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            25.42s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.38s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             59.68s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             32.61s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          39.24s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           1.61s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        38.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.51s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            38.56s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           39.32s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.44s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         39.99s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             44.23s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.69s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            38.90s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.95s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             11.56s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40              8.77s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           7.32s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.10s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         7.33s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.89s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             7.43s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.94s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            7.51s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.91s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          7.18s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.90s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              5.74s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.06s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             6.11s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.73s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             65.20s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             25.80s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          43.59s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.77s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        44.21s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.69s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            43.63s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.62s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           43.04s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.59s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         42.40s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.67s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             38.96s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.86s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            46.91s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.16s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-[OK] bench_results_csv\decode_summary.csv written 10:58:09
-[Info] Decode verification complete. 10:58:09
-[DONE] decode nul ..\llama.cpp 10:58:09 
-[INFO] Running decode-win.bat ..\llama.cpp 40 write 10:58:09 
-[Info] Warming cache for decode benchmark... 10:58:09
-[Info] Starting decode benchmark with write output to decoded\llama.cpp ... 10:58:12
-[Info] Running tgz decode benchmark... 10:58:12
-[DONE] tgz decode 10:59:08
-[Info] Running lzfse other3 decode benchmark... 10:59:08
-[DONE] lzfse other3 decode 10:59:39
-[Info] Running lzfse other3_optimal3 decode benchmark... 10:59:39
-[DONE] lzfse other3_optimal3 decode 11:00:24
-[Info] Running lzfse bvx3 decode benchmark... 11:00:24
-[DONE] lzfse bvx3 decode 11:01:03
-[Info] Running lzfse lazy2 decode benchmark... 11:01:03
-[DONE] lzfse lazy2 decode 11:01:38
-[Info] Running lzfse optimal decode benchmark... 11:01:38
-[DONE] lzfse optimal decode 11:02:15
-[Info] Running lz4 decode benchmark... 11:02:15
-[DONE] lz4 decode 11:02:50
-[Info] Running zstd decode benchmark... 11:02:50
-[DONE] zstd decode 11:03:24
-[Info] Verifying decoded folders against TGZ output... 11:03:24
+[OK] bench_results_csv\decode_summary.csv written  6:58:41
+[Info] Decode verification complete.  6:58:41
+[DONE] decode nul ..\llama.cpp  6:58:41 
+[INFO] Running decode-win.bat ..\llama.cpp 40 write  6:58:41 
+[Info] Warming cache for decode benchmark...  6:58:41
+[Info] Starting decode benchmark with write output to decoded\llama.cpp ...  6:58:45
+[Info] Running tgz decode benchmark...  6:58:45
+[DONE] tgz decode  6:59:39
+[Info] Running lzfse other3 decode benchmark...  6:59:39
+[DONE] lzfse other3 decode  7:00:12
+[Info] Running lzfse other3_optimal3 decode benchmark...  7:00:12
+[DONE] lzfse other3_optimal3 decode  7:00:44
+[Info] Running lzfse bvx3 decode benchmark...  7:00:44
+[DONE] lzfse bvx3 decode  7:01:17
+[Info] Running lzfse lazy2 decode benchmark...  7:01:17
+[DONE] lzfse lazy2 decode  7:01:50
+[Info] Running lzfse optimal decode benchmark...  7:01:50
+[DONE] lzfse optimal decode  7:02:27
+[Info] Running lz4 decode benchmark...  7:02:27
+[DONE] lz4 decode  7:03:17
+[Info] Running zstd decode benchmark...  7:03:17
+[DONE] zstd decode  7:04:04
+[Info] Verifying decoded folders against TGZ output...  7:04:04
 [PASS] TGZ
 [PASS] LZFSE Other3
 [PASS] LZFSE Optimal3
@@ -887,259 +887,259 @@ TEST_OK 10:29:56
 [PASS] LZFSE Optimal
 [PASS] LZ4
 [PASS] ZSTD
-[Info] Summarising decode results... 11:26:39
+[Info] Summarising decode results...  7:29:40
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             15.09s     488898962 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.45s     482093259 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        31.57s     459102000 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             6.12s     454124470 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           30.35s     426823795 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         59.74s     405422267 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              6.00s     576488517 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            10.58s     383499764 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             19.77s     615680839 bytes  OK
-     encodeTgz-n40             20.25s             0 bytes  OK
-     encodeOther3-n40          15.81s     613591448 bytes  OK
-     encodeOther3-n40          16.34s             0 bytes  OK
-     encodeOptimal3-n40        24.40s     599612634 bytes  OK
-     encodeOptimal3-n40        25.23s             0 bytes  OK
-     encodeBVX3-n40            15.72s     602853283 bytes  OK
-     encodeBVX3-n40            15.89s             0 bytes  OK
-     encodeLazy2-n40           16.47s     589321707 bytes  OK
-     encodeLazy2-n40           17.80s             0 bytes  OK
-     encodeOptimal-n40         32.09s     578117231 bytes  OK
-     encodeOptimal-n40         33.49s             0 bytes  OK
-     encodeLZ4-n40             16.16s     646458767 bytes  OK
-     encodeLZ4-n40             17.13s             0 bytes  OK
-     encodeZSTD-n40            16.80s     561681483 bytes  OK
-     encodeZSTD-n40            16.82s             0 bytes  OK
+     encodeTgz-n40              8.15s     491317350 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           7.36s     482093258 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        46.54s     459102000 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             7.35s     454124496 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           36.35s     426823788 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40         78.68s     405422088 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              7.77s     576488516 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            11.73s     383499763 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             14.33s     615676248 bytes  OK
+     encodeTgz-n40             13.47s             0 bytes  OK
+     encodeOther3-n40          15.28s     613591418 bytes  OK
+     encodeOther3-n40          15.34s             0 bytes  OK
+     encodeOptimal3-n40        23.10s     599612634 bytes  OK
+     encodeOptimal3-n40        23.15s             0 bytes  OK
+     encodeBVX3-n40            15.44s     602853279 bytes  OK
+     encodeBVX3-n40            15.43s             0 bytes  OK
+     encodeLazy2-n40           16.23s     589321707 bytes  OK
+     encodeLazy2-n40           16.60s             0 bytes  OK
+     encodeOptimal-n40         30.84s     578117222 bytes  OK
+     encodeOptimal-n40         30.53s             0 bytes  OK
+     encodeLZ4-n40             16.43s     646458763 bytes  OK
+     encodeLZ4-n40             15.71s             0 bytes  OK
+     encodeZSTD-n40            16.56s     561681486 bytes  OK
+     encodeZSTD-n40            15.94s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             21.46s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             18.99s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           8.64s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.63s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         8.71s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.54s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             8.73s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.66s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            8.53s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.59s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          8.45s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.54s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              7.20s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.81s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            25.42s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.38s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             52.66s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             32.61s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          27.45s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           1.61s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        42.42s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.51s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            35.34s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           32.11s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.44s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         33.40s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             30.82s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.69s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            30.00s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.95s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             11.56s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40              8.77s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           7.32s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.10s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         7.33s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.89s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             7.43s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.94s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            7.51s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.91s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          7.18s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.90s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              5.74s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.06s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             6.11s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.73s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             50.22s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             25.80s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          29.07s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.77s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        29.29s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.69s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            29.32s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.62s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           29.11s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.59s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         32.84s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.67s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             46.37s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.86s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            43.86s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.16s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-[OK] bench_results_csv\decode_summary.csv written 11:26:39
-[Info] Decode verification complete. 11:26:39
-[DONE] decode write ..\llama.cpp 11:26:39 
-[INFO] Running rss-win.bat ..\llama.cpp 40 nul 11:26:39 
-[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\llama.cpp-rss-nul-n40-20260711-112639.log
-[rss] start: 2026-07-11 11:26:39
+[OK] bench_results_csv\decode_summary.csv written  7:29:40
+[Info] Decode verification complete.  7:29:40
+[DONE] decode write ..\llama.cpp  7:29:40 
+[INFO] Running rss-win.bat ..\llama.cpp 40 nul  7:29:40 
+[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\llama.cpp-rss-nul-n40-20260713-072940.log
+[rss] start: 2026-07-13 07:29:40
 [rss] cwd: C:\Users\lowei\proj\lzfse2\helper_windows
 [rss] dataset: ..\llama.cpp
 [rss] n: 40
 [rss] output: write to nul
 [rss] Other3 (nul) ...
-  encode RSS = 135.4 MB   decode RSS = 345.5 MB
+  encode RSS = 143.3 MB   decode RSS = 346.8 MB
 [rss] Optimal3 (nul) ...
-  encode RSS = 755.7 MB   decode RSS = 346.8 MB
+  encode RSS = 751.6 MB   decode RSS = 345.6 MB
 [rss] BVX3 (nul) ...
-  encode RSS = 155 MB   decode RSS = 345.9 MB
+  encode RSS = 173.9 MB   decode RSS = 345.8 MB
 [rss] Lazy2 (nul) ...
-  encode RSS = 682.7 MB   decode RSS = 346.2 MB
+  encode RSS = 651.6 MB   decode RSS = 346.3 MB
 [rss] Optimal (nul) ...
-  encode RSS = 733.8 MB   decode RSS = 344.9 MB
+  encode RSS = 684.4 MB   decode RSS = 344.8 MB
 [rss] LZ4 (nul) ...
-  encode RSS = 8.8 MB   decode RSS = 8.3 MB
+  encode RSS = 8.3 MB   decode RSS = 8.8 MB
 [rss] ZSTD (nul) ...
-  encode RSS = 8.3 MB   decode RSS = 8.3 MB
+  encode RSS = 8.8 MB   decode RSS = 8.3 MB
 [rss] Tgz (nul) ...
-  encode RSS = 6.5 MB   decode RSS = 6.2 MB
+  encode RSS = 6.6 MB   decode RSS = 6.2 MB
 
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\rss_summary.csv written (peak RSS = Peak Working Set, n=40, output=nul):
   dataset,format,output_mode,encode_rss_mb,decode_rss_mb
-  claw-code,Other3,nul,122.9,259.1
-  claw-code,Optimal3,nul,498,255.6
-  claw-code,BVX3,nul,134.5,249.5
-  claw-code,Lazy2,nul,483.1,248.2
-  claw-code,Optimal,nul,508.8,245.1
+  claw-code,Other3,nul,123.4,258.9
+  claw-code,Optimal3,nul,502.9,255.2
+  claw-code,BVX3,nul,133.6,248.6
+  claw-code,Lazy2,nul,485.5,249.2
+  claw-code,Optimal,nul,509.6,244.9
   claw-code,LZ4,nul,8.3,8.8
-  claw-code,ZSTD,nul,8.8,8.8
-  claw-code,Tgz,nul,6.6,6.4
-  claw-code,Other3,file,119.6,259.3
-  claw-code,Optimal3,file,501.8,257.1
-  claw-code,BVX3,file,127.8,249.3
-  claw-code,Lazy2,file,483.5,248.4
-  claw-code,Optimal,file,510,245.1
-  claw-code,LZ4,file,8.9,8.3
-  claw-code,ZSTD,file,8.4,8.4
-  claw-code,Tgz,file,6.6,6.1
-  llama.cpp,Other3,nul,135.4,345.5
-  llama.cpp,Optimal3,nul,755.7,346.8
-  llama.cpp,BVX3,nul,155,345.9
-  llama.cpp,Lazy2,nul,682.7,346.2
-  llama.cpp,Optimal,nul,733.8,344.9
-  llama.cpp,LZ4,nul,8.8,8.3
-  llama.cpp,ZSTD,nul,8.3,8.3
-  llama.cpp,Tgz,nul,6.5,6.2
-[rss] finish: 2026-07-11 11:29:14
-[DONE] rss nul ..\llama.cpp 11:29:14 
-[INFO] Running rss-win.bat ..\llama.cpp 40 write 11:29:14 
-[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\llama.cpp-rss-file-n40-20260711-112914.log
-[rss] start: 2026-07-11 11:29:14
+  claw-code,ZSTD,nul,8.3,8.3
+  claw-code,Tgz,nul,6.4,6.2
+  claw-code,Other3,file,130.3,257.5
+  claw-code,Optimal3,file,499.1,255.4
+  claw-code,BVX3,file,139.3,248.5
+  claw-code,Lazy2,file,482.7,248.8
+  claw-code,Optimal,file,508.8,244.9
+  claw-code,LZ4,file,8.8,8.8
+  claw-code,ZSTD,file,8.3,8.8
+  claw-code,Tgz,file,6.4,5.9
+  llama.cpp,Other3,nul,143.3,346.8
+  llama.cpp,Optimal3,nul,751.6,345.6
+  llama.cpp,BVX3,nul,173.9,345.8
+  llama.cpp,Lazy2,nul,651.6,346.3
+  llama.cpp,Optimal,nul,684.4,344.8
+  llama.cpp,LZ4,nul,8.3,8.8
+  llama.cpp,ZSTD,nul,8.8,8.3
+  llama.cpp,Tgz,nul,6.6,6.2
+[rss] finish: 2026-07-13 07:33:03
+[DONE] rss nul ..\llama.cpp  7:33:03 
+[INFO] Running rss-win.bat ..\llama.cpp 40 write  7:33:03 
+[rss] log: C:\Users\lowei\proj\lzfse2\helper_windows\bench_logs\llama.cpp-rss-file-n40-20260713-073303.log
+[rss] start: 2026-07-13 07:33:03
 [rss] cwd: C:\Users\lowei\proj\lzfse2\helper_windows
 [rss] dataset: ..\llama.cpp
 [rss] n: 40
 [rss] output: write to file
 [rss] Other3 (file) ...
-  encode RSS = 140.2 MB   decode RSS = 345.6 MB
+  encode RSS = 149.4 MB   decode RSS = 346.8 MB
 [rss] Optimal3 (file) ...
-  encode RSS = 756.5 MB   decode RSS = 346.6 MB
+  encode RSS = 753.1 MB   decode RSS = 346.9 MB
 [rss] BVX3 (file) ...
-  encode RSS = 145.9 MB   decode RSS = 345.9 MB
+  encode RSS = 162 MB   decode RSS = 345.7 MB
 [rss] Lazy2 (file) ...
-  encode RSS = 668.8 MB   decode RSS = 344.6 MB
+  encode RSS = 632.8 MB   decode RSS = 344.8 MB
 [rss] Optimal (file) ...
-  encode RSS = 764.2 MB   decode RSS = 344.5 MB
+  encode RSS = 764.1 MB   decode RSS = 345.2 MB
 [rss] LZ4 (file) ...
-  encode RSS = 8.5 MB   decode RSS = 8.3 MB
+  encode RSS = 8.3 MB   decode RSS = 8.8 MB
 [rss] ZSTD (file) ...
-  encode RSS = 8.3 MB   decode RSS = 8.3 MB
+  encode RSS = 8.3 MB   decode RSS = 8.8 MB
 [rss] Tgz (file) ...
-  encode RSS = 6.5 MB   decode RSS = 6.9 MB
+  encode RSS = 6.6 MB   decode RSS = 7 MB
 
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\rss_summary.csv written (peak RSS = Peak Working Set, n=40, output=file):
   dataset,format,output_mode,encode_rss_mb,decode_rss_mb
-  claw-code,Other3,nul,122.9,259.1
-  claw-code,Optimal3,nul,498,255.6
-  claw-code,BVX3,nul,134.5,249.5
-  claw-code,Lazy2,nul,483.1,248.2
-  claw-code,Optimal,nul,508.8,245.1
+  claw-code,Other3,nul,123.4,258.9
+  claw-code,Optimal3,nul,502.9,255.2
+  claw-code,BVX3,nul,133.6,248.6
+  claw-code,Lazy2,nul,485.5,249.2
+  claw-code,Optimal,nul,509.6,244.9
   claw-code,LZ4,nul,8.3,8.8
-  claw-code,ZSTD,nul,8.8,8.8
-  claw-code,Tgz,nul,6.6,6.4
-  claw-code,Other3,file,119.6,259.3
-  claw-code,Optimal3,file,501.8,257.1
-  claw-code,BVX3,file,127.8,249.3
-  claw-code,Lazy2,file,483.5,248.4
-  claw-code,Optimal,file,510,245.1
-  claw-code,LZ4,file,8.9,8.3
-  claw-code,ZSTD,file,8.4,8.4
-  claw-code,Tgz,file,6.6,6.1
-  llama.cpp,Other3,nul,135.4,345.5
-  llama.cpp,Optimal3,nul,755.7,346.8
-  llama.cpp,BVX3,nul,155,345.9
-  llama.cpp,Lazy2,nul,682.7,346.2
-  llama.cpp,Optimal,nul,733.8,344.9
-  llama.cpp,LZ4,nul,8.8,8.3
-  llama.cpp,ZSTD,nul,8.3,8.3
-  llama.cpp,Tgz,nul,6.5,6.2
-  llama.cpp,Other3,file,140.2,345.6
-  llama.cpp,Optimal3,file,756.5,346.6
-  llama.cpp,BVX3,file,145.9,345.9
-  llama.cpp,Lazy2,file,668.8,344.6
-  llama.cpp,Optimal,file,764.2,344.5
-  llama.cpp,LZ4,file,8.5,8.3
-  llama.cpp,ZSTD,file,8.3,8.3
-  llama.cpp,Tgz,file,6.5,6.9
-[rss] finish: 2026-07-11 11:32:56
-[DONE] rss write ..\llama.cpp 11:33:15 
-[INFO] Running summarize_win.py 11:33:15 
+  claw-code,ZSTD,nul,8.3,8.3
+  claw-code,Tgz,nul,6.4,6.2
+  claw-code,Other3,file,130.3,257.5
+  claw-code,Optimal3,file,499.1,255.4
+  claw-code,BVX3,file,139.3,248.5
+  claw-code,Lazy2,file,482.7,248.8
+  claw-code,Optimal,file,508.8,244.9
+  claw-code,LZ4,file,8.8,8.8
+  claw-code,ZSTD,file,8.3,8.8
+  claw-code,Tgz,file,6.4,5.9
+  llama.cpp,Other3,nul,143.3,346.8
+  llama.cpp,Optimal3,nul,751.6,345.6
+  llama.cpp,BVX3,nul,173.9,345.8
+  llama.cpp,Lazy2,nul,651.6,346.3
+  llama.cpp,Optimal,nul,684.4,344.8
+  llama.cpp,LZ4,nul,8.3,8.8
+  llama.cpp,ZSTD,nul,8.8,8.3
+  llama.cpp,Tgz,nul,6.6,6.2
+  llama.cpp,Other3,file,149.4,346.8
+  llama.cpp,Optimal3,file,753.1,346.9
+  llama.cpp,BVX3,file,162,345.7
+  llama.cpp,Lazy2,file,632.8,344.8
+  llama.cpp,Optimal,file,764.1,345.2
+  llama.cpp,LZ4,file,8.3,8.8
+  llama.cpp,ZSTD,file,8.3,8.8
+  llama.cpp,Tgz,file,6.6,7
+[rss] finish: 2026-07-13 07:36:52
+[DONE] rss write ..\llama.cpp  7:37:13 
+[INFO] Running summarize_win.py  7:37:13 
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\encode_summary.csv written (32 rows)
-     encodeTgz-n40             15.09s     488898962 bytes  OK
-     encodeTgz-n40             16.34s             0 bytes  OK
-     encodeOther3-n40           5.45s     482093259 bytes  OK
-     encodeOther3-n40           6.01s             0 bytes  OK
-     encodeOptimal3-n40        31.57s     459102000 bytes  OK
-     encodeOptimal3-n40        31.10s             0 bytes  OK
-     encodeBVX3-n40             6.12s     454124470 bytes  OK
-     encodeBVX3-n40             5.47s             0 bytes  OK
-     encodeLazy2-n40           30.35s     426823795 bytes  OK
-     encodeLazy2-n40           28.60s             0 bytes  OK
-     encodeOptimal-n40         59.74s     405422267 bytes  OK
-     encodeOptimal-n40         64.29s             0 bytes  OK
-     encodeLZ4-n40              6.00s     576488517 bytes  OK
-     encodeLZ4-n40              7.64s             0 bytes  OK
-     encodeZSTD-n40            10.58s     383499764 bytes  OK
-     encodeZSTD-n40            10.96s             0 bytes  OK
-     encodeTgz-n40             19.77s     615680839 bytes  OK
-     encodeTgz-n40             20.25s             0 bytes  OK
-     encodeOther3-n40          15.81s     613591448 bytes  OK
-     encodeOther3-n40          16.34s             0 bytes  OK
-     encodeOptimal3-n40        24.40s     599612634 bytes  OK
-     encodeOptimal3-n40        25.23s             0 bytes  OK
-     encodeBVX3-n40            15.72s     602853283 bytes  OK
-     encodeBVX3-n40            15.89s             0 bytes  OK
-     encodeLazy2-n40           16.47s     589321707 bytes  OK
-     encodeLazy2-n40           17.80s             0 bytes  OK
-     encodeOptimal-n40         32.09s     578117231 bytes  OK
-     encodeOptimal-n40         33.49s             0 bytes  OK
-     encodeLZ4-n40             16.16s     646458767 bytes  OK
-     encodeLZ4-n40             17.13s             0 bytes  OK
-     encodeZSTD-n40            16.80s     561681483 bytes  OK
-     encodeZSTD-n40            16.82s             0 bytes  OK
+     encodeTgz-n40              8.15s     491317350 bytes  OK
+     encodeTgz-n40              7.93s             0 bytes  OK
+     encodeOther3-n40           7.36s     482093258 bytes  OK
+     encodeOther3-n40           6.59s             0 bytes  OK
+     encodeOptimal3-n40        46.54s     459102000 bytes  OK
+     encodeOptimal3-n40        44.89s             0 bytes  OK
+     encodeBVX3-n40             7.35s     454124496 bytes  OK
+     encodeBVX3-n40             6.76s             0 bytes  OK
+     encodeLazy2-n40           36.35s     426823788 bytes  OK
+     encodeLazy2-n40           34.46s             0 bytes  OK
+     encodeOptimal-n40         78.68s     405422088 bytes  OK
+     encodeOptimal-n40         83.05s             0 bytes  OK
+     encodeLZ4-n40              7.77s     576488516 bytes  OK
+     encodeLZ4-n40              8.21s             0 bytes  OK
+     encodeZSTD-n40            11.73s     383499763 bytes  OK
+     encodeZSTD-n40            14.23s             0 bytes  OK
+     encodeTgz-n40             14.33s     615676248 bytes  OK
+     encodeTgz-n40             13.47s             0 bytes  OK
+     encodeOther3-n40          15.28s     613591418 bytes  OK
+     encodeOther3-n40          15.34s             0 bytes  OK
+     encodeOptimal3-n40        23.10s     599612634 bytes  OK
+     encodeOptimal3-n40        23.15s             0 bytes  OK
+     encodeBVX3-n40            15.44s     602853279 bytes  OK
+     encodeBVX3-n40            15.43s             0 bytes  OK
+     encodeLazy2-n40           16.23s     589321707 bytes  OK
+     encodeLazy2-n40           16.60s             0 bytes  OK
+     encodeOptimal-n40         30.84s     578117222 bytes  OK
+     encodeOptimal-n40         30.53s             0 bytes  OK
+     encodeLZ4-n40             16.43s     646458763 bytes  OK
+     encodeLZ4-n40             15.71s             0 bytes  OK
+     encodeZSTD-n40            16.56s     561681486 bytes  OK
+     encodeZSTD-n40            15.94s             0 bytes  OK
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\decode_summary.csv written (32 rows)
-     decodeTgz-n40             21.46s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             18.99s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           8.64s    1402916995 bytes  OK  verify=PASS
-     decodeOther3-n40           1.63s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         8.71s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.54s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             8.73s    1402916995 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.66s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            8.53s    1402916995 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.59s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          8.45s    1402916995 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.54s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              7.20s    1402916995 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.81s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40            25.42s    1402916995 bytes  OK  verify=PASS
-     decodeZSTD-n40             1.38s    1402916995 bytes  OK  verify=PASS
-     decodeTgz-n40             52.66s    1211649419 bytes  OK  verify=PASS
-     decodeTgz-n40             32.61s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40          27.45s    1211649419 bytes  OK  verify=PASS
-     decodeOther3-n40           1.61s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40        42.42s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal3-n40         1.51s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40            35.34s    1211649419 bytes  OK  verify=PASS
-     decodeBVX3-n40             1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40           32.11s    1211649419 bytes  OK  verify=PASS
-     decodeLazy2-n40            1.44s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40         33.40s    1211649419 bytes  OK  verify=PASS
-     decodeOptimal-n40          1.59s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40             30.82s    1211649419 bytes  OK  verify=PASS
-     decodeLZ4-n40              0.69s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40            30.00s    1211649419 bytes  OK  verify=PASS
-     decodeZSTD-n40             0.95s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             11.56s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40              8.77s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           7.32s    1402916995 bytes  OK  verify=PASS
+     decodeOther3-n40           2.10s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         7.33s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.89s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             7.43s    1402916995 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.94s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            7.51s    1402916995 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.91s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          7.18s    1402916995 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.90s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              5.74s    1402916995 bytes  OK  verify=PASS
+     decodeLZ4-n40              1.06s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             6.11s    1402916995 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.73s    1402916995 bytes  OK  verify=PASS
+     decodeTgz-n40             50.22s    1211649419 bytes  OK  verify=PASS
+     decodeTgz-n40             25.80s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40          29.07s    1211649419 bytes  OK  verify=PASS
+     decodeOther3-n40           1.77s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40        29.29s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal3-n40         1.69s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40            29.32s    1211649419 bytes  OK  verify=PASS
+     decodeBVX3-n40             1.62s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40           29.11s    1211649419 bytes  OK  verify=PASS
+     decodeLazy2-n40            1.59s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40         32.84s    1211649419 bytes  OK  verify=PASS
+     decodeOptimal-n40          1.67s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40             46.37s    1211649419 bytes  OK  verify=PASS
+     decodeLZ4-n40              0.86s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40            43.86s    1211649419 bytes  OK  verify=PASS
+     decodeZSTD-n40             1.16s    1211649419 bytes  OK  verify=PASS
 [OK] C:\Users\lowei\proj\lzfse2\helper_windows\bench_results_csv\BenchMarkResult-Win.csv written (16 rows)
-SUMMARY_OK 11:33:15 
-[INFO] Running comparison_win.py claw-code 11:33:15 
+SUMMARY_OK  7:37:13 
+[INFO] Running comparison_win.py claw-code  7:37:13 
 
 ==============================================================================
   macOS vs Windows — dataset=claw-code  mac_n=40  win_n=40(inflight)
@@ -1158,89 +1158,84 @@ SUMMARY_OK 11:33:15
 ------------------------------------------------------------------------------
   Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Bar(Mac)
   ----------------------  ---------  -------  ---------  -------  -------  --------------------
-  TGZ                        300.90   1.0000      93.89   1.0000    0.312  ##########..........
-  LZFSE (Other3)             548.77   1.8238     259.85   2.7676    0.474  ###################.
-  LZFSE (Optimal3)            63.19   0.2100      44.87   0.4779    0.710  ##..................
-  LZFSE (BVX3)               576.20   1.9149     231.63   2.4671    0.402  ####################
-  LZFSE (Lazy2)               64.59   0.2147      46.68   0.4972    0.723  ##..................
-  LZFSE (Optimal)             34.21   0.1137      23.71   0.2526    0.693  #...................
-  TLZ4                       579.46   1.9258     236.24   2.5161    0.408  ####################
-  ZSTD                       451.88   1.5018     133.86   1.4257    0.296  ################....
+  TGZ                        309.38   1.0000     173.91   1.0000    0.562  ###########.........
+  LZFSE (Other3)             443.55   1.4337     192.59   1.1074    0.434  ###############.....
+  LZFSE (Optimal3)            68.07   0.2200      30.44   0.1750    0.447  ##..................
+  LZFSE (BVX3)               549.57   1.7764     192.76   1.1084    0.351  ###################.
+  LZFSE (Lazy2)               72.36   0.2339      38.97   0.2241    0.539  ##..................
+  LZFSE (Optimal)             37.28   0.1205      18.01   0.1035    0.483  #...................
+  TLZ4                       582.72   1.8835     182.25   1.0480    0.313  ####################
+  ZSTD                       458.18   1.4810     120.81   0.6946    0.264  ################....
 
 ------------------------------------------------------------------------------
   1b. Decode MB/s  解壓速度  (Mac: avg n=40; Windows: single run total)
 ------------------------------------------------------------------------------
   Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Verify  Bar(Mac)
   ----------------------  ---------  -------  ---------  -------  -------  ------  --------------------
-  TGZ                        396.00   1.0000      65.37   1.0000    0.165    PASS  ###############.....
-  LZFSE (Other3)             497.32   1.2559     162.47   2.4855    0.327    PASS  ###################.
-  LZFSE (Optimal3)           508.77   1.2848     161.01   2.4632    0.316    PASS  ###################.
-  LZFSE (BVX3)               482.48   1.2184     160.75   2.4592    0.333    PASS  ##################..
-  LZFSE (Lazy2)              354.38   0.8949     164.46   2.5160    0.464    PASS  #############.......
-  LZFSE (Optimal)            451.86   1.1411     166.09   2.5409    0.368    PASS  #################...
-  TLZ4                       487.55   1.2312     194.94   2.9823    0.400    PASS  ###################.
-  ZSTD                       499.60   1.2616      55.18   0.8442    0.110    PASS  ###################.
+  TGZ                        395.47   1.0000     121.40   1.0000    0.307    PASS  ##############......
+  LZFSE (Other3)             555.44   1.4045     191.78   1.5798    0.345    PASS  ###################.
+  LZFSE (Optimal3)           446.06   1.1279     191.36   1.5763    0.429    PASS  ################....
+  LZFSE (BVX3)               462.78   1.1702     188.89   1.5559    0.408    PASS  ################....
+  LZFSE (Lazy2)              570.10   1.4416     186.71   1.5380    0.328    PASS  ####################
+  LZFSE (Optimal)            528.27   1.3358     195.26   1.6084    0.370    PASS  ###################.
+  TLZ4                       551.27   1.3940     244.56   2.0145    0.444    PASS  ###################.
+  ZSTD                       552.78   1.3978     229.54   1.8908    0.415    PASS  ###################.
 
 ------------------------------------------------------------------------------
   1c. Compress Size & Ratio  壓縮大小與比率  (ratio = format / TGZ, per platform)
 ------------------------------------------------------------------------------
   Format                   Mac MiB  Mac/TGZ   Win MiB  Win/TGZ  Mac/Win
   ----------------------  --------  -------  --------  -------  -------
-  TGZ                        469.0   1.0000     466.3   1.0000   1.0059
-  LZFSE (Other3)             460.0   0.9812     459.8   0.9861   1.0005
-  LZFSE (Optimal3)           438.0   0.9344     437.8   0.9391   1.0004
-  LZFSE (BVX3)               433.0   0.9244     433.1   0.9289   0.9998
-  LZFSE (Lazy2)              407.0   0.8683     407.1   0.8730   0.9999
-  LZFSE (Optimal)            387.0   0.8253     386.6   0.8293   1.0009
-  TLZ4                       552.0   1.1786     549.8   1.1792   1.0040
-  ZSTD                       366.0   0.7805     365.7   0.7844   1.0007
+  TGZ                        469.0   1.0000     468.6   1.0000   1.0009
+  LZFSE (Other3)             460.0   0.9812     459.8   0.9812   1.0005
+  LZFSE (Optimal3)           438.0   0.9344     437.8   0.9344   1.0004
+  LZFSE (BVX3)               433.0   0.9244     433.1   0.9243   0.9998
+  LZFSE (Lazy2)              407.0   0.8683     407.1   0.8687   0.9999
+  LZFSE (Optimal)            387.0   0.8253     386.6   0.8252   1.0009
+  TLZ4                       552.0   1.1786     549.8   1.1734   1.0040
+  ZSTD                       366.0   0.7805     365.7   0.7806   1.0007
 
 ------------------------------------------------------------------------------
   2. RSS MB  peak memory  (Mac + Windows when rss_summary.csv is available)
 ------------------------------------------------------------------------------
   Format                   Mac Enc   Mac/TGZ   Win Enc   Win/TGZ   Mac Dec   Win Dec
   ----------------------  --------  --------  --------  --------  --------  --------
-  TGZ                      2930.50    1.0000      6.60    1.0000   3197.70      6.10
-  LZFSE (Other3)            379.30    0.1294    119.60   18.1212    305.50    259.30
-  LZFSE (Optimal3)          550.40    0.1878    501.80   76.0303    323.30    257.10
-  LZFSE (BVX3)              363.20    0.1239    127.80   19.3636    320.40    249.30
-  LZFSE (Lazy2)             498.00    0.1699    483.50   73.2576    324.20    248.40
-  LZFSE (Optimal)           575.40    0.1963    510.00   77.2727    335.70    245.10
-  TLZ4                       79.90    0.0273      8.90    1.3485     33.70      8.30
-  ZSTD                      397.30    0.1356      8.40    1.2727      9.90      8.40
+  TGZ                      2944.90    1.0000      6.40    1.0000   3265.50      5.90
+  LZFSE (Other3)            300.20    0.1019    130.30   20.3594    305.40    257.50
+  LZFSE (Optimal3)          559.10    0.1899    499.10   77.9844    323.20    255.40
+  LZFSE (BVX3)              372.40    0.1265    139.30   21.7656    319.40    248.50
+  LZFSE (Lazy2)             499.50    0.1696    482.70   75.4219    323.70    248.80
+  LZFSE (Optimal)           574.80    0.1952    508.80   79.5000    335.60    244.90
+  TLZ4                       81.10    0.0275      8.80    1.3750     33.70      8.80
+  ZSTD                      397.10    0.1348      8.30    1.2969      9.20      8.80
 
 ------------------------------------------------------------------------------
   3. CPU Energy J  能耗  (Mac only — macOS powermetrics required)
 ------------------------------------------------------------------------------
-  ⚠  Encode energy n=40: reliable (95-107% sampling coverage).
-  ⚠  Decode energy n=40: NOT reliable (<5% coverage); reference only.
-
   Format                      Enc J   Enc/TGZ      Dec J   Dec/TGZ
   ----------------------  ---------  --------  ---------  --------
-  TGZ                        125.01    1.0000      25.94    1.0000
-  LZFSE (Other3)              58.17    0.4653       5.56*   0.2146
-  LZFSE (Optimal3)           578.92    4.6308       5.65*   0.2179
-  LZFSE (BVX3)                59.22    0.4737       7.53*   0.2902
-  LZFSE (Lazy2)              336.38    2.6908       6.76*   0.2606
-  LZFSE (Optimal)            902.73    7.2210       6.75*   0.2604
-  TLZ4                        52.12    0.4169       5.36*   0.2065
-  ZSTD                        62.01    0.4960      12.28*   0.4734
-
-  * Decode energy marked unreliable at n=40.
+  TGZ                        104.38    1.0000      29.25    1.0000
+  LZFSE (Other3)              45.89    0.4396       8.56    0.2927
+  LZFSE (Optimal3)           497.21    4.7634       6.64    0.2270
+  LZFSE (BVX3)                47.81    0.4580      12.69    0.4339
+  LZFSE (Lazy2)              270.12    2.5878       8.30    0.2839
+  LZFSE (Optimal)            782.39    7.4955       8.97    0.3066
+  TLZ4                        41.46    0.3972       5.69    0.1944
+  ZSTD                        50.80    0.4867      16.36    0.5591
 
 ==============================================================================
 
 [OK] bench_results_csv\comparison.csv written (8 rows)
-  TGZ                  Win enc   93.89 MB/s  dec   65.37 MB/s
-  LZFSE (Other3)       Win enc  259.85 MB/s  dec  162.47 MB/s
-  LZFSE (Optimal3)     Win enc   44.87 MB/s  dec  161.01 MB/s
-  LZFSE (BVX3)         Win enc  231.63 MB/s  dec  160.75 MB/s
-  LZFSE (Lazy2)        Win enc   46.68 MB/s  dec  164.46 MB/s
-  LZFSE (Optimal)      Win enc   23.71 MB/s  dec  166.09 MB/s
-  TLZ4                 Win enc  236.24 MB/s  dec  194.94 MB/s
-  ZSTD                 Win enc  133.86 MB/s  dec   55.18 MB/s
-[DONE] comparison claw-code 11:33:16 
-[INFO] Running comparison_win.py llama.cpp 11:33:16 
+  TGZ                  Win enc  173.91 MB/s  dec  121.40 MB/s
+  LZFSE (Other3)       Win enc  192.59 MB/s  dec  191.78 MB/s
+  LZFSE (Optimal3)     Win enc   30.44 MB/s  dec  191.36 MB/s
+  LZFSE (BVX3)         Win enc  192.76 MB/s  dec  188.89 MB/s
+  LZFSE (Lazy2)        Win enc   38.97 MB/s  dec  186.71 MB/s
+  LZFSE (Optimal)      Win enc   18.01 MB/s  dec  195.26 MB/s
+  TLZ4                 Win enc  182.25 MB/s  dec  244.56 MB/s
+  ZSTD                 Win enc  120.81 MB/s  dec  229.54 MB/s
+[DONE] comparison claw-code  7:37:13 
+[INFO] Running comparison_win.py llama.cpp  7:37:13 
 
 ==============================================================================
   macOS vs Windows — dataset=llama.cpp  mac_n=40  win_n=40(inflight)
@@ -1259,28 +1254,28 @@ SUMMARY_OK 11:33:15
 ------------------------------------------------------------------------------
   Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Bar(Mac)
   ----------------------  ---------  -------  ---------  -------  -------  --------------------
-  TGZ                        231.34   1.0000      66.90   1.0000    0.289  ###########.........
-  LZFSE (Other3)             247.13   1.0683      83.64   1.2503    0.338  ###########.........
-  LZFSE (Optimal3)            85.88   0.3712      54.18   0.8099    0.631  ####................
-  LZFSE (BVX3)               404.84   1.7500      84.12   1.2574    0.208  ##################..
-  LZFSE (Lazy2)              176.09   0.7612      80.30   1.2003    0.456  ########............
-  LZFSE (Optimal)             58.51   0.2529      41.20   0.6159    0.704  ###.................
-  TLZ4                       340.57   1.4722      81.83   1.2232    0.240  ################....
-  ZSTD                       438.93   1.8973      78.69   1.1763    0.179  ####################
+  TGZ                        282.52   1.0000      92.26   1.0000    0.327  #############.......
+  LZFSE (Other3)             370.17   1.3102      86.56   0.9382    0.234  #################...
+  LZFSE (Optimal3)            87.95   0.3113      57.25   0.6205    0.651  ####................
+  LZFSE (BVX3)               398.34   1.4100      85.63   0.9281    0.215  ##################..
+  LZFSE (Lazy2)              187.08   0.6622      81.46   0.8830    0.435  #########...........
+  LZFSE (Optimal)             61.24   0.2168      42.87   0.4647    0.700  ###.................
+  TLZ4                       356.59   1.2622      80.49   0.8723    0.226  ################....
+  ZSTD                       433.73   1.5352      79.85   0.8655    0.184  ####################
 
 ------------------------------------------------------------------------------
   1b. Decode MB/s  解壓速度  (Mac: avg n=40; Windows: single run total)
 ------------------------------------------------------------------------------
   Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Verify  Bar(Mac)
   ----------------------  ---------  -------  ---------  -------  -------  ------  --------------------
-  TGZ                        131.56   1.0000      23.01   1.0000    0.175    PASS  ###################.
-  LZFSE (Other3)             131.90   1.0026      44.14   1.9183    0.335    PASS  ####################
-  LZFSE (Optimal3)           135.20   1.0277      28.57   1.2415    0.211    PASS  ####################
-  LZFSE (BVX3)               123.53   0.9390      34.28   1.4900    0.278    PASS  ##################..
-  LZFSE (Lazy2)              126.91   0.9647      37.74   1.6401    0.297    PASS  ###################.
-  LZFSE (Optimal)            127.18   0.9667      36.28   1.5768    0.285    PASS  ###################.
-  TLZ4                       117.96   0.8966      39.31   1.7086    0.333    PASS  #################...
-  ZSTD                       124.81   0.9487      40.39   1.7556    0.324    PASS  ##################..
+  TGZ                        140.33   1.0000      24.13   1.0000    0.172    PASS  ####################
+  LZFSE (Other3)             141.33   1.0071      41.68   1.7272    0.295    PASS  ####################
+  LZFSE (Optimal3)           143.14   1.0200      41.36   1.7142    0.289    PASS  ####################
+  LZFSE (BVX3)               135.70   0.9670      41.33   1.7127    0.305    PASS  ###################.
+  LZFSE (Lazy2)              140.69   1.0026      41.63   1.7253    0.296    PASS  ####################
+  LZFSE (Optimal)            133.94   0.9545      36.90   1.5291    0.275    PASS  ###################.
+  TLZ4                       132.88   0.9469      26.13   1.0830    0.197    PASS  ###################.
+  ZSTD                       139.15   0.9916      27.63   1.1449    0.199    PASS  ###################.
 
 ------------------------------------------------------------------------------
   1c. Compress Size & Ratio  壓縮大小與比率  (ratio = format / TGZ, per platform)
@@ -1301,44 +1296,39 @@ SUMMARY_OK 11:33:15
 ------------------------------------------------------------------------------
   Format                   Mac Enc   Mac/TGZ   Win Enc   Win/TGZ   Mac Dec   Win Dec
   ----------------------  --------  --------  --------  --------  --------  --------
-  TGZ                      2556.50    1.0000      6.50    1.0000   2650.70      6.90
-  LZFSE (Other3)            224.10    0.0877    140.20   21.5692    349.60    345.60
-  LZFSE (Optimal3)          560.40    0.2192    756.50  116.3846    350.70    346.60
-  LZFSE (BVX3)              360.90    0.1412    145.90   22.4462    348.90    345.90
-  LZFSE (Lazy2)             865.80    0.3387    668.80  102.8923    347.50    344.60
-  LZFSE (Optimal)           593.60    0.2322    764.20  117.5692    348.70    344.50
-  TLZ4                       77.90    0.0305      8.50    1.3077     33.80      8.30
-  ZSTD                      490.00    0.1917      8.30    1.2769      9.80      8.30
+  TGZ                      2537.60    1.0000      6.60    1.0000   3021.90      7.00
+  LZFSE (Other3)            228.20    0.0899    149.40   22.6364    350.60    346.80
+  LZFSE (Optimal3)          556.00    0.2191    753.10  114.1061    349.30    346.90
+  LZFSE (BVX3)              229.10    0.0903    162.00   24.5455    348.80    345.70
+  LZFSE (Lazy2)             853.50    0.3363    632.80   95.8788    347.40    344.80
+  LZFSE (Optimal)           570.80    0.2249    764.10  115.7727    347.90    345.20
+  TLZ4                       77.90    0.0307      8.30    1.2576     33.80      8.80
+  ZSTD                      490.60    0.1933      8.30    1.2576      9.40      8.80
 
 ------------------------------------------------------------------------------
   3. CPU Energy J  能耗  (Mac only — macOS powermetrics required)
 ------------------------------------------------------------------------------
-  ⚠  Encode energy n=40: reliable (95-107% sampling coverage).
-  ⚠  Decode energy n=40: NOT reliable (<5% coverage); reference only.
-
   Format                      Enc J   Enc/TGZ      Dec J   Dec/TGZ
   ----------------------  ---------  --------  ---------  --------
-  TGZ                        109.72    1.0000      18.48    1.0000
-  LZFSE (Other3)              44.26    0.4034       3.83*   0.2075
-  LZFSE (Optimal3)           397.58    3.6234       3.80*   0.2058
-  LZFSE (BVX3)                47.18    0.4300       4.75*   0.2572
-  LZFSE (Lazy2)              128.54    1.1715       4.17*   0.2258
-  LZFSE (Optimal)            532.13    4.8497       4.63*   0.2507
-  TLZ4                        52.73    0.4806       3.55*   0.1924
-  ZSTD                        43.88    0.3999       5.62*   0.3042
-
-  * Decode energy marked unreliable at n=40.
+  TGZ                        114.70    1.0000      27.12    1.0000
+  LZFSE (Other3)              40.70    0.3549       4.56    0.1681
+  LZFSE (Optimal3)           345.75    3.0144       4.21    0.1554
+  LZFSE (BVX3)                38.98    0.3399       7.35    0.2710
+  LZFSE (Lazy2)              104.67    0.9126       6.66    0.2455
+  LZFSE (Optimal)            465.99    4.0627       5.13    0.1893
+  TLZ4                        45.83    0.3996       4.64    0.1709
+  ZSTD                        39.41    0.3436       6.09    0.2246
 
 ==============================================================================
 
 [OK] bench_results_csv\comparison.csv written (8 rows)
-  TGZ                  Win enc   66.90 MB/s  dec   23.01 MB/s
-  LZFSE (Other3)       Win enc   83.64 MB/s  dec   44.14 MB/s
-  LZFSE (Optimal3)     Win enc   54.18 MB/s  dec   28.57 MB/s
-  LZFSE (BVX3)         Win enc   84.12 MB/s  dec   34.28 MB/s
-  LZFSE (Lazy2)        Win enc   80.30 MB/s  dec   37.74 MB/s
-  LZFSE (Optimal)      Win enc   41.20 MB/s  dec   36.28 MB/s
-  TLZ4                 Win enc   81.83 MB/s  dec   39.31 MB/s
-  ZSTD                 Win enc   78.69 MB/s  dec   40.39 MB/s
-[DONE] comparison llama.cpp 11:33:16 
-DONE 11:33:31 
+  TGZ                  Win enc   92.26 MB/s  dec   24.13 MB/s
+  LZFSE (Other3)       Win enc   86.56 MB/s  dec   41.68 MB/s
+  LZFSE (Optimal3)     Win enc   57.25 MB/s  dec   41.36 MB/s
+  LZFSE (BVX3)         Win enc   85.63 MB/s  dec   41.33 MB/s
+  LZFSE (Lazy2)        Win enc   81.46 MB/s  dec   41.63 MB/s
+  LZFSE (Optimal)      Win enc   42.87 MB/s  dec   36.90 MB/s
+  TLZ4                 Win enc   80.49 MB/s  dec   26.13 MB/s
+  ZSTD                 Win enc   79.85 MB/s  dec   27.63 MB/s
+[DONE] comparison llama.cpp  7:37:13 
+DONE  7:37:34 

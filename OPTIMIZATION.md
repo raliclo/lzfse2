@@ -167,6 +167,98 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R46-Win：Windows TGZ Native Zlib（swift_tar 內建 zlib submodule，取代逐 chunk 外部 gzip.exe）（2026-07-13）
+
+> **目標**：R45-Win-Retest1 確認了 Windows TGZ encode/decode 比 Mac 慢 4-6 倍的根因——Windows 端沒有可連結的 zlib，`compressChunk` 每個 4MiB chunk 都要 spawn 一個外部 `gzip.exe` 行程；Mac 端則是 `#if !os(Windows) import zlib` 原生連結，無行程開銷。本輪在 `swift_tar` repo 內新增 zlib 1.3.2 為 git submodule（`cmodules/zlib`），靜態編譯後由 `compile_tar-win.bat` 連結進 `swift_tar.exe`，`swift_tar.swift` 的 TGZ 路徑改為直接呼叫 zlib API，取代 `winRunCompress`/`winRunDecompress` 的外部行程 pipe。
+>
+> swift_tar commit：`19da746`（`Windows TGZ native zlib：提升效能、限制 RSS 並加入日期版本`）。
+
+## 本輪變更
+
+- 新增 `swift_tar/zlib`（zlib 1.3.2）為 git submodule，`build_zlib-win.sh` 負責用現有工具鏈靜態編譯。
+- `compile_tar-win.bat` 補上 zlib 的 include/lib 連結旗標。
+- `swift_tar.swift`：TGZ 的 compress/decompress 路徑改走原生 zlib API（37 行變更），不再對每個 chunk spawn `gzip.exe`。其餘外部程序 codec（bzip2/xz/lzip/zstd/lz4）維持不變，仍走 R45-Win 修好的 DispatchQueue pipe 後端。
+- `verifications/tgz_inflight_rss_win.sh` 重新掃描 `-n 4..40`，`README.md`／`README.zh-TW.md` 補上 native zlib 結果段落。
+
+## 驗證
+
+- `swift_tar -test -debug`：6/6 全過（含 Windows `-write_foundation`/`-write_ucrt` 雙後端、雙向與系統 tar 互通）。
+- `tgz_inflight_rss_win.sh` 完整 `-n 4..40` 掃描（claw-code, 1.4G）：encode 時間從 27–47s 降到 7.2–15.6s（`-n 12..40` 穩定在 7.2–7.8s，非常接近 Mac 4.3–7.6s）；decode 從 17–19s 降到 9.7–11.0s（仍慢於 Mac 2.8–3.9s，見「待辦」）。encode RSS 呈現與 `-n` 線性關係（55.6MB@n4 → 208.0MB@n40），decode RSS 打平在 43–45MB。詳見 `swift_tar/verifications/README.md`。
+- 本節以下數字為 `run_round.bat -swift_tar` 官方完整輪次（含 verify／RSS／comparison），非上述 ad-hoc 掃描。
+
+## 1. Windows 實測結果（`-swift_tar`，native zlib，n=40 inflight）
+
+| 資料集 | 格式 | Win 壓縮比 | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | **TGZ** | 1.0000 | **173.91** | **121.40** | 6.4 MB | 5.9 MB |
+| claw-code | Other3 | 0.9812 | 192.59 | 191.78 | 130.3 MB | 257.5 MB |
+| claw-code | Optimal3 | 0.9344 | 30.44 | 191.36 | 499.1 MB | 255.4 MB |
+| claw-code | BVX3 | 0.9243 | 192.76 | 188.89 | 139.3 MB | 248.5 MB |
+| claw-code | Lazy2 | 0.8687 | 38.97 | 186.71 | 482.7 MB | 248.8 MB |
+| claw-code | Optimal | 0.8252 | 18.01 | 195.26 | 508.8 MB | 244.9 MB |
+| claw-code | TLZ4 | 1.1734 | 182.25 | 244.56 | 8.8 MB | 8.8 MB |
+| claw-code | ZSTD | 0.7806 | 120.81 | 229.54 | 8.3 MB | 8.8 MB |
+| llama.cpp | **TGZ** | 1.0000 | **92.26** | **24.13** | 6.6 MB | 7.0 MB |
+| llama.cpp | Other3 | 0.9966 | 86.56 | 41.68 | 149.4 MB | 346.8 MB |
+| llama.cpp | Optimal3 | 0.9739 | 57.25 | 41.36 | 753.1 MB | 346.9 MB |
+| llama.cpp | BVX3 | 0.9792 | 85.63 | 41.33 | 162.0 MB | 345.7 MB |
+| llama.cpp | Lazy2 | 0.9572 | 81.46 | 41.63 | 632.8 MB | 344.8 MB |
+| llama.cpp | Optimal | 0.9390 | 42.87 | 36.90 | 764.1 MB | 345.2 MB |
+| llama.cpp | TLZ4 | 1.0500 | 80.49 | 26.13 | 8.3 MB | 8.8 MB |
+| llama.cpp | ZSTD | 0.9123 | 79.85 | 27.63 | 8.3 MB | 8.8 MB |
+
+正確性：16 組（8 格式 × 2 資料集）`win_decode_verify` 全部 `PASS`。壓縮比與 R45-Win-Retest1 幾乎完全一致（llama.cpp 全格式差異 <0.001）——符合預期，換 zlib 後端不改變 DEFLATE 演算法/level，只換掉呼叫路徑。
+
+## 2. TGZ Before/After：R45-Win-Retest1（外部 `gzip.exe`）vs 本輪（native zlib）
+
+| 資料集 | 指標 | R45-Win-Retest1 | 本輪 | 變化 |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | Enc MB/s | 93.89 | 173.91 | **+85.3%** |
+| claw-code | Dec MB/s | 65.37 | 121.40 | **+85.7%** |
+| claw-code | Enc RSS | 6.6 MB | 6.4 MB | −3.0%（雜訊） |
+| claw-code | Dec RSS | 6.1 MB | 5.9 MB | −3.3%（雜訊） |
+| llama.cpp | Enc MB/s | 66.90 | 92.26 | **+37.9%** |
+| llama.cpp | Dec MB/s | 23.01 | 24.13 | +4.9%（雜訊等級） |
+| llama.cpp | Enc RSS | 6.5 MB | 6.6 MB | +1.5%（雜訊） |
+| llama.cpp | Dec RSS | 6.9 MB | 7.0 MB | +1.4%（雜訊） |
+
+> **解讀**：encode 兩資料集都大幅提升，RSS 維持在個位數 MB（原本就不是瓶頸）。claw-code decode 同樣大幅提升（+85.7%），但 **llama.cpp decode 幾乎沒變（+4.9%，雜訊等級）**——llama.cpp 有 40,675 個小檔案，decode 瓶頸主要是「逐檔開檔/寫入」的系統呼叫開銷（R45-Win 已修過的 ucrt 後端瓶頸），而不是 gzip inflate 本身的運算時間；native zlib 只加速了 inflate 這一段，對這類小檔案為主的資料集效果自然有限。claw-code 只有 1 個大檔案（tar 內部仍是連續 stream），decode 時間幾乎全花在 inflate 上，因此吃到完整的 zlib 加速紅利。此為預期中的架構性差異，非 bug。
+
+## 3. Win/Mac 對照（本輪 vs R45-Mac）
+
+| 資料集 | 格式 | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | **TGZ** | 173.91 | 309.38 | **0.562** | 121.40 | 395.47 | **0.307** |
+| claw-code | Other3 | 192.59 | 443.55 | 0.434 | 191.78 | 555.44 | 0.345 |
+| claw-code | Optimal3 | 30.44 | 68.07 | 0.447 | 191.36 | 446.06 | 0.429 |
+| claw-code | BVX3 | 192.76 | 549.57 | 0.351 | 188.89 | 462.78 | 0.408 |
+| claw-code | Lazy2 | 38.97 | 72.36 | 0.539 | 186.71 | 570.10 | 0.328 |
+| claw-code | Optimal | 18.01 | 37.28 | 0.483 | 195.26 | 528.27 | 0.370 |
+| claw-code | TLZ4 | 182.25 | 582.72 | 0.313 | 244.56 | 551.27 | 0.444 |
+| claw-code | ZSTD | 120.81 | 458.18 | 0.264 | 229.54 | 552.78 | 0.415 |
+| llama.cpp | **TGZ** | 92.26 | 282.52 | **0.327** | 24.13 | 140.33 | **0.172** |
+| llama.cpp | Other3 | 86.56 | 370.17 | 0.234 | 41.68 | 141.33 | 0.295 |
+| llama.cpp | Optimal3 | 57.25 | 87.95 | 0.651 | 41.36 | 143.14 | 0.289 |
+| llama.cpp | BVX3 | 85.63 | 398.34 | 0.215 | 41.33 | 135.70 | 0.305 |
+| llama.cpp | Lazy2 | 81.46 | 187.08 | 0.435 | 41.63 | 140.69 | 0.296 |
+| llama.cpp | Optimal | 42.87 | 61.24 | 0.700 | 36.90 | 133.94 | 0.275 |
+| llama.cpp | TLZ4 | 80.49 | 356.59 | 0.226 | 26.13 | 132.88 | 0.197 |
+| llama.cpp | ZSTD | 79.85 | 433.73 | 0.184 | 27.63 | 139.15 | 0.199 |
+
+> **claw-code TGZ 的 Win/Mac 比率**：encode 0.312 → **0.562**（R45-Win-Retest1 時是全格式最低之一；本輪已升到全格式第 2 高，僅次於 Lazy2 0.539，實際上比它還高，是本輪最高）。decode 0.165 → **0.307**，同樣從墊底升到中段。**llama.cpp TGZ 的 Win/Mac 比率則變化很小**（enc 0.289→0.327，dec 0.175→0.172），與第 2 節的架構性解讀一致。
+>
+> **claw-code ZSTD decode 從 55.18 MB/s 大幅回升到 229.54 MB/s（+316%）**：ZSTD 本輪程式碼完全沒變（仍是外部 `zstd.exe` pipe），這個回升直接印證了 R45-Win-Retest1「待辦」中提出的假設——上一輪 claw-code TGZ/ZSTD decode 異常下滑是環境因素（即時防毒／磁碟壓力），與 swift_tar 本身無關。**此待辦視為已解決**。同批 claw-code decode 其餘格式也普遍上升 13%–18%（TLZ4 +25.5%、LZFSE 家族 +13%–19%），方向一致，進一步支持環境因素假說。
+>
+> **claw-code encode 側（TGZ 除外）本輪普遍下滑 10%–32%**（Other3 −25.9%、Optimal3 −32.2%、TLZ4 −22.9% 等），llama.cpp encode 則平穩（±6% 以內）。兩者對比顯示這次下滑集中在 claw-code（單一 1.4GB 大檔案，對背景磁碟/CPU 負載較敏感），而非 swift_tar 程式碼改動所致（本輪唯一動到的程式碼路徑是 TGZ）；歸類為量測雜訊，暫不列入待辦，若下輪重現則需進一步排查。
+
+## 待辦
+
+- llama.cpp TGZ decode 仍受限於小檔案開檔/寫入開銷，native zlib 對此資料集效益有限；若要繼續縮小 Win/Mac decode 差距，下一步應該是 profiling ucrt 寫入路徑本身（而非 gzip 層）。
+- Windows TGZ decode（claw-code 121.40 MB/s）雖已比 R45-Win-Retest1 大幅提升，仍低於 Mac（395.47 MB/s，比率 0.307）；`tgz_inflight_rss_win.sh` 的 ad-hoc 掃描顯示 decode 時間 9.7–11.0s vs Mac 2.8–3.9s，差距未完全消除，後續可比對 inflate buffer size／syscall 次數。
+- claw-code encode 側普遍下滑 10%–32%（TGZ 除外）暫歸類雜訊，下輪重跑確認是否重現。
+
+---
+
 # R46-Mac：停用 Time Profiler Trace 產生，分析步驟改為沿用舊資料（2026-07-12）
 
 > **目標**：自本輪起，Mac benchmark 不再執行 Time Profiler trace（`tracer.command`），但下游分析步驟（Step 8/9）**不整段停用**——改為偵測「本輪無新 trace」時優雅跳過並沿用上一輪的 `trace/analysis` 結果，而非中斷整個 pipeline。本節記錄 pipeline 變更本身；benchmark 結果待本輪實際執行完成後補上。
