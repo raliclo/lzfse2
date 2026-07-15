@@ -261,7 +261,7 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 # R46-Mac：停用 Time Profiler Trace 產生，分析步驟改為沿用舊資料（2026-07-12）
 
-> **目標**：自本輪起，Mac benchmark 不再執行 Time Profiler trace（`tracer.command`），但下游分析步驟（Step 8/9）**不整段停用**——改為偵測「本輪無新 trace」時優雅跳過並沿用上一輪的 `trace/analysis` 結果，而非中斷整個 pipeline。本節記錄 pipeline 變更本身；benchmark 結果待本輪實際執行完成後補上。
+> **目標**：自本輪起，Mac benchmark 不再執行 Time Profiler trace（`tracer.command`），但下游分析步驟（Step 8/9）**不整段停用**——改為偵測「本輪無新 trace」時優雅跳過並沿用上一輪的 `trace/analysis` 結果，而非中斷整個 pipeline。本節記錄 pipeline 變更本身；本輪實跑結果（`-swift_tar`，swift_tar `20260714-232304`，native zlib + 記憶體修正版）見下方「Benchmark 結果」。
 
 ## 本輪變更
 
@@ -278,6 +278,80 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 - `BenchMarkResult.csv` 的 `Trace wall time(秒)`、`CPU Symbol Status`、`CPU Top Symbol` 等欄位本輪起沿用 **R45-Mac 最後一次成功分析**的 `trace_summary.csv` / `cpu_call_tree_summary.csv`，數值不會隨 R46+ 的程式碼變動而更新——解讀時需注意這些欄位反映的是舊版程式碼行為，非本輪即時量測。
 - `helper/benchmark_result_rebuild.command` 完全不受影響：無論資料是新產生還是沿用舊檔，`load_trace_summaries()` / `load_cpu_summaries()` 都是單純讀檔。
 - 若未來需要真正刷新 trace 資料，需手動重新啟用 `benchmark.sh` Step 6（取消註解 `tracer.command` 呼叫）。**重新啟用時機**：下次 `lzfse-cli.swift` 本身有程式碼變動時即應重新開啟——trace 的意義在於側寫「被量測的程式碼」，程式碼沒變就沒有重新 profile 的必要。
+
+## Benchmark 結果（2026-07-15 實跑，`-swift_tar`，swift_tar `20260714-232304`）
+
+> 本輪為 `-swift_tar` 正式輪（`USING_SWIFT_TAR`，shim 生效，lz4bench 與 power 皆走 swift_tar）。唯一實質變動來自 **swift_tar（TGZ 路徑）**：R46-Win 的 native zlib + 先前 R46-Mac 的記憶體修正（`autoreleasepool` + `ParallelChunkSink`/`TarReader` buffer 重寫，詳見 `swift_tar/verifications/README.md`）。lzfse-cli.swift 未變動，**claw-code 壓縮比與 R45-Mac 一致**（BVX3 0.9244、Optimal 0.8253、ZSTD 0.7805）；**llama.cpp** 語料已由 ~1261 MiB 增至 1385 MiB，比值略有變動（如 Optimal 0.9408→0.9347），故非完全一致。LZFSE 系列速度與 RSS 同級。
+
+### TGZ Peak RSS 崩降（n=40，MB）
+
+先前 TGZ 是所有格式中 RSS 最高者（encode/decode 皆 ~2.5–3.3GB，接近語料大小）。本輪修正後 **decode** 降到與 TLZ4 同級，**encode** 大幅接近（但仍約為 TLZ4 的 2.6×）：
+
+| 資料集 | Encode RSS 前→後 | Decode RSS 前→後 |
+| --- | ---: | ---: |
+| claw-code | 2944.9 → **217.0**（−92.6%） | 3265.5 → **44.1**（−98.6%） |
+| llama.cpp | 2537.6 → **215.3**（−91.5%） | 3021.9 → **41.7**（−98.6%） |
+
+- **Encode** 降至 ~215MB：對應 `-n` 在途 chunk 數 × ~8MiB／chunk 的真實線性關係（洩漏消失後才顯現）。
+- **Decode** 降至 ~42–44MB 打平：已低於所有 LZFSE 格式（~300–615MB），僅略高於 TLZ4 的 ~34MB。
+- 驗證交叉比對：與 `swift_tar/verifications/tgz_inflight_rss_output.txt` 的獨立掃描（encode 90–300MB、decode ~50MB）一致，證實修正在正式 pipeline 中重現。
+
+### 其他格式 RSS（n=40，未變動，MB）
+
+| 格式 | claw enc/dec | llama enc/dec |
+| --- | ---: | ---: |
+| LZFSE (BVX3) | 343.4 / 319.5 | 241.4 / 348.6 |
+| LZFSE (Other3) | 365.4 / 305.5 | 227.4 / 349.6 |
+| LZFSE (Apple) | 1356.3 / 470.0 | 1277.3 / 614.3 |
+| TLZ4 | 80.9 / 33.7 | 83.8 / 33.8 |
+| ZSTD | 399.2 / 9.2 | 500.1 / 9.0 |
+
+### 壓縮比／速度
+
+演算法未變：**claw-code** 壓縮比與 R45-Mac 一致；**llama.cpp** 因語料由 ~1261 MiB 增至 1385 MiB，比值略有變動（Optimal 0.9408→0.9347），非完全一致。TGZ 速度 encode 316（claw）/ 236（llama）MB/s、decode 446 / 164 MB/s，記憶體修正未帶來時間退化。
+
+### CPU Energy（n=40）— P1 修正後首次有效
+
+先前 TGZ energy 因 `power_benchmark.command` 走裸 `tar`（落到 `/usr/bin/tar` 單執行緒 gzip，encode ~43–51s）而失真；本 session 已改為明確呼叫 `${SWIFT_TAR_BIN:-/opt/homebrew/bin/swift_tar}`。本輪 power 步驟 TGZ encode 5.21s（swift_tar，parallel）與 lz4bench 的 4.47s 同級，確認量到的確為 swift_tar：
+
+| 資料集 | TGZ Encode Energy(J) | TGZ Decode Energy(J) |
+| --- | ---: | ---: |
+| claw-code | 94.25 | 14.63 |
+| llama.cpp | 79.39 | 10.21 |
+
+以 TGZ=1 正規化的 Energy Ratio（claw-code，n=40）：
+
+| 格式 | Encode Ratio | Decode Ratio |
+| --- | ---: | ---: |
+| LZFSE (Other3) | 0.44 | 0.47 |
+| LZFSE (BVX3) | 0.47 | 0.57 |
+| LZFSE (Apple) | 0.95 | 0.51 |
+| LZFSE (Lazy2) | 1.98 | 0.48 |
+| LZFSE (Optimal3) | 4.57 | 0.36 |
+| LZFSE (Optimal) | 6.75 | 0.51 |
+| TLZ4 | 0.42 | 0.29 |
+| ZSTD | 0.48 | 0.56 |
+
+- 快速 encoder（BVX3、Other3）encode 能耗僅 TGZ 的 ~44–47%；optimal-parse 變體（Optimal3/Optimal）因大量搜尋而達 4.6–6.8×。
+- **Decode 能耗全數低於 TGZ**（0.29–0.57×）：TGZ 的 gzip inflate 在本機比所有 LZFSE 解碼更耗能。
+- **fix 的邊界**：power 的 TGZ 現寫死走 swift_tar，故在 `-swift_tar` 輪與 lz4bench 一致；若跑 **非** `-swift_tar` 輪，lz4bench 會用系統 tar 而 power 仍用 swift_tar → 兩者不一致。官方 Mac 輪皆為 `-swift_tar`，故不影響；純系統 tar 對照見下方受控 A/B。
+
+### 系統 `tar` vs `swift_tar` 直接對照（受控 A/B，claw-code 1.3GB）
+
+在同一機器、同一語料、back-to-back 量測 `/usr/bin/tar`（系統，單執行緒 gzip）與 `/opt/homebrew/bin/swift_tar`（並行 chunk gzip + 記憶體修正）的 TGZ encode/decode。時間與 RSS 用 `/usr/bin/time -l`，energy 用 `powermetrics`（`energy_J = duration_s × avg_CPU_mW / 1000`）。單次量測，非官方 pipeline：
+
+| 維度 | system `tar` | `swift_tar` | swift_tar 相對 |
+| --- | ---: | ---: | ---: |
+| Encode 時間 | 29.5s | **4.42s** | **6.7× 快** |
+| Decode 時間 | 3.35s | **2.94s** | 1.14× 快 |
+| Encode RSS | 4.2 MB | 209.8 MB | 50× 多 |
+| Decode RSS | 4.2 MB | 49.8 MB | 11.9× 多 |
+| Encode Energy | 172.19 J | **68.20 J** | **−60%** |
+| Decode Energy | 17.71 J | 15.63 J | −12% |
+
+- **Encode**：swift_tar 以「大量 RSS 換並行」大勝——雖然瞬時 CPU 功率更高（15480 vs 5831 mW，多核 vs 單核），但耗時只有 1/6.7，總能耗因「race to idle」反而 **−60%**。
+- **Decode**：兩者相近（gzip inflate 本質偏序列）；swift_tar 略快、略省能，代價是 RSS 高一個量級。
+- **記憶體代價**：swift_tar encode RSS ~210MB = 在途 chunk 數 × ~8MiB；系統 tar 純串流僅 ~4MB。低記憶體環境可用 `-n` 調降 swift_tar 在途數（見 `verifications/README.md`，`n=4` 約 90MB）。
 
 ---
 

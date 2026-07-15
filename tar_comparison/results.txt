@@ -1,0 +1,31 @@
+system tar vs swift_tar — controlled A/B / 受控 A/B
+=====================================================================
+Date / 日期      : 2026-07-15
+Machine / 機器   : R45-Mac test machine (10-core / 10 核心)
+Corpus / 語料    : claw-code (1.3G)
+system tar       : /usr/bin/tar          (single-threaded gzip / 單執行緒 gzip)
+swift_tar        : /opt/homebrew/bin/swift_tar 20260714-232304
+                   (parallel chunk gzip + memory fix / 並行 chunk gzip + 記憶體修正)
+Method / 方法    : same machine, same corpus, back-to-back, single run.
+                   time+RSS via /usr/bin/time -l; energy via powermetrics,
+                   energy_J = duration_s * avg_CPU_mW / 1000.
+                   同機、同語料、back-to-back、單次量測。
+
+== Pass1: encode/decode seconds + peak RSS (tar_ab.sh) ==
+systemtar  enc_s=29.37   enc_rss_mb=4.2      dec_s=3.35    dec_rss_mb=4.2
+swifttar   enc_s=4.42    enc_rss_mb=209.8    dec_s=2.93    dec_rss_mb=49.8
+
+== Pass2: CPU energy via powermetrics (tar_energy.sh) ==
+systemtar-encode       dur_s=29.53   avgCPU_mW=5831.1    energy_J=172.19
+systemtar-decode       dur_s=3.35    avgCPU_mW=5289.9    energy_J=17.71
+swifttar-encode        dur_s=4.41    avgCPU_mW=15480.1   energy_J=68.20
+swifttar-decode        dur_s=2.95    avgCPU_mW=5308.1    energy_J=15.63
+
+== Summary (four dimensions) / 四維度總表 ==
+dimension        system tar    swift_tar    swift_tar vs tar
+Encode time      29.5s         4.42s        6.7x faster
+Decode time      3.35s         2.94s        1.14x faster
+Encode RSS       4.2 MB        209.8 MB     50x more
+Decode RSS       4.2 MB        49.8 MB      11.9x more
+Encode energy    172.19 J      68.20 J      -60%
+Decode energy    17.71 J       15.63 J      -12%

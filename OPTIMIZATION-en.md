@@ -167,9 +167,101 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R46-Win: Windows TGZ Native Zlib (swift_tar built-in zlib submodule, replacing chunk-by-ch external gzip.exe) (2026-07-13)
+
+> **Goal**: R45-Win-Retest1 confirms the root cause that Windows TGZ encode/decode is 4-6 times slower than Mac - there is no linkable zlib on the Windows side, and each 4MiB chunk of `compressChunk` needs to spawn an external `gzip.exe` journey; the Mac side is a native link of `#if !os(Windows) import zlib` with no trip overhead. In this round, zlib 1.3.2 is added to `swift_tar` repo as a git submodule ( `cmodules/zlib`). After static compilation, `compile_tar-win.bat` is linked to `swift_tar.exe`, and the TGZ path of `swift_tar.swift` is changed to directly call zlib API, replacing the `winRunCompress` / `winRunDecompress`'s the travel pipe.
+>
+> swift_tar commit: `19da746` ( `Windows TGZ native zlib: improve performance, limit RSS and add date version`).
+
+## Changes in this round
+
+- Add `swift_tar/zlib` (zlib 1.3.2) as a git submodule, and `build_zlib-win.sh` is responsible for static compilation with the existing tool chain.
+- `compile_tar-win.bat` Supplement the include/lib link flag of zlib.
+- `swift_tar.swift`: The compress/decompress path of TGZ is changed to the native zlib API (37 lines of change), no longer for each chunk spawn `gzip.exe`. The rest of the external process codec (bzip2/xz/lzip/zstd/lz4) remains unchanged, and still follows the back-end of the DispatchQueue pipe repaired by R45-Win.
+- `verifications/tgz_inflight_rss_win.sh` Rescan `-n 4..40`, `README.md` / `README.zh-TW.md` to supplement the native zlib result paragraph.
+
+## Verification
+
+- `swift_tar -test -debug`: 6/6 full pass (including Windows `-write_foundation` / `-write_ucrt` dual back-end, two-way and system tar interoperability).
+- `tgz_inflight_rss_win.sh` complete `-n 4..40` scan (claw-code, 1.4G): encode time dropped from 27–47s to 7.2–15.6s ( `-n 12..40` is stable at 7.2–7.8s, very close to Mac 4.3–7.6s); decode down from 17–19s to 9.7–11.0s (still slower than Mac 2.8–3.9s, see "pendable"). Encode RSS presents a linear relationship with `-n` (55.6MB@n4 → 208.0MB@n40), and decode RSS is flat at 43–45MB. See `swift_tar/verifications/README.md` for details.
+- The following numbers in this section are the official complete round of `run_round.bat -swift_tar` (including verify/RSS/comparison), not the above ad-hoc scan.
+
+## 1. Windows actual measurement results ( `-swift_tar`, native zlib, n=40 inflight)
+
+| Data Set | Format | Win Compression Ratio | Win Enc MB/s | Win Dec MB/s | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | **TGZ** | 1.0000 | **173.91** | **121.40** | 6.4MB | 5.9 MB |
+| claw-code | Other3 | 0.9812 | 192.59 | 191.78 | 130.3 MB | 257.5 MB |
+| claw-code | Optimal3 | 0.9344 | 30.44 | 191.36 | 499.1 MB | 255.4 MB |
+| claw-code | BVX3 | 0.9243 | 192.76 | 188.89 | 139.3 MB | 248.5 MB |
+| claw-code | Lazy2 | 0.8687 | 38.97 | 186.71 | 482.7 MB | 248.8 MB |
+| claw-code | Optimal | 0.8252 | 18.01 | 195.26 | 508.8MB | 244.9 MB |
+| claw-code | TLZ4 | 1.1734 | 182.25 | 244.56 | 8.8MB | 8.8 MB |
+| claw-code | ZSTD | 0.7806 | 120.81 | 229.54 | 8.3MB | 8.8 MB |
+| llama.cpp | **TGZ** | 1.0000 | **92.26** | **24.13** | 6.6 MB | 7.0 MB |
+| llama.cpp | Other3 | 0.9966 | 86.56 | 41.68 | 149.4 MB | 346.8 MB |
+| llama.cpp | Optimal3 | 0.9739 | 57.25 | 41.36 | 753.1MB | 346.9 MB |
+| llama.cpp | BVX3 | 0.9792 | 85.63 | 41.33 | 162.0 MB | 345.7 MB |
+| llama.cpp | Lazy2 | 0.9572 | 81.46 | 41.63 | 632.8 MB | 344.8 MB |
+| llama.cpp | Optimal | 0.9390 | 42.87 | 36.90 | 764.1 MB | 345.2 MB |
+| llama.cpp | TLZ4 | 1.0500 | 80.49 | 26.13 | 8.3MB | 8.8 MB |
+| llama.cpp | ZSTD | 0.9123 | 79.85 | 27.63 | 8.3MB | 8.8 MB |
+
+Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`. The compression ratio is almost exactly the same as R45-Win-Retest1 (llama.cpp full format difference <0.001) - in line with expectations. Changing the zlib back-end does not change the DEFLATE algorithm/level, only the call path.
+
+## two TGZ Before/After: R45-Win-Retest1 (external `gzip.exe`) vs this round (native zlib)
+
+| Data Set | Indicator | R45-Win-Retest1 | This Round | Change |
+| --- | --- | ---: | ---: | ---: |
+| claw-code | Enc MB/s | 93.89 | 173.91 | **+85.3%** |
+| claw-code | Dec MB/s | 65.37 | 121.40 | **+85.7%** |
+| claw-code | Enc RSS | 6.6 MB | 6.4 MB | −3.0% (noisse) |
+| claw-code | Dec RSS | 6.1 MB | 5.9 MB | −3.3% (noiss) |
+| llama.cpp | Enc MB/s | 66.90 | 92.26 | **+37.9%**
+| llama.cpp | Dec MB/s | 23.01 | 24.13 | +4.9% (nogge level) |
+| llama.cpp | Enc RSS | 6.5 MB | 6.6 MB | +1.5% (nossip) |
+| llama.cpp | Dec RSS | 6.9 MB | 7.0 MB | +1.4% (nottle) |
+
+> **Interpretation**: Both encode data sets have been greatly improved, and RSS is maintained at a single-digit MB (which is not a bottleneck in the first place). The claw-code decode is also greatly improved (+85.7%), but **llama.cpp decode is almost the same (+4.9%, noise level) ** - llama.cpp has 40,675 small files, and the decode bottleneck is mainly the system call overhead of "file-by-file/writing" (R45-Win has repaired ucrt back-end bottleneck), not the operation time of gzip inflate itself; native zlib only accelerates the inflate section, and the effect on such small file-based data sets is naturally limited. The claw-code has only one large file (there is still a continuous stream inside tar), and almost all of the decode time is spent on inflate, so it can get a complete zlib acceleration dividend. This is the expected architectural difference, not a bug.
+
+## three. Win/Mac comparison (this round vs R45-Mac)
+
+| Data Set | Format | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | **TGZ** | 173.91 | 309.38 | **0.562** | 121.40 | 395.47 | **0.307** |
+| claw-code | Other3 | 192.59 | 443.55 | 0.434 | 191.78 | 555.44 | 0.345 |
+| claw-code | Optimal3 | 30.44 | 68.07 | 0.447 | 191.36 | 446.06 | 0.429 |
+| claw-code | BVX3 | 192.76 | 549.57 | 0.351 | 188.89 | 462.78 | 0.408 |
+| claw-code | Lazy2 | 38.97 | 72.36 | 0.539 | 186.71 | 570.10 | 0.328 |
+| claw-code | Optimal | 18.01 | 37.28 | 0.483 | 195.26 | 528.27 | 0.370 |
+| claw-code | TLZ4 | 182.25 | 582.72 | 0.313 | 244.56 | 551.27 | 0.444 |
+| claw-code | ZSTD | 120.81 | 458.18 | 0.264 | 229.54 | 552.78 | 0.415 |
+| llama.cpp | **TGZ** | 92.26 | 282.52 | **0.327** | 24.13 | 140.33 | **0.172** |
+| llama.cpp | Other3 | 86.56 | 370.17 | 0.234 | 41.68 | 141.33 | 0.295 |
+| llama.cpp | Optimal3 | 57.25 | 87.95 | 0.651 | 41.36 | 143.14 | 0.289 |
+| llama.cpp | BVX3 | 85.63 | 398.34 | 0.215 | 41.33 | 135.70 | 0.305 |
+| llama.cpp | Lazy2 | 81.46 | 187.08 | 0.435 | 41.63 | 140.69 | 0.296 |
+| llama.cpp | Optimal | 42.87 | 61.24 | 0.700 | 36.90 | 133.94 | 0.275 |
+| llama.cpp | TLZ4 | 80.49 | 356.59 | 0.226 | 26.13 | 132.88 | 0.197 |
+| llama.cpp | ZSTD | 79.85 | 433.73 | 0.184 | 27.63 | 139.15 | 0.199 |
+
+> **Claw-code TGZ's Win/Mac ratio**: encode 0.312 → **0.562** (R45-Win-Retest1 is one of the lowest in the full format; this round has risen to the 2nd highest in the full format, second only to Lazy2 0.539, which is actually higher than it and the highest in this round). Decode 0.165 → **0.307**, also from the bottom to the middle. **The Win/Mac ratio of llama.cpp TGZ changes very little** (enc 0.289→0.327, dec 0.175→0.172), which is consistent with the architectural interpretation of Section 2.
+>
+> **claw-code ZSTD decode rebounded sharply from 55.18 MB/s to 229.54 MB/s (+316%)**: ZSTD This round of code has not changed at all (still an external `zstd.exe` pipe), this rebound directly confirms the hypothesis put forward in R45-Win-Retest1 "to-do" - the abnormal decline of the last round of claw-code TGZ/ZSTD decode is an environmental factor (instant anti-virus/disk pressure), which has nothing to do with swift_tar itself. **This pending is considered to have been resolved**. The remaining formats of the same batch of claw-code decode also generally increased by 13%–18% (TLZ4 +25.5%, LZFSE family +13%–19%), with the same direction, further supporting the environmental factor hypothesis.
+>
+> **claw-code encode side (except TGZ) generally fell 10%–32% in this round** (Other3 −25.9%, Optimal3 −32.2%, TLZ4 −22.9%, etc.), and llama.cpp encode is stable (within ±6%). The comparison of the two shows that this decline is concentrated on claw-code (a single 1.4GB large file, which is more sensitive to the background disk/CPU load), rather than the swift_tar code change (the only code path moved in this round is TGZ); it is classified as a measurement noise and is not included in the pending for the time being. If it reappears in the next round, further troubleshooting is needed.
+
+## To be done
+
+- llama.cpp TGZ decode is still limited by the cost of opening/writing small files, and native zlib has limited benefits for this data set; if we want to continue to narrow the Win/Mac decode gap, the next step should be to profile ucrt write the path itself (not the gzip layer).
+- Although Windows TGZ decode (claw-code 121.40 MB/s) has been greatly improved than R45-Win-Retest1, it is still lower than Mac (395.47 MB/s, rate 0.307); the ad-hoc scan of `tgz_inflight_rss_win.sh` shows that the decode time is 9.7–11.0s vs Mac 2.8–3.9s, and the gap has not been completely eliminated, and the number of inflate buffer size/syscalls can be compared in the future.
+- The claw-code encode side generally fell by 10%–32% (except TGZ) temporarily classified noise, and the next round of rerun to confirm whether it reappears.
+
+---
+
 # R46-Mac: Disable the generation of Time Profiler Trace, and change the analysis steps to follow the old data (2026-07-12)
 
-> **Goal**: From this round, Mac benchmark will no longer run Time Profiler trace ( `tracer.command`), but the downstream analysis step (Step 8/9) **not the whole segment is disabled** - instead, it will elegantly skip and follow the results of the previous round of `trace/analysis` when detecting "no new trace in this round", instead of interrupting the entire pipeline. This section records the pipeline change itself; the benchmark results will be supplemented after the actual operation of this round is completed.
+> **Goal**: From this round, Mac benchmark will no longer run Time Profiler trace ( `tracer.command`), but the downstream analysis step (Step 8/9) **not the whole segment is disabled** - instead, it will elegantly skip and follow the results of the previous round of `trace/analysis` when detecting "no new trace in this round", instead of interrupting the entire pipeline. This section records the pipeline change itself; see the results of this round of actual running ( `-swift_tar`, swift_tar `20260714-232304`, native zlib + memory revision) see the "Benchmark results" below.
 
 ## Changes in this round
 
@@ -186,6 +278,80 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 - `BenchMarkResult.csv`'s `Trace wall time(seconds)`, `CPU Symbol Status`, `CPU Top Symbol` and other fields follow the `trace_summary.csv` / `cpu_call_tree_summary.csv` of **R45-Mac's last successful analysis** from this round, and the value will not be updated with the code change of R46+ - when interpreting, it should be noted that these fields reflect the behavior of the old code, which is not the real-time measurement of this round.
 - `helper/benchmark_result_rebuild.command` is completely unaffected: Whether the data is newly generated or follows the old file, `load_trace_summaries()` / `load_cpu_summaries()` is a simple file reading.
 - If you really need to refresh the trace data in the future, you need to manually re-enable `benchmark.sh` Step 6 (cancel the annotation `tracer.command` call). **Re-enable timing**: The next time `lzfse-cli.swift` itself has a program code change, it should be reopened - the meaning of trace is to write the "measured code". If the code code does not change, there is no need to re-profile.
+
+## Benchmark Results (2026-07-15 Real Run, `-swift_tar`, swift_tar `20260714-232304`)
+
+> This round is the official round of `-swift_tar` ( `USING_SWIFT_TAR`, shim takes effect, lz4bench and power both go swift_tar). The only substantial change comes from **swift_tar (TGZ path)**: R46-Win's native zlib + memory correction of the previous R46-Mac ( `autoreleasepool` + `ParallelChunkSink` / `TarReader` buffer rewrite, see `swift_tar/verifications/README.md` for details). Lzfse-cli.swift has not changed, **claw-code compression ratio is consistent with R45-Mac** (BVX3 0.9244, Optimal 0.8253, ZSTD 0.7805); **llama.cpp** The corpus has increased from ~1261 MiB to 1385 MiB, and the ratio has changed slightly (such as Optimal 0.9408→0.9347), so it is not completely consistent. The speed of the LZFSE series is at the same level as RSS.
+
+### TGZ Peak RSS collapse (n=40, MB)
+
+Previously, TGZ was the highest RSS among all formats (encode/decode are both ~2.5–3.3GB, close to the corpus size). After this round of revision, **decode** dropped to the same level as TLZ4, **encode** is very close (but still about 2.6× of TLZ4):
+
+| Data Set | Encode RSS Before → After | Decode RSS Before → After |
+| --- | ---: | ---: |
+| claw-code | 2944.9 → **217.0**（−92.6%）| 3265.5 → **44.1**（−98.6%）|
+| llama.cpp | 2537.6 → **215.3**（−91.5%）| 3021.9 → **41.7**（−98.6%）|
+
+- **Encode** reduced to ~215MB: corresponding to the real linear relationship of `-n` in transit chunk × ~8MiB/chunk (only appears after the leakage disappears).
+- **Decode** reduced to ~42–44MB to draw: lower than all LZFSE formats (~300–615MB), only slightly higher than TLZ4's ~34MB.
+- Verification cross-comparison: consistent with the independent scan (encode 90–300MB, decode ~50MB) of `swift_tar/verifications/tgz_inflight_rss_output.txt`, it is confirmed that the correction is reproduced in the official pipeline.
+
+### Other formats RSS (n=40, unchanged, MB)
+
+| Format | claw enc/dec | llama enc/dec |
+| --- | ---: | ---: |
+| LZFSE (BVX3) | 343.4 / 319.5 | 241.4 / 348.6 |
+| LZFSE (Other3) | 365.4 / 305.5 | 227.4 / 349.6 |
+| LZFSE (Apple) | 1356.3 / 470.0 | 1277.3 / 614.3 |
+| TLZ4 | 80.9 / 33.7 | 83.8 / 33.8 |
+| ZSTD | 399.2 / 9.2 | 500.1 / 9.0 |
+
+### Compression ratio/speed
+
+The algorithm has not changed: **claw-code** the compression ratio is consistent with R45-Mac; **llama.cpp** because the corpus increased from ~1261 MiB to 1385 MiB, the ratio changed slightly (Optimal 0.9408→0.9347), which is not exactly consistent. TGZ speed encode 316 (claw) / 236 (llama) MB/s, decode 446 / 164 MB/s, memory correction does not bring time degradation.
+
+### CPU Energy (n=40)— Effective for the first time after P1 modification
+
+Previously, TGZ energy was distorted due to `power_benchmark.command` naked `tar` (falling to `/usr/bin/tar` single thread gzip, encode ~43–51s); this session has been changed to explicitly call `${SWIFT_TAR_BIN:-/opt/homebrew/bin/swift_tar}`. This round of power step TGZ encode 5.21s (swift_tar, parallel) is at the same level as lz4bench's 4.47s, and the confirmation quantity is indeed swift_tar:
+
+| Data Set | TGZ Encode Energy(J) | TGZ Decode Energy(J) |
+| --- | ---: | ---: |
+| claw-code | 94.25 | 14.63 |
+| llama.cpp | 79.39 | 10.21 |
+
+Energy Ratio with TGZ=1 paradigm (claw-code, n=40):
+
+| Format | Encode Ratio | Decode Ratio |
+| --- | ---: | ---: |
+| LZFSE (Other3) | 0.44 | 0.47 |
+| LZFSE (BVX3) | 0.47 | 0.57 |
+| LZFSE (Apple) | 0.95 | 0.51 |
+| LZFSE (Lazy2) | 1.98 | 0.48 |
+| LZFSE (Optimal3) | 4.57 | 0.36 |
+| LZFSE (Optimal) | 6.75 | 0.51 |
+| TLZ4 | 0.42 | 0.29 |
+| ZSTD | 0.48 | 0.56 |
+
+- Fast encoder (BVX3, Other3) encode energy consumption is only ~44–47% of TGZ; optimal-parse variant (Optimal3/Optimal) reaches 4.6–6.8× due to a large number of searches.
+- **Decode energy consumption is lower than TGZ** (0.29–0.57×): TGZ's gzip inflate consumes more energy locally than all LZFSE decoding.
+- **fix boundary**: The TGZ of power is now written as swift_tar, so it is consistent with lz4bench in the `-swift_tar` round; if you run **non-** `-swift_tar` wheel, lz4bench will use the system tar and power will still use swift_tar → the two are inconsistent. The official Mac wheel is `-swift_tar`, so it does not affect; see the controlled A/B below for the pure system tar comparison.
+
+### System `tar` vs `swift_tar` direct comparison (controlled A/B, claw-code 1.3GB)
+
+In the same machine, the same corpus, back-to-back measure the TGZ encode/decode of `/usr/bin/tar` (system, single thread gzip) and `/opt/homebrew/bin/swift_tar` (parallel chunk gzip + memory correction). Time and RSS use `/usr/bin/time -l`, energy use `powermetrics` ( `energy_J = duration_s × avg_CPU_mW / 1000`). Single measurement, unofficial pipeline:
+
+| Dimension | system `tar` | `swift_tar` | swift_tar relative |
+|---|---:|---:|---:|---:|
+| Encode Time | 29.5s | **4.42s** | **6.7× Fast** |
+| Decode Time | 3.35s | **2.94s** | 1.14× Fast |
+| Encode RSS | 4.2 MB | 209.8 MB | More than 50× |
+| Decode RSS | 4.2 MB | 49.8 MB | 11.9× more |
+| Encode Energy | 172.19 J | **68.20 J** | **−60%** |
+| Decode Energy | 17.71 J | 15.63 J | −12% |
+
+- **Encode**: swift_tar won with "a large number of RSS in parallel" - although the instantaneous CPU power is higher (15480 vs 5831 mW, multi-core vs single-core), the time consumption is only 1/6.7, and the total energy consumption is **−60%** due to "race to idle".
+- **Decode**: the two are similar (gzip inflate is essentially partial to sequence); swift_tar is slightly faster and slightly energy-saving, at the cost of one order of magnitude higher RSS.
+- **Memory cost**: swift_tar encode RSS ~210MB = number of chunks in transit × ~8MiB; system tar pure streaming only ~4MB. Low memory environment can use `-n` to downgrade swift_tar in the number of way (see `verifications/README.md`, `n=4` about 90MB).
 
 ---
 

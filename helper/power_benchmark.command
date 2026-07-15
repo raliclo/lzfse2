@@ -16,6 +16,12 @@ POWER_STATUS="${POWER_STATUS:-${POWER_DIR}/power_status.txt}"
 POWER_INTERVAL_MS="${POWER_INTERVAL_MS:-500}"
 POWER_SAMPLERS="${POWER_SAMPLERS:-cpu_power,gpu_power}"
 LZFSE_DECODE_REPEAT="${LZFSE_DECODE_REPEAT:-3}"
+# TGZ 必須明確走 swift_tar，不依賴 PATH shim（power 步驟未帶 shim，裸 tar 會
+# 落到 /usr/bin/tar 的單執行緒 gzip，量到的能耗與官方 swift_tar benchmark 不符）。
+# TGZ must go through swift_tar explicitly rather than the PATH shim (the power
+# step runs without the shim, so a bare `tar` falls back to /usr/bin/tar's
+# single-threaded gzip and its energy does not match the swift_tar benchmark).
+SWIFT_TAR_BIN="${SWIFT_TAR_BIN:-/opt/homebrew/bin/swift_tar}"
 
 mkdir -p "$POWER_DIR" "$POWER_RAW_DIR" "$POWER_TMP_DIR" "$POWER_TAR_DIR"
 echo "RUNNING_POWER_BENCHMARK $(date +%H:%M:%S)" > "$POWER_STATUS"
@@ -237,7 +243,7 @@ makeTarInput() {
 runEncode() {
     local dataset="$1" algo="$2" n="$3" tar_input="$4" out="$5"
     case "$algo" in
-        tgz)      tar czf "$out" "$dataset" ;;
+        tgz)      "$SWIFT_TAR_BIN" czf "$out" "$dataset" ;;
         zstd)     zstd -9 -T0 -q -f "$tar_input" -o "$out" ;;
         tar.lz4)  lz4 -T0 -6 -q -f "$tar_input" "$out" ;;
         other3)   ./lzfse -encode -si -o "$out" -algo other3 -n "$n" < "$tar_input" ;;
@@ -253,7 +259,7 @@ runEncode() {
 runDecode() {
     local algo="$1" n="$2" input="$3"
     case "$algo" in
-        tgz)      tar tzf "$input" >/dev/null ;;
+        tgz)      "$SWIFT_TAR_BIN" tzf "$input" >/dev/null ;;
         zstd)     zstd -d -q -f "$input" -o /dev/null ;;
         tar.lz4)  lz4 -d -q -f "$input" /dev/null ;;
         other3|optimal3)
