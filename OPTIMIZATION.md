@@ -259,6 +259,68 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R46-Mac-Retest：swift_tar c149f94 submodule pointer 更新與完整重測（2026-07-17）
+
+> **目標**：將 `swift_tar` submodule pointer 由 `19da746` 更新至 `c149f94`，重新編譯後執行完整 `sudo ./run_round.command -swift_tar`。`c149f94` 的程式變更僅影響 Windows ZSTD（改用靜態 libzstd）；本輪 Mac 測試用來確認 pointer、建置、自測與完整 benchmark pipeline 均無回歸。
+
+## 變更與驗證
+
+- `swift_tar`：checkout `c149f94348a580cdf4e24637d7d4ae193596c7ab`，建置版本 `20260717-173627`，重新安裝至 `/opt/homebrew/bin/swift_tar`。
+- `swift_tar -test -debug`：plain tar 與 `.tar.gz` 對系統 `/usr/bin/tar` 的雙向互通全部通過。
+- `lzfse -test`：Other3／Optimal3／BVX3／Lazy2／Optimal／Apple 與平行解碼測試全部通過。
+- 六批 benchmark（claw-code／llama.cpp × n=40／8／4）全部 `LZ4BENCH_OK`；所有 decode compare 均為 `COMPARED_WITH_TGZ_OK`。
+- power、結果重建、energy 整合、best-points、comparison 與翻譯全部完成；無 `FAILED`、`no_samples`、`✗` 或 compare failure。
+- 完整流程：`BENCH_DONE 18:39:42`，命令 exit code 0。
+
+## 1. TGZ n=40 結果
+
+| 資料集 | Enc MB/s | Dec MB/s | Enc RSS | Dec RSS | Enc Energy | Dec Energy |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 294.62 | 424.51 | 202.0 MB | 45.0 MB | 93.65 J | 15.05 J |
+| llama.cpp | 234.60 | 155.48 | 220.6 MB | 42.9 MB | 91.05 J | 11.82 J |
+
+相對 2026-07-15 的 R46-Mac 正式輪：
+
+| 資料集 | Enc 速度 | Dec 速度 | Enc RSS | Dec RSS |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code | 316.48 → 294.62（−6.9%） | 445.83 → 424.51（−4.8%） | 217.0 → 202.0 MB | 44.1 → 45.0 MB |
+| llama.cpp | 235.73 → 234.60（−0.5%） | 164.05 → 155.48（−5.2%） | 215.3 → 220.6 MB | 41.7 → 42.9 MB |
+
+> **解讀**：TGZ 速度差異為 −0.5%～−6.9%，RSS 維持 encode 約 202–221MB、decode 約 43–45MB，記憶體修正穩定重現。由於 `19da746..c149f94` 只有 Windows ZSTD 路徑變更，Mac 數字差異歸類為 run-to-run 波動，不代表演算法回歸。
+
+## 2. 其他格式 n=40 RSS（MB）
+
+| 格式 | claw enc/dec | llama enc/dec |
+| --- | ---: | ---: |
+| LZFSE (BVX3) | 367.5 / 319.4 | 351.0 / 348.5 |
+| LZFSE (Other3) | 347.4 / 305.4 | 268.2 / 349.5 |
+| LZFSE (Apple) | 1356.3 / 470.0 | 1164.1 / 614.3 |
+| TLZ4 | 81.6 / 33.8 | 86.1 / 33.8 |
+| ZSTD | 392.4 / 9.2 | 490.0 / 9.3 |
+
+## 3. CPU Energy（claw-code，n=40，TGZ=1）
+
+| 格式 | Encode Ratio | Decode Ratio |
+| --- | ---: | ---: |
+| LZFSE (Other3) | 0.47 | 0.41 |
+| LZFSE (BVX3) | 0.48 | 0.59 |
+| LZFSE (Apple) | 0.99 | 0.48 |
+| LZFSE (Lazy2) | 2.08 | 0.46 |
+| LZFSE (Optimal3) | 4.76 | 0.43 |
+| LZFSE (Optimal) | 6.96 | 0.52 |
+| TLZ4 | 0.46 | 0.28 |
+| ZSTD | 0.52 | 0.57 |
+
+- 快速 encoder（Other3／BVX3）encode 能耗為 TGZ 的 0.47–0.48×；Optimal3／Optimal 為 4.76–6.96×。
+- 所有 decode 能耗均低於 TGZ（0.28–0.59×）。
+- 本輪 power TGZ encode 時間為 5.39s（claw）／6.32s（llama），與 lz4bench 的 4.81s／6.19s 同級，確認 power 仍量到 swift_tar，而非 `/usr/bin/tar`。
+
+## 結論
+
+`swift_tar c149f94` pointer、重新編譯、自測與完整 Mac pipeline 均驗證通過。此次 commit 為 Windows-only ZSTD 改動，Mac 端未觀察到功能或記憶體回歸；TGZ 低 RSS 結果再次重現。LZFSE 與外部格式的單輪速度／能耗波動仍應視為環境與排程雜訊，不據此提出新的 Mac 優化方向。
+
+---
+
 # R46-Mac：停用 Time Profiler Trace 產生，分析步驟改為沿用舊資料（2026-07-12）
 
 > **目標**：自本輪起，Mac benchmark 不再執行 Time Profiler trace（`tracer.command`），但下游分析步驟（Step 8/9）**不整段停用**——改為偵測「本輪無新 trace」時優雅跳過並沿用上一輪的 `trace/analysis` 結果，而非中斷整個 pipeline。本節記錄 pipeline 變更本身；本輪實跑結果（`-swift_tar`，swift_tar `20260714-232304`，native zlib + 記憶體修正版）見下方「Benchmark 結果」。

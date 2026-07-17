@@ -1,533 +1,533 @@
-RUNNING_SWIFT_TAR_COMPILE 23:23:04
-[INFO] swift_tar version: 20260714-232304 / swift_tar 版本：20260714-232304
+RUNNING_SWIFT_TAR_COMPILE 17:36:27
+[INFO] swift_tar version: 20260717-173627 / swift_tar 版本：20260717-173627
 Built ./release/swift_tar / 已建置 ./release/swift_tar
 Installed to /opt/homebrew/bin/swift_tar / 已安裝至 /opt/homebrew/bin/swift_tar
-SWIFT_TAR_COMPILE_OK /opt/homebrew/bin/swift_tar 23:23:21
-RUNNING_SWIFT_TAR_TEST 23:23:21
-SWIFT_TAR_TEST_OK 23:23:23
-USING_SWIFT_TAR /opt/homebrew/bin/swift_tar 23:23:23
-PATH=/tmp/lzfse2-swift-tar-shim:/Users/raliclo/.local/bin:/Users/raliclo/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/VMware Fusion.app/Contents/Public:/Users/raliclo/.cargo/bin
-RUNNING compile 23:23:54
-TEST_OK 23:24:08
-RUNNING benchmark 23:24:08
-[36m[Info] Configuring compiler environment... / 正在配置編譯器環境...(B[m
-[33m-> Switching to System Default GCC Environment / 已切換至系統預設 GCC 環境(B[m
-[32m[Success] setcc completed. CURRENT SETCC=gcc, PACORES=20(B[m
+SWIFT_TAR_COMPILE_OK /opt/homebrew/bin/swift_tar 17:36:41
+RUNNING_SWIFT_TAR_TEST 17:36:41
+SWIFT_TAR_TEST_OK 17:36:42
+USING_SWIFT_TAR /opt/homebrew/bin/swift_tar 17:36:42
+PATH=/tmp/lzfse2-swift-tar-shim:/Users/raliclo/.codex/tmp/arg0/codex-arg0vGMoUi:/Users/raliclo/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/raliclo/.local/bin:/Users/raliclo/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/VMware Fusion.app/Contents/Public:/Users/raliclo/.cargo/bin:/Users/raliclo/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Volumes/Windows/proj_Win/Mac_Apps/ChatGPT.app/Contents/Resources
+RUNNING compile 17:36:56
+TEST_OK 17:37:10
+RUNNING benchmark 17:37:10
+[Info] Configuring compiler environment... / 正在配置編譯器環境...
+-> Switching to System Default GCC Environment / 已切換至系統預設 GCC 環境
+[Success] setcc completed. CURRENT SETCC=gcc, PACORES=20
 [Info] Running Benchmark WITH probe mode (LZFSE_MEMPROBE=1). Peak-RSS probes run after compression/decompression benchmark and will be recorded in the result txt.
 [Info] Running claw-code benchmark with -n 40; output=lz4bench_log/lz4bench-claw-code-n40.txt
-RUNNING_LZ4BENCH claw-code-n40 23:25:08
-[Info] 磁碟可用空間充足：37GB / Sufficient disk space: 37GB
-RUNNING_LZ4BENCH claw-code-n40 23:25:08
-ENCODED claw-code-n40 tgz 23:25:14
-ENCODED claw-code-n40 other3 23:25:17
-ENCODED claw-code-n40 optimal3 23:25:38
-ENCODED claw-code-n40 lazy2 23:25:57
-ENCODED claw-code-n40 optimal 23:26:35
-ENCODED claw-code-n40 bvx3 23:26:37
-ENCODED claw-code-n40 apple 23:26:46
-ENCODED claw-code-n40 tar.lz4 23:26:49
-ENCODED claw-code-n40 zstd 23:26:52
-DECODED claw-code-n40 tgz 23:26:55
-COMPARE_BASE claw-code-n40 tgz 23:26:55
-DECODED claw-code-n40 other3 23:26:58
-COMPARED_WITH_TGZ_OK claw-code-n40 other3 23:27:01
-DECODED claw-code-n40 optimal3 23:27:04
-COMPARED_WITH_TGZ_OK claw-code-n40 optimal3 23:27:08
-DECODED claw-code-n40 lazy2 23:27:11
-COMPARED_WITH_TGZ_OK claw-code-n40 lazy2 23:27:15
-DECODED claw-code-n40 optimal 23:27:19
-COMPARED_WITH_TGZ_OK claw-code-n40 optimal 23:27:22
-DECODED claw-code-n40 bvx3 23:27:26
-COMPARED_WITH_TGZ_OK claw-code-n40 bvx3 23:27:29
-DECODED claw-code-n40 apple 23:27:33
-COMPARED_WITH_TGZ_OK claw-code-n40 apple 23:27:36
-DECODED claw-code-n40 tar.lz4 23:27:39
-COMPARED_WITH_TGZ_OK claw-code-n40 tar.lz4 23:27:42
-DECODED claw-code-n40 zstd 23:27:46
-COMPARED_WITH_TGZ_OK claw-code-n40 zstd 23:27:50
-RUNNING_MEMPROBE claw-code-n40 tgz 23:27:51
-MEMPROBE_DONE claw-code-n40 tgz 23:27:57
-RUNNING_MEMPROBE claw-code-n40 zstd 23:27:57
-MEMPROBE_DONE claw-code-n40 zstd 23:28:01
-RUNNING_MEMPROBE claw-code-n40 tar.lz4 23:28:01
-MEMPROBE_DONE claw-code-n40 tar.lz4 23:28:04
-RUNNING_MEMPROBE claw-code-n40 other3 23:28:04
-MEMPROBE_DONE claw-code-n40 other3 23:28:07
-RUNNING_MEMPROBE claw-code-n40 optimal3 23:28:07
-MEMPROBE_DONE claw-code-n40 optimal3 23:28:28
-RUNNING_MEMPROBE claw-code-n40 apple 23:28:28
-MEMPROBE_DONE claw-code-n40 apple 23:28:38
-RUNNING_MEMPROBE claw-code-n40 bvx3 23:28:38
-MEMPROBE_DONE claw-code-n40 bvx3 23:28:41
-RUNNING_MEMPROBE claw-code-n40 lazy2 23:28:41
-MEMPROBE_DONE claw-code-n40 lazy2 23:29:01
-RUNNING_MEMPROBE claw-code-n40 optimal 23:29:01
-MEMPROBE_DONE claw-code-n40 optimal 23:29:39
-LZ4BENCH_DONE claw-code-n40 23:29:39
-LZ4BENCH_OK claw-code-n40 23:29:40
+RUNNING_LZ4BENCH claw-code-n40 17:38:11
+[Info] 磁碟可用空間充足：27GB / Sufficient disk space: 27GB
+RUNNING_LZ4BENCH claw-code-n40 17:38:11
+ENCODED claw-code-n40 tgz 17:38:17
+ENCODED claw-code-n40 other3 17:38:20
+ENCODED claw-code-n40 optimal3 17:38:41
+ENCODED claw-code-n40 lazy2 17:39:01
+ENCODED claw-code-n40 optimal 17:39:39
+ENCODED claw-code-n40 bvx3 17:39:42
+ENCODED claw-code-n40 apple 17:39:52
+ENCODED claw-code-n40 tar.lz4 17:39:55
+ENCODED claw-code-n40 zstd 17:39:58
+DECODED claw-code-n40 tgz 17:40:01
+COMPARE_BASE claw-code-n40 tgz 17:40:01
+DECODED claw-code-n40 other3 17:40:04
+COMPARED_WITH_TGZ_OK claw-code-n40 other3 17:40:07
+DECODED claw-code-n40 optimal3 17:40:10
+COMPARED_WITH_TGZ_OK claw-code-n40 optimal3 17:40:14
+DECODED claw-code-n40 lazy2 17:40:17
+COMPARED_WITH_TGZ_OK claw-code-n40 lazy2 17:40:21
+DECODED claw-code-n40 optimal 17:40:26
+COMPARED_WITH_TGZ_OK claw-code-n40 optimal 17:40:29
+DECODED claw-code-n40 bvx3 17:40:32
+COMPARED_WITH_TGZ_OK claw-code-n40 bvx3 17:40:36
+DECODED claw-code-n40 apple 17:40:39
+COMPARED_WITH_TGZ_OK claw-code-n40 apple 17:40:43
+DECODED claw-code-n40 tar.lz4 17:40:46
+COMPARED_WITH_TGZ_OK claw-code-n40 tar.lz4 17:40:49
+DECODED claw-code-n40 zstd 17:40:52
+COMPARED_WITH_TGZ_OK claw-code-n40 zstd 17:40:56
+RUNNING_MEMPROBE claw-code-n40 tgz 17:40:57
+MEMPROBE_DONE claw-code-n40 tgz 17:41:04
+RUNNING_MEMPROBE claw-code-n40 zstd 17:41:04
+MEMPROBE_DONE claw-code-n40 zstd 17:41:08
+RUNNING_MEMPROBE claw-code-n40 tar.lz4 17:41:08
+MEMPROBE_DONE claw-code-n40 tar.lz4 17:41:11
+RUNNING_MEMPROBE claw-code-n40 other3 17:41:11
+MEMPROBE_DONE claw-code-n40 other3 17:41:14
+RUNNING_MEMPROBE claw-code-n40 optimal3 17:41:14
+MEMPROBE_DONE claw-code-n40 optimal3 17:41:36
+RUNNING_MEMPROBE claw-code-n40 apple 17:41:36
+MEMPROBE_DONE claw-code-n40 apple 17:41:46
+RUNNING_MEMPROBE claw-code-n40 bvx3 17:41:46
+MEMPROBE_DONE claw-code-n40 bvx3 17:41:49
+RUNNING_MEMPROBE claw-code-n40 lazy2 17:41:49
+MEMPROBE_DONE claw-code-n40 lazy2 17:42:09
+RUNNING_MEMPROBE claw-code-n40 optimal 17:42:09
+MEMPROBE_DONE claw-code-n40 optimal 17:42:49
+LZ4BENCH_DONE claw-code-n40 17:42:49
+LZ4BENCH_OK claw-code-n40 17:42:50
 [Info] Completed claw-code benchmark with -n 40; output=lz4bench_log/lz4bench-claw-code-n40.txt ,Sleeping 60s before next sweep.
 [Info] Running claw-code benchmark with -n 8; output=lz4bench_log/lz4bench-claw-code-n8.txt
-RUNNING_LZ4BENCH claw-code-n8 23:30:40
-[Info] 磁碟可用空間充足：37GB / Sufficient disk space: 37GB
-RUNNING_LZ4BENCH claw-code-n8 23:30:40
-ENCODED claw-code-n8 tgz 23:30:45
-ENCODED claw-code-n8 other3 23:30:47
-ENCODED claw-code-n8 optimal3 23:31:10
-ENCODED claw-code-n8 lazy2 23:31:31
-ENCODED claw-code-n8 optimal 23:32:12
-ENCODED claw-code-n8 bvx3 23:32:15
-ENCODED claw-code-n8 apple 23:32:24
-ENCODED claw-code-n8 tar.lz4 23:32:26
-ENCODED claw-code-n8 zstd 23:32:29
-DECODED claw-code-n8 tgz 23:32:32
-COMPARE_BASE claw-code-n8 tgz 23:32:32
-DECODED claw-code-n8 other3 23:32:35
-COMPARED_WITH_TGZ_OK claw-code-n8 other3 23:32:38
-DECODED claw-code-n8 optimal3 23:32:41
-COMPARED_WITH_TGZ_OK claw-code-n8 optimal3 23:32:44
-DECODED claw-code-n8 lazy2 23:32:48
-COMPARED_WITH_TGZ_OK claw-code-n8 lazy2 23:32:51
-DECODED claw-code-n8 optimal 23:32:55
-COMPARED_WITH_TGZ_OK claw-code-n8 optimal 23:32:58
-DECODED claw-code-n8 bvx3 23:33:03
-COMPARED_WITH_TGZ_OK claw-code-n8 bvx3 23:33:06
-DECODED claw-code-n8 apple 23:33:09
-COMPARED_WITH_TGZ_OK claw-code-n8 apple 23:33:12
-DECODED claw-code-n8 tar.lz4 23:33:15
-COMPARED_WITH_TGZ_OK claw-code-n8 tar.lz4 23:33:19
-DECODED claw-code-n8 zstd 23:33:22
-COMPARED_WITH_TGZ_OK claw-code-n8 zstd 23:33:25
-RUNNING_MEMPROBE claw-code-n8 tgz 23:33:26
-MEMPROBE_DONE claw-code-n8 tgz 23:33:33
-RUNNING_MEMPROBE claw-code-n8 zstd 23:33:33
-MEMPROBE_DONE claw-code-n8 zstd 23:33:37
-RUNNING_MEMPROBE claw-code-n8 tar.lz4 23:33:37
-MEMPROBE_DONE claw-code-n8 tar.lz4 23:33:40
-RUNNING_MEMPROBE claw-code-n8 other3 23:33:40
-MEMPROBE_DONE claw-code-n8 other3 23:33:43
-RUNNING_MEMPROBE claw-code-n8 optimal3 23:33:43
-MEMPROBE_DONE claw-code-n8 optimal3 23:34:06
-RUNNING_MEMPROBE claw-code-n8 apple 23:34:06
-MEMPROBE_DONE claw-code-n8 apple 23:34:16
-RUNNING_MEMPROBE claw-code-n8 bvx3 23:34:16
-MEMPROBE_DONE claw-code-n8 bvx3 23:34:19
-RUNNING_MEMPROBE claw-code-n8 lazy2 23:34:19
-MEMPROBE_DONE claw-code-n8 lazy2 23:34:41
-RUNNING_MEMPROBE claw-code-n8 optimal 23:34:41
-MEMPROBE_DONE claw-code-n8 optimal 23:35:22
-LZ4BENCH_DONE claw-code-n8 23:35:22
-LZ4BENCH_OK claw-code-n8 23:35:23
+RUNNING_LZ4BENCH claw-code-n8 17:43:50
+[Info] 磁碟可用空間充足：27GB / Sufficient disk space: 27GB
+RUNNING_LZ4BENCH claw-code-n8 17:43:50
+ENCODED claw-code-n8 tgz 17:43:55
+ENCODED claw-code-n8 other3 17:43:57
+ENCODED claw-code-n8 optimal3 17:44:20
+ENCODED claw-code-n8 lazy2 17:44:41
+ENCODED claw-code-n8 optimal 17:45:22
+ENCODED claw-code-n8 bvx3 17:45:25
+ENCODED claw-code-n8 apple 17:45:34
+ENCODED claw-code-n8 tar.lz4 17:45:36
+ENCODED claw-code-n8 zstd 17:45:39
+DECODED claw-code-n8 tgz 17:45:43
+COMPARE_BASE claw-code-n8 tgz 17:45:43
+DECODED claw-code-n8 other3 17:45:45
+COMPARED_WITH_TGZ_OK claw-code-n8 other3 17:45:49
+DECODED claw-code-n8 optimal3 17:45:52
+COMPARED_WITH_TGZ_OK claw-code-n8 optimal3 17:45:55
+DECODED claw-code-n8 lazy2 17:45:58
+COMPARED_WITH_TGZ_OK claw-code-n8 lazy2 17:46:03
+DECODED claw-code-n8 optimal 17:46:06
+COMPARED_WITH_TGZ_OK claw-code-n8 optimal 17:46:10
+DECODED claw-code-n8 bvx3 17:46:14
+COMPARED_WITH_TGZ_OK claw-code-n8 bvx3 17:46:17
+DECODED claw-code-n8 apple 17:46:20
+COMPARED_WITH_TGZ_OK claw-code-n8 apple 17:46:24
+DECODED claw-code-n8 tar.lz4 17:46:27
+COMPARED_WITH_TGZ_OK claw-code-n8 tar.lz4 17:46:30
+DECODED claw-code-n8 zstd 17:46:33
+COMPARED_WITH_TGZ_OK claw-code-n8 zstd 17:46:37
+RUNNING_MEMPROBE claw-code-n8 tgz 17:46:38
+MEMPROBE_DONE claw-code-n8 tgz 17:46:44
+RUNNING_MEMPROBE claw-code-n8 zstd 17:46:44
+MEMPROBE_DONE claw-code-n8 zstd 17:46:48
+RUNNING_MEMPROBE claw-code-n8 tar.lz4 17:46:48
+MEMPROBE_DONE claw-code-n8 tar.lz4 17:46:51
+RUNNING_MEMPROBE claw-code-n8 other3 17:46:51
+MEMPROBE_DONE claw-code-n8 other3 17:46:54
+RUNNING_MEMPROBE claw-code-n8 optimal3 17:46:54
+MEMPROBE_DONE claw-code-n8 optimal3 17:47:17
+RUNNING_MEMPROBE claw-code-n8 apple 17:47:17
+MEMPROBE_DONE claw-code-n8 apple 17:47:27
+RUNNING_MEMPROBE claw-code-n8 bvx3 17:47:27
+MEMPROBE_DONE claw-code-n8 bvx3 17:47:30
+RUNNING_MEMPROBE claw-code-n8 lazy2 17:47:30
+MEMPROBE_DONE claw-code-n8 lazy2 17:47:52
+RUNNING_MEMPROBE claw-code-n8 optimal 17:47:52
+MEMPROBE_DONE claw-code-n8 optimal 17:48:34
+LZ4BENCH_DONE claw-code-n8 17:48:34
+LZ4BENCH_OK claw-code-n8 17:48:34
 [Info] Completed claw-code benchmark with -n 8; output=lz4bench_log/lz4bench-claw-code-n8.txt ,Sleeping 60s before next sweep.
 [Info] Running claw-code benchmark with -n 4; output=lz4bench_log/lz4bench-claw-code-n4.txt
-RUNNING_LZ4BENCH claw-code-n4 23:36:23
-[Info] 磁碟可用空間充足：37GB / Sufficient disk space: 37GB
-RUNNING_LZ4BENCH claw-code-n4 23:36:23
-ENCODED claw-code-n4 tgz 23:36:28
-ENCODED claw-code-n4 other3 23:36:31
-ENCODED claw-code-n4 optimal3 23:37:03
-ENCODED claw-code-n4 lazy2 23:37:27
-ENCODED claw-code-n4 optimal 23:38:20
-ENCODED claw-code-n4 bvx3 23:38:23
-ENCODED claw-code-n4 apple 23:38:32
-ENCODED claw-code-n4 tar.lz4 23:38:34
-ENCODED claw-code-n4 zstd 23:38:37
-DECODED claw-code-n4 tgz 23:38:41
-COMPARE_BASE claw-code-n4 tgz 23:38:41
-DECODED claw-code-n4 other3 23:38:43
-COMPARED_WITH_TGZ_OK claw-code-n4 other3 23:38:47
-DECODED claw-code-n4 optimal3 23:38:50
-COMPARED_WITH_TGZ_OK claw-code-n4 optimal3 23:38:53
-DECODED claw-code-n4 lazy2 23:38:56
-COMPARED_WITH_TGZ_OK claw-code-n4 lazy2 23:39:00
-DECODED claw-code-n4 optimal 23:39:04
-COMPARED_WITH_TGZ_OK claw-code-n4 optimal 23:39:07
-DECODED claw-code-n4 bvx3 23:39:11
-COMPARED_WITH_TGZ_OK claw-code-n4 bvx3 23:39:15
-DECODED claw-code-n4 apple 23:39:18
-COMPARED_WITH_TGZ_OK claw-code-n4 apple 23:39:21
-DECODED claw-code-n4 tar.lz4 23:39:24
-COMPARED_WITH_TGZ_OK claw-code-n4 tar.lz4 23:39:27
-DECODED claw-code-n4 zstd 23:39:30
-COMPARED_WITH_TGZ_OK claw-code-n4 zstd 23:39:34
-RUNNING_MEMPROBE claw-code-n4 tgz 23:39:35
-MEMPROBE_DONE claw-code-n4 tgz 23:39:41
-RUNNING_MEMPROBE claw-code-n4 zstd 23:39:41
-MEMPROBE_DONE claw-code-n4 zstd 23:39:45
-RUNNING_MEMPROBE claw-code-n4 tar.lz4 23:39:45
-MEMPROBE_DONE claw-code-n4 tar.lz4 23:39:48
-RUNNING_MEMPROBE claw-code-n4 other3 23:39:48
-MEMPROBE_DONE claw-code-n4 other3 23:39:52
-RUNNING_MEMPROBE claw-code-n4 optimal3 23:39:52
-MEMPROBE_DONE claw-code-n4 optimal3 23:40:25
-RUNNING_MEMPROBE claw-code-n4 apple 23:40:25
-MEMPROBE_DONE claw-code-n4 apple 23:40:35
-RUNNING_MEMPROBE claw-code-n4 bvx3 23:40:35
-MEMPROBE_DONE claw-code-n4 bvx3 23:40:39
-RUNNING_MEMPROBE claw-code-n4 lazy2 23:40:39
-MEMPROBE_DONE claw-code-n4 lazy2 23:41:04
-RUNNING_MEMPROBE claw-code-n4 optimal 23:41:04
-MEMPROBE_DONE claw-code-n4 optimal 23:41:57
-LZ4BENCH_DONE claw-code-n4 23:41:57
-LZ4BENCH_OK claw-code-n4 23:41:57
+RUNNING_LZ4BENCH claw-code-n4 17:49:34
+[Info] 磁碟可用空間充足：27GB / Sufficient disk space: 27GB
+RUNNING_LZ4BENCH claw-code-n4 17:49:34
+ENCODED claw-code-n4 tgz 17:49:39
+ENCODED claw-code-n4 other3 17:49:43
+ENCODED claw-code-n4 optimal3 17:50:15
+ENCODED claw-code-n4 lazy2 17:50:39
+ENCODED claw-code-n4 optimal 17:51:32
+ENCODED claw-code-n4 bvx3 17:51:35
+ENCODED claw-code-n4 apple 17:51:44
+ENCODED claw-code-n4 tar.lz4 17:51:47
+ENCODED claw-code-n4 zstd 17:51:50
+DECODED claw-code-n4 tgz 17:51:53
+COMPARE_BASE claw-code-n4 tgz 17:51:53
+DECODED claw-code-n4 other3 17:51:56
+COMPARED_WITH_TGZ_OK claw-code-n4 other3 17:52:00
+DECODED claw-code-n4 optimal3 17:52:03
+COMPARED_WITH_TGZ_OK claw-code-n4 optimal3 17:52:06
+DECODED claw-code-n4 lazy2 17:52:09
+COMPARED_WITH_TGZ_OK claw-code-n4 lazy2 17:52:13
+DECODED claw-code-n4 optimal 17:52:17
+COMPARED_WITH_TGZ_OK claw-code-n4 optimal 17:52:22
+DECODED claw-code-n4 bvx3 17:52:26
+COMPARED_WITH_TGZ_OK claw-code-n4 bvx3 17:52:30
+DECODED claw-code-n4 apple 17:52:33
+COMPARED_WITH_TGZ_OK claw-code-n4 apple 17:52:37
+DECODED claw-code-n4 tar.lz4 17:52:40
+COMPARED_WITH_TGZ_OK claw-code-n4 tar.lz4 17:52:44
+DECODED claw-code-n4 zstd 17:52:47
+COMPARED_WITH_TGZ_OK claw-code-n4 zstd 17:52:51
+RUNNING_MEMPROBE claw-code-n4 tgz 17:52:52
+MEMPROBE_DONE claw-code-n4 tgz 17:52:58
+RUNNING_MEMPROBE claw-code-n4 zstd 17:52:58
+MEMPROBE_DONE claw-code-n4 zstd 17:53:02
+RUNNING_MEMPROBE claw-code-n4 tar.lz4 17:53:02
+MEMPROBE_DONE claw-code-n4 tar.lz4 17:53:05
+RUNNING_MEMPROBE claw-code-n4 other3 17:53:05
+MEMPROBE_DONE claw-code-n4 other3 17:53:09
+RUNNING_MEMPROBE claw-code-n4 optimal3 17:53:09
+MEMPROBE_DONE claw-code-n4 optimal3 17:53:42
+RUNNING_MEMPROBE claw-code-n4 apple 17:53:42
+MEMPROBE_DONE claw-code-n4 apple 17:53:52
+RUNNING_MEMPROBE claw-code-n4 bvx3 17:53:52
+MEMPROBE_DONE claw-code-n4 bvx3 17:53:56
+RUNNING_MEMPROBE claw-code-n4 lazy2 17:53:56
+MEMPROBE_DONE claw-code-n4 lazy2 17:54:22
+RUNNING_MEMPROBE claw-code-n4 optimal 17:54:22
+MEMPROBE_DONE claw-code-n4 optimal 17:55:15
+LZ4BENCH_DONE claw-code-n4 17:55:15
+LZ4BENCH_OK claw-code-n4 17:55:15
 [Info] Completed claw-code benchmark with -n 4; output=lz4bench_log/lz4bench-claw-code-n4.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 40; output=lz4bench_log/lz4bench-llama.cpp-n40.txt
-RUNNING_LZ4BENCH llama.cpp-n40 23:43:57
-[Info] 磁碟可用空間充足：37GB / Sufficient disk space: 37GB
-RUNNING_LZ4BENCH llama.cpp-n40 23:43:58
-ENCODED llama.cpp-n40 tgz 23:44:09
-ENCODED llama.cpp-n40 other3 23:44:15
-ENCODED llama.cpp-n40 optimal3 23:44:33
-ENCODED llama.cpp-n40 lazy2 23:44:41
-ENCODED llama.cpp-n40 optimal 23:45:06
-ENCODED llama.cpp-n40 bvx3 23:45:12
-ENCODED llama.cpp-n40 apple 23:45:22
-ENCODED llama.cpp-n40 tar.lz4 23:45:28
-ENCODED llama.cpp-n40 zstd 23:45:33
-DECODED llama.cpp-n40 tgz 23:45:42
-COMPARE_BASE llama.cpp-n40 tgz 23:45:42
-DECODED llama.cpp-n40 other3 23:45:51
-COMPARED_WITH_TGZ_OK llama.cpp-n40 other3 23:45:58
-DECODED llama.cpp-n40 optimal3 23:46:11
-COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal3 23:46:20
-DECODED llama.cpp-n40 lazy2 23:46:33
-COMPARED_WITH_TGZ_OK llama.cpp-n40 lazy2 23:46:41
-DECODED llama.cpp-n40 optimal 23:46:53
-COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal 23:47:01
-DECODED llama.cpp-n40 bvx3 23:47:13
-COMPARED_WITH_TGZ_OK llama.cpp-n40 bvx3 23:47:21
-DECODED llama.cpp-n40 apple 23:47:33
-COMPARED_WITH_TGZ_OK llama.cpp-n40 apple 23:47:41
-DECODED llama.cpp-n40 tar.lz4 23:47:52
-COMPARED_WITH_TGZ_OK llama.cpp-n40 tar.lz4 23:48:00
-DECODED llama.cpp-n40 zstd 23:48:11
-COMPARED_WITH_TGZ_OK llama.cpp-n40 zstd 23:48:20
-RUNNING_MEMPROBE llama.cpp-n40 tgz 23:48:26
-MEMPROBE_DONE llama.cpp-n40 tgz 23:48:35
-RUNNING_MEMPROBE llama.cpp-n40 zstd 23:48:35
-MEMPROBE_DONE llama.cpp-n40 zstd 23:48:41
-RUNNING_MEMPROBE llama.cpp-n40 tar.lz4 23:48:41
-MEMPROBE_DONE llama.cpp-n40 tar.lz4 23:48:46
-RUNNING_MEMPROBE llama.cpp-n40 other3 23:48:46
-MEMPROBE_DONE llama.cpp-n40 other3 23:48:51
-RUNNING_MEMPROBE llama.cpp-n40 optimal3 23:48:51
-MEMPROBE_DONE llama.cpp-n40 optimal3 23:49:12
-RUNNING_MEMPROBE llama.cpp-n40 apple 23:49:12
-MEMPROBE_DONE llama.cpp-n40 apple 23:49:22
-RUNNING_MEMPROBE llama.cpp-n40 bvx3 23:49:22
-MEMPROBE_DONE llama.cpp-n40 bvx3 23:49:26
-RUNNING_MEMPROBE llama.cpp-n40 lazy2 23:49:26
-MEMPROBE_DONE llama.cpp-n40 lazy2 23:49:36
-RUNNING_MEMPROBE llama.cpp-n40 optimal 23:49:36
-MEMPROBE_DONE llama.cpp-n40 optimal 23:50:06
-LZ4BENCH_DONE llama.cpp-n40 23:50:06
-LZ4BENCH_OK llama.cpp-n40 23:50:06
+RUNNING_LZ4BENCH llama.cpp-n40 17:57:15
+[Info] 磁碟可用空間充足：27GB / Sufficient disk space: 27GB
+RUNNING_LZ4BENCH llama.cpp-n40 17:57:15
+ENCODED llama.cpp-n40 tgz 17:57:27
+ENCODED llama.cpp-n40 other3 17:57:33
+ENCODED llama.cpp-n40 optimal3 17:57:50
+ENCODED llama.cpp-n40 lazy2 17:57:59
+ENCODED llama.cpp-n40 optimal 17:58:24
+ENCODED llama.cpp-n40 bvx3 17:58:29
+ENCODED llama.cpp-n40 apple 17:58:40
+ENCODED llama.cpp-n40 tar.lz4 17:58:46
+ENCODED llama.cpp-n40 zstd 17:58:52
+DECODED llama.cpp-n40 tgz 17:59:01
+COMPARE_BASE llama.cpp-n40 tgz 17:59:01
+DECODED llama.cpp-n40 other3 17:59:11
+COMPARED_WITH_TGZ_OK llama.cpp-n40 other3 17:59:20
+DECODED llama.cpp-n40 optimal3 17:59:35
+COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal3 17:59:46
+DECODED llama.cpp-n40 lazy2 18:00:00
+COMPARED_WITH_TGZ_OK llama.cpp-n40 lazy2 18:00:10
+DECODED llama.cpp-n40 optimal 18:00:23
+COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal 18:00:34
+DECODED llama.cpp-n40 bvx3 18:00:48
+COMPARED_WITH_TGZ_OK llama.cpp-n40 bvx3 18:00:58
+DECODED llama.cpp-n40 apple 18:01:12
+COMPARED_WITH_TGZ_OK llama.cpp-n40 apple 18:01:22
+DECODED llama.cpp-n40 tar.lz4 18:01:34
+COMPARED_WITH_TGZ_OK llama.cpp-n40 tar.lz4 18:01:44
+DECODED llama.cpp-n40 zstd 18:01:57
+COMPARED_WITH_TGZ_OK llama.cpp-n40 zstd 18:02:06
+RUNNING_MEMPROBE llama.cpp-n40 tgz 18:02:13
+MEMPROBE_DONE llama.cpp-n40 tgz 18:02:22
+RUNNING_MEMPROBE llama.cpp-n40 zstd 18:02:22
+MEMPROBE_DONE llama.cpp-n40 zstd 18:02:28
+RUNNING_MEMPROBE llama.cpp-n40 tar.lz4 18:02:28
+MEMPROBE_DONE llama.cpp-n40 tar.lz4 18:02:35
+RUNNING_MEMPROBE llama.cpp-n40 other3 18:02:35
+MEMPROBE_DONE llama.cpp-n40 other3 18:02:41
+RUNNING_MEMPROBE llama.cpp-n40 optimal3 18:02:41
+MEMPROBE_DONE llama.cpp-n40 optimal3 18:03:03
+RUNNING_MEMPROBE llama.cpp-n40 apple 18:03:03
+MEMPROBE_DONE llama.cpp-n40 apple 18:03:15
+RUNNING_MEMPROBE llama.cpp-n40 bvx3 18:03:15
+MEMPROBE_DONE llama.cpp-n40 bvx3 18:03:21
+RUNNING_MEMPROBE llama.cpp-n40 lazy2 18:03:21
+MEMPROBE_DONE llama.cpp-n40 lazy2 18:03:32
+RUNNING_MEMPROBE llama.cpp-n40 optimal 18:03:32
+MEMPROBE_DONE llama.cpp-n40 optimal 18:04:03
+LZ4BENCH_DONE llama.cpp-n40 18:04:03
+LZ4BENCH_OK llama.cpp-n40 18:04:03
 [Info] Completed llama.cpp benchmark with -n 40; output=lz4bench_log/lz4bench-llama.cpp-n40.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 8; output=lz4bench_log/lz4bench-llama.cpp-n8.txt
-RUNNING_LZ4BENCH llama.cpp-n8 23:51:06
-[Info] 磁碟可用空間充足：37GB / Sufficient disk space: 37GB
-RUNNING_LZ4BENCH llama.cpp-n8 23:51:06
-ENCODED llama.cpp-n8 tgz 23:51:13
-ENCODED llama.cpp-n8 other3 23:51:16
-ENCODED llama.cpp-n8 optimal3 23:51:38
-ENCODED llama.cpp-n8 lazy2 23:51:48
-ENCODED llama.cpp-n8 optimal 23:52:18
-ENCODED llama.cpp-n8 bvx3 23:52:22
-ENCODED llama.cpp-n8 apple 23:52:31
-ENCODED llama.cpp-n8 tar.lz4 23:52:35
-ENCODED llama.cpp-n8 zstd 23:52:39
-DECODED llama.cpp-n8 tgz 23:52:48
-COMPARE_BASE llama.cpp-n8 tgz 23:52:48
-DECODED llama.cpp-n8 other3 23:52:57
-COMPARED_WITH_TGZ_OK llama.cpp-n8 other3 23:53:05
-DECODED llama.cpp-n8 optimal3 23:53:17
-COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal3 23:53:25
-DECODED llama.cpp-n8 lazy2 23:53:38
-COMPARED_WITH_TGZ_OK llama.cpp-n8 lazy2 23:53:46
-DECODED llama.cpp-n8 optimal 23:53:59
-COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal 23:54:07
-DECODED llama.cpp-n8 bvx3 23:54:20
-COMPARED_WITH_TGZ_OK llama.cpp-n8 bvx3 23:54:27
-DECODED llama.cpp-n8 apple 23:54:39
-COMPARED_WITH_TGZ_OK llama.cpp-n8 apple 23:54:47
-DECODED llama.cpp-n8 tar.lz4 23:54:59
-COMPARED_WITH_TGZ_OK llama.cpp-n8 tar.lz4 23:55:07
-DECODED llama.cpp-n8 zstd 23:55:19
-COMPARED_WITH_TGZ_OK llama.cpp-n8 zstd 23:55:27
-RUNNING_MEMPROBE llama.cpp-n8 tgz 23:55:33
-MEMPROBE_DONE llama.cpp-n8 tgz 23:55:42
-RUNNING_MEMPROBE llama.cpp-n8 zstd 23:55:42
-MEMPROBE_DONE llama.cpp-n8 zstd 23:55:48
-RUNNING_MEMPROBE llama.cpp-n8 tar.lz4 23:55:48
-MEMPROBE_DONE llama.cpp-n8 tar.lz4 23:55:53
-RUNNING_MEMPROBE llama.cpp-n8 other3 23:55:53
-MEMPROBE_DONE llama.cpp-n8 other3 23:55:57
-RUNNING_MEMPROBE llama.cpp-n8 optimal3 23:55:57
-MEMPROBE_DONE llama.cpp-n8 optimal3 23:56:20
-RUNNING_MEMPROBE llama.cpp-n8 apple 23:56:20
-MEMPROBE_DONE llama.cpp-n8 apple 23:56:29
-RUNNING_MEMPROBE llama.cpp-n8 bvx3 23:56:29
-MEMPROBE_DONE llama.cpp-n8 bvx3 23:56:34
-RUNNING_MEMPROBE llama.cpp-n8 lazy2 23:56:34
-MEMPROBE_DONE llama.cpp-n8 lazy2 23:56:44
-RUNNING_MEMPROBE llama.cpp-n8 optimal 23:56:44
-MEMPROBE_DONE llama.cpp-n8 optimal 23:57:16
-LZ4BENCH_DONE llama.cpp-n8 23:57:16
-LZ4BENCH_OK llama.cpp-n8 23:57:17
+RUNNING_LZ4BENCH llama.cpp-n8 18:05:03
+[Info] 磁碟可用空間充足：28GB / Sufficient disk space: 28GB
+RUNNING_LZ4BENCH llama.cpp-n8 18:05:03
+ENCODED llama.cpp-n8 tgz 18:05:15
+ENCODED llama.cpp-n8 other3 18:05:22
+ENCODED llama.cpp-n8 optimal3 18:05:44
+ENCODED llama.cpp-n8 lazy2 18:05:55
+ENCODED llama.cpp-n8 optimal 18:06:26
+ENCODED llama.cpp-n8 bvx3 18:06:32
+ENCODED llama.cpp-n8 apple 18:06:43
+ENCODED llama.cpp-n8 tar.lz4 18:06:50
+ENCODED llama.cpp-n8 zstd 18:06:55
+DECODED llama.cpp-n8 tgz 18:07:05
+COMPARE_BASE llama.cpp-n8 tgz 18:07:05
+DECODED llama.cpp-n8 other3 18:07:14
+COMPARED_WITH_TGZ_OK llama.cpp-n8 other3 18:07:23
+DECODED llama.cpp-n8 optimal3 18:07:36
+COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal3 18:07:46
+DECODED llama.cpp-n8 lazy2 18:07:59
+COMPARED_WITH_TGZ_OK llama.cpp-n8 lazy2 18:08:08
+DECODED llama.cpp-n8 optimal 18:08:21
+COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal 18:08:31
+DECODED llama.cpp-n8 bvx3 18:08:44
+COMPARED_WITH_TGZ_OK llama.cpp-n8 bvx3 18:08:53
+DECODED llama.cpp-n8 apple 18:09:06
+COMPARED_WITH_TGZ_OK llama.cpp-n8 apple 18:09:16
+DECODED llama.cpp-n8 tar.lz4 18:09:29
+COMPARED_WITH_TGZ_OK llama.cpp-n8 tar.lz4 18:09:39
+DECODED llama.cpp-n8 zstd 18:09:52
+COMPARED_WITH_TGZ_OK llama.cpp-n8 zstd 18:10:02
+RUNNING_MEMPROBE llama.cpp-n8 tgz 18:10:09
+MEMPROBE_DONE llama.cpp-n8 tgz 18:10:18
+RUNNING_MEMPROBE llama.cpp-n8 zstd 18:10:18
+MEMPROBE_DONE llama.cpp-n8 zstd 18:10:24
+RUNNING_MEMPROBE llama.cpp-n8 tar.lz4 18:10:24
+MEMPROBE_DONE llama.cpp-n8 tar.lz4 18:10:31
+RUNNING_MEMPROBE llama.cpp-n8 other3 18:10:31
+MEMPROBE_DONE llama.cpp-n8 other3 18:10:38
+RUNNING_MEMPROBE llama.cpp-n8 optimal3 18:10:38
+MEMPROBE_DONE llama.cpp-n8 optimal3 18:11:01
+RUNNING_MEMPROBE llama.cpp-n8 apple 18:11:01
+MEMPROBE_DONE llama.cpp-n8 apple 18:11:13
+RUNNING_MEMPROBE llama.cpp-n8 bvx3 18:11:13
+MEMPROBE_DONE llama.cpp-n8 bvx3 18:11:20
+RUNNING_MEMPROBE llama.cpp-n8 lazy2 18:11:20
+MEMPROBE_DONE llama.cpp-n8 lazy2 18:11:31
+RUNNING_MEMPROBE llama.cpp-n8 optimal 18:11:31
+MEMPROBE_DONE llama.cpp-n8 optimal 18:12:03
+LZ4BENCH_DONE llama.cpp-n8 18:12:03
+LZ4BENCH_OK llama.cpp-n8 18:12:04
 [Info] Completed llama.cpp benchmark with -n 8; output=lz4bench_log/lz4bench-llama.cpp-n8.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 4; output=lz4bench_log/lz4bench-llama.cpp-n4.txt
-RUNNING_LZ4BENCH llama.cpp-n4 23:58:17
-[Info] 磁碟可用空間充足：36GB / Sufficient disk space: 36GB
-RUNNING_LZ4BENCH llama.cpp-n4 23:58:17
-ENCODED llama.cpp-n4 tgz 23:58:23
-ENCODED llama.cpp-n4 other3 23:58:28
-ENCODED llama.cpp-n4 optimal3 23:58:59
-ENCODED llama.cpp-n4 lazy2 23:59:11
-ENCODED llama.cpp-n4 optimal 23:59:55
-ENCODED llama.cpp-n4 bvx3 23:59:59
-ENCODED llama.cpp-n4 apple 00:00:08
-ENCODED llama.cpp-n4 tar.lz4 00:00:12
-ENCODED llama.cpp-n4 zstd 00:00:16
-DECODED llama.cpp-n4 tgz 00:00:25
-COMPARE_BASE llama.cpp-n4 tgz 00:00:25
-DECODED llama.cpp-n4 other3 00:00:34
-COMPARED_WITH_TGZ_OK llama.cpp-n4 other3 00:00:42
-DECODED llama.cpp-n4 optimal3 00:00:54
-COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal3 00:01:03
-DECODED llama.cpp-n4 lazy2 00:01:15
-COMPARED_WITH_TGZ_OK llama.cpp-n4 lazy2 00:01:24
-DECODED llama.cpp-n4 optimal 00:01:36
-COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal 00:01:44
-DECODED llama.cpp-n4 bvx3 00:01:58
-COMPARED_WITH_TGZ_OK llama.cpp-n4 bvx3 00:02:06
-DECODED llama.cpp-n4 apple 00:02:19
-COMPARED_WITH_TGZ_OK llama.cpp-n4 apple 00:02:27
-DECODED llama.cpp-n4 tar.lz4 00:02:38
-COMPARED_WITH_TGZ_OK llama.cpp-n4 tar.lz4 00:02:46
-DECODED llama.cpp-n4 zstd 00:02:59
-COMPARED_WITH_TGZ_OK llama.cpp-n4 zstd 00:03:08
-RUNNING_MEMPROBE llama.cpp-n4 tgz 00:03:14
-MEMPROBE_DONE llama.cpp-n4 tgz 00:03:23
-RUNNING_MEMPROBE llama.cpp-n4 zstd 00:03:23
-MEMPROBE_DONE llama.cpp-n4 zstd 00:03:29
-RUNNING_MEMPROBE llama.cpp-n4 tar.lz4 00:03:29
-MEMPROBE_DONE llama.cpp-n4 tar.lz4 00:03:34
-RUNNING_MEMPROBE llama.cpp-n4 other3 00:03:34
-MEMPROBE_DONE llama.cpp-n4 other3 00:03:39
-RUNNING_MEMPROBE llama.cpp-n4 optimal3 00:03:39
-MEMPROBE_DONE llama.cpp-n4 optimal3 00:04:12
-RUNNING_MEMPROBE llama.cpp-n4 apple 00:04:12
-MEMPROBE_DONE llama.cpp-n4 apple 00:04:21
-RUNNING_MEMPROBE llama.cpp-n4 bvx3 00:04:21
-MEMPROBE_DONE llama.cpp-n4 bvx3 00:04:26
-RUNNING_MEMPROBE llama.cpp-n4 lazy2 00:04:26
-MEMPROBE_DONE llama.cpp-n4 lazy2 00:04:39
-RUNNING_MEMPROBE llama.cpp-n4 optimal 00:04:39
-MEMPROBE_DONE llama.cpp-n4 optimal 00:05:23
-LZ4BENCH_DONE llama.cpp-n4 00:05:23
-LZ4BENCH_OK llama.cpp-n4 00:05:24
+RUNNING_LZ4BENCH llama.cpp-n4 18:13:04
+[Info] 磁碟可用空間充足：28GB / Sufficient disk space: 28GB
+RUNNING_LZ4BENCH llama.cpp-n4 18:13:04
+ENCODED llama.cpp-n4 tgz 18:13:16
+ENCODED llama.cpp-n4 other3 18:13:22
+ENCODED llama.cpp-n4 optimal3 18:13:55
+ENCODED llama.cpp-n4 lazy2 18:14:08
+ENCODED llama.cpp-n4 optimal 18:14:53
+ENCODED llama.cpp-n4 bvx3 18:14:59
+ENCODED llama.cpp-n4 apple 18:15:11
+ENCODED llama.cpp-n4 tar.lz4 18:15:17
+ENCODED llama.cpp-n4 zstd 18:15:23
+DECODED llama.cpp-n4 tgz 18:15:32
+COMPARE_BASE llama.cpp-n4 tgz 18:15:32
+DECODED llama.cpp-n4 other3 18:15:41
+COMPARED_WITH_TGZ_OK llama.cpp-n4 other3 18:15:50
+DECODED llama.cpp-n4 optimal3 18:16:03
+COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal3 18:16:13
+DECODED llama.cpp-n4 lazy2 18:16:26
+COMPARED_WITH_TGZ_OK llama.cpp-n4 lazy2 18:16:36
+DECODED llama.cpp-n4 optimal 18:16:49
+COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal 18:16:58
+DECODED llama.cpp-n4 bvx3 18:17:13
+COMPARED_WITH_TGZ_OK llama.cpp-n4 bvx3 18:17:22
+DECODED llama.cpp-n4 apple 18:17:36
+COMPARED_WITH_TGZ_OK llama.cpp-n4 apple 18:17:45
+DECODED llama.cpp-n4 tar.lz4 18:17:58
+COMPARED_WITH_TGZ_OK llama.cpp-n4 tar.lz4 18:18:08
+DECODED llama.cpp-n4 zstd 18:18:21
+COMPARED_WITH_TGZ_OK llama.cpp-n4 zstd 18:18:31
+RUNNING_MEMPROBE llama.cpp-n4 tgz 18:18:39
+MEMPROBE_DONE llama.cpp-n4 tgz 18:18:48
+RUNNING_MEMPROBE llama.cpp-n4 zstd 18:18:48
+MEMPROBE_DONE llama.cpp-n4 zstd 18:18:55
+RUNNING_MEMPROBE llama.cpp-n4 tar.lz4 18:18:55
+MEMPROBE_DONE llama.cpp-n4 tar.lz4 18:19:02
+RUNNING_MEMPROBE llama.cpp-n4 other3 18:19:02
+MEMPROBE_DONE llama.cpp-n4 other3 18:19:09
+RUNNING_MEMPROBE llama.cpp-n4 optimal3 18:19:09
+MEMPROBE_DONE llama.cpp-n4 optimal3 18:19:43
+RUNNING_MEMPROBE llama.cpp-n4 apple 18:19:43
+MEMPROBE_DONE llama.cpp-n4 apple 18:19:55
+RUNNING_MEMPROBE llama.cpp-n4 bvx3 18:19:55
+MEMPROBE_DONE llama.cpp-n4 bvx3 18:20:03
+RUNNING_MEMPROBE llama.cpp-n4 lazy2 18:20:03
+MEMPROBE_DONE llama.cpp-n4 lazy2 18:20:16
+RUNNING_MEMPROBE llama.cpp-n4 optimal 18:20:16
+MEMPROBE_DONE llama.cpp-n4 optimal 18:21:01
+LZ4BENCH_DONE llama.cpp-n4 18:21:01
+LZ4BENCH_OK llama.cpp-n4 18:21:02
 [Info] Completed llama.cpp benchmark with -n 4; output=lz4bench_log/lz4bench-llama.cpp-n4.txt ,Sleeping 60s before next sweep.
 Step1. Done. Please run sudo ./benchmark2.sh to continue the benchmark process.
-[36m[Info] Configuring compiler environment... / 正在配置編譯器環境...(B[m
-[33m-> Switching to System Default GCC Environment / 已切換至系統預設 GCC 環境(B[m
-[32m[Success] setcc completed. CURRENT SETCC=gcc, PACORES=20(B[m
+[Info] Configuring compiler environment... / 正在配置編譯器環境...
+-> Switching to System Default GCC Environment / 已切換至系統預設 GCC 環境
+[Success] setcc completed. CURRENT SETCC=gcc, PACORES=20
 [Info] Running Benchmark WITH probe mode (LZFSE_MEMPROBE=1). Peak-RSS probes run after compression/decompression benchmark and will be recorded in the result txt.
-RUNNING_POWER_BENCHMARK 00:06:39
-RUNNING_POWER claw-code-tgz-encode 00:06:42
-POWER_DONE claw-code-tgz-encode 00:06:48
-RUNNING_POWER claw-code-tgz-decode 00:06:48
+RUNNING_POWER_BENCHMARK 18:22:17
+RUNNING_POWER claw-code-tgz-encode 18:22:20
+POWER_DONE claw-code-tgz-encode 18:22:26
+RUNNING_POWER claw-code-tgz-decode 18:22:26
 Note: codec flags only affect -c; reading auto-detects. / 提示：引擎旗標僅影響 -c，讀取自動偵測。
-POWER_DONE claw-code-tgz-decode 00:06:51
-RUNNING_POWER claw-code-zstd-encode 00:06:51
-POWER_DONE claw-code-zstd-encode 00:06:55
-RUNNING_POWER claw-code-zstd-decode 00:06:55
-POWER_DONE claw-code-zstd-decode 00:06:57
-RUNNING_POWER claw-code-tar.lz4-encode 00:06:57
-POWER_DONE claw-code-tar.lz4-encode 00:07:01
-RUNNING_POWER claw-code-tar.lz4-decode 00:07:01
-POWER_DONE claw-code-tar.lz4-decode 00:07:03
-RUNNING_POWER claw-code-other3-n40-encode 00:07:03
-POWER_DONE claw-code-other3-n40-encode 00:07:06
-RUNNING_POWER claw-code-other3-n40-decode 00:07:06
-POWER_DONE claw-code-other3-n40-decode 00:07:09
-RUNNING_POWER claw-code-optimal3-n40-encode 00:07:09
-POWER_DONE claw-code-optimal3-n40-encode 00:07:35
-RUNNING_POWER claw-code-optimal3-n40-decode 00:07:35
-POWER_DONE claw-code-optimal3-n40-decode 00:07:37
-RUNNING_POWER claw-code-apple-n40-encode 00:07:37
-POWER_DONE claw-code-apple-n40-encode 00:07:47
-RUNNING_POWER claw-code-apple-n40-decode 00:07:47
-POWER_DONE claw-code-apple-n40-decode 00:07:51
-RUNNING_POWER claw-code-bvx3-n40-encode 00:07:51
-POWER_DONE claw-code-bvx3-n40-encode 00:07:55
-RUNNING_POWER claw-code-bvx3-n40-decode 00:07:55
-POWER_DONE claw-code-bvx3-n40-decode 00:07:58
-RUNNING_POWER claw-code-lazy2-n40-encode 00:07:58
-POWER_DONE claw-code-lazy2-n40-encode 00:08:22
-RUNNING_POWER claw-code-lazy2-n40-decode 00:08:22
-POWER_DONE claw-code-lazy2-n40-decode 00:08:25
-RUNNING_POWER claw-code-optimal-n40-encode 00:08:25
-POWER_DONE claw-code-optimal-n40-encode 00:09:13
-RUNNING_POWER claw-code-optimal-n40-decode 00:09:13
-POWER_DONE claw-code-optimal-n40-decode 00:09:16
-RUNNING_POWER claw-code-other3-n8-encode 00:09:16
-POWER_DONE claw-code-other3-n8-encode 00:09:20
-RUNNING_POWER claw-code-other3-n8-decode 00:09:20
-POWER_DONE claw-code-other3-n8-decode 00:09:23
-RUNNING_POWER claw-code-optimal3-n8-encode 00:09:23
-POWER_DONE claw-code-optimal3-n8-encode 00:09:50
-RUNNING_POWER claw-code-optimal3-n8-decode 00:09:50
-POWER_DONE claw-code-optimal3-n8-decode 00:09:52
-RUNNING_POWER claw-code-apple-n8-encode 00:09:52
-POWER_DONE claw-code-apple-n8-encode 00:10:03
-RUNNING_POWER claw-code-apple-n8-decode 00:10:03
-POWER_DONE claw-code-apple-n8-decode 00:10:06
-RUNNING_POWER claw-code-bvx3-n8-encode 00:10:06
-POWER_DONE claw-code-bvx3-n8-encode 00:10:10
-RUNNING_POWER claw-code-bvx3-n8-decode 00:10:10
-POWER_DONE claw-code-bvx3-n8-decode 00:10:13
-RUNNING_POWER claw-code-lazy2-n8-encode 00:10:13
-POWER_DONE claw-code-lazy2-n8-encode 00:10:39
-RUNNING_POWER claw-code-lazy2-n8-decode 00:10:39
-POWER_DONE claw-code-lazy2-n8-decode 00:10:42
-RUNNING_POWER claw-code-optimal-n8-encode 00:10:42
-POWER_DONE claw-code-optimal-n8-encode 00:11:31
-RUNNING_POWER claw-code-optimal-n8-decode 00:11:31
-POWER_DONE claw-code-optimal-n8-decode 00:11:34
-RUNNING_POWER claw-code-other3-n4-encode 00:11:34
-POWER_DONE claw-code-other3-n4-encode 00:11:39
-RUNNING_POWER claw-code-other3-n4-decode 00:11:39
-POWER_DONE claw-code-other3-n4-decode 00:11:43
-RUNNING_POWER claw-code-optimal3-n4-encode 00:11:43
-POWER_DONE claw-code-optimal3-n4-encode 00:12:22
-RUNNING_POWER claw-code-optimal3-n4-decode 00:12:22
-POWER_DONE claw-code-optimal3-n4-decode 00:12:26
-RUNNING_POWER claw-code-apple-n4-encode 00:12:26
-POWER_DONE claw-code-apple-n4-encode 00:12:36
-RUNNING_POWER claw-code-apple-n4-decode 00:12:36
-POWER_DONE claw-code-apple-n4-decode 00:12:39
-RUNNING_POWER claw-code-bvx3-n4-encode 00:12:39
-POWER_DONE claw-code-bvx3-n4-encode 00:12:44
-RUNNING_POWER claw-code-bvx3-n4-decode 00:12:44
-POWER_DONE claw-code-bvx3-n4-decode 00:12:49
-RUNNING_POWER claw-code-lazy2-n4-encode 00:12:49
-POWER_DONE claw-code-lazy2-n4-encode 00:13:20
-RUNNING_POWER claw-code-lazy2-n4-decode 00:13:20
-POWER_DONE claw-code-lazy2-n4-decode 00:13:24
-RUNNING_POWER claw-code-optimal-n4-encode 00:13:24
-POWER_DONE claw-code-optimal-n4-encode 00:14:30
-RUNNING_POWER claw-code-optimal-n4-decode 00:14:30
-POWER_DONE claw-code-optimal-n4-decode 00:14:34
-RUNNING_POWER llama.cpp-tgz-encode 00:14:40
-POWER_DONE llama.cpp-tgz-encode 00:14:45
-RUNNING_POWER llama.cpp-tgz-decode 00:14:45
+POWER_DONE claw-code-tgz-decode 18:22:29
+RUNNING_POWER claw-code-zstd-encode 18:22:29
+POWER_DONE claw-code-zstd-encode 18:22:34
+RUNNING_POWER claw-code-zstd-decode 18:22:34
+POWER_DONE claw-code-zstd-decode 18:22:36
+RUNNING_POWER claw-code-tar.lz4-encode 18:22:36
+POWER_DONE claw-code-tar.lz4-encode 18:22:40
+RUNNING_POWER claw-code-tar.lz4-decode 18:22:40
+POWER_DONE claw-code-tar.lz4-decode 18:22:41
+RUNNING_POWER claw-code-other3-n40-encode 18:22:41
+POWER_DONE claw-code-other3-n40-encode 18:22:45
+RUNNING_POWER claw-code-other3-n40-decode 18:22:45
+POWER_DONE claw-code-other3-n40-decode 18:22:48
+RUNNING_POWER claw-code-optimal3-n40-encode 18:22:48
+POWER_DONE claw-code-optimal3-n40-encode 18:23:13
+RUNNING_POWER claw-code-optimal3-n40-decode 18:23:14
+POWER_DONE claw-code-optimal3-n40-decode 18:23:16
+RUNNING_POWER claw-code-apple-n40-encode 18:23:16
+POWER_DONE claw-code-apple-n40-encode 18:23:26
+RUNNING_POWER claw-code-apple-n40-decode 18:23:26
+POWER_DONE claw-code-apple-n40-decode 18:23:30
+RUNNING_POWER claw-code-bvx3-n40-encode 18:23:30
+POWER_DONE claw-code-bvx3-n40-encode 18:23:34
+RUNNING_POWER claw-code-bvx3-n40-decode 18:23:34
+POWER_DONE claw-code-bvx3-n40-decode 18:23:37
+RUNNING_POWER claw-code-lazy2-n40-encode 18:23:37
+POWER_DONE claw-code-lazy2-n40-encode 18:24:02
+RUNNING_POWER claw-code-lazy2-n40-decode 18:24:02
+POWER_DONE claw-code-lazy2-n40-decode 18:24:04
+RUNNING_POWER claw-code-optimal-n40-encode 18:24:04
+POWER_DONE claw-code-optimal-n40-encode 18:24:52
+RUNNING_POWER claw-code-optimal-n40-decode 18:24:52
+POWER_DONE claw-code-optimal-n40-decode 18:24:55
+RUNNING_POWER claw-code-other3-n8-encode 18:24:55
+POWER_DONE claw-code-other3-n8-encode 18:24:59
+RUNNING_POWER claw-code-other3-n8-decode 18:24:59
+POWER_DONE claw-code-other3-n8-decode 18:25:02
+RUNNING_POWER claw-code-optimal3-n8-encode 18:25:02
+POWER_DONE claw-code-optimal3-n8-encode 18:25:29
+RUNNING_POWER claw-code-optimal3-n8-decode 18:25:29
+POWER_DONE claw-code-optimal3-n8-decode 18:25:32
+RUNNING_POWER claw-code-apple-n8-encode 18:25:32
+POWER_DONE claw-code-apple-n8-encode 18:25:42
+RUNNING_POWER claw-code-apple-n8-decode 18:25:42
+POWER_DONE claw-code-apple-n8-decode 18:25:46
+RUNNING_POWER claw-code-bvx3-n8-encode 18:25:46
+POWER_DONE claw-code-bvx3-n8-encode 18:25:49
+RUNNING_POWER claw-code-bvx3-n8-decode 18:25:49
+POWER_DONE claw-code-bvx3-n8-decode 18:25:53
+RUNNING_POWER claw-code-lazy2-n8-encode 18:25:53
+POWER_DONE claw-code-lazy2-n8-encode 18:26:18
+RUNNING_POWER claw-code-lazy2-n8-decode 18:26:18
+POWER_DONE claw-code-lazy2-n8-decode 18:26:21
+RUNNING_POWER claw-code-optimal-n8-encode 18:26:21
+POWER_DONE claw-code-optimal-n8-encode 18:27:11
+RUNNING_POWER claw-code-optimal-n8-decode 18:27:11
+POWER_DONE claw-code-optimal-n8-decode 18:27:14
+RUNNING_POWER claw-code-other3-n4-encode 18:27:14
+POWER_DONE claw-code-other3-n4-encode 18:27:19
+RUNNING_POWER claw-code-other3-n4-decode 18:27:19
+POWER_DONE claw-code-other3-n4-decode 18:27:23
+RUNNING_POWER claw-code-optimal3-n4-encode 18:27:23
+POWER_DONE claw-code-optimal3-n4-encode 18:28:02
+RUNNING_POWER claw-code-optimal3-n4-decode 18:28:02
+POWER_DONE claw-code-optimal3-n4-decode 18:28:05
+RUNNING_POWER claw-code-apple-n4-encode 18:28:05
+POWER_DONE claw-code-apple-n4-encode 18:28:15
+RUNNING_POWER claw-code-apple-n4-decode 18:28:15
+POWER_DONE claw-code-apple-n4-decode 18:28:19
+RUNNING_POWER claw-code-bvx3-n4-encode 18:28:19
+POWER_DONE claw-code-bvx3-n4-encode 18:28:24
+RUNNING_POWER claw-code-bvx3-n4-decode 18:28:24
+POWER_DONE claw-code-bvx3-n4-decode 18:28:29
+RUNNING_POWER claw-code-lazy2-n4-encode 18:28:29
+POWER_DONE claw-code-lazy2-n4-encode 18:29:01
+RUNNING_POWER claw-code-lazy2-n4-decode 18:29:01
+POWER_DONE claw-code-lazy2-n4-decode 18:29:05
+RUNNING_POWER claw-code-optimal-n4-encode 18:29:05
+POWER_DONE claw-code-optimal-n4-encode 18:30:11
+RUNNING_POWER claw-code-optimal-n4-decode 18:30:11
+POWER_DONE claw-code-optimal-n4-decode 18:30:15
+RUNNING_POWER llama.cpp-tgz-encode 18:30:22
+POWER_DONE llama.cpp-tgz-encode 18:30:30
+RUNNING_POWER llama.cpp-tgz-decode 18:30:30
 Note: codec flags only affect -c; reading auto-detects. / 提示：引擎旗標僅影響 -c，讀取自動偵測。
-POWER_DONE llama.cpp-tgz-decode 00:14:48
-RUNNING_POWER llama.cpp-zstd-encode 00:14:48
-POWER_DONE llama.cpp-zstd-encode 00:14:51
-RUNNING_POWER llama.cpp-zstd-decode 00:14:51
-POWER_DONE llama.cpp-zstd-decode 00:14:53
-RUNNING_POWER llama.cpp-tar.lz4-encode 00:14:53
-POWER_DONE llama.cpp-tar.lz4-encode 00:14:57
-RUNNING_POWER llama.cpp-tar.lz4-decode 00:14:57
-POWER_DONE llama.cpp-tar.lz4-decode 00:14:58
-RUNNING_POWER llama.cpp-other3-n40-encode 00:14:58
-POWER_DONE llama.cpp-other3-n40-encode 00:15:02
-RUNNING_POWER llama.cpp-other3-n40-decode 00:15:02
-POWER_DONE llama.cpp-other3-n40-decode 00:15:04
-RUNNING_POWER llama.cpp-optimal3-n40-encode 00:15:04
-POWER_DONE llama.cpp-optimal3-n40-encode 00:15:26
-RUNNING_POWER llama.cpp-optimal3-n40-decode 00:15:26
-POWER_DONE llama.cpp-optimal3-n40-decode 00:15:28
-RUNNING_POWER llama.cpp-apple-n40-encode 00:15:28
-POWER_DONE llama.cpp-apple-n40-encode 00:15:37
-RUNNING_POWER llama.cpp-apple-n40-decode 00:15:37
-POWER_DONE llama.cpp-apple-n40-decode 00:15:41
-RUNNING_POWER llama.cpp-bvx3-n40-encode 00:15:41
-POWER_DONE llama.cpp-bvx3-n40-encode 00:15:45
-RUNNING_POWER llama.cpp-bvx3-n40-decode 00:15:45
-POWER_DONE llama.cpp-bvx3-n40-decode 00:15:47
-RUNNING_POWER llama.cpp-lazy2-n40-encode 00:15:47
-POWER_DONE llama.cpp-lazy2-n40-encode 00:15:57
-RUNNING_POWER llama.cpp-lazy2-n40-decode 00:15:57
-POWER_DONE llama.cpp-lazy2-n40-decode 00:15:59
-RUNNING_POWER llama.cpp-optimal-n40-encode 00:15:59
-POWER_DONE llama.cpp-optimal-n40-encode 00:16:30
-RUNNING_POWER llama.cpp-optimal-n40-decode 00:16:30
-POWER_DONE llama.cpp-optimal-n40-decode 00:16:33
-RUNNING_POWER llama.cpp-other3-n8-encode 00:16:33
-POWER_DONE llama.cpp-other3-n8-encode 00:16:36
-RUNNING_POWER llama.cpp-other3-n8-decode 00:16:36
-POWER_DONE llama.cpp-other3-n8-decode 00:16:39
-RUNNING_POWER llama.cpp-optimal3-n8-encode 00:16:39
-POWER_DONE llama.cpp-optimal3-n8-encode 00:17:02
-RUNNING_POWER llama.cpp-optimal3-n8-decode 00:17:02
-POWER_DONE llama.cpp-optimal3-n8-decode 00:17:04
-RUNNING_POWER llama.cpp-apple-n8-encode 00:17:04
-POWER_DONE llama.cpp-apple-n8-encode 00:17:13
-RUNNING_POWER llama.cpp-apple-n8-decode 00:17:13
-POWER_DONE llama.cpp-apple-n8-decode 00:17:17
-RUNNING_POWER llama.cpp-bvx3-n8-encode 00:17:17
-POWER_DONE llama.cpp-bvx3-n8-encode 00:17:20
-RUNNING_POWER llama.cpp-bvx3-n8-decode 00:17:20
-POWER_DONE llama.cpp-bvx3-n8-decode 00:17:23
-RUNNING_POWER llama.cpp-lazy2-n8-encode 00:17:23
-POWER_DONE llama.cpp-lazy2-n8-encode 00:17:33
-RUNNING_POWER llama.cpp-lazy2-n8-decode 00:17:33
-POWER_DONE llama.cpp-lazy2-n8-decode 00:17:36
-RUNNING_POWER llama.cpp-optimal-n8-encode 00:17:36
-POWER_DONE llama.cpp-optimal-n8-encode 00:18:08
-RUNNING_POWER llama.cpp-optimal-n8-decode 00:18:08
-POWER_DONE llama.cpp-optimal-n8-decode 00:18:11
-RUNNING_POWER llama.cpp-other3-n4-encode 00:18:11
-POWER_DONE llama.cpp-other3-n4-encode 00:18:15
-RUNNING_POWER llama.cpp-other3-n4-decode 00:18:15
-POWER_DONE llama.cpp-other3-n4-decode 00:18:18
-RUNNING_POWER llama.cpp-optimal3-n4-encode 00:18:18
-POWER_DONE llama.cpp-optimal3-n4-encode 00:18:51
-RUNNING_POWER llama.cpp-optimal3-n4-decode 00:18:51
-POWER_DONE llama.cpp-optimal3-n4-decode 00:18:54
-RUNNING_POWER llama.cpp-apple-n4-encode 00:18:54
-POWER_DONE llama.cpp-apple-n4-encode 00:19:03
-RUNNING_POWER llama.cpp-apple-n4-decode 00:19:03
-POWER_DONE llama.cpp-apple-n4-decode 00:19:06
-RUNNING_POWER llama.cpp-bvx3-n4-encode 00:19:06
-POWER_DONE llama.cpp-bvx3-n4-encode 00:19:11
-RUNNING_POWER llama.cpp-bvx3-n4-decode 00:19:11
-POWER_DONE llama.cpp-bvx3-n4-decode 00:19:15
-RUNNING_POWER llama.cpp-lazy2-n4-encode 00:19:15
-POWER_DONE llama.cpp-lazy2-n4-encode 00:19:27
-RUNNING_POWER llama.cpp-lazy2-n4-decode 00:19:27
-POWER_DONE llama.cpp-lazy2-n4-decode 00:19:30
-RUNNING_POWER llama.cpp-optimal-n4-encode 00:19:30
-POWER_DONE llama.cpp-optimal-n4-encode 00:20:15
-RUNNING_POWER llama.cpp-optimal-n4-decode 00:20:15
-POWER_DONE llama.cpp-optimal-n4-decode 00:20:18
-POWER_BENCHMARK_DONE 00:20:18
-POWER_BENCHMARK_DONE 00:20:18
-RUNNING_TRACE_ANALYSIS 00:20:18
-TRACE_PACKAGE_COUNT_ANALYSIS_START 0 expected=unknown 00:20:18
-TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data 00:20:18
-TRACE_ANALYSIS_DONE 00:20:18
-RUNNING_CPU_CALL_TREE_ANALYSIS 00:20:18
-CPU_CALL_TREE_TRACE_COUNT_START 0 expected=unknown 00:20:18
-CPU_CALL_TREE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data 00:20:18
-CPU_CALL_TREE_ANALYSIS_DONE 00:20:18
-RUNNING_GIT_GC 00:20:18
-GIT_GC_DONE 00:20:53
-RUNNING_BENCHMARK_RESULT_REBUILD 00:20:53
+POWER_DONE llama.cpp-tgz-decode 18:30:33
+RUNNING_POWER llama.cpp-zstd-encode 18:30:33
+POWER_DONE llama.cpp-zstd-encode 18:30:36
+RUNNING_POWER llama.cpp-zstd-decode 18:30:36
+POWER_DONE llama.cpp-zstd-decode 18:30:38
+RUNNING_POWER llama.cpp-tar.lz4-encode 18:30:38
+POWER_DONE llama.cpp-tar.lz4-encode 18:30:42
+RUNNING_POWER llama.cpp-tar.lz4-decode 18:30:42
+POWER_DONE llama.cpp-tar.lz4-decode 18:30:43
+RUNNING_POWER llama.cpp-other3-n40-encode 18:30:43
+POWER_DONE llama.cpp-other3-n40-encode 18:30:47
+RUNNING_POWER llama.cpp-other3-n40-decode 18:30:47
+POWER_DONE llama.cpp-other3-n40-decode 18:30:49
+RUNNING_POWER llama.cpp-optimal3-n40-encode 18:30:49
+POWER_DONE llama.cpp-optimal3-n40-encode 18:31:11
+RUNNING_POWER llama.cpp-optimal3-n40-decode 18:31:11
+POWER_DONE llama.cpp-optimal3-n40-decode 18:31:13
+RUNNING_POWER llama.cpp-apple-n40-encode 18:31:13
+POWER_DONE llama.cpp-apple-n40-encode 18:31:22
+RUNNING_POWER llama.cpp-apple-n40-decode 18:31:22
+POWER_DONE llama.cpp-apple-n40-decode 18:31:26
+RUNNING_POWER llama.cpp-bvx3-n40-encode 18:31:26
+POWER_DONE llama.cpp-bvx3-n40-encode 18:31:30
+RUNNING_POWER llama.cpp-bvx3-n40-decode 18:31:30
+POWER_DONE llama.cpp-bvx3-n40-decode 18:31:32
+RUNNING_POWER llama.cpp-lazy2-n40-encode 18:31:32
+POWER_DONE llama.cpp-lazy2-n40-encode 18:31:42
+RUNNING_POWER llama.cpp-lazy2-n40-decode 18:31:42
+POWER_DONE llama.cpp-lazy2-n40-decode 18:31:45
+RUNNING_POWER llama.cpp-optimal-n40-encode 18:31:45
+POWER_DONE llama.cpp-optimal-n40-encode 18:32:16
+RUNNING_POWER llama.cpp-optimal-n40-decode 18:32:16
+POWER_DONE llama.cpp-optimal-n40-decode 18:32:18
+RUNNING_POWER llama.cpp-other3-n8-encode 18:32:18
+POWER_DONE llama.cpp-other3-n8-encode 18:32:22
+RUNNING_POWER llama.cpp-other3-n8-decode 18:32:22
+POWER_DONE llama.cpp-other3-n8-decode 18:32:24
+RUNNING_POWER llama.cpp-optimal3-n8-encode 18:32:24
+POWER_DONE llama.cpp-optimal3-n8-encode 18:32:47
+RUNNING_POWER llama.cpp-optimal3-n8-decode 18:32:47
+POWER_DONE llama.cpp-optimal3-n8-decode 18:32:50
+RUNNING_POWER llama.cpp-apple-n8-encode 18:32:50
+POWER_DONE llama.cpp-apple-n8-encode 18:32:59
+RUNNING_POWER llama.cpp-apple-n8-decode 18:32:59
+POWER_DONE llama.cpp-apple-n8-decode 18:33:03
+RUNNING_POWER llama.cpp-bvx3-n8-encode 18:33:03
+POWER_DONE llama.cpp-bvx3-n8-encode 18:33:06
+RUNNING_POWER llama.cpp-bvx3-n8-decode 18:33:06
+POWER_DONE llama.cpp-bvx3-n8-decode 18:33:09
+RUNNING_POWER llama.cpp-lazy2-n8-encode 18:33:09
+POWER_DONE llama.cpp-lazy2-n8-encode 18:33:19
+RUNNING_POWER llama.cpp-lazy2-n8-decode 18:33:19
+POWER_DONE llama.cpp-lazy2-n8-decode 18:33:22
+RUNNING_POWER llama.cpp-optimal-n8-encode 18:33:22
+POWER_DONE llama.cpp-optimal-n8-encode 18:33:54
+RUNNING_POWER llama.cpp-optimal-n8-decode 18:33:54
+POWER_DONE llama.cpp-optimal-n8-decode 18:33:57
+RUNNING_POWER llama.cpp-other3-n4-encode 18:33:57
+POWER_DONE llama.cpp-other3-n4-encode 18:34:01
+RUNNING_POWER llama.cpp-other3-n4-decode 18:34:01
+POWER_DONE llama.cpp-other3-n4-decode 18:34:04
+RUNNING_POWER llama.cpp-optimal3-n4-encode 18:34:04
+POWER_DONE llama.cpp-optimal3-n4-encode 18:34:37
+RUNNING_POWER llama.cpp-optimal3-n4-decode 18:34:37
+POWER_DONE llama.cpp-optimal3-n4-decode 18:34:40
+RUNNING_POWER llama.cpp-apple-n4-encode 18:34:40
+POWER_DONE llama.cpp-apple-n4-encode 18:34:49
+RUNNING_POWER llama.cpp-apple-n4-decode 18:34:49
+POWER_DONE llama.cpp-apple-n4-decode 18:34:53
+RUNNING_POWER llama.cpp-bvx3-n4-encode 18:34:53
+POWER_DONE llama.cpp-bvx3-n4-encode 18:34:58
+RUNNING_POWER llama.cpp-bvx3-n4-decode 18:34:58
+POWER_DONE llama.cpp-bvx3-n4-decode 18:35:01
+RUNNING_POWER llama.cpp-lazy2-n4-encode 18:35:01
+POWER_DONE llama.cpp-lazy2-n4-encode 18:35:13
+RUNNING_POWER llama.cpp-lazy2-n4-decode 18:35:13
+POWER_DONE llama.cpp-lazy2-n4-decode 18:35:16
+RUNNING_POWER llama.cpp-optimal-n4-encode 18:35:16
+POWER_DONE llama.cpp-optimal-n4-encode 18:36:01
+RUNNING_POWER llama.cpp-optimal-n4-decode 18:36:01
+POWER_DONE llama.cpp-optimal-n4-decode 18:36:05
+POWER_BENCHMARK_DONE 18:36:05
+POWER_BENCHMARK_DONE 18:36:05
+RUNNING_TRACE_ANALYSIS 18:36:05
+TRACE_PACKAGE_COUNT_ANALYSIS_START 0 expected=unknown 18:36:05
+TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data 18:36:05
+TRACE_ANALYSIS_DONE 18:36:05
+RUNNING_CPU_CALL_TREE_ANALYSIS 18:36:05
+CPU_CALL_TREE_TRACE_COUNT_START 0 expected=unknown 18:36:06
+CPU_CALL_TREE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data 18:36:06
+CPU_CALL_TREE_ANALYSIS_DONE 18:36:06
+RUNNING_GIT_GC 18:36:06
+GIT_GC_DONE 18:36:21
+RUNNING_BENCHMARK_RESULT_REBUILD 18:36:21
 [Info] generated rows: 54
 [Info] wrote BenchMarkResult.csv
-BENCHMARK_RESULT_REBUILD_DONE 00:20:53
-RUNNING_POWER_SUMMARY_INTEGRATE 00:20:53
+BENCHMARK_RESULT_REBUILD_DONE 18:36:21
+RUNNING_POWER_SUMMARY_INTEGRATE 18:36:21
 [Info] integrated CPU power/energy and TGZ energy ratios into BenchMarkResult.csv
 [Info] integrated CPU power/energy extrema and TGZ energy ratios into best_points/best_points.csv
 [Info] wrote best_points/best_points.md
-POWER_SUMMARY_INTEGRATE_DONE 00:20:53
-RUNNING_BEST_POINTS_ANALYSIS 00:20:53
+POWER_SUMMARY_INTEGRATE_DONE 18:36:21
+RUNNING_BEST_POINTS_ANALYSIS 18:36:21
 [Info] wrote best_points/best_points.md
 [Info] wrote best_points/best_points.csv
-BEST_POINTS_ANALYSIS_DONE 00:20:53
-RUNNING_COMPARISON 00:20:53
+BEST_POINTS_ANALYSIS_DONE 18:36:22
+RUNNING_COMPARISON 18:36:22
 
 ==============================================================================
   macOS vs Windows — dataset=claw-code  mac_n=40  win_n=40(inflight)
@@ -546,28 +546,28 @@ RUNNING_COMPARISON 00:20:53
 ------------------------------------------------------------------------------
   Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Bar(Mac)
   ----------------------  ---------  -------  ---------  -------  -------  --------------------
-  TGZ                        316.48   1.0000     173.91   1.0000    0.550  ##########..........
-  LZFSE (Other3)             589.23   1.8618     192.59   1.1074    0.327  ###################.
-  LZFSE (Optimal3)            68.15   0.2153      30.44   0.1750    0.447  ##..................
-  LZFSE (BVX3)               611.17   1.9311     192.76   1.1084    0.315  ####################
-  LZFSE (Lazy2)               72.64   0.2295      38.97   0.2241    0.537  ##..................
-  LZFSE (Optimal)             37.29   0.1178      18.01   0.1035    0.483  #...................
-  TLZ4                       611.25   1.9314     182.25   1.0480    0.298  ####################
-  ZSTD                       466.41   1.4737     120.81   0.6946    0.259  ###############.....
+  TGZ                        294.62   1.0000     173.91   1.0000    0.590  ############........
+  LZFSE (Other3)             490.02   1.6632     192.59   1.1074    0.393  ####################
+  LZFSE (Optimal3)            68.08   0.2311      30.44   0.1750    0.447  ###.................
+  LZFSE (BVX3)               498.17   1.6909     192.76   1.1084    0.387  ####################
+  LZFSE (Lazy2)               70.75   0.2401      38.97   0.2241    0.551  ###.................
+  LZFSE (Optimal)             36.57   0.1241      18.01   0.1035    0.492  #...................
+  TLZ4                       466.99   1.5851     182.25   1.0480    0.390  ###################.
+  ZSTD                       468.16   1.5890     120.81   0.6946    0.258  ###################.
 
 ------------------------------------------------------------------------------
   1b. Decode MB/s  解壓速度  (Mac: avg n=40; Windows: single run total)
 ------------------------------------------------------------------------------
   Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Verify  Bar(Mac)
   ----------------------  ---------  -------  ---------  -------  -------  ------  --------------------
-  TGZ                        445.83   1.0000     121.40   1.0000    0.272    PASS  ###############.....
-  LZFSE (Other3)             535.55   1.2012     191.78   1.5798    0.358    PASS  ##################..
-  LZFSE (Optimal3)           500.08   1.1217     191.36   1.5763    0.383    PASS  #################...
-  LZFSE (BVX3)               469.90   1.0540     188.89   1.5559    0.402    PASS  ################....
-  LZFSE (Lazy2)              570.91   1.2806     186.71   1.5380    0.327    PASS  ####################
-  LZFSE (Optimal)            352.03   0.7896     195.26   1.6084    0.555    PASS  ############........
-  TLZ4                       581.70   1.3048     244.56   2.0145    0.420    PASS  ####################
-  ZSTD                       426.48   0.9566     229.54   1.8908    0.538    PASS  ###############.....
+  TGZ                        424.51   1.0000     121.40   1.0000    0.286    PASS  ###########.........
+  LZFSE (Other3)             556.28   1.3104     191.78   1.5798    0.345    PASS  ###############.....
+  LZFSE (Optimal3)           548.09   1.2911     191.36   1.5763    0.349    PASS  ###############.....
+  LZFSE (BVX3)               561.11   1.3218     188.89   1.5559    0.337    PASS  ###############.....
+  LZFSE (Lazy2)              517.24   1.2184     186.71   1.5380    0.361    PASS  ##############......
+  LZFSE (Optimal)            390.50   0.9199     195.26   1.6084    0.500    PASS  ###########.........
+  TLZ4                       741.95   1.7478     244.56   2.0145    0.330    PASS  ####################
+  ZSTD                       666.87   1.5709     229.54   1.8908    0.344    PASS  ##################..
 
 ------------------------------------------------------------------------------
   1c. Compress Size & Ratio  壓縮大小與比率  (ratio = format / TGZ, per platform)
@@ -588,28 +588,28 @@ RUNNING_COMPARISON 00:20:53
 ------------------------------------------------------------------------------
   Format                   Mac Enc   Mac/TGZ   Win Enc   Win/TGZ   Mac Dec   Win Dec
   ----------------------  --------  --------  --------  --------  --------  --------
-  TGZ                       217.00    1.0000      6.40    1.0000     44.10      5.90
-  LZFSE (Other3)            365.40    1.6839    130.30   20.3594    305.50    257.50
-  LZFSE (Optimal3)          562.80    2.5935    499.10   77.9844    323.40    255.40
-  LZFSE (BVX3)              343.40    1.5825    139.30   21.7656    319.50    248.50
-  LZFSE (Lazy2)             506.60    2.3346    482.70   75.4219    324.00    248.80
-  LZFSE (Optimal)           574.60    2.6479    508.80   79.5000    335.70    244.90
-  TLZ4                       80.90    0.3728      8.80    1.3750     33.70      8.80
-  ZSTD                      399.20    1.8396      8.30    1.2969      9.20      8.80
+  TGZ                       202.00    1.0000      6.40    1.0000     45.00      5.90
+  LZFSE (Other3)            347.40    1.7198    130.30   20.3594    305.40    257.50
+  LZFSE (Optimal3)          554.00    2.7426    499.10   77.9844    323.20    255.40
+  LZFSE (BVX3)              367.50    1.8193    139.30   21.7656    319.40    248.50
+  LZFSE (Lazy2)             502.50    2.4876    482.70   75.4219    323.80    248.80
+  LZFSE (Optimal)           558.10    2.7629    508.80   79.5000    335.40    244.90
+  TLZ4                       81.60    0.4040      8.80    1.3750     33.80      8.80
+  ZSTD                      392.40    1.9426      8.30    1.2969      9.20      8.80
 
 ------------------------------------------------------------------------------
   3. CPU Energy J  能耗  (Mac only — macOS powermetrics required)
 ------------------------------------------------------------------------------
   Format                      Enc J   Enc/TGZ      Dec J   Dec/TGZ
   ----------------------  ---------  --------  ---------  --------
-  TGZ                         94.25    1.0000      14.63    1.0000
-  LZFSE (Other3)              41.11    0.4362       6.91    0.4722
-  LZFSE (Optimal3)           430.36    4.5659       5.32    0.3634
-  LZFSE (BVX3)                44.57    0.4729       8.29    0.5663
-  LZFSE (Lazy2)              186.86    1.9825       6.98    0.4767
-  LZFSE (Optimal)            636.48    6.7527       7.44    0.5083
-  TLZ4                        39.69    0.4211       4.22    0.2886
-  ZSTD                        44.95    0.4769       8.17    0.5582
+  TGZ                         93.65    1.0000      15.05    1.0000
+  LZFSE (Other3)              43.58    0.4653       6.23    0.4137
+  LZFSE (Optimal3)           445.80    4.7602       6.54    0.4346
+  LZFSE (BVX3)                45.30    0.4837       8.94    0.5941
+  LZFSE (Lazy2)              194.51    2.0770       6.92    0.4600
+  LZFSE (Optimal)            652.04    6.9624       7.78    0.5168
+  TLZ4                        43.12    0.4604       4.15    0.2755
+  ZSTD                        48.91    0.5222       8.50    0.5650
 
 ==============================================================================
 
@@ -622,9 +622,8 @@ RUNNING_COMPARISON 00:20:53
   LZFSE (Optimal)      Win enc   18.01 MB/s  dec  195.26 MB/s
   TLZ4                 Win enc  182.25 MB/s  dec  244.56 MB/s
   ZSTD                 Win enc  120.81 MB/s  dec  229.54 MB/s
-COMPARISON_DONE 00:20:53
-RUNNING md-translate 00:20:53
-TRANSLATE_DONE 00:23:08
+COMPARISON_DONE 18:36:22
+RUNNING md-translate 18:36:22
+TRANSLATE_DONE 18:39:42
 Done.
-BENCH_DONE 00:23:08
-TRANSLATE_DONE 15:08:29
+BENCH_DONE 18:39:42
