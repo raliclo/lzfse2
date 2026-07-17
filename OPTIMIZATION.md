@@ -167,6 +167,115 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R46-Win-Retest：Windows native zlib 重測 + native zstd 覆蓋審查（2026-07-17）
+
+> **目標**：以最新 `swift_tar` Windows 發行版重跑 `helper_windows/run_round.bat -swift_tar`，確認 R46 native zlib 沒有回歸，並原定驗證新增的 **in-process static libzstd** Windows 路徑。實跑後審查發現，目前 Windows benchmark 的 ZSTD 仍直接呼叫外部 `zstd.exe`，因此本輪完整驗證了 native zlib，但 **沒有覆蓋 swift_tar native zstd runtime 路徑**。這個差異為本輪最重要的測試覆蓋結論。
+
+## 建置與完整流程
+
+- 受測 source baseline：`0b03ed8`（含 `c149f94` native static libzstd 與 `01c82c3` `--touch`）；22:32 建置的 EXE 後於 23:17 由 `a47025a` 納入 Windows binary release，再由隔日 `c46bc9` 補齊 zstd provenance。
+- 建置版本：`swift_tar 20260717-223201`。
+- zlib：**v1.3.2** / `da607da`，static linkage。
+- zstd：**v1.5.7** / `f8745da`，static linkage。
+- 重建後 `swift_tar -test -debug` 全部通過：plain tar、`.tar.gz`、系統 tar 雙向互通，以及 Foundation/UCRT 寫入後端內容比對均為 `✓`。現有 `-test` 輸出未包含 `.tar.zst` 項目，所以也不能用它來宣稱 native zstd runtime 已驗收。
+- `run_round.bat -swift_tar`：22:34:21 開始，23:56:31 結束，總耗時 **1:22:10**，`COMPILE_OK` / `TEST_OK` / 兩資料集 encode、decode、RSS、comparison 全部完成。
+- 正確性：8 格式 × 2 資料集 × 2 輸出模式，共 **32 組 decode 驗證全部 `PASS`**；status log 無 `[FAIL]`、`Win_result_invalid`、Traceback 或 ERROR。其中 ZSTD PASS 代表「外部 `zstd.exe` + swift_tar plain-tar/extract」整合正確，不代表 native libzstd 路徑。
+
+### 測試覆蓋審查
+
+| benchmark 格式 | 實際呼叫 | 本輪是否覆蓋 swift_tar native codec |
+| --- | --- | --- |
+| TGZ encode | shim `tar czf` → `swift_tar.exe` | **是（native zlib）** |
+| TGZ decode | shim `tar xzf` → `swift_tar.exe` | **是（native zlib）** |
+| ZSTD encode | shim `tar -cf -` \| 外部 `zstd -9` | **否** |
+| ZSTD decode | 外部 `zstd -d -c` \| shim `tar xf -` | **否** |
+| ZSTD RSS | `rss-win.bat` 的 `$zstdExe` | **否** |
+
+`swift_tar --version` 已證明 EXE 建置時連結 zstd v1.5.7 static library，但「可建置／有 provenance」與「runtime 壓縮、解壓、效能」是不同驗收層級。
+
+> `llama.cpp` decode-to-file 由 23:08:37 至 23:46:38，其中實際解壓在 23:16:34 已結束，後續約 **30 分鐘**花在 7 組「對 TGZ 輸出」的逐檔比對與清理。因此完整 round 耗時不等於 codec benchmark 耗時。
+
+## 1. Windows 實測結果（n=40，write-to-file）
+
+| 資料集 | 格式 | 壓縮比 | Enc MB/s | Dec MB/s | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | **TGZ** | 1.0000 | **185.23** | **92.83** | 6.4 MB | 5.9 MB |
+| claw-code | Other3 | 0.9812 | 206.00 | 160.62 | 137.4 MB | 259.0 MB |
+| claw-code | Optimal3 | 0.9344 | 34.04 | 160.99 | 501.6 MB | 255.2 MB |
+| claw-code | BVX3 | 0.9243 | 219.28 | 156.02 | 135.4 MB | 248.9 MB |
+| claw-code | Lazy2 | 0.8687 | 42.02 | 158.14 | 485.2 MB | 246.9 MB |
+| claw-code | Optimal | 0.8252 | 18.85 | 160.96 | 535.3 MB | 244.4 MB |
+| claw-code | TLZ4 | 1.1734 | 200.48 | 206.54 | 8.4 MB | 8.3 MB |
+| claw-code | **ZSTD (external CLI)** | 0.7806 | **102.25** | **190.41** | 8.3 MB | 8.3 MB |
+| llama.cpp | **TGZ** | 1.0000 | **78.27** | **15.41** | 6.9 MB | 7.2 MB |
+| llama.cpp | Other3 | 0.9966 | 69.45 | 25.99 | 109.0 MB | 346.6 MB |
+| llama.cpp | Optimal3 | 0.9739 | 43.94 | 25.81 | 752.6 MB | 346.0 MB |
+| llama.cpp | BVX3 | 0.9792 | 68.19 | 25.15 | 123.2 MB | 346.5 MB |
+| llama.cpp | Lazy2 | 0.9572 | 58.57 | 25.45 | 607.4 MB | 345.3 MB |
+| llama.cpp | Optimal | 0.9390 | 26.42 | 24.48 | 754.1 MB | 345.5 MB |
+| llama.cpp | TLZ4 | 1.0500 | 54.62 | 24.21 | 8.9 MB | 9.0 MB |
+| llama.cpp | **ZSTD (external CLI)** | 0.9123 | **56.78** | **18.00** | 8.4 MB | 8.4 MB |
+
+壓縮比與 R46-Win 一致（四位小數層級無變化）。但 `encode-win.bat` 與 `decode-win.bat` 本輪未改：TGZ 仍透過 `tar` shim 走 swift_tar native zlib，ZSTD 則仍走外部 `zstd.exe`。因此這項結果只能說明「現有 benchmark 路徑的壓縮比重現」，**不能作為 external-vs-native library 的格式或輸出比較結論**。
+
+## 2. File vs null：可用數據與 TGZ 標籤缺陷
+
+| 資料集 | 格式 | Enc file | Enc null | Dec file | Dec null |
+| --- | --- | ---: | ---: | ---: | ---: |
+| claw-code | Other3 | 206.00 | 249.99 | 160.62 | 701.83 |
+| claw-code | ZSTD | 102.25 | 118.83 | 190.41 | **895.87** |
+| llama.cpp | Other3 | 69.45 | 69.24 | 25.99 | **585.56** |
+| llama.cpp | ZSTD | 56.78 | 67.41 | 18.00 | **1004.98** |
+
+- encode 的 file/null 差距相對小，但 decode 差距很大；特別是 `llama.cpp` 的 Other3/ZSTD，純解碼至 null 可達 586/1005 MB/s，實際展開到磁碟只剩 26/18 MB/s。
+- 這證實 `llama.cpp` 的 Windows decode 主要瓶頸仍是 tar 小檔案建立、metadata 與磁碟 I/O，不是 LZFSE/ZSTD codec 本身。
+- **TGZ 不可放入上表比較**：`decode-win.bat` 的非 write 分支是 `tar xzf "%dataset%.tgz" > nul 2>&1`，`> nul` 只丟棄 stdout，`x` 仍會將檔案解壓到當前目錄。因此 CSV 中 TGZ `decode_mb_s(null)` 113.09 / 31.49 **不是純 inflate-to-null**，也不是真正的 write-to-null。
+
+## 3. 對照前一次 R46-Win（write-to-file）
+
+| 資料集 | 格式 | R46 Enc → Retest | 變化 | R46 Dec → Retest | 變化 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 173.91 → 185.23 | **+6.5%** | 121.40 → 92.83 | **−23.5%** |
+| claw-code | ZSTD | 120.81 → 102.25 | **−15.4%** | 229.54 → 190.41 | **−17.0%** |
+| llama.cpp | TGZ | 92.26 → 78.27 | **−15.2%** | 24.13 → 15.41 | **−36.1%** |
+| llama.cpp | ZSTD | 79.85 → 56.78 | **−28.9%** | 27.63 → 18.00 | **−34.9%** |
+
+> **重要結論**：這些 ZSTD 跨輪差異不是 native-vs-external 比較，因為兩輪 Windows benchmark 都呼叫外部 `zstd.exe`。ZSTD 與同輪多數非 ZSTD 格式在 `llama.cpp` file-mode 都同向下降，且 null/file 差距極大，說明本輪受磁碟、小檔建立與背景負載影響很強。**native libzstd 與外部 `zstd.exe` 的功能、壓縮比、速度與 RSS 比較延後至 R47**，本節不對 native libzstd 效果下結論。
+
+## 4. TGZ native zlib 與 external ZSTD RSS（file / null）
+
+| 資料集 | 格式 | Enc RSS file | Dec RSS file | Enc RSS null | Dec RSS null |
+| --- | --- | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 6.4 | 5.9 | 6.4 | 5.8 |
+| claw-code | ZSTD | 8.3 | 8.3 | 8.4 | 8.3 |
+| llama.cpp | TGZ | 6.9 | 7.2 | 6.8 | 6.0 |
+| llama.cpp | ZSTD | 8.4 | 8.4 | 8.4 | 8.4 |
+
+- native zlib 繼續穩定在 **5.8–7.2 MB**，沒有重現 in-flight buffer 造成的 RSS 膨脹。
+- ZSTD **8.3–9.0 MB** 是 `rss-win.bat` 直接量外部 `$zstdExe` 的結果，不可當作 swift_tar native libzstd RSS。
+- TGZ 的 `nul` RSS 也必須帶著第 2 節的 caveat 解讀：目前 `tar xzf ... > nul` 仍會落盤，只是沒有使用指定的 `decoded\...` 目錄。
+
+## 5. 與 R46-Mac-Retest 對照（write-to-file）
+
+| 資料集 | 格式 | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 185.23 | 294.62 | 0.629 | 92.83 | 424.51 | 0.219 |
+| claw-code | ZSTD | 102.25 | 468.16 | 0.218 | 190.41 | 666.87 | 0.286 |
+| llama.cpp | TGZ | 78.27 | 234.60 | 0.334 | 15.41 | 155.48 | 0.099 |
+| llama.cpp | ZSTD | 56.78 | 273.42 | 0.208 | 18.00 | 151.06 | 0.119 |
+
+Windows 與 Mac 的 file-mode 差距仍以 `llama.cpp` decode 最大（TGZ 0.099、ZSTD 0.119），且不只發生在單一 codec；這與第 2 節「Windows 小檔落盤路徑主導」的觀察一致。
+
+## 結論與後續
+
+1. **native zlib 正確性/RSS 驗收通過**：TGZ file-mode 比對通過，壓縮比無回歸，RSS 仍為個位數 MB。
+2. **native zstd 只完成建置與 provenance 驗證**：現有 `run_round.bat` / `encode-win.bat` / `decode-win.bat` / `rss-win.bat` 均沒有走 swift_tar native zstd，功能、壓縮比、速度與 RSS 尚未由此 round 驗收；**native lib comparison 統一留待 R47**。
+3. **TGZ write-to-null 標籤不正確**：應將 `tar xzf ... > nul` 改成真正的 decompressed stream sink，之後才能與其他 codec null-mode 公平比較。
+4. **下一個 Windows decode 優化點仍是 tar extract**：優先 profile `llama.cpp` 小檔建立、metadata/mtime 與 UCRT 寫入路徑；codec 優化應以真正的 null-mode 另行追蹤。
+5. **驗證流程時間可優化**：`llama.cpp` 七次完整目錄比對約佔 30 分鐘；若要縮短 round，可在不降低正確性的前提下，共用 TGZ manifest/hash 而避免每次重複掃描 reference tree。
+
+---
+
 # R46-Win：Windows TGZ Native Zlib（swift_tar 內建 zlib submodule，取代逐 chunk 外部 gzip.exe）（2026-07-13）
 
 > **目標**：R45-Win-Retest1 確認了 Windows TGZ encode/decode 比 Mac 慢 4-6 倍的根因——Windows 端沒有可連結的 zlib，`compressChunk` 每個 4MiB chunk 都要 spawn 一個外部 `gzip.exe` 行程；Mac 端則是 `#if !os(Windows) import zlib` 原生連結，無行程開銷。本輪在 `swift_tar` repo 內新增 zlib 1.3.2 為 git submodule（`cmodules/zlib`），靜態編譯後由 `compile_tar-win.bat` 連結進 `swift_tar.exe`，`swift_tar.swift` 的 TGZ 路徑改為直接呼叫 zlib API，取代 `winRunCompress`/`winRunDecompress` 的外部行程 pipe。
