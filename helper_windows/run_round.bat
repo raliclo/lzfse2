@@ -48,7 +48,13 @@ if "%USE_SWIFT_TAR%"=="1" (
         echo [Error] -swift_tar requires ..\swift_tar\version.txt to verify native zlib linkage. >&2
         exit /b 1
     )
-    findstr /x /c:"zlib_linkage=static" "!_swift_tar_version!" > nul
+    :: findstr /x exact-line match is unreliable against version.txt since
+    :: generate_version.sh is a zsh script that writes LF-only line endings,
+    :: not the CRLF Windows findstr /x expects; use a substring match instead.
+    :: NOTE: keep comments in this block free of parenthesis characters --
+    :: :: comments are parsed as pseudo-labels, and stray parentheses inside
+    :: them corrupt cmd.exe's paren-counting for the enclosing if-block.
+    findstr /c:"zlib_linkage=static" "!_swift_tar_version!" > nul
     if errorlevel 1 (
         echo SWIFT_TAR_NATIVE_ZLIB_NOT_VERIFIED %TIME:~0,8% >> windows_round_status.txt
         echo [Error] -swift_tar requires zlib_linkage=static in version.txt. >&2

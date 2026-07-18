@@ -167,6 +167,95 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R47-Win：正式重測（TGZ null-mode 修正驗收 + run_round.bat 再修兩個解析 bug）（2026-07-18）
+
+> **目標**：在 Pre-R47 的基礎設施修正之上執行完整 `run_round.bat -swift_tar`，驗收 TGZ to-stdout null-mode 修正與 backend 身份檢查在真實流程中正確運作，並產出 R47 正式效能數據。過程中又發現並修正兩個 `run_round.bat` 的 cmd.exe 解析 bug；第一次正式跑完後使用者判斷 `llama.cpp` 數據不可靠，重測一次後確認、採用重測數據為本輪正式結果。
+
+## 本輪額外修正（Pre-R47 之後才發現）
+
+1. **`findstr /x` 對 LF-only 檔案不可靠**：`swift_tar/version.txt` 由 `generate_version.sh`（zsh script）用 `echo` 產生，是 LF-only 換行；Windows `findstr /x`（整行完全比對）預期 CRLF 結尾，即使 `findstr /n`（無 `/x`）能正確找到該行內容，`/x` 仍回報找不到，導致 `run_round.bat -swift_tar` 一律印出「`-swift_tar requires zlib_linkage=static in version.txt`」而中止。修法：`run_round.bat` 第 51 行改用不加 `/x` 的子字串比對（key=value 在檔案中是唯一字串，安全）。
+2. **`::` 註解裡的括號打壞 `if (...)` 區塊解析**：修正上一項時，在 `if "%USE_SWIFT_TAR%"=="1" ( ... )` 區塊內加了含括號的多行 `::` 註解（例如 `(exact whole-line match)`）。`::` 在 batch 裡其實是偽 label，不是真正的註解機制，即使括號成對，只要出現在 `( ... )` 區塊內就會打亂 cmd.exe 對外層括號的計數，導致 `writes was unexpected at this time.`（`writes` 正是註解裡的字）。修法：把註解改寫成完全不含括號的版本，並在檔案裡留一條提醒。
+
+兩者都用**真正原生 Windows 執行**（非 MSYS bash 包的 cmd.exe）重現與驗證——這個環境下透過 Git Bash 呼叫 `cmd.exe /c` 曾觀察到路徑/解析行為與原生執行不一致（沿用本檔案既有的 chcp 65001 解析問題記錄），因此本次修正全程改以 PowerShell 原生呼叫 `.bat` 驗證，而非透過 Bash 工具包一層 cmd.exe。
+
+## 資料可靠性：第一次正式跑 vs 重測
+
+第一次 `run_round.bat -swift_tar`（12:17:21 前一輪，即時間戳更早的執行）跑完後，`llama.cpp` 側幾乎所有格式的 encode 速度都明顯低於 R46-Win-Retest 基準（TGZ −45.6%、Other3 −25.5%、Optimal3 −27.8% 等），且 decode 側 Other3/Optimal3 異常慢（17–20 MB/s，遠低於同組其他格式的 ~30 MB/s）。使用者判斷這組數據不可靠，要求重測。重測後兩個異常都消失，數字回到與 R46-Win-Retest 同量級：
+
+| 格式 | 第一次 Enc | 重測 Enc | Δ | 第一次 Dec | 重測 Dec | Δ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| TGZ | 42.61 | 71.71 | +68.3% | 17.01 | 18.28 | +7.5% |
+| Other3 | 51.73 | 65.90 | +27.4% | 17.16 | 30.34 | **+76.8%** |
+| Optimal3 | 31.71 | 42.42 | +33.8% | 19.59 | 30.02 | **+53.2%** |
+| BVX3 | 61.31 | 64.91 | +5.9% | 31.83 | 29.94 | −5.9% |
+| Lazy2 | 48.61 | 59.74 | +22.9% | 30.64 | 30.05 | −1.9% |
+| Optimal | 23.21 | 33.20 | +43.0% | 29.04 | 29.75 | +2.4% |
+| TLZ4 | 58.78 | 61.58 | +4.8% | 31.35 | 31.40 | +0.2% |
+| ZSTD | 57.77 | 61.19 | +5.9% | 30.20 | 31.19 | +3.3% |
+
+同期 `claw-code` 兩次跑幾乎沒變（TGZ Enc 179.19→175.43、Dec 90.83→86.19，皆在 5% 內），佐證第一次的異常只發生在 `llama.cpp`（40,675 個小檔案，對背景負載／磁碟壓力最敏感），與先前 R46-Win-Retest 記錄的同類雜訊模式一致。**本節以下所有數據使用重測結果**，第一次的數字視為不可靠、不採用。
+
+## 1. Windows 實測結果（n=40，write-to-file，重測數據）
+
+| 資料集 | 格式 | 壓縮比 | Enc MB/s | Dec MB/s | Enc RSS | Dec RSS |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | **TGZ** | 1.0000 | **175.43** | **86.19** | 144.1 MB | 45.2 MB |
+| claw-code | Other3 | 0.9812 | 184.55 | 146.68 | 138.2 MB | 257.4 MB |
+| claw-code | Optimal3 | 0.9344 | 33.22 | 142.50 | 496.8 MB | 255.5 MB |
+| claw-code | BVX3 | 0.9243 | 200.90 | 131.84 | 146.8 MB | 249.2 MB |
+| claw-code | Lazy2 | 0.8687 | 41.00 | 141.27 | 483.0 MB | 247.9 MB |
+| claw-code | Optimal | 0.8252 | 18.11 | 145.82 | 511.4 MB | 244.8 MB |
+| claw-code | TLZ4 | 1.1734 | 187.74 | 180.27 | 8.9 MB | 8.4 MB |
+| claw-code | **ZSTD (external CLI)** | 0.7806 | **100.97** | **176.57** | 8.9 MB | 8.9 MB |
+| llama.cpp | **TGZ** | 1.0000 | **71.71** | **18.28** | 168.7 MB | 58.0 MB |
+| llama.cpp | Other3 | 0.9966 | 65.90 | 30.34 | 157.9 MB | 345.6 MB |
+| llama.cpp | Optimal3 | 0.9739 | 42.42 | 30.02 | 762.1 MB | 345.6 MB |
+| llama.cpp | BVX3 | 0.9792 | 64.91 | 29.94 | 154.9 MB | 346.0 MB |
+| llama.cpp | Lazy2 | 0.9572 | 59.74 | 30.05 | 639.3 MB | 346.6 MB |
+| llama.cpp | Optimal | 0.9390 | 33.20 | 29.75 | 755.7 MB | 346.4 MB |
+| llama.cpp | TLZ4 | 1.0500 | 61.58 | 31.40 | 8.4 MB | 8.4 MB |
+| llama.cpp | **ZSTD (external CLI)** | 0.9123 | **61.19** | **31.19** | 8.9 MB | 8.9 MB |
+
+正確性：8 格式 × 2 資料集 × 2 輸出模式，**32/32 `[PASS]`，0 `[FAIL]`**；`windows_round_status.txt` 無 `ERROR`/`Traceback`。全程 12:17:21 → 13:39:29（約 1h22m）。`swift_tar` 版本 `20260718-090617`，與 R46-Win-Retest 所用的 `c46bc9a` 為**同一個原始碼提交**（純重新編譯，無程式碼變更）。
+
+## 2. TGZ null-mode 修正驗收（本輪重點）
+
+Pre-R47 把 `decode-win.bat` 的 non-write 分支從 `tar xzf ... > nul`（實際仍會落盤的偽 null-mode）改成 `--to-stdout -xzf ... > nul`（真正的 to-stdout decode）。這輪資料證實修正生效：
+
+| 資料集 | Dec file | Dec nul（修正後） | 差異 |
+| --- | ---: | ---: | ---: |
+| claw-code | 86.19 MB/s（16.28s） | 109.6 MB/s（12.80s） | nul 快 **27.2%** |
+| llama.cpp | 18.28 MB/s（66.27s） | 36.53 MB/s（33.18s） | nul 快 **99.8%** |
+
+`llama.cpp` 的 null 模式接近 file 模式的兩倍，符合預期：40,675 個小檔案的 write-to-file 瓶頸主要來自逐檔開檔/寫入，真正的 to-stdout 解壓可以完全跳過這部分成本；`claw-code`（單一大檔）差距較小，因為它的解壓成本本就以 inflate CPU 為主。修正前（偽 null-mode）這兩個數字理論上會與 file 模式相近，因為底層一樣在落盤——這正是 R46-Win-Retest 结論 3 點出的缺陷，本輪確認已解決。
+
+## 3. 對照 R46-Win-Retest（TGZ，write-to-file）
+
+| 資料集 | Enc：R46-Retest → R47 | 變化 | Dec：R46-Retest → R47 | 變化 |
+| --- | ---: | ---: | ---: | ---: |
+| claw-code | 185.23 → 175.43 | −5.3% | 92.83 → 86.19 | −7.2% |
+| llama.cpp | 78.27 → 71.71 | −8.4% | 15.41 → 18.28 | +18.6% |
+
+速度層級與 R46-Win-Retest 相近（多數在 ±10% 內），沒有觀察到 native zlib 路徑的速度回歸。
+
+## 4. Win/Mac 對照（對 R46-Mac-Retest，write-to-file）
+
+| 資料集 | 格式 | Win Enc | Mac Enc | Win/Mac Enc | Win Dec | Mac Dec | Win/Mac Dec |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| claw-code | TGZ | 175.43 | 294.62 | 0.595 | 86.19 | 424.51 | 0.203 |
+| claw-code | ZSTD | 100.97 | 468.16 | 0.216 | 176.57 | 666.87 | 0.265 |
+| llama.cpp | TGZ | 71.71 | 234.60 | 0.306 | 18.28 | 155.48 | 0.118 |
+| llama.cpp | ZSTD | 61.19 | 273.42 | 0.224 | 31.19 | 151.06 | 0.206 |
+
+`llama.cpp` decode 仍是 Windows 相對 Mac 落差最大的一項（TGZ 0.118、ZSTD 0.206），與第 2 節「小檔落盤路徑主導」的結論一致。
+
+## 待辦
+
+1. **native zstd 仍未被 benchmark 覆蓋**：`encode-win.bat`/`decode-win.bat`/`rss-win.bat` 的 ZSTD 路徑仍呼叫外部 `zstd.exe`，維持 R46-Win-Retest 的結論——需另外規劃 ZSTD backend 切換，比照 TGZ 的 `LZFSE_REQUIRE_NATIVE_ZLIB` 閘門模式處理。
+2. **`llama.cpp` encode 對背景負載的敏感度**：本輪第一次嘗試的失敗再次證明 `llama.cpp`（多小檔資料集）的 encode/decode 數字比 `claw-code` 更容易受環境雜訊影響；未來輪次若 `llama.cpp` 數字與前一輪偏離 >15%，應優先懷疑環境因素並重測，而非直接寫入結論。
+
+---
+
 # Pre-R47：修正 R46-Win-Retest 遺留的 TGZ null-mode 與 backend 身份驗證問題（2026-07-18）
 
 > **目標**：R46-Win-Retest 的結論 3、4 點指出兩個尚未解決的缺口——(a) `decode-win.bat` 的 TGZ null-mode 實際上是 `tar xzf ... > nul`，`> nul` 只丟棄 stdout，`x` 仍會落盤，並非真正的 to-null decode；(b) benchmark 各腳本經由 PATH shim 呼叫 `tar`，沒有在執行當下驗證真的解析到 `swift_tar.exe` 與其 native zlib 連結方式。本次由 codex review 產出修正，涵蓋 Windows 四支 `.bat`/`.ps1` 與 macOS 的 `run_round.command`／`zshrc.sh`，**僅為基礎設施修正，尚未執行完整 R47 benchmark，本次 commit 不含新的效能數據**。
