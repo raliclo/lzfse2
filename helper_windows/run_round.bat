@@ -10,6 +10,7 @@ chcp 65001 > nul
 :: bytes on a comment line were found to corrupt cmd.exe's parsing of
 :: subsequent lines in this environment (reproduced independent of chcp).
 setlocal EnableDelayedExpansion
+set "LZFSE_REQUIRE_NATIVE_ZLIB=0"
 cd /d "%~dp0"
 :: 每輪開始前清除舊狀態檔，確保本輪資料全新 / Clear status file so this round starts fresh
 type nul > windows_round_status.txt
@@ -36,9 +37,21 @@ set "USE_SWIFT_TAR=0"
 for %%A in (%*) do if /i "%%~A"=="-swift_tar" set "USE_SWIFT_TAR=1"
 if "%USE_SWIFT_TAR%"=="1" (
     set "_swift_tar_exe=..\swift_tar\release\swift_tar.exe"
+    set "_swift_tar_version=..\swift_tar\version.txt"
     if not exist "!_swift_tar_exe!" (
         echo SWIFT_TAR_NOT_FOUND %TIME:~0,8% >> windows_round_status.txt
         echo [Error] -swift_tar requested but !_swift_tar_exe! not found. Run swift_tar\compile_tar-win.bat first. / 已指定 -swift_tar 但找不到 !_swift_tar_exe!，請先執行 swift_tar\compile_tar-win.bat。 >&2
+        exit /b 1
+    )
+    if not exist "!_swift_tar_version!" (
+        echo SWIFT_TAR_VERSION_NOT_FOUND %TIME:~0,8% >> windows_round_status.txt
+        echo [Error] -swift_tar requires ..\swift_tar\version.txt to verify native zlib linkage. >&2
+        exit /b 1
+    )
+    findstr /x /c:"zlib_linkage=static" "!_swift_tar_version!" > nul
+    if errorlevel 1 (
+        echo SWIFT_TAR_NATIVE_ZLIB_NOT_VERIFIED %TIME:~0,8% >> windows_round_status.txt
+        echo [Error] -swift_tar requires zlib_linkage=static in version.txt. >&2
         exit /b 1
     )
     set "_swift_tar_shim_dir=%TEMP%\lzfse2-swift-tar-shim"
@@ -49,17 +62,33 @@ if "%USE_SWIFT_TAR%"=="1" (
         echo [Error] could not install swift_tar PATH shim after retries. / 重試多次後仍無法安裝 swift_tar PATH shim。 >&2
         exit /b 1
     )
+    set "SWIFT_TAR_BIN=!_swift_tar_shim_dir!\tar.exe"
+    set "LZFSE_REQUIRE_NATIVE_ZLIB=1"
     set "PATH=!_swift_tar_shim_dir!;%PATH%"
-    echo USING_SWIFT_TAR !_swift_tar_shim_dir!\tar.exe %TIME:~0,8% >> windows_round_status.txt
+    set "_swift_tar_version_output=%TEMP%\lzfse2-swift-tar-version.txt"
+    "!SWIFT_TAR_BIN!" --version > "!_swift_tar_version_output!" 2>&1
+    if errorlevel 1 (
+        echo SWIFT_TAR_VERSION_FAILED %TIME:~0,8% >> windows_round_status.txt
+        type "!_swift_tar_version_output!" >> windows_round_status.txt
+        exit /b 1
+    )
+    findstr /b /c:"swift_tar " "!_swift_tar_version_output!" > nul
+    if errorlevel 1 (
+        echo SWIFT_TAR_IDENTITY_FAILED %TIME:~0,8% >> windows_round_status.txt
+        type "!_swift_tar_version_output!" >> windows_round_status.txt
+        exit /b 1
+    )
+    echo USING_SWIFT_TAR !SWIFT_TAR_BIN! NATIVE_ZLIB=static %TIME:~0,8% >> windows_round_status.txt
+    type "!_swift_tar_version_output!" >> windows_round_status.txt
+    del /q "!_swift_tar_version_output!" > nul 2>&1
 
     :: Self-test: verify swift_tar round-trips correctly against the
     :: platform's standard tar before trusting it for the whole round.
-    :: Calls the bare `tar` name (PATH-resolved), the same way
-    :: encode-win.bat/decode-win.bat will, so this also validates the shim
-    :: itself, not just swift_tar.exe in isolation. Catches a broken
+    :: Calls SWIFT_TAR_BIN explicitly, the same native-zlib backend exported
+    :: to encode-win.bat/decode-win.bat/rss-win.bat. Catches a broken
     :: build/shim immediately instead of discovering it an hour later as
     :: silently-stale benchmark data.
-    tar -test > .\swift_tar-test-windows.txt 2>&1
+    "!SWIFT_TAR_BIN!" -test > .\swift_tar-test-windows.txt 2>&1
     if errorlevel 1 (
         echo SWIFT_TAR_TEST_FAILED %TIME:~0,8% >> windows_round_status.txt
         type .\swift_tar-test-windows.txt >> windows_round_status.txt

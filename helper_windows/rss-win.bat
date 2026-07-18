@@ -22,6 +22,8 @@ $writeMode = ($env:RSS_WRITE -ieq 'write')
 $outputMode = if ($writeMode) { 'file' } else { 'nul' }
 $cli = Join-Path $dir 'lzfse.exe'
 $sysTar = Join-Path $env:SystemRoot 'System32\tar.exe'
+$nativeZlibRequired = ($env:LZFSE_REQUIRE_NATIVE_ZLIB -eq '1')
+$tgzTar = if ($nativeZlibRequired) { $env:SWIFT_TAR_BIN } else { $sysTar }
 $csvDir = Join-Path $dir 'bench_results_csv'
 $benchLogDir = Join-Path $dir 'bench_logs'
 $tmpRoot = Join-Path $benchLogDir ('rss_tmp_' + [guid]::NewGuid().ToString('N'))
@@ -48,6 +50,21 @@ Write-Log ('[rss] cwd: ' + (Get-Location).Path)
 Write-Log ('[rss] dataset: ' + $dataset)
 Write-Log ('[rss] n: ' + $n)
 Write-Log ('[rss] output: write to ' + $outputMode)
+
+if ($nativeZlibRequired) {
+    if (-not $tgzTar -or -not (Test-Path -LiteralPath $tgzTar -PathType Leaf)) {
+        Write-Log ('[rss] native zlib required but SWIFT_TAR_BIN is missing: ' + $tgzTar)
+        exit 1
+    }
+    $identity = @(& $tgzTar --version 2>&1) -join "`n"
+    if ($LASTEXITCODE -ne 0 -or $identity -notmatch '^swift_tar ') {
+        Write-Log ('[rss] SWIFT_TAR_BIN identity check failed: ' + $identity)
+        exit 1
+    }
+    Write-Log ('[rss] TGZ backend: ' + $tgzTar + ' (native zlib; ' + $identity.Trim() + ')')
+} else {
+    Write-Log ('[rss] TGZ backend: ' + $tgzTar + ' (system tar)')
+}
 
 if (-not (Test-Path -LiteralPath $cli)) { Write-Log 'lzfse.exe not found; run compile.bat first'; exit 1 }
 if (-not (Test-Path -LiteralPath $dataset)) { Write-Log 'dataset not found'; exit 1 }
@@ -282,9 +299,9 @@ if ($zstdExe) {
 Write-Log ("[rss] Tgz (" + $outputMode + ") ...")
 if ($writeMode) {
     $out = Join-Path $tmpRoot 'out.tgz'
-    $e = Measure-StandaloneRSS $sysTar "-czf `"$out`" -C `"$parent`" `"$name`""
+    $e = Measure-StandaloneRSS $tgzTar "-czf `"$out`" -C `"$parent`" `"$name`""
 } else {
-    $e = Measure-StandaloneRSS $sysTar "-czf - -C `"$parent`" `"$name`""
+    $e = Measure-StandaloneRSS $tgzTar "-czf - -C `"$parent`" `"$name`""
 }
 $encRss = $e.rss_mb
 if ($e.exit -ne 0) { Write-Log ("  [warn] tgz encode exit " + $e.exit + ": " + (($e.err -split "`n")[0])) }
@@ -294,9 +311,9 @@ if (Test-Path -LiteralPath $archive) {
     if ($writeMode) {
         $outDir = Join-Path $tmpRoot 'decode_tgz'
         New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-        $d = Measure-StandaloneRSS $sysTar "-xzf `"$archive`" -C `"$outDir`""
+        $d = Measure-StandaloneRSS $tgzTar "-xzf `"$archive`" -C `"$outDir`""
     } else {
-        $d = Measure-StandaloneRSS $sysTar "--to-stdout -xzf `"$archive`""
+        $d = Measure-StandaloneRSS $tgzTar "--to-stdout -xzf `"$archive`""
     }
     $decRss = $d.rss_mb
     if ($d.exit -ne 0) { Write-Log ("  [warn] tgz decode exit " + $d.exit + ": " + (($d.err -split "`n")[0])) }

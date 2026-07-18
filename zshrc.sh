@@ -388,7 +388,15 @@ extract () {
                 *.lzfse.bvx3)         da=bvx3 ;;
                 *.lzfse.other3)       da=other3 ;;
                 *.lzfse.apple)        da=apple ;;
-                *.tgz)                memProbe "decode ${1##*/}" tar tzf "$1"; return 0 ;;
+                *.tgz)
+                    if [[ "${LZFSE_REQUIRE_NATIVE_ZLIB:-0}" == "1" ]]; then
+                        [[ -n "${SWIFT_TAR_BIN:-}" && -x "$SWIFT_TAR_BIN" ]] || { echo "[Error] native zlib probe requires SWIFT_TAR_BIN." >&2; return 1; }
+                        memProbe "decode ${1##*/}" "$SWIFT_TAR_BIN" tzf "$1"
+                    else
+                        memProbe "decode ${1##*/}" tar tzf "$1"
+                    fi
+                    return 0
+                    ;;
                 *.zst)                memProbe "decode ${1##*/}" zstd -d -q -f "$1" -o /dev/null; return 0 ;;
                 *.tar.lz4)            memProbe "decode ${1##*/}" lz4 -d -q -f "$1" /dev/null; return 0 ;;
                 *) echo "[MEM] $1: 非 lzfse 格式，略過解碼量測 / non-lzfse, skipped"; return 0 ;;
@@ -408,14 +416,14 @@ extract () {
             *.zst)       zstd -d -c "$1" | tar -xf - ;;
             *.tar.xz)    tar xf "$1"      ;;
             *.tar.bz2)   tar xjf "$1"     ;;
-            *.tar.gz)    tar xzf "$1"     ;;
-            *.tgz)       tar xzf "$1"     ;;
+            *.tar.gz)    benchmarkTgzTar xzf "$1" ;;
+            *.tgz)       benchmarkTgzTar xzf "$1" ;;
             *.bz2)       bunzip2 "$1"     ;;
             *.rar)       unrar e "$1"     ;;
             *.gz)        gunzip "$1"      ;;
             *.tar)       tar xf "$1"      ;;
             *.tbz2)      tar xjf "$1"     ;;
-            *.tgz)       tar xzf "$1"     ;;
+            *.tgz)       benchmarkTgzTar xzf "$1" ;;
             *.zip)       unzip "$1"       ;;
             *.Z)         uncompress "$1"  ;;
             *.xz)        xz -d "$1"       ;;
@@ -485,12 +493,28 @@ function ffilter() {
 # 🗜️ COMPRESSION TOOLS / 目錄壓縮工具
 # ==============================================================================
 
+# R47 TGZ backend gate: -swift_tar mode exports LZFSE_REQUIRE_NATIVE_ZLIB=1
+# and SWIFT_TAR_BIN. Outside that mode, keep the existing PATH-resolved tar.
+# R47 TGZ 後端守門：-swift_tar 模式會匯出上述變數；未啟用時
+# 維持原本由 PATH 解析 tar 的行為。
+function benchmarkTgzTar() {
+    if [[ "${LZFSE_REQUIRE_NATIVE_ZLIB:-0}" == "1" ]]; then
+        if [[ -z "${SWIFT_TAR_BIN:-}" || ! -x "$SWIFT_TAR_BIN" ]]; then
+            echo "[Error] -swift_tar native zlib mode requires executable SWIFT_TAR_BIN." >&2
+            return 1
+        fi
+        "$SWIFT_TAR_BIN" "$@"
+    else
+        tar "$@"
+    fi
+}
+
 ## This script helps to creat a tar.xz for a folder.
 function getar() {
     local tar_parent="${1:h}"
     local tar_leaf="${1:t}"
     [[ -z "$tar_parent" || "$tar_parent" == "$1" ]] && tar_parent="."
-    XZ_OPT=-e9 tar czf "$1".tgz -C "$tar_parent" "$tar_leaf"
+    XZ_OPT=-e9 benchmarkTgzTar czf "$1".tgz -C "$tar_parent" "$tar_leaf"
     du -sh "$1"
     du -sh "$1.tgz"
 }
@@ -656,7 +680,12 @@ function archiveMemProbe() {
             local tar_parent="${target:h}"
             local tar_leaf="${target:t}"
             [[ -z "$tar_parent" || "$tar_parent" == "$target" ]] && tar_parent="."
-            memProbe "encode ${folder} tgz" tar czf /dev/null -C "$tar_parent" "$tar_leaf"
+            if [[ "${LZFSE_REQUIRE_NATIVE_ZLIB:-0}" == "1" ]]; then
+                [[ -n "${SWIFT_TAR_BIN:-}" && -x "$SWIFT_TAR_BIN" ]] || { echo "[Error] native zlib probe requires SWIFT_TAR_BIN." >&2; return 1; }
+                memProbe "encode ${folder} tgz" "$SWIFT_TAR_BIN" czf /dev/null -C "$tar_parent" "$tar_leaf"
+            else
+                memProbe "encode ${folder} tgz" tar czf /dev/null -C "$tar_parent" "$tar_leaf"
+            fi
             ;;
         zst|zstd)
             echo "[Info] 記憶體峰值量測 (encode ${folder} zstd) / Encode peak-RSS probe:"

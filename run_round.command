@@ -11,6 +11,7 @@ cd /Users/raliclo/proj/lzfse2 || exit 1
 : > round_status.txt
 
 USE_SWIFT_TAR=0
+export LZFSE_REQUIRE_NATIVE_ZLIB=0
 for arg in "$@"; do
     [[ "$arg" == "-swift_tar" ]] && USE_SWIFT_TAR=1
 done
@@ -43,7 +44,19 @@ if [[ "$USE_SWIFT_TAR" == "1" ]]; then
     mkdir -p "$SWIFT_TAR_SHIM_DIR"
     ln -sf "$SWIFT_TAR_BIN" "$SWIFT_TAR_SHIM_DIR/tar"
     export PATH="$SWIFT_TAR_SHIM_DIR:$PATH"
-    echo "USING_SWIFT_TAR $SWIFT_TAR_BIN $(date +%H:%M:%S)" >> round_status.txt
+    export SWIFT_TAR_BIN
+    export LZFSE_REQUIRE_NATIVE_ZLIB=1
+    rehash
+    swift_tar_identity="$("$SWIFT_TAR_BIN" --version 2>&1)"
+    if [[ $? -ne 0 || "$swift_tar_identity" != swift_tar\ * ]]; then
+        echo "SWIFT_TAR_IDENTITY_FAILED ${swift_tar_identity} $(date +%H:%M:%S)" >> round_status.txt
+        exit 1
+    fi
+    if [[ "$(command -v tar)" != "$SWIFT_TAR_SHIM_DIR/tar" ]]; then
+        echo "SWIFT_TAR_SHIM_RESOLUTION_FAILED $(command -v tar) $(date +%H:%M:%S)" >> round_status.txt
+        exit 1
+    fi
+    echo "USING_SWIFT_TAR $SWIFT_TAR_BIN NATIVE_ZLIB=required ${swift_tar_identity} $(date +%H:%M:%S)" >> round_status.txt
 fi
 
 echo PATH="$PATH" >> round_status.txt
@@ -64,7 +77,7 @@ echo "TEST_OK $(date +%H:%M:%S)" >> round_status.txt
 echo "RUNNING benchmark $(date +%H:%M:%S)" >> round_status.txt
 ./benchmark.sh >> round_status.txt 2>&1
 if [[ "$USE_SWIFT_TAR" == "1" ]]; then
-    sudo --preserve-env=PATH ./benchmark2.sh >> round_status.txt 2>&1
+    sudo --preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB ./benchmark2.sh >> round_status.txt 2>&1
 else
     sudo ./benchmark2.sh >> round_status.txt 2>&1
 fi

@@ -167,6 +167,46 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# Pre-R47：修正 R46-Win-Retest 遺留的 TGZ null-mode 與 backend 身份驗證問題（2026-07-18）
+
+> **目標**：R46-Win-Retest 的結論 3、4 點指出兩個尚未解決的缺口——(a) `decode-win.bat` 的 TGZ null-mode 實際上是 `tar xzf ... > nul`，`> nul` 只丟棄 stdout，`x` 仍會落盤，並非真正的 to-null decode；(b) benchmark 各腳本經由 PATH shim 呼叫 `tar`，沒有在執行當下驗證真的解析到 `swift_tar.exe` 與其 native zlib 連結方式。本次由 codex review 產出修正，涵蓋 Windows 四支 `.bat`/`.ps1` 與 macOS 的 `run_round.command`／`zshrc.sh`，**僅為基礎設施修正，尚未執行完整 R47 benchmark，本次 commit 不含新的效能數據**。
+
+## 本輪變更
+
+- **Windows [`run_round.bat`](helper_windows/run_round.bat)**
+  - `-swift_tar` 模式下新增雙重驗證：讀取 `swift_tar\version.txt` 確認 `zlib_linkage=static`；執行 `swift_tar.exe --version` 確認輸出以 `swift_tar ` 開頭（identity check）。任一驗證失敗立即 `exit /b 1` 並記錄至 `windows_round_status.txt`。
+  - 新增匯出 `SWIFT_TAR_BIN`（shim 路徑）與 `LZFSE_REQUIRE_NATIVE_ZLIB=1` 給後續 `encode-win.bat` / `decode-win.bat` / `rss-win.bat` 使用；未帶 `-swift_tar` 時 `LZFSE_REQUIRE_NATIVE_ZLIB` 明確設為 `0`，維持原本呼叫系統 `tar` 的行為。
+  - Self-test 呼叫方式由「靠 PATH 解析的 `tar -test`」改為顯式 `"%SWIFT_TAR_BIN%" -test`，避免測到 shim 以外的其他 tar。
+- **Windows [`encode-win.bat`](helper_windows/encode-win.bat) / [`decode-win.bat`](helper_windows/decode-win.bat)**
+  - 新增 `_tgz_tar` 變數：`LZFSE_REQUIRE_NATIVE_ZLIB=1` 時解析並驗證 `SWIFT_TAR_BIN`（缺失或檔案不存在則報錯終止），否則沿用 `tar`。TGZ encode/decode/verify 三處呼叫全部改用 `!_tgz_tar!`。
+  - **修正 null-mode 落盤問題**：`decode-win.bat` 的 non-write 分支由 `tar xzf "%~1.tgz" > nul 2>&1` 改為 `"!_tgz_tar!" --to-stdout -xzf "%~1.tgz" > nul 2>&1`，解壓結果經 stdout 導向 `nul`，不再暗中寫入當前目錄。
+- **Windows [`rss-win.bat`](helper_windows/rss-win.bat)**
+  - 新增 `$tgzTar`：`LZFSE_REQUIRE_NATIVE_ZLIB=1` 時使用 `$env:SWIFT_TAR_BIN` 並以 `--version` 驗證輸出符合 `^swift_tar `，失敗立即 `exit 1`；否則沿用 `System32\tar.exe`。TGZ encode/decode RSS 量測改用 `$tgzTar`。
+- **macOS [`run_round.command`](run_round.command)**
+  - `-swift_tar` 模式新增 `SWIFT_TAR_BIN --version` identity check 與 `command -v tar` 是否確實解析到 shim 目錄的驗證，任一失敗記錄 `round_status.txt` 並 `exit 1`。
+  - 匯出 `SWIFT_TAR_BIN`、`LZFSE_REQUIRE_NATIVE_ZLIB=1`（未啟用時為 `0`）；`sudo` 呼叫 `benchmark2.sh` 時新增 `--preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB`，確保 native zlib 旗標與路徑在 sudo 子行程中不遺失。
+  - 額外修正：`swift_tar_identity="$($SWIFT_TAR_BIN --version 2>&1)"` 補上雙引號成 `"$SWIFT_TAR_BIN"`，避免路徑含空白時被拆字。
+- **macOS [`zshrc.sh`](zshrc.sh)**
+  - 新增 `benchmarkTgzTar()` 共用函式：`LZFSE_REQUIRE_NATIVE_ZLIB=1` 時要求 `SWIFT_TAR_BIN` 可執行才呼叫，否則報錯；未啟用時呼叫原本 PATH 上的 `tar`。
+  - `extract()`（`.tgz`/`.tar.gz` 解壓與 memProbe 分支）、`getar()`（TGZ 建立）、`archiveMemProbe()`（encode RSS 探測）四處全部改走 `benchmarkTgzTar`，取代原本寫死的 `tar`。
+
+## 驗證（codex feedback，未包含完整 benchmark）
+
+- macOS zsh 腳本語法檢查通過。
+- Windows `swift_tar -test -debug` 全部通過，含 `.tar.gz` 雙向互通。
+- 刻意情境測試：native 模式下缺少 `SWIFT_TAR_BIN` 會立即失敗（fail-fast，不會靜默 fallback 回系統 tar）。
+- 刻意情境測試：僅殘留 `SWIFT_TAR_BIN` 環境變數、但未帶 `-swift_tar`（`LZFSE_REQUIRE_NATIVE_ZLIB` 仍為預設 `0`）時，不會誤用 native backend——確認新增的閘門邏輯以 `LZFSE_REQUIRE_NATIVE_ZLIB` 為準，而非只看 `SWIFT_TAR_BIN` 是否存在。
+- Windows `.bat` 檔維持 CRLF 換行；macOS 腳本維持 LF，未混用。
+- ZSTD 路徑（外部 `zstd.exe`／`zstd` CLI）本輪未更動，R46-Win-Retest 記錄的「native zstd 未被 benchmark 覆蓋」缺口仍待 R47 處理。
+
+## 待辦（留給正式 R47 round）
+
+1. 執行完整 `run_round.bat -swift_tar`（Win）與 `run_round.command -swift_tar`（Mac），驗證本次 identity/version 檢查與 TGZ to-stdout null-mode 修正在真實流程中無誤，並產生 R47 的正式效能數據。
+2. R47 應重新量測 TGZ null-mode（現在才是真正的 to-null decode），預期其數字會與 R46-Win-Retest 第 2 節記錄的舊「偽 null-mode」不可比，需在報告中明確標註口徑已變更。
+3. native zstd（in-process static libzstd）仍未被任何 benchmark 腳本覆蓋，維持 R46-Win-Retest 的結論：需另外規劃 ZSTD backend 切換，比照本輪 TGZ 的 `LZFSE_REQUIRE_NATIVE_ZLIB` 閘門模式處理。
+
+---
+
 # R46-Win-Retest：Windows native zlib 重測 + native zstd 覆蓋審查（2026-07-17）
 
 > **目標**：以最新 `swift_tar` Windows 發行版重跑 `helper_windows/run_round.bat -swift_tar`，確認 R46 native zlib 沒有回歸，並原定驗證新增的 **in-process static libzstd** Windows 路徑。實跑後審查發現，目前 Windows benchmark 的 ZSTD 仍直接呼叫外部 `zstd.exe`，因此本輪完整驗證了 native zlib，但 **沒有覆蓋 swift_tar native zstd runtime 路徑**。這個差異為本輪最重要的測試覆蓋結論。

@@ -2,6 +2,20 @@
 chcp 65001 > nul
 setlocal EnableDelayedExpansion
 
+set "_tgz_tar=tar"
+if "%LZFSE_REQUIRE_NATIVE_ZLIB%"=="1" (
+    if not defined SWIFT_TAR_BIN (
+        echo [Error] native zlib mode requires SWIFT_TAR_BIN. >&2
+        exit /b 1
+    )
+    if not exist "%SWIFT_TAR_BIN%" (
+        echo [Error] SWIFT_TAR_BIN not found: %SWIFT_TAR_BIN% >&2
+        exit /b 1
+    )
+    set "_tgz_tar=%SWIFT_TAR_BIN%"
+    echo [Info] TGZ backend: %SWIFT_TAR_BIN% ^(native zlib^)
+)
+
 if "%~1"=="" (
     echo Usage: encode-win.bat ^<dataset^> [n] [write]
     exit /b 1
@@ -207,8 +221,8 @@ exit /b %_rc%
 :: Usage: call :encodeTgz <folder_or_file>
 call :setTarSource "%~1"
 if "%_write%"=="1" (
-    cmd /d /c pushd "!_tar_parent!" ^&^& tar czf - "!_tar_leaf!" > "%~1.tgz"
+    cmd /d /c pushd "!_tar_parent!" ^&^& "!_tgz_tar!" czf - "!_tar_leaf!" > "%~1.tgz"
 ) else (
-    cmd /d /c pushd "!_tar_parent!" ^&^& tar czf - "!_tar_leaf!" > nul 2>&1
+    cmd /d /c pushd "!_tar_parent!" ^&^& "!_tgz_tar!" czf - "!_tar_leaf!" > nul 2>&1
 )
 exit /b

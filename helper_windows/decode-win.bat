@@ -6,6 +6,20 @@ setlocal EnableDelayedExpansion
 :: With [write]: decode to decoded\<dataset>\<algo> and compare each algo output with TGZ output.
 :: Prerequisite: run encode-win.bat first to produce the compressed files.
 
+set "_tgz_tar=tar"
+if "%LZFSE_REQUIRE_NATIVE_ZLIB%"=="1" (
+    if not defined SWIFT_TAR_BIN (
+        echo [Error] native zlib mode requires SWIFT_TAR_BIN. >&2
+        exit /b 1
+    )
+    if not exist "%SWIFT_TAR_BIN%" (
+        echo [Error] SWIFT_TAR_BIN not found: %SWIFT_TAR_BIN% >&2
+        exit /b 1
+    )
+    set "_tgz_tar=%SWIFT_TAR_BIN%"
+    echo [Info] TGZ backend: %SWIFT_TAR_BIN% ^(native zlib^)
+)
+
 set "_dataset=%~1"
 set "_logprefix=%~nx1"
 if "%_logprefix%"=="" set "_logprefix=dataset"
@@ -151,9 +165,9 @@ goto :EOF
 :decodeTgz
 if "%_write%"=="1" (
     call :prepareOut "decoded\%_logprefix%\tgz"
-    tar xzf "%~1.tgz" -C "decoded\%_logprefix%\tgz" > nul
+    "!_tgz_tar!" xzf "%~1.tgz" -C "decoded\%_logprefix%\tgz" > nul
 ) else (
-    tar xzf "%~1.tgz" > nul 2>&1
+    "!_tgz_tar!" --to-stdout -xzf "%~1.tgz" > nul 2>&1
 )
 exit /b
 
@@ -231,7 +245,7 @@ if "%_write%"=="1" (
 exit /b
 
 :verifyStreamTgz
-tar tzf "%_dataset%.tgz" > nul 2>&1
+"%_tgz_tar%" tzf "%_dataset%.tgz" > nul 2>&1
 if !ERRORLEVEL! == 0 ( echo [PASS] TGZ & call :writeVerify "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] TGZ & call :writeVerify "bench_logs\%_logprefix%-decodeTgz%_nsuffix%%_mode_suffix%-results.txt" FAIL )
 exit /b
 
