@@ -3,11 +3,11 @@ import Translation
 
 // Markdown 翻譯器（預設 繁中 → 英文），I/O 旗標仿 lzfse-cli.swift。
 // 編譯（單檔 script，top-level await）：
-//   swiftc -O md-translate.swift -o md-translate
+//   swiftc -O helper/md-translate/md-translate.swift -o helper/md-translate/bin/md-translate
 // 用法：
-//   ./md-translate -i OPTIMIZATION.md -o OPTIMIZATION-en.md
-//   cat OPTIMIZATION.md | ./md-translate -si -so > OPTIMIZATION-en.md
-//   ./md-translate -i in.md -o out.md -from zh-Hant -to en
+//   helper/md-translate/bin/md-translate -i OPTIMIZATION.md -o OPTIMIZATION-en.md
+//   cat OPTIMIZATION.md | helper/md-translate/bin/md-translate -si -so > OPTIMIZATION-en.md
+//   helper/md-translate/bin/md-translate -i in.md -o out.md -from zh-Hant -to en
 // 旗標：
 //   -si        從 stdin 讀入            -i <path>  從檔案讀入
 //   -so        寫到 stdout              -o <path>  寫到檔案
@@ -23,6 +23,17 @@ let args = CommandLine.arguments
 func argValue(_ flag: String) -> String? {
     if let i = args.firstIndex(of: flag), i + 1 < args.count { return args[i + 1] }
     return nil
+}
+
+enum MarkdownTranslationError: LocalizedError {
+    case incompleteBatch(expected: Int, actual: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .incompleteBatch(let expected, let actual):
+            return "incomplete batch: expected \(expected) responses, got \(actual)"
+        }
+    }
 }
 
 let usage = """
@@ -174,54 +185,80 @@ while done < translatable.count {
     let requests = slice.map {
         TranslationSession.Request(sourceText: $0.text, clientIdentifier: "\($0.idx)")
     }
-    do {
-        let responses = try await session.translations(from: requests)
-        for r in responses {
-            if let cid = r.clientIdentifier, let li = Int(cid) {
-                var translatedText = r.targetText
-                var markersIntact = true
-                for (index, span) in (inlineSpans[li] ?? []).enumerated() {
-                    let marker = "ZXQMDTOKEN\(index)QXZ"
-                    if !translatedText.contains(marker) { markersIntact = false }
-                    translatedText = translatedText.replacingOccurrences(
-                        of: marker,
-                        with: span
-                    )
-                }
-                // 翻譯器可能複製/拆裂 marker，完整 marker 雖被還原，仍可能殘留碎片
-                // （如 "ZXQMDTOKEN" / "QXZ"）。偵測到任何碎片 → 視為損壞，改走逐段重組 fallback。
-                if translatedText.contains("ZXQMDTOKEN") || translatedText.contains("QXZ") {
-                    markersIntact = false
-                }
-                if !markersIntact, let original = originalLines[li] {
-                    // 極長且含多個 inline-code 的行可能改寫 marker；改成逐段翻譯後重組。
-                    // Very long lines may rewrite markers; translate prose segments and reassemble.
-                    // 逐段重組（直接相接；空格交給下方 normalizeSpacing 統一處理）。
-                    var remaining = original
-                    var rebuilt = ""
-                    for span in inlineSpans[li] ?? [] {
-                        guard let range = remaining.range(of: span) else { continue }
-                        let prose = String(remaining[..<range.lowerBound])
-                        if !prose.isEmpty { rebuilt += try await session.translate(prose).targetText }
-                        rebuilt += span
-                        remaining = String(remaining[range.upperBound...])
+    let expectedIndices = Set(slice.map { $0.idx })
+    var attempt = 1
+    while true {
+        do {
+            var batchResults: [Int: String] = [:]
+            let responses = try await session.translations(from: requests)
+            for r in responses {
+                if let cid = r.clientIdentifier, let li = Int(cid), expectedIndices.contains(li) {
+                    var translatedText = r.targetText
+                    var markersIntact = true
+                    for (index, span) in (inlineSpans[li] ?? []).enumerated() {
+                        let marker = "ZXQMDTOKEN\(index)QXZ"
+                        if !translatedText.contains(marker) { markersIntact = false }
+                        translatedText = translatedText.replacingOccurrences(
+                            of: marker,
+                            with: span
+                        )
                     }
-                    if !remaining.isEmpty { rebuilt += try await session.translate(remaining).targetText }
-                    translatedText = rebuilt
-                    eprint("inline fallback line=\(li + 1)")
+                    // 翻譯器可能複製/拆裂 marker，完整 marker 雖被還原，仍可能殘留碎片
+                    // （如 "ZXQMDTOKEN" / "QXZ"）。偵測到任何碎片 → 視為損壞，改走逐段重組 fallback。
+                    if translatedText.contains("ZXQMDTOKEN") || translatedText.contains("QXZ") {
+                        markersIntact = false
+                    }
+                    if !markersIntact, let original = originalLines[li] {
+                        // 極長且含多個 inline-code 的行可能改寫 marker；改成逐段翻譯後重組。
+                        // Very long lines may rewrite markers; translate prose segments and reassemble.
+                        // 逐段重組（直接相接；空格交給下方 normalizeSpacing 統一處理）。
+                        var remaining = original
+                        var rebuilt = ""
+                        for span in inlineSpans[li] ?? [] {
+                            guard let range = remaining.range(of: span) else { continue }
+                            let prose = String(remaining[..<range.lowerBound])
+                            if !prose.isEmpty { rebuilt += try await session.translate(prose).targetText }
+                            rebuilt += span
+                            remaining = String(remaining[range.upperBound...])
+                        }
+                        if !remaining.isEmpty { rebuilt += try await session.translate(remaining).targetText }
+                        translatedText = rebuilt
+                        eprint("inline fallback line=\(li + 1)")
+                    }
+                    batchResults[li] = normalizeSpacing(translatedText)
                 }
-                out[li] = normalizeSpacing(translatedText)
-                translated += 1
             }
+            guard batchResults.count == expectedIndices.count else {
+                throw MarkdownTranslationError.incompleteBatch(
+                    expected: expectedIndices.count,
+                    actual: batchResults.count
+                )
+            }
+            for (lineIndex, translatedText) in batchResults {
+                out[lineIndex] = translatedText
+            }
+            translated += batchResults.count
+            break
+        } catch {
+            if attempt < 3 {
+                eprint("chunk @\(done) attempt \(attempt) error=\(error); retrying")
+                attempt += 1
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                continue
+            }
+            eprint("chunk @\(done) failed after \(attempt) attempts: \(error)")
+            break
         }
-    } catch {
-        eprint("chunk @\(done) error=\(error)")   // 該批保留原文，繼續
     }
     done += chunkSize
     eprint("progress \(min(done, translatable.count))/\(translatable.count)")
 }
 
 // ── 輸出（-so / -o） ──
+guard translated == translatable.count else {
+    eprint("Error: incomplete translation \(translated)/\(translatable.count); output not written")
+    exit(2)
+}
 let result = out.joined(separator: "\n")
 if useStdout {
     FileHandle.standardOutput.write(Data(result.utf8))

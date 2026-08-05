@@ -155,7 +155,13 @@ fi
 roundStatus "COMPARISON_DONE"
 
 # Step.15 翻譯文件為英文版（繁中 → 英文；輸出檔名加 -en）
-echo "RUNNING md-translate $(date +%H:%M:%S)" >> round_status.txt
-./helper/md-translate-mac.sh >> round_status.txt 2>&1
+roundStatus "RUNNING_MD_TRANSLATE"
+./helper/md-translate/md-translate-mac.sh >> "$ROUND_STATUS_FILE" 2>&1
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    roundStatus "TRANSLATE_FAILED $rc"
+    exit $rc
+fi
+roundStatus "MD_TRANSLATE_DONE"
 
 echo "Done."

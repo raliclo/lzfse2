@@ -3,7 +3,7 @@
     "description": "Multi-core tar archiver built on the lzfse2 compression engine, modeled on libarchive's filter architecture",
     "homepage": "https://github.com/raliclo/swift_tar",
     "license": "BSD-3-Clause",
-    "notes": "Non-LZFSE codecs (gzip/bzip2/xz/zstd/lz4) shell out to the CLI tools listed in \"depends\" -- only --other3-fast/--other3-optimal/--bvx3-fast/--bvx3-optimal and plain tar are fully self-contained.",
+    "notes": "gzip, zstd, ZIP/ZIP64, the LZFSE family, and plain tar are linked in-process. bzip2, xz, lz4, and lzip use the Scoop CLI tools listed in \"depends\".",
     "architecture": {
         "64bit": {
             "url": "https://raw.githubusercontent.com/raliclo/swift_tar/master/release/swift_tar_win.zip",
@@ -13,10 +13,8 @@
     "extract_dir": "swift_tar-win",
     "bin": "swift_tar.exe",
     "depends": [
-        "gzip",
         "bzip2",
         "xz",
-        "zstd",
         "lz4",
         "lzip"
     ]
