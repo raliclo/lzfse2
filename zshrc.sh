@@ -106,7 +106,11 @@ elif [ "$(uname -s)" = "Darwin" ]; then
     # macOS: Use sw_vers and sysctl for OS version and CPU cores
     # macOS 環境：使用 sw_vers 與 sysctl 取得系統版本與硬體核心數
     export MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion)
-    SETCC="gcc"
+    # Default to Homebrew clang so builds use one toolchain instead of mixing
+    # /usr/bin/gcc (an Apple clang wrapper) with the newer Homebrew LLVM.
+    # 預設使用 Homebrew clang，避免建置時混用 /usr/bin/gcc（Apple clang 包裝）
+    # 與較新的 Homebrew LLVM 兩套工具鏈。
+    SETCC="clang"
     GCC_VER=15
     PACORES=$(sysctl -n hw.ncpu)
     PACORES=$(( PACORES * 2 ))
@@ -116,8 +120,17 @@ elif [ "$(uname -s)" = "Darwin" ]; then
     READLINK="greadlink" # Requires coreutils via Homebrew / 建議使用 Homebrew 安裝 coreutils
     system_VER=64
     export JAVA_HOME=$(/usr/libexec/java_home 2>/dev/null)
-    export BREW_PREFIX="/usr/local"
+    if [[ -x /opt/homebrew/bin/brew ]]; then
+        export BREW_PREFIX="$(/opt/homebrew/bin/brew --prefix)"
+    elif [[ -x /usr/local/bin/brew ]]; then
+        export BREW_PREFIX="$(/usr/local/bin/brew --prefix)"
+    else
+        export BREW_PREFIX="/opt/homebrew"
+    fi
     export BLOCKSIZE=4096
+    if [[ -d "$BREW_PREFIX/opt/llvm/bin" ]]; then
+        export PATH="$BREW_PREFIX/opt/llvm/bin:$PATH"
+    fi
     export PATH="$PATH:/Users/$UsrNAME/.cargo/bin"
     COLOR_FLAG="-G"
 fi
@@ -168,8 +181,19 @@ function setcc() {
         ;;
         "clang")  ## CLANG/LLVM COMPILER / Clang 與 LLVM 編譯器 ##
             echo "$(tput setaf 3)-> Switching to Clang/LLVM Environment / 已切換至 Clang/LLVM 編譯環境$(tput sgr0)"
-            export FC="gfortran" CC="cc" CXX="c++" 
-            export CPP="clang -E" CXXCPP="clang++ -E"
+            # Pin to Homebrew LLVM by absolute path. Bare "cc"/"clang" resolve
+            # differently: cc is always Apple clang, while clang follows PATH.
+            # Fall back to the system compiler when Homebrew LLVM is absent.
+            # 以絕對路徑指向 Homebrew LLVM。裸寫 "cc"/"clang" 的解析結果不同：
+            # cc 一定是 Apple clang，clang 則跟隨 PATH。若無 Homebrew LLVM 則退回系統編譯器。
+            if [[ -x "$BREW_PREFIX/opt/llvm/bin/clang" ]]; then
+                export CC="$BREW_PREFIX/opt/llvm/bin/clang"
+                export CXX="$BREW_PREFIX/opt/llvm/bin/clang++"
+            else
+                export CC="cc" CXX="c++"
+            fi
+            export FC="gfortran"
+            export CPP="$CC -E" CXXCPP="$CXX -E"
             export HOMEBREW_CC="clang"
         ;;
         "mpicc") ## MPI HIGH-PERFORMANCE COMPUTING / HPC 高效能平行運算 MPI ##
