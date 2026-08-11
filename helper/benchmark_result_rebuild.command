@@ -26,6 +26,7 @@ trap 'rm -f "$tmp_out"' EXIT
 python3 - <<'PY' > "$tmp_out"
 import csv
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -83,6 +84,8 @@ FIELDS = [
     "CPU Encode Hits",
     "CPU FSE Hits",
     "CPU Swift Array Hits",
+    "OS 版本",
+    "機器型號",
 ]
 
 EN_FIELDS = [
@@ -111,7 +114,44 @@ EN_FIELDS = [
     "cpu_encode_hits",
     "cpu_fse_hits",
     "cpu_swift_array_hits",
+    "os_version",
+    "machine_model",
 ]
+
+
+# The OS build matters for comparability: powermetrics stopped reporting CPU
+# Power on macOS 27.0 (26A5388g) while it worked on 25F84, so rows from
+# different builds are not comparable on the power columns. Record it per row.
+# OS build 影響可比性：powermetrics 在 macOS 27.0（26A5388g）不再回報 CPU
+# Power，而在 25F84 可以，因此不同 build 的 power 欄位不可互相比較。逐列記錄。
+def detect_platform() -> tuple[str, str]:
+    """Return (os_version, machine_model), preferring what powermetrics recorded
+    for this round so the value matches the data rather than the current host.
+    回傳 (os_version, machine_model)；優先採用本輪 powermetrics 記錄的值，
+    使其與資料相符，而非當下主機的狀態。"""
+    build = model = ""
+    raw_dir = Path("powerResults/raw")
+    if raw_dir.is_dir():
+        for raw_file in sorted(raw_dir.glob("*.powermetrics.txt")):
+            text = raw_file.read_text(encoding="utf-8", errors="replace")
+            b = re.search(r"^OS version:\s*(\S+)", text, re.M)
+            m = re.search(r"^Machine model:\s*(\S+)", text, re.M)
+            if b:
+                build = b.group(1)
+                model = m.group(1) if m else ""
+                break
+    product = ""
+    try:
+        product = subprocess.run(["sw_vers", "-productVersion"],
+                                 capture_output=True, text=True, check=False).stdout.strip()
+    except OSError:
+        pass
+    if product and build:
+        return f"{product} ({build})", model
+    return (product or build or "unknown"), model
+
+
+OS_VERSION, MACHINE_MODEL = detect_platform()
 
 
 def require_match(pattern: str, text: str, source: str) -> re.Match[str]:
@@ -276,6 +316,8 @@ def parse_benchmark(
             "CPU Encode Hits": cpu_summary.get("encode_hits", ""),
             "CPU FSE Hits": cpu_summary.get("fse_hits", ""),
             "CPU Swift Array Hits": cpu_summary.get("swift_array_hits", ""),
+            "OS 版本": OS_VERSION,
+            "機器型號": MACHINE_MODEL,
         })
 
     tgz_row = next(row for row in rows if row["格式"] == "TGZ")

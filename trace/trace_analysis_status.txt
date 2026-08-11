@@ -1,3 +1,111 @@
-RUNNING trace_analysis 18:36:05
-TRACE_PACKAGE_COUNT_ANALYSIS_START 0 expected=unknown 18:36:05
-TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data 18:36:05
+RUNNING trace_analysis 22:42:13
+TRACE_PACKAGE_COUNT_ANALYSIS_START 42 expected=42 22:42:13
+RUNNING_TRACE_ANALYSIS claw-code-tar.lz4.trace 22:42:13
+TRACE_ANALYSIS_OK claw-code-tar.lz4.trace 22:42:17
+RUNNING_TRACE_TABLE_EXPORT claw-code-tar.lz4.trace time-profile 22:42:17
+TRACE_TABLE_EXPORT_OK claw-code-tar.lz4.trace time-profile 22:42:18
+RUNNING_TRACE_TABLE_EXPORT claw-code-tar.lz4.trace time-sample 22:42:18
+TRACE_TABLE_EXPORT_OK claw-code-tar.lz4.trace time-sample 22:42:21
+RUNNING_TRACE_ANALYSIS claw-code-tgz.trace 22:42:21
+TRACE_ANALYSIS_OK claw-code-tgz.trace 22:42:22
+RUNNING_TRACE_TABLE_EXPORT claw-code-tgz.trace time-profile 22:42:22
+TRACE_TABLE_EXPORT_OK claw-code-tgz.trace time-profile 22:42:24
+RUNNING_TRACE_TABLE_EXPORT claw-code-tgz.trace time-sample 22:42:24
+TRACE_TABLE_EXPORT_OK claw-code-tgz.trace time-sample 22:42:27
+RUNNING_TRACE_ANALYSIS claw-code-zstd.trace 22:42:27
+TRACE_ANALYSIS_OK claw-code-zstd.trace 22:42:29
+RUNNING_TRACE_TABLE_EXPORT claw-code-zstd.trace time-profile 22:42:29
+TRACE_TABLE_EXPORT_OK claw-code-zstd.trace time-profile 22:42:31
+RUNNING_TRACE_TABLE_EXPORT claw-code-zstd.trace time-sample 22:42:31
+TRACE_TABLE_EXPORT_OK claw-code-zstd.trace time-sample 22:42:33
+RUNNING_TRACE_ANALYSIS llama.cpp-tar.lz4.trace 22:42:33
+TRACE_ANALYSIS_OK llama.cpp-tar.lz4.trace 22:42:35
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tar.lz4.trace time-profile 22:42:35
+TRACE_TABLE_EXPORT_OK llama.cpp-tar.lz4.trace time-profile 22:42:37
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tar.lz4.trace time-sample 22:42:37
+TRACE_TABLE_EXPORT_OK llama.cpp-tar.lz4.trace time-sample 22:42:39
+RUNNING_TRACE_ANALYSIS llama.cpp-tgz.trace 22:42:39
+TRACE_ANALYSIS_OK llama.cpp-tgz.trace 22:42:40
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tgz.trace time-profile 22:42:40
+TRACE_TABLE_EXPORT_OK llama.cpp-tgz.trace time-profile 22:42:43
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tgz.trace time-sample 22:42:43
+TRACE_TABLE_EXPORT_OK llama.cpp-tgz.trace time-sample 22:42:45
+RUNNING_TRACE_ANALYSIS llama.cpp-zstd.trace 22:42:45
+TRACE_ANALYSIS_OK llama.cpp-zstd.trace 22:42:47
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-zstd.trace time-profile 22:42:47
+TRACE_TABLE_EXPORT_OK llama.cpp-zstd.trace time-profile 22:42:49
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-zstd.trace time-sample 22:42:49
+TRACE_TABLE_EXPORT_OK llama.cpp-zstd.trace time-sample 22:42:51
+RUNNING_TRACE_ANALYSIS claw-code-apple-n4.trace.timeout 22:42:51
+TRACE_ANALYSIS_FAILED claw-code-apple-n4.trace.timeout 11 22:42:51
+RUNNING_TRACE_ANALYSIS claw-code-apple-n40.trace.timeout 22:42:51
+TRACE_ANALYSIS_FAILED claw-code-apple-n40.trace.timeout 11 22:42:52
+RUNNING_TRACE_ANALYSIS claw-code-apple-n8.trace.timeout 22:42:52
+TRACE_ANALYSIS_FAILED claw-code-apple-n8.trace.timeout 11 22:42:52
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n4.trace.timeout 22:42:53
+TRACE_ANALYSIS_FAILED claw-code-bvx3-n4.trace.timeout 11 22:42:53
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n40.trace.timeout 22:42:53
+TRACE_ANALYSIS_FAILED claw-code-bvx3-n40.trace.timeout 11 22:42:54
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n8.trace.timeout 22:42:54
+TRACE_ANALYSIS_FAILED claw-code-bvx3-n8.trace.timeout 11 22:42:54
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n4.trace.timeout 22:42:54
+TRACE_ANALYSIS_FAILED claw-code-lazy2-n4.trace.timeout 11 22:42:55
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n40.trace.timeout 22:42:55
+TRACE_ANALYSIS_FAILED claw-code-lazy2-n40.trace.timeout 11 22:42:55
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n8.trace.timeout 22:42:55
+TRACE_ANALYSIS_FAILED claw-code-lazy2-n8.trace.timeout 11 22:42:56
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n4.trace.timeout 22:42:56
+TRACE_ANALYSIS_FAILED claw-code-optimal-n4.trace.timeout 11 22:42:56
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n40.trace.timeout 22:42:56
+TRACE_ANALYSIS_FAILED claw-code-optimal-n40.trace.timeout 11 22:42:57
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n8.trace.timeout 22:42:57
+TRACE_ANALYSIS_FAILED claw-code-optimal-n8.trace.timeout 11 22:42:57
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n4.trace.timeout 22:42:57
+TRACE_ANALYSIS_FAILED claw-code-optimal3-n4.trace.timeout 11 22:42:58
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n40.trace.timeout 22:42:58
+TRACE_ANALYSIS_FAILED claw-code-optimal3-n40.trace.timeout 11 22:42:59
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n8.trace.timeout 22:42:59
+TRACE_ANALYSIS_FAILED claw-code-optimal3-n8.trace.timeout 11 22:42:59
+RUNNING_TRACE_ANALYSIS claw-code-other3-n4.trace.timeout 22:42:59
+TRACE_ANALYSIS_FAILED claw-code-other3-n4.trace.timeout 11 22:43:00
+RUNNING_TRACE_ANALYSIS claw-code-other3-n40.trace.timeout 22:43:00
+TRACE_ANALYSIS_FAILED claw-code-other3-n40.trace.timeout 11 22:43:00
+RUNNING_TRACE_ANALYSIS claw-code-other3-n8.trace.timeout 22:43:00
+TRACE_ANALYSIS_FAILED claw-code-other3-n8.trace.timeout 11 22:43:01
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n4.trace.timeout 22:43:01
+TRACE_ANALYSIS_FAILED llama.cpp-apple-n4.trace.timeout 11 22:43:01
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n40.trace.timeout 22:43:01
+TRACE_ANALYSIS_FAILED llama.cpp-apple-n40.trace.timeout 11 22:43:02
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n8.trace.timeout 22:43:02
+TRACE_ANALYSIS_FAILED llama.cpp-apple-n8.trace.timeout 11 22:43:02
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n4.trace.timeout 22:43:02
+TRACE_ANALYSIS_FAILED llama.cpp-bvx3-n4.trace.timeout 11 22:43:03
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n40.trace.timeout 22:43:03
+TRACE_ANALYSIS_FAILED llama.cpp-bvx3-n40.trace.timeout 11 22:43:04
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n8.trace.timeout 22:43:04
+TRACE_ANALYSIS_FAILED llama.cpp-bvx3-n8.trace.timeout 11 22:43:04
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n4.trace.timeout 22:43:04
+TRACE_ANALYSIS_FAILED llama.cpp-lazy2-n4.trace.timeout 11 22:43:05
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n40.trace.timeout 22:43:05
+TRACE_ANALYSIS_FAILED llama.cpp-lazy2-n40.trace.timeout 11 22:43:05
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n8.trace.timeout 22:43:05
+TRACE_ANALYSIS_FAILED llama.cpp-lazy2-n8.trace.timeout 11 22:43:06
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n4.trace.timeout 22:43:06
+TRACE_ANALYSIS_FAILED llama.cpp-optimal-n4.trace.timeout 11 22:43:06
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n40.trace.timeout 22:43:06
+TRACE_ANALYSIS_FAILED llama.cpp-optimal-n40.trace.timeout 11 22:43:07
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n8.trace.timeout 22:43:07
+TRACE_ANALYSIS_FAILED llama.cpp-optimal-n8.trace.timeout 11 22:43:07
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n4.trace.timeout 22:43:07
+TRACE_ANALYSIS_FAILED llama.cpp-optimal3-n4.trace.timeout 11 22:43:08
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n40.trace.timeout 22:43:08
+TRACE_ANALYSIS_FAILED llama.cpp-optimal3-n40.trace.timeout 11 22:43:08
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n8.trace.timeout 22:43:08
+TRACE_ANALYSIS_FAILED llama.cpp-optimal3-n8.trace.timeout 11 22:43:09
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n4.trace.timeout 22:43:09
+TRACE_ANALYSIS_FAILED llama.cpp-other3-n4.trace.timeout 11 22:43:10
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n40.trace.timeout 22:43:10
+TRACE_ANALYSIS_FAILED llama.cpp-other3-n40.trace.timeout 11 22:43:10
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n8.trace.timeout 22:43:10
+TRACE_ANALYSIS_FAILED llama.cpp-other3-n8.trace.timeout 11 22:43:11
+TRACE_ANALYSIS_DONE_WITH_FAILURES 36 22:43:11

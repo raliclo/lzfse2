@@ -94,13 +94,24 @@ unset LZFSE_BENCH_N
 unset LZFSE_BENCH_SUFFIX
 
 # Step.6 執行 Time Profiler trace / Run Time Profiler traces.
-# roundStatus "RUNNING_TRACER"
-# ./helper/tracer.command
-# rc=$?
-# if [[ $rc -ne 0 ]]; then
-#     roundStatus "TRACER_FAILED $rc"
-#     exit $rc
-# fi
-# roundStatus "TRACER_DONE"
+# 預設跳過（耗時可觀）。以 run_round.command -power-test 啟用，該旗標會匯出
+# LZFSE_POWER_TEST=1；未啟用時 trace_analysis 與 cpu_call_tree_analysis 會沿用
+# trace/ 中上一輪的結果。
+# Skipped by default (it costs a lot of wall time). Enable it with
+# run_round.command -power-test, which exports LZFSE_POWER_TEST=1; when it is
+# off, trace_analysis and cpu_call_tree_analysis reuse the previous round's
+# results from trace/.
+if [[ "${LZFSE_POWER_TEST:-0}" == "1" ]]; then
+    roundStatus "RUNNING_TRACER"
+    ./helper/tracer.command
+    rc=$?
+    if [[ $rc -ne 0 ]]; then
+        roundStatus "TRACER_FAILED $rc"
+        exit $rc
+    fi
+    roundStatus "TRACER_DONE"
+else
+    roundStatus "TRACER_SKIPPED (use -power-test to enable)"
+fi
 
 echo "Step1. Done. Please run sudo ./benchmark2.sh to continue the benchmark process."

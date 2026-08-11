@@ -1,629 +1,1395 @@
-RUNNING_SWIFT_TAR_COMPILE 17:36:27
-[INFO] swift_tar version: 20260717-173627 / swift_tar 版本：20260717-173627
+RUNNING_SWIFT_TAR_COMPILE 18:42:13
+[INFO] swift_tar version: 20260811-184213 / swift_tar 版本：20260811-184213
+-- The C compiler identification is AppleClang 21.0.0.21000327
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found PkgConfig: /opt/homebrew/bin/pkg-config (found version "3.0.5")
+-- Found ZLIB: /Volumes/Windows/proj_Win/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libz.tbd (found suitable version "1.2.12", minimum required is "1.2.1")
+-- Performing Test HAVE_DIRENT_H
+-- Performing Test HAVE_DIRENT_H - Success
+-- Looking for include file sys/types.h
+-- Looking for include file sys/types.h - found
+-- Looking for include files sys/types.h, acl/libacl.h
+-- Looking for include files sys/types.h, acl/libacl.h - not found
+-- Looking for include files sys/types.h, attr/xattr.h
+-- Looking for include files sys/types.h, attr/xattr.h - not found
+-- Looking for include files sys/types.h, ctype.h
+-- Looking for include files sys/types.h, ctype.h - found
+-- Looking for 3 include files sys/types.h, ..., copyfile.h
+-- Looking for 3 include files sys/types.h, ..., copyfile.h - found
+-- Looking for 4 include files sys/types.h, ..., direct.h
+-- Looking for 4 include files sys/types.h, ..., direct.h - not found
+-- Looking for 4 include files sys/types.h, ..., dlfcn.h
+-- Looking for 4 include files sys/types.h, ..., dlfcn.h - found
+-- Looking for 5 include files sys/types.h, ..., errno.h
+-- Looking for 5 include files sys/types.h, ..., errno.h - found
+-- Looking for 6 include files sys/types.h, ..., ext2fs/ext2_fs.h
+-- Looking for 6 include files sys/types.h, ..., ext2fs/ext2_fs.h - not found
+-- Performing Test HAVE_WORKING_EXT2_IOC_GETFLAGS
+-- Performing Test HAVE_WORKING_EXT2_IOC_GETFLAGS - Failed
+-- Looking for 6 include files sys/types.h, ..., fcntl.h
+-- Looking for 6 include files sys/types.h, ..., fcntl.h - found
+-- Looking for 7 include files sys/types.h, ..., fnmatch.h
+-- Looking for 7 include files sys/types.h, ..., fnmatch.h - found
+-- Looking for 8 include files sys/types.h, ..., grp.h
+-- Looking for 8 include files sys/types.h, ..., grp.h - found
+-- Looking for 9 include files sys/types.h, ..., inttypes.h
+-- Looking for 9 include files sys/types.h, ..., inttypes.h - found
+-- Looking for 10 include files sys/types.h, ..., io.h
+-- Looking for 10 include files sys/types.h, ..., io.h - not found
+-- Looking for 10 include files sys/types.h, ..., langinfo.h
+-- Looking for 10 include files sys/types.h, ..., langinfo.h - found
+-- Looking for 11 include files sys/types.h, ..., limits.h
+-- Looking for 11 include files sys/types.h, ..., limits.h - found
+-- Looking for 12 include files sys/types.h, ..., linux/types.h
+-- Looking for 12 include files sys/types.h, ..., linux/types.h - not found
+-- Looking for 12 include files sys/types.h, ..., linux/fiemap.h
+-- Looking for 12 include files sys/types.h, ..., linux/fiemap.h - not found
+-- Looking for 12 include files sys/types.h, ..., linux/fs.h
+-- Looking for 12 include files sys/types.h, ..., linux/fs.h - not found
+-- Performing Test HAVE_WORKING_FS_IOC_GETFLAGS
+-- Performing Test HAVE_WORKING_FS_IOC_GETFLAGS - Failed
+-- Looking for 12 include files sys/types.h, ..., intsafe.h
+-- Looking for 12 include files sys/types.h, ..., intsafe.h - not found
+-- Looking for 12 include files sys/types.h, ..., linux/magic.h
+-- Looking for 12 include files sys/types.h, ..., linux/magic.h - not found
+-- Looking for 12 include files sys/types.h, ..., locale.h
+-- Looking for 12 include files sys/types.h, ..., locale.h - found
+-- Looking for 13 include files sys/types.h, ..., membership.h
+-- Looking for 13 include files sys/types.h, ..., membership.h - found
+-- Looking for 14 include files sys/types.h, ..., memory.h
+-- Looking for 14 include files sys/types.h, ..., memory.h - found
+-- Looking for 15 include files sys/types.h, ..., paths.h
+-- Looking for 15 include files sys/types.h, ..., paths.h - found
+-- Looking for 16 include files sys/types.h, ..., poll.h
+-- Looking for 16 include files sys/types.h, ..., poll.h - found
+-- Looking for 17 include files sys/types.h, ..., process.h
+-- Looking for 17 include files sys/types.h, ..., process.h - not found
+-- Looking for 17 include files sys/types.h, ..., pthread.h
+-- Looking for 17 include files sys/types.h, ..., pthread.h - found
+-- Looking for 18 include files sys/types.h, ..., pwd.h
+-- Looking for 18 include files sys/types.h, ..., pwd.h - found
+-- Looking for 19 include files sys/types.h, ..., readpassphrase.h
+-- Looking for 19 include files sys/types.h, ..., readpassphrase.h - found
+-- Looking for 20 include files sys/types.h, ..., regex.h
+-- Looking for 20 include files sys/types.h, ..., regex.h - found
+-- Looking for 21 include files sys/types.h, ..., signal.h
+-- Looking for 21 include files sys/types.h, ..., signal.h - found
+-- Looking for 22 include files sys/types.h, ..., spawn.h
+-- Looking for 22 include files sys/types.h, ..., spawn.h - found
+-- Looking for 23 include files sys/types.h, ..., stdarg.h
+-- Looking for 23 include files sys/types.h, ..., stdarg.h - found
+-- Looking for 24 include files sys/types.h, ..., stdckdint.h
+-- Looking for 24 include files sys/types.h, ..., stdckdint.h - found
+-- Looking for 25 include files sys/types.h, ..., stdint.h
+-- Looking for 25 include files sys/types.h, ..., stdint.h - found
+-- Looking for 26 include files sys/types.h, ..., stdio.h
+-- Looking for 26 include files sys/types.h, ..., stdio.h - found
+-- Looking for 27 include files sys/types.h, ..., stdlib.h
+-- Looking for 27 include files sys/types.h, ..., stdlib.h - found
+-- Looking for 28 include files sys/types.h, ..., string.h
+-- Looking for 28 include files sys/types.h, ..., string.h - found
+-- Looking for 29 include files sys/types.h, ..., strings.h
+-- Looking for 29 include files sys/types.h, ..., strings.h - found
+-- Looking for 30 include files sys/types.h, ..., sys/acl.h
+-- Looking for 30 include files sys/types.h, ..., sys/acl.h - found
+-- Looking for 31 include files sys/types.h, ..., sys/cdefs.h
+-- Looking for 31 include files sys/types.h, ..., sys/cdefs.h - found
+-- Looking for 32 include files sys/types.h, ..., sys/extattr.h
+-- Looking for 32 include files sys/types.h, ..., sys/extattr.h - not found
+-- Looking for 32 include files sys/types.h, ..., sys/ioctl.h
+-- Looking for 32 include files sys/types.h, ..., sys/ioctl.h - found
+-- Looking for 33 include files sys/types.h, ..., sys/mkdev.h
+-- Looking for 33 include files sys/types.h, ..., sys/mkdev.h - not found
+-- Looking for 33 include files sys/types.h, ..., sys/mount.h
+-- Looking for 33 include files sys/types.h, ..., sys/mount.h - found
+-- Looking for 34 include files sys/types.h, ..., sys/param.h
+-- Looking for 34 include files sys/types.h, ..., sys/param.h - found
+-- Looking for 35 include files sys/types.h, ..., sys/poll.h
+-- Looking for 35 include files sys/types.h, ..., sys/poll.h - found
+-- Looking for 36 include files sys/types.h, ..., sys/richacl.h
+-- Looking for 36 include files sys/types.h, ..., sys/richacl.h - not found
+-- Looking for 36 include files sys/types.h, ..., sys/select.h
+-- Looking for 36 include files sys/types.h, ..., sys/select.h - found
+-- Looking for 37 include files sys/types.h, ..., sys/stat.h
+-- Looking for 37 include files sys/types.h, ..., sys/stat.h - found
+-- Looking for 38 include files sys/types.h, ..., sys/statfs.h
+-- Looking for 38 include files sys/types.h, ..., sys/statfs.h - not found
+-- Looking for 38 include files sys/types.h, ..., sys/statvfs.h
+-- Looking for 38 include files sys/types.h, ..., sys/statvfs.h - found
+-- Looking for 39 include files sys/types.h, ..., sys/sysmacros.h
+-- Looking for 39 include files sys/types.h, ..., sys/sysmacros.h - not found
+-- Looking for 39 include files sys/types.h, ..., sys/time.h
+-- Looking for 39 include files sys/types.h, ..., sys/time.h - found
+-- Looking for 40 include files sys/types.h, ..., sys/utime.h
+-- Looking for 40 include files sys/types.h, ..., sys/utime.h - not found
+-- Looking for 40 include files sys/types.h, ..., sys/utsname.h
+-- Looking for 40 include files sys/types.h, ..., sys/utsname.h - found
+-- Looking for 41 include files sys/types.h, ..., sys/vfs.h
+-- Looking for 41 include files sys/types.h, ..., sys/vfs.h - not found
+-- Looking for 41 include files sys/types.h, ..., sys/wait.h
+-- Looking for 41 include files sys/types.h, ..., sys/wait.h - found
+-- Looking for 42 include files sys/types.h, ..., sys/xattr.h
+-- Looking for 42 include files sys/types.h, ..., sys/xattr.h - found
+-- Looking for 43 include files sys/types.h, ..., time.h
+-- Looking for 43 include files sys/types.h, ..., time.h - found
+-- Looking for 44 include files sys/types.h, ..., unistd.h
+-- Looking for 44 include files sys/types.h, ..., unistd.h - found
+-- Looking for 45 include files sys/types.h, ..., utime.h
+-- Looking for 45 include files sys/types.h, ..., utime.h - found
+-- Looking for 46 include files sys/types.h, ..., wchar.h
+-- Looking for 46 include files sys/types.h, ..., wchar.h - found
+-- Looking for 47 include files sys/types.h, ..., wctype.h
+-- Looking for 47 include files sys/types.h, ..., wctype.h - found
+-- Looking for 48 include files sys/types.h, ..., windows.h
+-- Looking for 48 include files sys/types.h, ..., windows.h - not found
+-- Looking for 48 include files sys/types.h, ..., winioctl.h
+-- Looking for 48 include files sys/types.h, ..., winioctl.h - not found
+-- Performing Test SAFE_TO_DEFINE_EXTENSIONS
+-- Performing Test SAFE_TO_DEFINE_EXTENSIONS - Success
+-- Looking for MD5Init in md
+-- Looking for MD5Init in md - not found
+-- Looking for regcomp
+-- Looking for regcomp - found
+-- Looking for _CrtSetReportMode
+-- Looking for _CrtSetReportMode - not found
+-- Looking for arc4random_buf
+-- Looking for arc4random_buf - found
+-- Looking for chflags
+-- Looking for chflags - found
+-- Looking for chown
+-- Looking for chown - found
+-- Looking for chroot
+-- Looking for chroot - found
+-- Looking for closefrom
+-- Looking for closefrom - not found
+-- Looking for close_range
+-- Looking for close_range - not found
+-- Looking for ctime_r
+-- Looking for ctime_r - found
+-- Looking for fchdir
+-- Looking for fchdir - found
+-- Looking for fchflags
+-- Looking for fchflags - found
+-- Looking for fchmod
+-- Looking for fchmod - found
+-- Looking for fchown
+-- Looking for fchown - found
+-- Looking for fcntl
+-- Looking for fcntl - found
+-- Looking for fdopendir
+-- Looking for fdopendir - found
+-- Looking for fnmatch
+-- Looking for fnmatch - found
+-- Looking for fork
+-- Looking for fork - found
+-- Looking for fstat
+-- Looking for fstat - found
+-- Looking for fstatat
+-- Looking for fstatat - found
+-- Looking for fstatfs
+-- Looking for fstatfs - found
+-- Looking for fstatvfs
+-- Looking for fstatvfs - found
+-- Looking for ftruncate
+-- Looking for ftruncate - found
+-- Looking for futimens
+-- Looking for futimens - found
+-- Looking for futimes
+-- Looking for futimes - found
+-- Looking for futimesat
+-- Looking for futimesat - not found
+-- Looking for getegid
+-- Looking for getegid - found
+-- Looking for geteuid
+-- Looking for geteuid - found
+-- Looking for getgrgid_r
+-- Looking for getgrgid_r - found
+-- Looking for getgrnam_r
+-- Looking for getgrnam_r - found
+-- Looking for getline
+-- Looking for getline - found
+-- Looking for getpid
+-- Looking for getpid - found
+-- Looking for getpwnam_r
+-- Looking for getpwnam_r - found
+-- Looking for getpwuid_r
+-- Looking for getpwuid_r - found
+-- Looking for getresgid
+-- Looking for getresgid - not found
+-- Looking for getresuid
+-- Looking for getresuid - not found
+-- Looking for gettimeofday
+-- Looking for gettimeofday - found
+-- Looking for getvfsbyname
+-- Looking for getvfsbyname - found
+-- Looking for gmtime_r
+-- Looking for gmtime_r - found
+-- Looking for issetugid
+-- Looking for issetugid - found
+-- Looking for lchflags
+-- Looking for lchflags - found
+-- Looking for lchmod
+-- Looking for lchmod - found
+-- Looking for lchown
+-- Looking for lchown - found
+-- Looking for link
+-- Looking for link - found
+-- Looking for linkat
+-- Looking for linkat - found
+-- Looking for localtime_r
+-- Looking for localtime_r - found
+-- Looking for lstat
+-- Looking for lstat - found
+-- Looking for lutimes
+-- Looking for lutimes - found
+-- Looking for mbrtowc
+-- Looking for mbrtowc - found
+-- Looking for memmove
+-- Looking for memmove - found
+-- Looking for mkdir
+-- Looking for mkdir - found
+-- Looking for mkfifo
+-- Looking for mkfifo - found
+-- Looking for mknod
+-- Looking for mknod - found
+-- Looking for mkstemp
+-- Looking for mkstemp - found
+-- Looking for nl_langinfo
+-- Looking for nl_langinfo - found
+-- Looking for openat
+-- Looking for openat - found
+-- Looking for pipe
+-- Looking for pipe - found
+-- Looking for poll
+-- Looking for poll - found
+-- Looking for posix_spawn
+-- Looking for posix_spawn - found
+-- Looking for posix_spawnp
+-- Looking for posix_spawnp - found
+-- Looking for readlink
+-- Looking for readlink - found
+-- Looking for readpassphrase
+-- Looking for readpassphrase - found
+-- Looking for select
+-- Looking for select - found
+-- Looking for setenv
+-- Looking for setenv - found
+-- Looking for setlocale
+-- Looking for setlocale - found
+-- Looking for sigaction
+-- Looking for sigaction - found
+-- Looking for statfs
+-- Looking for statfs - found
+-- Looking for statvfs
+-- Looking for statvfs - found
+-- Looking for strchr
+-- Looking for strchr - found
+-- Looking for strdup
+-- Looking for strdup - found
+-- Looking for strerror
+-- Looking for strerror - found
+-- Looking for strncpy_s
+-- Looking for strncpy_s - not found
+-- Looking for strnlen
+-- Looking for strnlen - found
+-- Looking for strrchr
+-- Looking for strrchr - found
+-- Looking for symlink
+-- Looking for symlink - found
+-- Looking for sysconf
+-- Looking for sysconf - found
+-- Looking for tcgetattr
+-- Looking for tcgetattr - found
+-- Looking for tcsetattr
+-- Looking for tcsetattr - found
+-- Looking for timegm
+-- Looking for timegm - found
+-- Looking for tzset
+-- Looking for tzset - found
+-- Looking for unlinkat
+-- Looking for unlinkat - found
+-- Looking for unsetenv
+-- Looking for unsetenv - found
+-- Looking for utime
+-- Looking for utime - found
+-- Looking for utimes
+-- Looking for utimes - found
+-- Looking for utimensat
+-- Looking for utimensat - found
+-- Looking for vfork
+-- Looking for vfork - found
+-- Looking for wcrtomb
+-- Looking for wcrtomb - found
+-- Looking for wcscmp
+-- Looking for wcscmp - found
+-- Looking for wcscpy
+-- Looking for wcscpy - found
+-- Looking for wcslen
+-- Looking for wcslen - found
+-- Looking for wctomb
+-- Looking for wctomb - found
+-- Looking for _fseeki64
+-- Looking for _fseeki64 - not found
+-- Looking for _get_timezone
+-- Looking for _get_timezone - not found
+-- Looking for ctime_s
+-- Looking for ctime_s - not found
+-- Looking for gmtime_s
+-- Looking for gmtime_s - not found
+-- Looking for localtime_s
+-- Looking for localtime_s - not found
+-- Looking for _mkgmtime
+-- Looking for _mkgmtime - not found
+-- Looking for cygwin_conv_path
+-- Looking for cygwin_conv_path - not found
+-- Looking for fseeko
+-- Looking for fseeko - found
+-- Looking for strerror_r
+-- Looking for strerror_r - found
+-- Looking for strftime
+-- Looking for strftime - found
+-- Looking for vprintf
+-- Looking for vprintf - found
+-- Looking for wmemcmp
+-- Looking for wmemcmp - found
+-- Looking for wmemcpy
+-- Looking for wmemcpy - found
+-- Looking for wmemmove
+-- Looking for wmemmove - found
+-- Performing Test HAVE_STRUCT_VFSCONF
+-- Performing Test HAVE_STRUCT_VFSCONF - Success
+-- Performing Test HAVE_STRUCT_XVFSCONF
+-- Performing Test HAVE_STRUCT_XVFSCONF - Failed
+-- Performing Test HAVE_STRUCT_STATFS
+-- Performing Test HAVE_STRUCT_STATFS - Success
+-- Performing Test HAVE_DIRFD
+-- Performing Test HAVE_DIRFD - Success
+-- Performing Test HAVE_READLINKAT
+-- Performing Test HAVE_READLINKAT - Success
+-- Performing Test MAJOR_IN_MKDEV
+-- Performing Test MAJOR_IN_MKDEV - Failed
+-- Performing Test MAJOR_IN_SYSMACROS
+-- Performing Test MAJOR_IN_SYSMACROS - Failed
+-- Looking for EFTYPE
+-- Looking for EFTYPE - found
+-- Looking for EILSEQ
+-- Looking for EILSEQ - found
+-- Looking for D_MD_ORDER
+-- Looking for D_MD_ORDER - found
+-- Looking for INT32_MAX
+-- Looking for INT32_MAX - found
+-- Looking for INT32_MIN
+-- Looking for INT32_MIN - found
+-- Looking for INT64_MAX
+-- Looking for INT64_MAX - found
+-- Looking for INT64_MIN
+-- Looking for INT64_MIN - found
+-- Looking for INTMAX_MAX
+-- Looking for INTMAX_MAX - found
+-- Looking for INTMAX_MIN
+-- Looking for INTMAX_MIN - found
+-- Looking for UINT32_MAX
+-- Looking for UINT32_MAX - found
+-- Looking for UINT64_MAX
+-- Looking for UINT64_MAX - found
+-- Looking for UINTMAX_MAX
+-- Looking for UINTMAX_MAX - found
+-- Looking for SIZE_MAX
+-- Looking for SIZE_MAX - found
+-- Looking for SSIZE_MAX
+-- Looking for SSIZE_MAX - found
+-- Performing Test HAVE_STRUCT_TM_TM_GMTOFF
+-- Performing Test HAVE_STRUCT_TM_TM_GMTOFF - Success
+-- Performing Test HAVE_STRUCT_TM___TM_GMTOFF
+-- Performing Test HAVE_STRUCT_TM___TM_GMTOFF - Failed
+-- Performing Test HAVE_STRUCT_STATFS_F_NAMEMAX
+-- Performing Test HAVE_STRUCT_STATFS_F_NAMEMAX - Failed
+-- Performing Test HAVE_STRUCT_STATFS_F_IOSIZE
+-- Performing Test HAVE_STRUCT_STATFS_F_IOSIZE - Success
+-- Performing Test HAVE_STRUCT_STAT_ST_BIRTHTIME
+-- Performing Test HAVE_STRUCT_STAT_ST_BIRTHTIME - Success
+-- Performing Test HAVE_STRUCT_STAT_ST_BIRTHTIMESPEC_TV_NSEC
+-- Performing Test HAVE_STRUCT_STAT_ST_BIRTHTIMESPEC_TV_NSEC - Success
+-- Performing Test HAVE_STRUCT_STAT_ST_MTIMESPEC_TV_NSEC
+-- Performing Test HAVE_STRUCT_STAT_ST_MTIMESPEC_TV_NSEC - Success
+-- Performing Test HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC
+-- Performing Test HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC - Failed
+-- Performing Test HAVE_STRUCT_STAT_ST_MTIME_N
+-- Performing Test HAVE_STRUCT_STAT_ST_MTIME_N - Failed
+-- Performing Test HAVE_STRUCT_STAT_ST_UMTIME
+-- Performing Test HAVE_STRUCT_STAT_ST_UMTIME - Failed
+-- Performing Test HAVE_STRUCT_STAT_ST_MTIME_USEC
+-- Performing Test HAVE_STRUCT_STAT_ST_MTIME_USEC - Failed
+-- Performing Test HAVE_STRUCT_STAT_ST_BLKSIZE
+-- Performing Test HAVE_STRUCT_STAT_ST_BLKSIZE - Success
+-- Performing Test HAVE_STRUCT_STAT_ST_FLAGS
+-- Performing Test HAVE_STRUCT_STAT_ST_FLAGS - Success
+-- Performing Test HAVE_STRUCT_STATVFS_F_IOSIZE
+-- Performing Test HAVE_STRUCT_STATVFS_F_IOSIZE - Failed
+-- Looking for stddef.h
+-- Looking for stddef.h - found
+-- Check size of short
+-- Check size of short - done
+-- Check size of int
+-- Check size of int - done
+-- Check size of long
+-- Check size of long - done
+-- Check size of long long
+-- Check size of long long - done
+-- Check size of unsigned short
+-- Check size of unsigned short - done
+-- Check size of unsigned
+-- Check size of unsigned - done
+-- Check size of unsigned long
+-- Check size of unsigned long - done
+-- Check size of unsigned long long
+-- Check size of unsigned long long - done
+-- Check size of __int64
+-- Check size of __int64 - failed
+-- Check size of unsigned __int64
+-- Check size of unsigned __int64 - failed
+-- Check size of int16_t
+-- Check size of int16_t - done
+-- Check size of int32_t
+-- Check size of int32_t - done
+-- Check size of int64_t
+-- Check size of int64_t - done
+-- Check size of intmax_t
+-- Check size of intmax_t - done
+-- Check size of uint8_t
+-- Check size of uint8_t - done
+-- Check size of uint16_t
+-- Check size of uint16_t - done
+-- Check size of uint32_t
+-- Check size of uint32_t - done
+-- Check size of uint64_t
+-- Check size of uint64_t - done
+-- Check size of uintmax_t
+-- Check size of uintmax_t - done
+-- Check size of dev_t
+-- Check size of dev_t - done
+-- Check size of gid_t
+-- Check size of gid_t - done
+-- Check size of id_t
+-- Check size of id_t - done
+-- Check size of mode_t
+-- Check size of mode_t - done
+-- Check size of off_t
+-- Check size of off_t - done
+-- Check size of size_t
+-- Check size of size_t - done
+-- Check size of ssize_t
+-- Check size of ssize_t - done
+-- Check size of uid_t
+-- Check size of uid_t - done
+-- Check size of pid_t
+-- Check size of pid_t - done
+-- Check size of intptr_t
+-- Check size of intptr_t - done
+-- Check size of uintptr_t
+-- Check size of uintptr_t - done
+-- Check size of wchar_t
+-- Check size of wchar_t - done
+-- Checking _FILE_OFFSET_BITS for large files
+-- Checking _FILE_OFFSET_BITS for large files - not needed
+-- Checking support for ARCHIVE_CRYPTO_MD5_LIBSYSTEM
+-- Checking support for ARCHIVE_CRYPTO_MD5_LIBSYSTEM -- found
+-- Checking support for ARCHIVE_CRYPTO_SHA1_LIBSYSTEM
+-- Checking support for ARCHIVE_CRYPTO_SHA1_LIBSYSTEM -- found
+-- Checking support for ARCHIVE_CRYPTO_SHA256_LIBSYSTEM
+-- Checking support for ARCHIVE_CRYPTO_SHA256_LIBSYSTEM -- found
+-- Checking support for ARCHIVE_CRYPTO_SHA384_LIBSYSTEM
+-- Checking support for ARCHIVE_CRYPTO_SHA384_LIBSYSTEM -- found
+-- Checking support for ARCHIVE_CRYPTO_SHA512_LIBSYSTEM
+-- Checking support for ARCHIVE_CRYPTO_SHA512_LIBSYSTEM -- found
+-- Performing Test HAVE_VISIBILITY_ATTR
+-- Performing Test HAVE_VISIBILITY_ATTR - Success
+-- Configuring done (30.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/raliclo/proj/lzfse2/swift_tar/build/libarchive-macos
+[  0%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_acl.c.o
+[  0%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_entry.c.o
+[  2%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_cmdline.c.o
+[  2%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_check_magic.c.o
+[  3%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_digest.c.o
+[  4%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_entry_link_resolver.c.o
+[  4%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_entry_strmode.c.o
+[  5%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_entry_stat.c.o
+[  6%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_entry_copy_stat.c.o
+[  7%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_cryptor.c.o
+[  8%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_entry_xattr.c.o
+[  9%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_hmac.c.o
+[ 10%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_entry_sparse.c.o
+[ 10%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_random.c.o
+[ 11%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_match.c.o
+[ 12%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_ppmd7.c.o
+[ 13%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_options.c.o
+[ 14%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_parse_date.c.o
+[ 14%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_pack_dev.c.o
+[ 15%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_rb.c.o
+[ 16%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_ppmd8.c.o
+[ 17%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_pathmatch.c.o
+[ 18%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_add_passphrase.c.o
+[ 19%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read.c.o
+[ 20%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_append_filter.c.o
+[ 21%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_disk_entry_from_file.c.o
+[ 21%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_data_into_fd.c.o
+[ 22%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_disk_posix.c.o
+[ 23%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_extract.c.o
+[ 24%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_disk_set_standard_lookup.c.o
+[ 25%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_extract2.c.o
+[ 25%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_open_fd.c.o
+[ 26%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_open_filename.c.o
+[ 27%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_open_file.c.o
+[ 28%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_open_memory.c.o
+[ 28%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_set_options.c.o
+[ 30%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_all.c.o
+[ 30%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_by_code.c.o
+[ 31%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_set_format.c.o
+[ 31%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_gzip.c.o
+[ 32%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_compress.c.o
+[ 33%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_bzip2.c.o
+[ 34%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_grzip.c.o
+[ 35%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_lz4.c.o
+[ 36%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_lrzip.c.o
+[ 37%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_lzop.c.o
+[ 37%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_none.c.o
+[ 38%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_rpm.c.o
+[ 39%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_program.c.o
+[ 40%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_xz.c.o
+[ 41%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_by_code.c.o
+[ 42%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_uu.c.o
+[ 42%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_cab.c.o
+[ 43%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_all.c.o
+[ 43%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_filter_zstd.c.o
+[ 44%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_ar.c.o
+[ 45%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_empty.c.o
+[ 46%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_7zip.c.o
+[ 47%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_cpio.c.o
+[ 48%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_iso9660.c.o
+[ 49%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_lha.c.o
+[ 50%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_mtree.c.o
+[ 50%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_rar.c.o
+[ 51%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_rar5.c.o
+[ 52%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_raw.c.o
+[ 53%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_warc.c.o
+[ 54%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_tar.c.o
+[ 54%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_xar.c.o
+[ 55%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_read_support_format_zip.c.o
+[ 56%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_string_sprintf.c.o
+[ 57%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_string.c.o
+[ 58%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_version_details.c.o
+[ 59%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_time.c.o
+[ 59%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_util.c.o
+[ 60%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_virtual.c.o
+[ 61%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_disk_posix.c.o
+[ 62%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write.c.o
+[ 63%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_open_file.c.o
+[ 64%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_open_fd.c.o
+[ 64%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_disk_set_standard_lookup.c.o
+[ 65%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_bzip2.c.o
+[ 66%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_open_filename.c.o
+[ 67%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_compress.c.o
+[ 68%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_b64encode.c.o
+[ 69%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_open_memory.c.o
+[ 69%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter.c.o
+[ 70%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_gzip.c.o
+[ 71%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_by_name.c.o
+[ 72%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_lz4.c.o
+[ 73%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_lrzip.c.o
+[ 73%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_grzip.c.o
+[ 74%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_lzop.c.o
+[ 75%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_xz.c.o
+[ 76%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_cpio.c.o
+[ 76%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_cpio_newc.c.o
+[ 77%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_cpio_binary.c.o
+[ 77%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_7zip.c.o
+[ 78%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_ar.c.o
+[ 79%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_uuencode.c.o
+[ 79%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_mtree.c.o
+[ 80%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_filter_by_ext.c.o
+[ 81%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_program.c.o
+[ 81%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_cpio_odc.c.o
+[ 82%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_gnutar.c.o
+[ 83%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_pax.c.o
+[ 84%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_raw.c.o
+[ 85%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format.c.o
+/Users/raliclo/proj/lzfse2/swift_tar/libarchive/libarchive/archive_write_disk_posix.c:1579:19: warning: assigning to 'const char *' from 'unsigned char *' converts between pointers to integer types where one is of the unique plain 'char' type and the other is not [-Wpointer-sign]
+ 1579 |                 buffer_to_write = a->uncompressed_buffer;
+      |                                 ^ ~~~~~~~~~~~~~~~~~~~~~~
+[ 86%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_iso9660.c.o
+[ 87%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_none.c.o
+[ 88%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_by_name.c.o
+[ 89%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_warc.c.o
+[ 90%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_add_filter_zstd.c.o
+[ 91%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_xar.c.o
+[ 92%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_shar.c.o
+[ 92%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_v7tar.c.o
+[ 93%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_ustar.c.o
+[ 94%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_blake2sp_ref.c.o
+[ 95%] Building C object libarchive/CMakeFiles/archive_static.dir/xxhash.c.o
+[ 96%] Building C object libarchive/CMakeFiles/archive_static.dir/filter_fork_posix.c.o
+[ 97%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_blake2s_ref.c.o
+[ 98%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_options.c.o
+[ 99%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_format_zip.c.o
+[ 99%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_write_set_passphrase.c.o
+1 warning generated.
+[100%] Linking C static library libarchive.a
+[100%] Built target archive_static
+[OK] Built bundled libarchive ZIP backend / 已建置內附 libarchive ZIP 後端
 Built ./release/swift_tar / 已建置 ./release/swift_tar
 Installed to /opt/homebrew/bin/swift_tar / 已安裝至 /opt/homebrew/bin/swift_tar
-SWIFT_TAR_COMPILE_OK /opt/homebrew/bin/swift_tar 17:36:41
-RUNNING_SWIFT_TAR_TEST 17:36:41
-SWIFT_TAR_TEST_OK 17:36:42
-USING_SWIFT_TAR /opt/homebrew/bin/swift_tar 17:36:42
-PATH=/tmp/lzfse2-swift-tar-shim:/Users/raliclo/.codex/tmp/arg0/codex-arg0vGMoUi:/Users/raliclo/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/raliclo/.local/bin:/Users/raliclo/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/VMware Fusion.app/Contents/Public:/Users/raliclo/.cargo/bin:/Users/raliclo/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Volumes/Windows/proj_Win/Mac_Apps/ChatGPT.app/Contents/Resources
-RUNNING compile 17:36:56
-TEST_OK 17:37:10
-RUNNING benchmark 17:37:10
-[Info] Configuring compiler environment... / 正在配置編譯器環境...
--> Switching to System Default GCC Environment / 已切換至系統預設 GCC 環境
-[Success] setcc completed. CURRENT SETCC=gcc, PACORES=20
+SWIFT_TAR_COMPILE_OK /opt/homebrew/bin/swift_tar 18:43:04
+RUNNING_SWIFT_TAR_TEST 18:43:04
+SWIFT_TAR_TEST_OK 18:43:05
+RUNNING_SWIFT_TAR_CRYPTO_SELFTEST 18:43:05
+SWIFT_TAR_CRYPTO_SELFTEST_OK 18:43:12
+RUNNING_SWIFT_TAR_PARALLEL_EXTRACT 18:43:12
+SWIFT_TAR_PARALLEL_EXTRACT_OK 18:44:08
+USING_SWIFT_TAR /opt/homebrew/bin/swift_tar NATIVE_ZLIB=required swift_tar 20260811-184213 18:44:08
+PATH=/tmp/lzfse2-swift-tar-shim:/Users/raliclo/.local/bin:/opt/homebrew/opt/llvm/bin:/Users/raliclo/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/VMware Fusion.app/Contents/Public:/Users/raliclo/.cargo/bin:/Users/raliclo/.claude/plugins/cache/claude-plugins-official/swift-lsp/1.0.0/bin
+RUNNING compile 18:44:25
+TEST_OK 18:44:35
+RUNNING benchmark 18:44:35
+[36m[Info] Configuring compiler environment... / 正在配置編譯器環境...(B[m
+[33m-> Switching to Clang/LLVM Environment / 已切換至 Clang/LLVM 編譯環境(B[m
+[32m[Success] setcc completed. CURRENT SETCC=clang, PACORES=20(B[m
 [Info] Running Benchmark WITH probe mode (LZFSE_MEMPROBE=1). Peak-RSS probes run after compression/decompression benchmark and will be recorded in the result txt.
 [Info] Running claw-code benchmark with -n 40; output=lz4bench_log/lz4bench-claw-code-n40.txt
-RUNNING_LZ4BENCH claw-code-n40 17:38:11
-[Info] 磁碟可用空間充足：27GB / Sufficient disk space: 27GB
-RUNNING_LZ4BENCH claw-code-n40 17:38:11
-ENCODED claw-code-n40 tgz 17:38:17
-ENCODED claw-code-n40 other3 17:38:20
-ENCODED claw-code-n40 optimal3 17:38:41
-ENCODED claw-code-n40 lazy2 17:39:01
-ENCODED claw-code-n40 optimal 17:39:39
-ENCODED claw-code-n40 bvx3 17:39:42
-ENCODED claw-code-n40 apple 17:39:52
-ENCODED claw-code-n40 tar.lz4 17:39:55
-ENCODED claw-code-n40 zstd 17:39:58
-DECODED claw-code-n40 tgz 17:40:01
-COMPARE_BASE claw-code-n40 tgz 17:40:01
-DECODED claw-code-n40 other3 17:40:04
-COMPARED_WITH_TGZ_OK claw-code-n40 other3 17:40:07
-DECODED claw-code-n40 optimal3 17:40:10
-COMPARED_WITH_TGZ_OK claw-code-n40 optimal3 17:40:14
-DECODED claw-code-n40 lazy2 17:40:17
-COMPARED_WITH_TGZ_OK claw-code-n40 lazy2 17:40:21
-DECODED claw-code-n40 optimal 17:40:26
-COMPARED_WITH_TGZ_OK claw-code-n40 optimal 17:40:29
-DECODED claw-code-n40 bvx3 17:40:32
-COMPARED_WITH_TGZ_OK claw-code-n40 bvx3 17:40:36
-DECODED claw-code-n40 apple 17:40:39
-COMPARED_WITH_TGZ_OK claw-code-n40 apple 17:40:43
-DECODED claw-code-n40 tar.lz4 17:40:46
-COMPARED_WITH_TGZ_OK claw-code-n40 tar.lz4 17:40:49
-DECODED claw-code-n40 zstd 17:40:52
-COMPARED_WITH_TGZ_OK claw-code-n40 zstd 17:40:56
-RUNNING_MEMPROBE claw-code-n40 tgz 17:40:57
-MEMPROBE_DONE claw-code-n40 tgz 17:41:04
-RUNNING_MEMPROBE claw-code-n40 zstd 17:41:04
-MEMPROBE_DONE claw-code-n40 zstd 17:41:08
-RUNNING_MEMPROBE claw-code-n40 tar.lz4 17:41:08
-MEMPROBE_DONE claw-code-n40 tar.lz4 17:41:11
-RUNNING_MEMPROBE claw-code-n40 other3 17:41:11
-MEMPROBE_DONE claw-code-n40 other3 17:41:14
-RUNNING_MEMPROBE claw-code-n40 optimal3 17:41:14
-MEMPROBE_DONE claw-code-n40 optimal3 17:41:36
-RUNNING_MEMPROBE claw-code-n40 apple 17:41:36
-MEMPROBE_DONE claw-code-n40 apple 17:41:46
-RUNNING_MEMPROBE claw-code-n40 bvx3 17:41:46
-MEMPROBE_DONE claw-code-n40 bvx3 17:41:49
-RUNNING_MEMPROBE claw-code-n40 lazy2 17:41:49
-MEMPROBE_DONE claw-code-n40 lazy2 17:42:09
-RUNNING_MEMPROBE claw-code-n40 optimal 17:42:09
-MEMPROBE_DONE claw-code-n40 optimal 17:42:49
-LZ4BENCH_DONE claw-code-n40 17:42:49
-LZ4BENCH_OK claw-code-n40 17:42:50
+RUNNING_LZ4BENCH claw-code-n40 18:45:35
+[Info] 磁碟可用空間充足：22GB / Sufficient disk space: 22GB
+RUNNING_LZ4BENCH claw-code-n40 18:45:35
+ENCODED claw-code-n40 tgz 18:45:41
+ENCODED claw-code-n40 other3 18:45:44
+ENCODED claw-code-n40 optimal3 18:46:05
+ENCODED claw-code-n40 lazy2 18:46:25
+ENCODED claw-code-n40 optimal 18:47:04
+ENCODED claw-code-n40 bvx3 18:47:07
+ENCODED claw-code-n40 apple 18:47:16
+ENCODED claw-code-n40 tar.lz4 18:47:18
+ENCODED claw-code-n40 zstd 18:47:22
+DECODED claw-code-n40 tgz 18:47:24
+COMPARE_BASE claw-code-n40 tgz 18:47:24
+DECODED claw-code-n40 other3 18:47:25
+COMPARED_WITH_TGZ_OK claw-code-n40 other3 18:47:28
+DECODED claw-code-n40 optimal3 18:47:30
+COMPARED_WITH_TGZ_OK claw-code-n40 optimal3 18:47:32
+DECODED claw-code-n40 lazy2 18:47:35
+COMPARED_WITH_TGZ_OK claw-code-n40 lazy2 18:47:37
+DECODED claw-code-n40 optimal 18:47:41
+COMPARED_WITH_TGZ_OK claw-code-n40 optimal 18:47:43
+DECODED claw-code-n40 bvx3 18:47:49
+COMPARED_WITH_TGZ_OK claw-code-n40 bvx3 18:47:51
+DECODED claw-code-n40 apple 18:47:53
+COMPARED_WITH_TGZ_OK claw-code-n40 apple 18:47:55
+DECODED claw-code-n40 tar.lz4 18:47:59
+COMPARED_WITH_TGZ_OK claw-code-n40 tar.lz4 18:48:03
+DECODED claw-code-n40 zstd 18:48:06
+COMPARED_WITH_TGZ_OK claw-code-n40 zstd 18:48:10
+RUNNING_MEMPROBE claw-code-n40 tgz 18:48:11
+MEMPROBE_DONE claw-code-n40 tgz 18:48:17
+RUNNING_MEMPROBE claw-code-n40 zstd 18:48:17
+MEMPROBE_DONE claw-code-n40 zstd 18:48:21
+RUNNING_MEMPROBE claw-code-n40 tar.lz4 18:48:21
+MEMPROBE_DONE claw-code-n40 tar.lz4 18:48:24
+RUNNING_MEMPROBE claw-code-n40 other3 18:48:24
+MEMPROBE_DONE claw-code-n40 other3 18:48:27
+RUNNING_MEMPROBE claw-code-n40 optimal3 18:48:27
+MEMPROBE_DONE claw-code-n40 optimal3 18:48:47
+RUNNING_MEMPROBE claw-code-n40 apple 18:48:47
+MEMPROBE_DONE claw-code-n40 apple 18:48:57
+RUNNING_MEMPROBE claw-code-n40 bvx3 18:48:57
+MEMPROBE_DONE claw-code-n40 bvx3 18:49:00
+RUNNING_MEMPROBE claw-code-n40 lazy2 18:49:00
+MEMPROBE_DONE claw-code-n40 lazy2 18:49:20
+RUNNING_MEMPROBE claw-code-n40 optimal 18:49:20
+MEMPROBE_DONE claw-code-n40 optimal 18:49:59
+LZ4BENCH_DONE claw-code-n40 18:49:59
+LZ4BENCH_OK claw-code-n40 18:49:59
 [Info] Completed claw-code benchmark with -n 40; output=lz4bench_log/lz4bench-claw-code-n40.txt ,Sleeping 60s before next sweep.
 [Info] Running claw-code benchmark with -n 8; output=lz4bench_log/lz4bench-claw-code-n8.txt
-RUNNING_LZ4BENCH claw-code-n8 17:43:50
-[Info] 磁碟可用空間充足：27GB / Sufficient disk space: 27GB
-RUNNING_LZ4BENCH claw-code-n8 17:43:50
-ENCODED claw-code-n8 tgz 17:43:55
-ENCODED claw-code-n8 other3 17:43:57
-ENCODED claw-code-n8 optimal3 17:44:20
-ENCODED claw-code-n8 lazy2 17:44:41
-ENCODED claw-code-n8 optimal 17:45:22
-ENCODED claw-code-n8 bvx3 17:45:25
-ENCODED claw-code-n8 apple 17:45:34
-ENCODED claw-code-n8 tar.lz4 17:45:36
-ENCODED claw-code-n8 zstd 17:45:39
-DECODED claw-code-n8 tgz 17:45:43
-COMPARE_BASE claw-code-n8 tgz 17:45:43
-DECODED claw-code-n8 other3 17:45:45
-COMPARED_WITH_TGZ_OK claw-code-n8 other3 17:45:49
-DECODED claw-code-n8 optimal3 17:45:52
-COMPARED_WITH_TGZ_OK claw-code-n8 optimal3 17:45:55
-DECODED claw-code-n8 lazy2 17:45:58
-COMPARED_WITH_TGZ_OK claw-code-n8 lazy2 17:46:03
-DECODED claw-code-n8 optimal 17:46:06
-COMPARED_WITH_TGZ_OK claw-code-n8 optimal 17:46:10
-DECODED claw-code-n8 bvx3 17:46:14
-COMPARED_WITH_TGZ_OK claw-code-n8 bvx3 17:46:17
-DECODED claw-code-n8 apple 17:46:20
-COMPARED_WITH_TGZ_OK claw-code-n8 apple 17:46:24
-DECODED claw-code-n8 tar.lz4 17:46:27
-COMPARED_WITH_TGZ_OK claw-code-n8 tar.lz4 17:46:30
-DECODED claw-code-n8 zstd 17:46:33
-COMPARED_WITH_TGZ_OK claw-code-n8 zstd 17:46:37
-RUNNING_MEMPROBE claw-code-n8 tgz 17:46:38
-MEMPROBE_DONE claw-code-n8 tgz 17:46:44
-RUNNING_MEMPROBE claw-code-n8 zstd 17:46:44
-MEMPROBE_DONE claw-code-n8 zstd 17:46:48
-RUNNING_MEMPROBE claw-code-n8 tar.lz4 17:46:48
-MEMPROBE_DONE claw-code-n8 tar.lz4 17:46:51
-RUNNING_MEMPROBE claw-code-n8 other3 17:46:51
-MEMPROBE_DONE claw-code-n8 other3 17:46:54
-RUNNING_MEMPROBE claw-code-n8 optimal3 17:46:54
-MEMPROBE_DONE claw-code-n8 optimal3 17:47:17
-RUNNING_MEMPROBE claw-code-n8 apple 17:47:17
-MEMPROBE_DONE claw-code-n8 apple 17:47:27
-RUNNING_MEMPROBE claw-code-n8 bvx3 17:47:27
-MEMPROBE_DONE claw-code-n8 bvx3 17:47:30
-RUNNING_MEMPROBE claw-code-n8 lazy2 17:47:30
-MEMPROBE_DONE claw-code-n8 lazy2 17:47:52
-RUNNING_MEMPROBE claw-code-n8 optimal 17:47:52
-MEMPROBE_DONE claw-code-n8 optimal 17:48:34
-LZ4BENCH_DONE claw-code-n8 17:48:34
-LZ4BENCH_OK claw-code-n8 17:48:34
+RUNNING_LZ4BENCH claw-code-n8 18:50:59
+[Info] 磁碟可用空間充足：22GB / Sufficient disk space: 22GB
+RUNNING_LZ4BENCH claw-code-n8 18:50:59
+ENCODED claw-code-n8 tgz 18:51:04
+ENCODED claw-code-n8 other3 18:51:06
+ENCODED claw-code-n8 optimal3 18:51:29
+ENCODED claw-code-n8 lazy2 18:51:50
+ENCODED claw-code-n8 optimal 18:52:31
+ENCODED claw-code-n8 bvx3 18:52:34
+ENCODED claw-code-n8 apple 18:52:43
+ENCODED claw-code-n8 tar.lz4 18:52:46
+ENCODED claw-code-n8 zstd 18:52:49
+DECODED claw-code-n8 tgz 18:52:51
+COMPARE_BASE claw-code-n8 tgz 18:52:51
+DECODED claw-code-n8 other3 18:52:53
+COMPARED_WITH_TGZ_OK claw-code-n8 other3 18:52:55
+DECODED claw-code-n8 optimal3 18:52:57
+COMPARED_WITH_TGZ_OK claw-code-n8 optimal3 18:52:57
+DECODED claw-code-n8 lazy2 18:53:00
+COMPARED_WITH_TGZ_OK claw-code-n8 lazy2 18:53:00
+DECODED claw-code-n8 optimal 18:53:03
+COMPARED_WITH_TGZ_OK claw-code-n8 optimal 18:53:05
+DECODED claw-code-n8 bvx3 18:53:07
+COMPARED_WITH_TGZ_OK claw-code-n8 bvx3 18:53:10
+DECODED claw-code-n8 apple 18:53:13
+COMPARED_WITH_TGZ_OK claw-code-n8 apple 18:53:17
+DECODED claw-code-n8 tar.lz4 18:53:20
+COMPARED_WITH_TGZ_OK claw-code-n8 tar.lz4 18:53:24
+DECODED claw-code-n8 zstd 18:53:25
+COMPARED_WITH_TGZ_OK claw-code-n8 zstd 18:53:26
+RUNNING_MEMPROBE claw-code-n8 tgz 18:53:27
+MEMPROBE_DONE claw-code-n8 tgz 18:53:33
+RUNNING_MEMPROBE claw-code-n8 zstd 18:53:33
+MEMPROBE_DONE claw-code-n8 zstd 18:53:37
+RUNNING_MEMPROBE claw-code-n8 tar.lz4 18:53:37
+MEMPROBE_DONE claw-code-n8 tar.lz4 18:53:40
+RUNNING_MEMPROBE claw-code-n8 other3 18:53:40
+MEMPROBE_DONE claw-code-n8 other3 18:53:43
+RUNNING_MEMPROBE claw-code-n8 optimal3 18:53:43
+MEMPROBE_DONE claw-code-n8 optimal3 18:54:06
+RUNNING_MEMPROBE claw-code-n8 apple 18:54:06
+MEMPROBE_DONE claw-code-n8 apple 18:54:16
+RUNNING_MEMPROBE claw-code-n8 bvx3 18:54:16
+MEMPROBE_DONE claw-code-n8 bvx3 18:54:19
+RUNNING_MEMPROBE claw-code-n8 lazy2 18:54:19
+MEMPROBE_DONE claw-code-n8 lazy2 18:54:41
+RUNNING_MEMPROBE claw-code-n8 optimal 18:54:41
+MEMPROBE_DONE claw-code-n8 optimal 18:55:23
+LZ4BENCH_DONE claw-code-n8 18:55:23
+LZ4BENCH_OK claw-code-n8 18:55:23
 [Info] Completed claw-code benchmark with -n 8; output=lz4bench_log/lz4bench-claw-code-n8.txt ,Sleeping 60s before next sweep.
 [Info] Running claw-code benchmark with -n 4; output=lz4bench_log/lz4bench-claw-code-n4.txt
-RUNNING_LZ4BENCH claw-code-n4 17:49:34
-[Info] 磁碟可用空間充足：27GB / Sufficient disk space: 27GB
-RUNNING_LZ4BENCH claw-code-n4 17:49:34
-ENCODED claw-code-n4 tgz 17:49:39
-ENCODED claw-code-n4 other3 17:49:43
-ENCODED claw-code-n4 optimal3 17:50:15
-ENCODED claw-code-n4 lazy2 17:50:39
-ENCODED claw-code-n4 optimal 17:51:32
-ENCODED claw-code-n4 bvx3 17:51:35
-ENCODED claw-code-n4 apple 17:51:44
-ENCODED claw-code-n4 tar.lz4 17:51:47
-ENCODED claw-code-n4 zstd 17:51:50
-DECODED claw-code-n4 tgz 17:51:53
-COMPARE_BASE claw-code-n4 tgz 17:51:53
-DECODED claw-code-n4 other3 17:51:56
-COMPARED_WITH_TGZ_OK claw-code-n4 other3 17:52:00
-DECODED claw-code-n4 optimal3 17:52:03
-COMPARED_WITH_TGZ_OK claw-code-n4 optimal3 17:52:06
-DECODED claw-code-n4 lazy2 17:52:09
-COMPARED_WITH_TGZ_OK claw-code-n4 lazy2 17:52:13
-DECODED claw-code-n4 optimal 17:52:17
-COMPARED_WITH_TGZ_OK claw-code-n4 optimal 17:52:22
-DECODED claw-code-n4 bvx3 17:52:26
-COMPARED_WITH_TGZ_OK claw-code-n4 bvx3 17:52:30
-DECODED claw-code-n4 apple 17:52:33
-COMPARED_WITH_TGZ_OK claw-code-n4 apple 17:52:37
-DECODED claw-code-n4 tar.lz4 17:52:40
-COMPARED_WITH_TGZ_OK claw-code-n4 tar.lz4 17:52:44
-DECODED claw-code-n4 zstd 17:52:47
-COMPARED_WITH_TGZ_OK claw-code-n4 zstd 17:52:51
-RUNNING_MEMPROBE claw-code-n4 tgz 17:52:52
-MEMPROBE_DONE claw-code-n4 tgz 17:52:58
-RUNNING_MEMPROBE claw-code-n4 zstd 17:52:58
-MEMPROBE_DONE claw-code-n4 zstd 17:53:02
-RUNNING_MEMPROBE claw-code-n4 tar.lz4 17:53:02
-MEMPROBE_DONE claw-code-n4 tar.lz4 17:53:05
-RUNNING_MEMPROBE claw-code-n4 other3 17:53:05
-MEMPROBE_DONE claw-code-n4 other3 17:53:09
-RUNNING_MEMPROBE claw-code-n4 optimal3 17:53:09
-MEMPROBE_DONE claw-code-n4 optimal3 17:53:42
-RUNNING_MEMPROBE claw-code-n4 apple 17:53:42
-MEMPROBE_DONE claw-code-n4 apple 17:53:52
-RUNNING_MEMPROBE claw-code-n4 bvx3 17:53:52
-MEMPROBE_DONE claw-code-n4 bvx3 17:53:56
-RUNNING_MEMPROBE claw-code-n4 lazy2 17:53:56
-MEMPROBE_DONE claw-code-n4 lazy2 17:54:22
-RUNNING_MEMPROBE claw-code-n4 optimal 17:54:22
-MEMPROBE_DONE claw-code-n4 optimal 17:55:15
-LZ4BENCH_DONE claw-code-n4 17:55:15
-LZ4BENCH_OK claw-code-n4 17:55:15
+RUNNING_LZ4BENCH claw-code-n4 18:56:23
+[Info] 磁碟可用空間充足：22GB / Sufficient disk space: 22GB
+RUNNING_LZ4BENCH claw-code-n4 18:56:23
+ENCODED claw-code-n4 tgz 18:56:28
+ENCODED claw-code-n4 other3 18:56:31
+ENCODED claw-code-n4 optimal3 18:57:03
+ENCODED claw-code-n4 lazy2 18:57:28
+ENCODED claw-code-n4 optimal 18:58:21
+ENCODED claw-code-n4 bvx3 18:58:24
+ENCODED claw-code-n4 apple 18:58:34
+ENCODED claw-code-n4 tar.lz4 18:58:36
+ENCODED claw-code-n4 zstd 18:58:39
+DECODED claw-code-n4 tgz 18:58:42
+COMPARE_BASE claw-code-n4 tgz 18:58:42
+DECODED claw-code-n4 other3 18:58:44
+COMPARED_WITH_TGZ_OK claw-code-n4 other3 18:58:46
+DECODED claw-code-n4 optimal3 18:58:48
+COMPARED_WITH_TGZ_OK claw-code-n4 optimal3 18:58:50
+DECODED claw-code-n4 lazy2 18:58:52
+COMPARED_WITH_TGZ_OK claw-code-n4 lazy2 18:58:55
+DECODED claw-code-n4 optimal 18:58:57
+COMPARED_WITH_TGZ_OK claw-code-n4 optimal 18:58:58
+DECODED claw-code-n4 bvx3 18:59:00
+COMPARED_WITH_TGZ_OK claw-code-n4 bvx3 18:59:01
+DECODED claw-code-n4 apple 18:59:03
+COMPARED_WITH_TGZ_OK claw-code-n4 apple 18:59:05
+DECODED claw-code-n4 tar.lz4 18:59:09
+COMPARED_WITH_TGZ_OK claw-code-n4 tar.lz4 18:59:11
+DECODED claw-code-n4 zstd 18:59:13
+COMPARED_WITH_TGZ_OK claw-code-n4 zstd 18:59:14
+RUNNING_MEMPROBE claw-code-n4 tgz 18:59:15
+MEMPROBE_DONE claw-code-n4 tgz 18:59:22
+RUNNING_MEMPROBE claw-code-n4 zstd 18:59:22
+MEMPROBE_DONE claw-code-n4 zstd 18:59:26
+RUNNING_MEMPROBE claw-code-n4 tar.lz4 18:59:26
+MEMPROBE_DONE claw-code-n4 tar.lz4 18:59:28
+RUNNING_MEMPROBE claw-code-n4 other3 18:59:28
+MEMPROBE_DONE claw-code-n4 other3 18:59:33
+RUNNING_MEMPROBE claw-code-n4 optimal3 18:59:33
+MEMPROBE_DONE claw-code-n4 optimal3 19:00:05
+RUNNING_MEMPROBE claw-code-n4 apple 19:00:05
+MEMPROBE_DONE claw-code-n4 apple 19:00:15
+RUNNING_MEMPROBE claw-code-n4 bvx3 19:00:15
+MEMPROBE_DONE claw-code-n4 bvx3 19:00:20
+RUNNING_MEMPROBE claw-code-n4 lazy2 19:00:20
+MEMPROBE_DONE claw-code-n4 lazy2 19:00:45
+RUNNING_MEMPROBE claw-code-n4 optimal 19:00:45
+MEMPROBE_DONE claw-code-n4 optimal 19:01:38
+LZ4BENCH_DONE claw-code-n4 19:01:38
+LZ4BENCH_OK claw-code-n4 19:01:39
 [Info] Completed claw-code benchmark with -n 4; output=lz4bench_log/lz4bench-claw-code-n4.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 40; output=lz4bench_log/lz4bench-llama.cpp-n40.txt
-RUNNING_LZ4BENCH llama.cpp-n40 17:57:15
-[Info] 磁碟可用空間充足：27GB / Sufficient disk space: 27GB
-RUNNING_LZ4BENCH llama.cpp-n40 17:57:15
-ENCODED llama.cpp-n40 tgz 17:57:27
-ENCODED llama.cpp-n40 other3 17:57:33
-ENCODED llama.cpp-n40 optimal3 17:57:50
-ENCODED llama.cpp-n40 lazy2 17:57:59
-ENCODED llama.cpp-n40 optimal 17:58:24
-ENCODED llama.cpp-n40 bvx3 17:58:29
-ENCODED llama.cpp-n40 apple 17:58:40
-ENCODED llama.cpp-n40 tar.lz4 17:58:46
-ENCODED llama.cpp-n40 zstd 17:58:52
-DECODED llama.cpp-n40 tgz 17:59:01
-COMPARE_BASE llama.cpp-n40 tgz 17:59:01
-DECODED llama.cpp-n40 other3 17:59:11
-COMPARED_WITH_TGZ_OK llama.cpp-n40 other3 17:59:20
-DECODED llama.cpp-n40 optimal3 17:59:35
-COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal3 17:59:46
-DECODED llama.cpp-n40 lazy2 18:00:00
-COMPARED_WITH_TGZ_OK llama.cpp-n40 lazy2 18:00:10
-DECODED llama.cpp-n40 optimal 18:00:23
-COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal 18:00:34
-DECODED llama.cpp-n40 bvx3 18:00:48
-COMPARED_WITH_TGZ_OK llama.cpp-n40 bvx3 18:00:58
-DECODED llama.cpp-n40 apple 18:01:12
-COMPARED_WITH_TGZ_OK llama.cpp-n40 apple 18:01:22
-DECODED llama.cpp-n40 tar.lz4 18:01:34
-COMPARED_WITH_TGZ_OK llama.cpp-n40 tar.lz4 18:01:44
-DECODED llama.cpp-n40 zstd 18:01:57
-COMPARED_WITH_TGZ_OK llama.cpp-n40 zstd 18:02:06
-RUNNING_MEMPROBE llama.cpp-n40 tgz 18:02:13
-MEMPROBE_DONE llama.cpp-n40 tgz 18:02:22
-RUNNING_MEMPROBE llama.cpp-n40 zstd 18:02:22
-MEMPROBE_DONE llama.cpp-n40 zstd 18:02:28
-RUNNING_MEMPROBE llama.cpp-n40 tar.lz4 18:02:28
-MEMPROBE_DONE llama.cpp-n40 tar.lz4 18:02:35
-RUNNING_MEMPROBE llama.cpp-n40 other3 18:02:35
-MEMPROBE_DONE llama.cpp-n40 other3 18:02:41
-RUNNING_MEMPROBE llama.cpp-n40 optimal3 18:02:41
-MEMPROBE_DONE llama.cpp-n40 optimal3 18:03:03
-RUNNING_MEMPROBE llama.cpp-n40 apple 18:03:03
-MEMPROBE_DONE llama.cpp-n40 apple 18:03:15
-RUNNING_MEMPROBE llama.cpp-n40 bvx3 18:03:15
-MEMPROBE_DONE llama.cpp-n40 bvx3 18:03:21
-RUNNING_MEMPROBE llama.cpp-n40 lazy2 18:03:21
-MEMPROBE_DONE llama.cpp-n40 lazy2 18:03:32
-RUNNING_MEMPROBE llama.cpp-n40 optimal 18:03:32
-MEMPROBE_DONE llama.cpp-n40 optimal 18:04:03
-LZ4BENCH_DONE llama.cpp-n40 18:04:03
-LZ4BENCH_OK llama.cpp-n40 18:04:03
+RUNNING_LZ4BENCH llama.cpp-n40 19:03:39
+[Info] 磁碟可用空間充足：22GB / Sufficient disk space: 22GB
+RUNNING_LZ4BENCH llama.cpp-n40 19:03:39
+ENCODED llama.cpp-n40 tgz 19:03:49
+ENCODED llama.cpp-n40 other3 19:03:53
+ENCODED llama.cpp-n40 optimal3 19:04:11
+ENCODED llama.cpp-n40 lazy2 19:04:20
+ENCODED llama.cpp-n40 optimal 19:04:45
+ENCODED llama.cpp-n40 bvx3 19:04:51
+ENCODED llama.cpp-n40 apple 19:05:03
+ENCODED llama.cpp-n40 tar.lz4 19:05:07
+ENCODED llama.cpp-n40 zstd 19:05:10
+DECODED llama.cpp-n40 tgz 19:05:14
+COMPARE_BASE llama.cpp-n40 tgz 19:05:14
+DECODED llama.cpp-n40 other3 19:05:16
+COMPARED_WITH_TGZ_OK llama.cpp-n40 other3 19:05:24
+DECODED llama.cpp-n40 optimal3 19:05:29
+COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal3 19:05:38
+DECODED llama.cpp-n40 lazy2 19:05:43
+COMPARED_WITH_TGZ_OK llama.cpp-n40 lazy2 19:05:52
+DECODED llama.cpp-n40 optimal 19:05:57
+COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal 19:06:06
+DECODED llama.cpp-n40 bvx3 19:06:12
+COMPARED_WITH_TGZ_OK llama.cpp-n40 bvx3 19:06:23
+DECODED llama.cpp-n40 apple 19:06:30
+COMPARED_WITH_TGZ_OK llama.cpp-n40 apple 19:06:38
+DECODED llama.cpp-n40 tar.lz4 19:06:43
+COMPARED_WITH_TGZ_OK llama.cpp-n40 tar.lz4 19:06:53
+DECODED llama.cpp-n40 zstd 19:06:58
+COMPARED_WITH_TGZ_OK llama.cpp-n40 zstd 19:07:07
+RUNNING_MEMPROBE llama.cpp-n40 tgz 19:07:11
+MEMPROBE_DONE llama.cpp-n40 tgz 19:07:19
+RUNNING_MEMPROBE llama.cpp-n40 zstd 19:07:19
+MEMPROBE_DONE llama.cpp-n40 zstd 19:07:23
+RUNNING_MEMPROBE llama.cpp-n40 tar.lz4 19:07:23
+MEMPROBE_DONE llama.cpp-n40 tar.lz4 19:07:27
+RUNNING_MEMPROBE llama.cpp-n40 other3 19:07:27
+MEMPROBE_DONE llama.cpp-n40 other3 19:07:31
+RUNNING_MEMPROBE llama.cpp-n40 optimal3 19:07:31
+MEMPROBE_DONE llama.cpp-n40 optimal3 19:07:49
+RUNNING_MEMPROBE llama.cpp-n40 apple 19:07:49
+MEMPROBE_DONE llama.cpp-n40 apple 19:08:00
+RUNNING_MEMPROBE llama.cpp-n40 bvx3 19:08:00
+MEMPROBE_DONE llama.cpp-n40 bvx3 19:08:04
+RUNNING_MEMPROBE llama.cpp-n40 lazy2 19:08:04
+MEMPROBE_DONE llama.cpp-n40 lazy2 19:08:12
+RUNNING_MEMPROBE llama.cpp-n40 optimal 19:08:12
+MEMPROBE_DONE llama.cpp-n40 optimal 19:08:37
+LZ4BENCH_DONE llama.cpp-n40 19:08:37
+LZ4BENCH_OK llama.cpp-n40 19:08:37
 [Info] Completed llama.cpp benchmark with -n 40; output=lz4bench_log/lz4bench-llama.cpp-n40.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 8; output=lz4bench_log/lz4bench-llama.cpp-n8.txt
-RUNNING_LZ4BENCH llama.cpp-n8 18:05:03
-[Info] 磁碟可用空間充足：28GB / Sufficient disk space: 28GB
-RUNNING_LZ4BENCH llama.cpp-n8 18:05:03
-ENCODED llama.cpp-n8 tgz 18:05:15
-ENCODED llama.cpp-n8 other3 18:05:22
-ENCODED llama.cpp-n8 optimal3 18:05:44
-ENCODED llama.cpp-n8 lazy2 18:05:55
-ENCODED llama.cpp-n8 optimal 18:06:26
-ENCODED llama.cpp-n8 bvx3 18:06:32
-ENCODED llama.cpp-n8 apple 18:06:43
-ENCODED llama.cpp-n8 tar.lz4 18:06:50
-ENCODED llama.cpp-n8 zstd 18:06:55
-DECODED llama.cpp-n8 tgz 18:07:05
-COMPARE_BASE llama.cpp-n8 tgz 18:07:05
-DECODED llama.cpp-n8 other3 18:07:14
-COMPARED_WITH_TGZ_OK llama.cpp-n8 other3 18:07:23
-DECODED llama.cpp-n8 optimal3 18:07:36
-COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal3 18:07:46
-DECODED llama.cpp-n8 lazy2 18:07:59
-COMPARED_WITH_TGZ_OK llama.cpp-n8 lazy2 18:08:08
-DECODED llama.cpp-n8 optimal 18:08:21
-COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal 18:08:31
-DECODED llama.cpp-n8 bvx3 18:08:44
-COMPARED_WITH_TGZ_OK llama.cpp-n8 bvx3 18:08:53
-DECODED llama.cpp-n8 apple 18:09:06
-COMPARED_WITH_TGZ_OK llama.cpp-n8 apple 18:09:16
-DECODED llama.cpp-n8 tar.lz4 18:09:29
-COMPARED_WITH_TGZ_OK llama.cpp-n8 tar.lz4 18:09:39
-DECODED llama.cpp-n8 zstd 18:09:52
-COMPARED_WITH_TGZ_OK llama.cpp-n8 zstd 18:10:02
-RUNNING_MEMPROBE llama.cpp-n8 tgz 18:10:09
-MEMPROBE_DONE llama.cpp-n8 tgz 18:10:18
-RUNNING_MEMPROBE llama.cpp-n8 zstd 18:10:18
-MEMPROBE_DONE llama.cpp-n8 zstd 18:10:24
-RUNNING_MEMPROBE llama.cpp-n8 tar.lz4 18:10:24
-MEMPROBE_DONE llama.cpp-n8 tar.lz4 18:10:31
-RUNNING_MEMPROBE llama.cpp-n8 other3 18:10:31
-MEMPROBE_DONE llama.cpp-n8 other3 18:10:38
-RUNNING_MEMPROBE llama.cpp-n8 optimal3 18:10:38
-MEMPROBE_DONE llama.cpp-n8 optimal3 18:11:01
-RUNNING_MEMPROBE llama.cpp-n8 apple 18:11:01
-MEMPROBE_DONE llama.cpp-n8 apple 18:11:13
-RUNNING_MEMPROBE llama.cpp-n8 bvx3 18:11:13
-MEMPROBE_DONE llama.cpp-n8 bvx3 18:11:20
-RUNNING_MEMPROBE llama.cpp-n8 lazy2 18:11:20
-MEMPROBE_DONE llama.cpp-n8 lazy2 18:11:31
-RUNNING_MEMPROBE llama.cpp-n8 optimal 18:11:31
-MEMPROBE_DONE llama.cpp-n8 optimal 18:12:03
-LZ4BENCH_DONE llama.cpp-n8 18:12:03
-LZ4BENCH_OK llama.cpp-n8 18:12:04
+RUNNING_LZ4BENCH llama.cpp-n8 19:09:37
+[Info] 磁碟可用空間充足：21GB / Sufficient disk space: 21GB
+RUNNING_LZ4BENCH llama.cpp-n8 19:09:37
+ENCODED llama.cpp-n8 tgz 19:09:44
+ENCODED llama.cpp-n8 other3 19:09:48
+ENCODED llama.cpp-n8 optimal3 19:10:07
+ENCODED llama.cpp-n8 lazy2 19:10:17
+ENCODED llama.cpp-n8 optimal 19:10:45
+ENCODED llama.cpp-n8 bvx3 19:10:51
+ENCODED llama.cpp-n8 apple 19:11:02
+ENCODED llama.cpp-n8 tar.lz4 19:11:06
+ENCODED llama.cpp-n8 zstd 19:11:10
+DECODED llama.cpp-n8 tgz 19:11:13
+COMPARE_BASE llama.cpp-n8 tgz 19:11:13
+DECODED llama.cpp-n8 other3 19:11:16
+COMPARED_WITH_TGZ_OK llama.cpp-n8 other3 19:11:23
+DECODED llama.cpp-n8 optimal3 19:11:28
+COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal3 19:11:37
+DECODED llama.cpp-n8 lazy2 19:11:42
+COMPARED_WITH_TGZ_OK llama.cpp-n8 lazy2 19:11:52
+DECODED llama.cpp-n8 optimal 19:11:59
+COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal 19:12:08
+DECODED llama.cpp-n8 bvx3 19:12:14
+COMPARED_WITH_TGZ_OK llama.cpp-n8 bvx3 19:12:22
+DECODED llama.cpp-n8 apple 19:12:31
+COMPARED_WITH_TGZ_OK llama.cpp-n8 apple 19:12:39
+DECODED llama.cpp-n8 tar.lz4 19:12:43
+COMPARED_WITH_TGZ_OK llama.cpp-n8 tar.lz4 19:12:54
+DECODED llama.cpp-n8 zstd 19:13:00
+COMPARED_WITH_TGZ_OK llama.cpp-n8 zstd 19:13:08
+RUNNING_MEMPROBE llama.cpp-n8 tgz 19:13:12
+MEMPROBE_DONE llama.cpp-n8 tgz 19:13:21
+RUNNING_MEMPROBE llama.cpp-n8 zstd 19:13:21
+MEMPROBE_DONE llama.cpp-n8 zstd 19:13:25
+RUNNING_MEMPROBE llama.cpp-n8 tar.lz4 19:13:25
+MEMPROBE_DONE llama.cpp-n8 tar.lz4 19:13:29
+RUNNING_MEMPROBE llama.cpp-n8 other3 19:13:29
+MEMPROBE_DONE llama.cpp-n8 other3 19:13:33
+RUNNING_MEMPROBE llama.cpp-n8 optimal3 19:13:33
+MEMPROBE_DONE llama.cpp-n8 optimal3 19:13:53
+RUNNING_MEMPROBE llama.cpp-n8 apple 19:13:53
+MEMPROBE_DONE llama.cpp-n8 apple 19:14:05
+RUNNING_MEMPROBE llama.cpp-n8 bvx3 19:14:05
+MEMPROBE_DONE llama.cpp-n8 bvx3 19:14:09
+RUNNING_MEMPROBE llama.cpp-n8 lazy2 19:14:09
+MEMPROBE_DONE llama.cpp-n8 lazy2 19:14:18
+RUNNING_MEMPROBE llama.cpp-n8 optimal 19:14:18
+MEMPROBE_DONE llama.cpp-n8 optimal 19:14:46
+LZ4BENCH_DONE llama.cpp-n8 19:14:46
+LZ4BENCH_OK llama.cpp-n8 19:14:47
 [Info] Completed llama.cpp benchmark with -n 8; output=lz4bench_log/lz4bench-llama.cpp-n8.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 4; output=lz4bench_log/lz4bench-llama.cpp-n4.txt
-RUNNING_LZ4BENCH llama.cpp-n4 18:13:04
-[Info] 磁碟可用空間充足：28GB / Sufficient disk space: 28GB
-RUNNING_LZ4BENCH llama.cpp-n4 18:13:04
-ENCODED llama.cpp-n4 tgz 18:13:16
-ENCODED llama.cpp-n4 other3 18:13:22
-ENCODED llama.cpp-n4 optimal3 18:13:55
-ENCODED llama.cpp-n4 lazy2 18:14:08
-ENCODED llama.cpp-n4 optimal 18:14:53
-ENCODED llama.cpp-n4 bvx3 18:14:59
-ENCODED llama.cpp-n4 apple 18:15:11
-ENCODED llama.cpp-n4 tar.lz4 18:15:17
-ENCODED llama.cpp-n4 zstd 18:15:23
-DECODED llama.cpp-n4 tgz 18:15:32
-COMPARE_BASE llama.cpp-n4 tgz 18:15:32
-DECODED llama.cpp-n4 other3 18:15:41
-COMPARED_WITH_TGZ_OK llama.cpp-n4 other3 18:15:50
-DECODED llama.cpp-n4 optimal3 18:16:03
-COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal3 18:16:13
-DECODED llama.cpp-n4 lazy2 18:16:26
-COMPARED_WITH_TGZ_OK llama.cpp-n4 lazy2 18:16:36
-DECODED llama.cpp-n4 optimal 18:16:49
-COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal 18:16:58
-DECODED llama.cpp-n4 bvx3 18:17:13
-COMPARED_WITH_TGZ_OK llama.cpp-n4 bvx3 18:17:22
-DECODED llama.cpp-n4 apple 18:17:36
-COMPARED_WITH_TGZ_OK llama.cpp-n4 apple 18:17:45
-DECODED llama.cpp-n4 tar.lz4 18:17:58
-COMPARED_WITH_TGZ_OK llama.cpp-n4 tar.lz4 18:18:08
-DECODED llama.cpp-n4 zstd 18:18:21
-COMPARED_WITH_TGZ_OK llama.cpp-n4 zstd 18:18:31
-RUNNING_MEMPROBE llama.cpp-n4 tgz 18:18:39
-MEMPROBE_DONE llama.cpp-n4 tgz 18:18:48
-RUNNING_MEMPROBE llama.cpp-n4 zstd 18:18:48
-MEMPROBE_DONE llama.cpp-n4 zstd 18:18:55
-RUNNING_MEMPROBE llama.cpp-n4 tar.lz4 18:18:55
-MEMPROBE_DONE llama.cpp-n4 tar.lz4 18:19:02
-RUNNING_MEMPROBE llama.cpp-n4 other3 18:19:02
-MEMPROBE_DONE llama.cpp-n4 other3 18:19:09
-RUNNING_MEMPROBE llama.cpp-n4 optimal3 18:19:09
-MEMPROBE_DONE llama.cpp-n4 optimal3 18:19:43
-RUNNING_MEMPROBE llama.cpp-n4 apple 18:19:43
-MEMPROBE_DONE llama.cpp-n4 apple 18:19:55
-RUNNING_MEMPROBE llama.cpp-n4 bvx3 18:19:55
-MEMPROBE_DONE llama.cpp-n4 bvx3 18:20:03
-RUNNING_MEMPROBE llama.cpp-n4 lazy2 18:20:03
-MEMPROBE_DONE llama.cpp-n4 lazy2 18:20:16
-RUNNING_MEMPROBE llama.cpp-n4 optimal 18:20:16
-MEMPROBE_DONE llama.cpp-n4 optimal 18:21:01
-LZ4BENCH_DONE llama.cpp-n4 18:21:01
-LZ4BENCH_OK llama.cpp-n4 18:21:02
+RUNNING_LZ4BENCH llama.cpp-n4 19:15:47
+[Info] 磁碟可用空間充足：21GB / Sufficient disk space: 21GB
+RUNNING_LZ4BENCH llama.cpp-n4 19:15:47
+ENCODED llama.cpp-n4 tgz 19:15:53
+ENCODED llama.cpp-n4 other3 19:15:57
+ENCODED llama.cpp-n4 optimal3 19:16:26
+ENCODED llama.cpp-n4 lazy2 19:16:37
+ENCODED llama.cpp-n4 optimal 19:17:15
+ENCODED llama.cpp-n4 bvx3 19:17:21
+ENCODED llama.cpp-n4 apple 19:17:32
+ENCODED llama.cpp-n4 tar.lz4 19:17:36
+ENCODED llama.cpp-n4 zstd 19:17:39
+DECODED llama.cpp-n4 tgz 19:17:43
+COMPARE_BASE llama.cpp-n4 tgz 19:17:43
+DECODED llama.cpp-n4 other3 19:17:46
+COMPARED_WITH_TGZ_OK llama.cpp-n4 other3 19:17:53
+DECODED llama.cpp-n4 optimal3 19:17:59
+COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal3 19:18:08
+DECODED llama.cpp-n4 lazy2 19:18:14
+COMPARED_WITH_TGZ_OK llama.cpp-n4 lazy2 19:18:23
+DECODED llama.cpp-n4 optimal 19:18:29
+COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal 19:18:38
+DECODED llama.cpp-n4 bvx3 19:18:45
+COMPARED_WITH_TGZ_OK llama.cpp-n4 bvx3 19:18:52
+DECODED llama.cpp-n4 apple 19:19:00
+COMPARED_WITH_TGZ_OK llama.cpp-n4 apple 19:19:09
+DECODED llama.cpp-n4 tar.lz4 19:19:16
+COMPARED_WITH_TGZ_OK llama.cpp-n4 tar.lz4 19:19:24
+DECODED llama.cpp-n4 zstd 19:19:29
+COMPARED_WITH_TGZ_OK llama.cpp-n4 zstd 19:19:37
+RUNNING_MEMPROBE llama.cpp-n4 tgz 19:19:41
+MEMPROBE_DONE llama.cpp-n4 tgz 19:19:50
+RUNNING_MEMPROBE llama.cpp-n4 zstd 19:19:50
+MEMPROBE_DONE llama.cpp-n4 zstd 19:19:54
+RUNNING_MEMPROBE llama.cpp-n4 tar.lz4 19:19:54
+MEMPROBE_DONE llama.cpp-n4 tar.lz4 19:19:58
+RUNNING_MEMPROBE llama.cpp-n4 other3 19:19:58
+MEMPROBE_DONE llama.cpp-n4 other3 19:20:03
+RUNNING_MEMPROBE llama.cpp-n4 optimal3 19:20:03
+MEMPROBE_DONE llama.cpp-n4 optimal3 19:20:31
+RUNNING_MEMPROBE llama.cpp-n4 apple 19:20:31
+MEMPROBE_DONE llama.cpp-n4 apple 19:20:43
+RUNNING_MEMPROBE llama.cpp-n4 bvx3 19:20:43
+MEMPROBE_DONE llama.cpp-n4 bvx3 19:20:48
+RUNNING_MEMPROBE llama.cpp-n4 lazy2 19:20:48
+MEMPROBE_DONE llama.cpp-n4 lazy2 19:20:58
+RUNNING_MEMPROBE llama.cpp-n4 optimal 19:20:58
+MEMPROBE_DONE llama.cpp-n4 optimal 19:21:36
+LZ4BENCH_DONE llama.cpp-n4 19:21:36
+LZ4BENCH_OK llama.cpp-n4 19:21:37
 [Info] Completed llama.cpp benchmark with -n 4; output=lz4bench_log/lz4bench-llama.cpp-n4.txt ,Sleeping 60s before next sweep.
+RUNNING_TRACER 19:22:37
+CLEAN_OLD_TRACES 19:22:37
+RUNNING_TRACE claw-code tgz 19:22:50
+TRACE_OUTPUT_CLEANED claw-code tgz 19:23:38
+TRACE_DONE claw-code tgz 19:23:38
+RUNNING_TRACE claw-code zstd 19:23:38
+TRACE_OUTPUT_CLEANED claw-code zstd 19:23:48
+TRACE_DONE claw-code zstd 19:23:48
+RUNNING_TRACE claw-code tar.lz4 19:23:48
+TRACE_OUTPUT_CLEANED claw-code tar.lz4 19:23:56
+TRACE_DONE claw-code tar.lz4 19:23:56
+RUNNING_TRACE claw-code other3 -n 4 19:23:56
+TRACE_OUTPUT_CLEANED claw-code other3-n4 19:29:03
+TRACE_TIMEOUT claw-code other3 -n 4 300s 19:29:03
+RUNNING_TRACE claw-code optimal3 -n 4 19:29:03
+TRACE_OUTPUT_CLEANED claw-code optimal3-n4 19:34:11
+TRACE_TIMEOUT claw-code optimal3 -n 4 300s 19:34:11
+RUNNING_TRACE claw-code apple -n 4 19:34:11
+TRACE_OUTPUT_CLEANED claw-code apple-n4 19:39:19
+TRACE_TIMEOUT claw-code apple -n 4 300s 19:39:19
+RUNNING_TRACE claw-code bvx3 -n 4 19:39:19
+TRACE_OUTPUT_CLEANED claw-code bvx3-n4 19:44:28
+TRACE_TIMEOUT claw-code bvx3 -n 4 300s 19:44:28
+RUNNING_TRACE claw-code lazy2 -n 4 19:44:28
+TRACE_OUTPUT_CLEANED claw-code lazy2-n4 19:49:36
+TRACE_TIMEOUT claw-code lazy2 -n 4 300s 19:49:36
+RUNNING_TRACE claw-code optimal -n 4 19:49:36
+TRACE_OUTPUT_CLEANED claw-code optimal-n4 19:54:44
+TRACE_TIMEOUT claw-code optimal -n 4 300s 19:54:44
+RUNNING_TRACE claw-code other3 -n 8 19:54:44
+TRACE_OUTPUT_CLEANED claw-code other3-n8 19:59:53
+TRACE_TIMEOUT claw-code other3 -n 8 300s 19:59:53
+RUNNING_TRACE claw-code optimal3 -n 8 19:59:53
+TRACE_OUTPUT_CLEANED claw-code optimal3-n8 20:05:01
+TRACE_TIMEOUT claw-code optimal3 -n 8 300s 20:05:01
+RUNNING_TRACE claw-code apple -n 8 20:05:01
+TRACE_OUTPUT_CLEANED claw-code apple-n8 20:10:07
+TRACE_TIMEOUT claw-code apple -n 8 300s 20:10:07
+RUNNING_TRACE claw-code bvx3 -n 8 20:10:07
+TRACE_OUTPUT_CLEANED claw-code bvx3-n8 20:15:16
+TRACE_TIMEOUT claw-code bvx3 -n 8 300s 20:15:16
+RUNNING_TRACE claw-code lazy2 -n 8 20:15:16
+TRACE_OUTPUT_CLEANED claw-code lazy2-n8 20:20:24
+TRACE_TIMEOUT claw-code lazy2 -n 8 300s 20:20:24
+RUNNING_TRACE claw-code optimal -n 8 20:20:24
+TRACE_OUTPUT_CLEANED claw-code optimal-n8 20:25:33
+TRACE_TIMEOUT claw-code optimal -n 8 300s 20:25:33
+RUNNING_TRACE claw-code other3 -n 40 20:25:33
+TRACE_OUTPUT_CLEANED claw-code other3-n40 20:30:41
+TRACE_TIMEOUT claw-code other3 -n 40 300s 20:30:41
+RUNNING_TRACE claw-code optimal3 -n 40 20:30:41
+TRACE_OUTPUT_CLEANED claw-code optimal3-n40 20:35:48
+TRACE_TIMEOUT claw-code optimal3 -n 40 300s 20:35:48
+RUNNING_TRACE claw-code apple -n 40 20:35:48
+TRACE_OUTPUT_CLEANED claw-code apple-n40 20:40:56
+TRACE_TIMEOUT claw-code apple -n 40 300s 20:40:56
+RUNNING_TRACE claw-code bvx3 -n 40 20:40:56
+TRACE_OUTPUT_CLEANED claw-code bvx3-n40 20:46:02
+TRACE_TIMEOUT claw-code bvx3 -n 40 300s 20:46:02
+RUNNING_TRACE claw-code lazy2 -n 40 20:46:02
+TRACE_OUTPUT_CLEANED claw-code lazy2-n40 20:51:11
+TRACE_TIMEOUT claw-code lazy2 -n 40 300s 20:51:11
+RUNNING_TRACE claw-code optimal -n 40 20:51:11
+TRACE_OUTPUT_CLEANED claw-code optimal-n40 20:56:22
+TRACE_TIMEOUT claw-code optimal -n 40 300s 20:56:22
+RUNNING_TRACE llama.cpp tgz 20:56:30
+TRACE_OUTPUT_CLEANED llama.cpp tgz 20:57:12
+TRACE_DONE llama.cpp tgz 20:57:12
+RUNNING_TRACE llama.cpp zstd 20:57:12
+TRACE_OUTPUT_CLEANED llama.cpp zstd 20:57:20
+TRACE_DONE llama.cpp zstd 20:57:20
+RUNNING_TRACE llama.cpp tar.lz4 20:57:20
+TRACE_OUTPUT_CLEANED llama.cpp tar.lz4 20:57:28
+TRACE_DONE llama.cpp tar.lz4 20:57:28
+RUNNING_TRACE llama.cpp other3 -n 4 20:57:28
+TRACE_OUTPUT_CLEANED llama.cpp other3-n4 21:02:35
+TRACE_TIMEOUT llama.cpp other3 -n 4 300s 21:02:35
+RUNNING_TRACE llama.cpp optimal3 -n 4 21:02:35
+TRACE_OUTPUT_CLEANED llama.cpp optimal3-n4 21:07:43
+TRACE_TIMEOUT llama.cpp optimal3 -n 4 300s 21:07:43
+RUNNING_TRACE llama.cpp apple -n 4 21:07:43
+TRACE_OUTPUT_CLEANED llama.cpp apple-n4 21:12:51
+TRACE_TIMEOUT llama.cpp apple -n 4 300s 21:12:51
+RUNNING_TRACE llama.cpp bvx3 -n 4 21:12:51
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n4 21:18:00
+TRACE_TIMEOUT llama.cpp bvx3 -n 4 300s 21:18:00
+RUNNING_TRACE llama.cpp lazy2 -n 4 21:18:00
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n4 21:23:08
+TRACE_TIMEOUT llama.cpp lazy2 -n 4 300s 21:23:08
+RUNNING_TRACE llama.cpp optimal -n 4 21:23:08
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n4 21:28:19
+TRACE_TIMEOUT llama.cpp optimal -n 4 300s 21:28:19
+RUNNING_TRACE llama.cpp other3 -n 8 21:28:19
+TRACE_OUTPUT_CLEANED llama.cpp other3-n8 21:33:25
+TRACE_TIMEOUT llama.cpp other3 -n 8 300s 21:33:25
+RUNNING_TRACE llama.cpp optimal3 -n 8 21:33:25
+TRACE_OUTPUT_CLEANED llama.cpp optimal3-n8 21:38:33
+TRACE_TIMEOUT llama.cpp optimal3 -n 8 300s 21:38:33
+RUNNING_TRACE llama.cpp apple -n 8 21:38:33
+TRACE_OUTPUT_CLEANED llama.cpp apple-n8 21:43:42
+TRACE_TIMEOUT llama.cpp apple -n 8 300s 21:43:42
+RUNNING_TRACE llama.cpp bvx3 -n 8 21:43:42
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n8 21:48:52
+TRACE_TIMEOUT llama.cpp bvx3 -n 8 300s 21:48:52
+RUNNING_TRACE llama.cpp lazy2 -n 8 21:48:52
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n8 21:54:01
+TRACE_TIMEOUT llama.cpp lazy2 -n 8 300s 21:54:01
+RUNNING_TRACE llama.cpp optimal -n 8 21:54:01
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n8 21:59:09
+TRACE_TIMEOUT llama.cpp optimal -n 8 300s 21:59:09
+RUNNING_TRACE llama.cpp other3 -n 40 21:59:09
+TRACE_OUTPUT_CLEANED llama.cpp other3-n40 22:04:15
+TRACE_TIMEOUT llama.cpp other3 -n 40 300s 22:04:15
+RUNNING_TRACE llama.cpp optimal3 -n 40 22:04:15
+TRACE_OUTPUT_CLEANED llama.cpp optimal3-n40 22:09:24
+TRACE_TIMEOUT llama.cpp optimal3 -n 40 300s 22:09:24
+RUNNING_TRACE llama.cpp apple -n 40 22:09:24
+TRACE_OUTPUT_CLEANED llama.cpp apple-n40 22:14:32
+TRACE_TIMEOUT llama.cpp apple -n 40 300s 22:14:32
+RUNNING_TRACE llama.cpp bvx3 -n 40 22:14:32
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n40 22:19:41
+TRACE_TIMEOUT llama.cpp bvx3 -n 40 300s 22:19:41
+RUNNING_TRACE llama.cpp lazy2 -n 40 22:19:41
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n40 22:24:49
+TRACE_TIMEOUT llama.cpp lazy2 -n 40 300s 22:24:49
+RUNNING_TRACE llama.cpp optimal -n 40 22:24:49
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n40 22:29:58
+TRACE_TIMEOUT llama.cpp optimal -n 40 300s 22:29:58
+TRACE_PACKAGE_COUNT_TRACER_END 42 22:29:58
+TRACER_TRACE_DONE 22:29:58
+TRACER_DONE 22:29:58
 Step1. Done. Please run sudo ./benchmark2.sh to continue the benchmark process.
-[Info] Configuring compiler environment... / 正在配置編譯器環境...
--> Switching to System Default GCC Environment / 已切換至系統預設 GCC 環境
-[Success] setcc completed. CURRENT SETCC=gcc, PACORES=20
+[36m[Info] Configuring compiler environment... / 正在配置編譯器環境...(B[m
+[33m-> Switching to Clang/LLVM Environment / 已切換至 Clang/LLVM 編譯環境(B[m
+[32m[Success] setcc completed. CURRENT SETCC=clang, PACORES=20(B[m
 [Info] Running Benchmark WITH probe mode (LZFSE_MEMPROBE=1). Peak-RSS probes run after compression/decompression benchmark and will be recorded in the result txt.
-RUNNING_POWER_BENCHMARK 18:22:17
-RUNNING_POWER claw-code-tgz-encode 18:22:20
-POWER_DONE claw-code-tgz-encode 18:22:26
-RUNNING_POWER claw-code-tgz-decode 18:22:26
+RUNNING_POWER_BENCHMARK 22:30:09
+RUNNING_POWER claw-code-tgz-encode 22:30:11
+POWER_DONE claw-code-tgz-encode 22:30:17
+RUNNING_POWER claw-code-tgz-decode 22:30:17
 Note: codec flags only affect -c; reading auto-detects. / 提示：引擎旗標僅影響 -c，讀取自動偵測。
-POWER_DONE claw-code-tgz-decode 18:22:29
-RUNNING_POWER claw-code-zstd-encode 18:22:29
-POWER_DONE claw-code-zstd-encode 18:22:34
-RUNNING_POWER claw-code-zstd-decode 18:22:34
-POWER_DONE claw-code-zstd-decode 18:22:36
-RUNNING_POWER claw-code-tar.lz4-encode 18:22:36
-POWER_DONE claw-code-tar.lz4-encode 18:22:40
-RUNNING_POWER claw-code-tar.lz4-decode 18:22:40
-POWER_DONE claw-code-tar.lz4-decode 18:22:41
-RUNNING_POWER claw-code-other3-n40-encode 18:22:41
-POWER_DONE claw-code-other3-n40-encode 18:22:45
-RUNNING_POWER claw-code-other3-n40-decode 18:22:45
-POWER_DONE claw-code-other3-n40-decode 18:22:48
-RUNNING_POWER claw-code-optimal3-n40-encode 18:22:48
-POWER_DONE claw-code-optimal3-n40-encode 18:23:13
-RUNNING_POWER claw-code-optimal3-n40-decode 18:23:14
-POWER_DONE claw-code-optimal3-n40-decode 18:23:16
-RUNNING_POWER claw-code-apple-n40-encode 18:23:16
-POWER_DONE claw-code-apple-n40-encode 18:23:26
-RUNNING_POWER claw-code-apple-n40-decode 18:23:26
-POWER_DONE claw-code-apple-n40-decode 18:23:30
-RUNNING_POWER claw-code-bvx3-n40-encode 18:23:30
-POWER_DONE claw-code-bvx3-n40-encode 18:23:34
-RUNNING_POWER claw-code-bvx3-n40-decode 18:23:34
-POWER_DONE claw-code-bvx3-n40-decode 18:23:37
-RUNNING_POWER claw-code-lazy2-n40-encode 18:23:37
-POWER_DONE claw-code-lazy2-n40-encode 18:24:02
-RUNNING_POWER claw-code-lazy2-n40-decode 18:24:02
-POWER_DONE claw-code-lazy2-n40-decode 18:24:04
-RUNNING_POWER claw-code-optimal-n40-encode 18:24:04
-POWER_DONE claw-code-optimal-n40-encode 18:24:52
-RUNNING_POWER claw-code-optimal-n40-decode 18:24:52
-POWER_DONE claw-code-optimal-n40-decode 18:24:55
-RUNNING_POWER claw-code-other3-n8-encode 18:24:55
-POWER_DONE claw-code-other3-n8-encode 18:24:59
-RUNNING_POWER claw-code-other3-n8-decode 18:24:59
-POWER_DONE claw-code-other3-n8-decode 18:25:02
-RUNNING_POWER claw-code-optimal3-n8-encode 18:25:02
-POWER_DONE claw-code-optimal3-n8-encode 18:25:29
-RUNNING_POWER claw-code-optimal3-n8-decode 18:25:29
-POWER_DONE claw-code-optimal3-n8-decode 18:25:32
-RUNNING_POWER claw-code-apple-n8-encode 18:25:32
-POWER_DONE claw-code-apple-n8-encode 18:25:42
-RUNNING_POWER claw-code-apple-n8-decode 18:25:42
-POWER_DONE claw-code-apple-n8-decode 18:25:46
-RUNNING_POWER claw-code-bvx3-n8-encode 18:25:46
-POWER_DONE claw-code-bvx3-n8-encode 18:25:49
-RUNNING_POWER claw-code-bvx3-n8-decode 18:25:49
-POWER_DONE claw-code-bvx3-n8-decode 18:25:53
-RUNNING_POWER claw-code-lazy2-n8-encode 18:25:53
-POWER_DONE claw-code-lazy2-n8-encode 18:26:18
-RUNNING_POWER claw-code-lazy2-n8-decode 18:26:18
-POWER_DONE claw-code-lazy2-n8-decode 18:26:21
-RUNNING_POWER claw-code-optimal-n8-encode 18:26:21
-POWER_DONE claw-code-optimal-n8-encode 18:27:11
-RUNNING_POWER claw-code-optimal-n8-decode 18:27:11
-POWER_DONE claw-code-optimal-n8-decode 18:27:14
-RUNNING_POWER claw-code-other3-n4-encode 18:27:14
-POWER_DONE claw-code-other3-n4-encode 18:27:19
-RUNNING_POWER claw-code-other3-n4-decode 18:27:19
-POWER_DONE claw-code-other3-n4-decode 18:27:23
-RUNNING_POWER claw-code-optimal3-n4-encode 18:27:23
-POWER_DONE claw-code-optimal3-n4-encode 18:28:02
-RUNNING_POWER claw-code-optimal3-n4-decode 18:28:02
-POWER_DONE claw-code-optimal3-n4-decode 18:28:05
-RUNNING_POWER claw-code-apple-n4-encode 18:28:05
-POWER_DONE claw-code-apple-n4-encode 18:28:15
-RUNNING_POWER claw-code-apple-n4-decode 18:28:15
-POWER_DONE claw-code-apple-n4-decode 18:28:19
-RUNNING_POWER claw-code-bvx3-n4-encode 18:28:19
-POWER_DONE claw-code-bvx3-n4-encode 18:28:24
-RUNNING_POWER claw-code-bvx3-n4-decode 18:28:24
-POWER_DONE claw-code-bvx3-n4-decode 18:28:29
-RUNNING_POWER claw-code-lazy2-n4-encode 18:28:29
-POWER_DONE claw-code-lazy2-n4-encode 18:29:01
-RUNNING_POWER claw-code-lazy2-n4-decode 18:29:01
-POWER_DONE claw-code-lazy2-n4-decode 18:29:05
-RUNNING_POWER claw-code-optimal-n4-encode 18:29:05
-POWER_DONE claw-code-optimal-n4-encode 18:30:11
-RUNNING_POWER claw-code-optimal-n4-decode 18:30:11
-POWER_DONE claw-code-optimal-n4-decode 18:30:15
-RUNNING_POWER llama.cpp-tgz-encode 18:30:22
-POWER_DONE llama.cpp-tgz-encode 18:30:30
-RUNNING_POWER llama.cpp-tgz-decode 18:30:30
+POWER_DONE claw-code-tgz-decode 22:30:20
+RUNNING_POWER claw-code-zstd-encode 22:30:20
+POWER_DONE claw-code-zstd-encode 22:30:24
+RUNNING_POWER claw-code-zstd-decode 22:30:24
+POWER_DONE claw-code-zstd-decode 22:30:26
+RUNNING_POWER claw-code-tar.lz4-encode 22:30:26
+POWER_DONE claw-code-tar.lz4-encode 22:30:29
+RUNNING_POWER claw-code-tar.lz4-decode 22:30:29
+POWER_DONE claw-code-tar.lz4-decode 22:30:31
+RUNNING_POWER claw-code-other3-n40-encode 22:30:31
+POWER_DONE claw-code-other3-n40-encode 22:30:34
+RUNNING_POWER claw-code-other3-n40-decode 22:30:34
+POWER_DONE claw-code-other3-n40-decode 22:30:36
+RUNNING_POWER claw-code-optimal3-n40-encode 22:30:37
+POWER_DONE claw-code-optimal3-n40-encode 22:30:58
+RUNNING_POWER claw-code-optimal3-n40-decode 22:30:58
+POWER_DONE claw-code-optimal3-n40-decode 22:31:01
+RUNNING_POWER claw-code-apple-n40-encode 22:31:01
+POWER_DONE claw-code-apple-n40-encode 22:31:11
+RUNNING_POWER claw-code-apple-n40-decode 22:31:11
+POWER_DONE claw-code-apple-n40-decode 22:31:14
+RUNNING_POWER claw-code-bvx3-n40-encode 22:31:14
+POWER_DONE claw-code-bvx3-n40-encode 22:31:18
+RUNNING_POWER claw-code-bvx3-n40-decode 22:31:18
+POWER_DONE claw-code-bvx3-n40-decode 22:31:20
+RUNNING_POWER claw-code-lazy2-n40-encode 22:31:20
+POWER_DONE claw-code-lazy2-n40-encode 22:31:41
+RUNNING_POWER claw-code-lazy2-n40-decode 22:31:41
+POWER_DONE claw-code-lazy2-n40-decode 22:31:44
+RUNNING_POWER claw-code-optimal-n40-encode 22:31:44
+POWER_DONE claw-code-optimal-n40-encode 22:32:24
+RUNNING_POWER claw-code-optimal-n40-decode 22:32:24
+POWER_DONE claw-code-optimal-n40-decode 22:32:27
+RUNNING_POWER claw-code-other3-n8-encode 22:32:27
+POWER_DONE claw-code-other3-n8-encode 22:32:30
+RUNNING_POWER claw-code-other3-n8-decode 22:32:30
+POWER_DONE claw-code-other3-n8-decode 22:32:33
+RUNNING_POWER claw-code-optimal3-n8-encode 22:32:33
+POWER_DONE claw-code-optimal3-n8-encode 22:32:57
+RUNNING_POWER claw-code-optimal3-n8-decode 22:32:57
+POWER_DONE claw-code-optimal3-n8-decode 22:33:00
+RUNNING_POWER claw-code-apple-n8-encode 22:33:00
+POWER_DONE claw-code-apple-n8-encode 22:33:10
+RUNNING_POWER claw-code-apple-n8-decode 22:33:10
+POWER_DONE claw-code-apple-n8-decode 22:33:14
+RUNNING_POWER claw-code-bvx3-n8-encode 22:33:14
+POWER_DONE claw-code-bvx3-n8-encode 22:33:17
+RUNNING_POWER claw-code-bvx3-n8-decode 22:33:17
+POWER_DONE claw-code-bvx3-n8-decode 22:33:20
+RUNNING_POWER claw-code-lazy2-n8-encode 22:33:20
+POWER_DONE claw-code-lazy2-n8-encode 22:33:43
+RUNNING_POWER claw-code-lazy2-n8-decode 22:33:43
+POWER_DONE claw-code-lazy2-n8-decode 22:33:46
+RUNNING_POWER claw-code-optimal-n8-encode 22:33:46
+POWER_DONE claw-code-optimal-n8-encode 22:34:30
+RUNNING_POWER claw-code-optimal-n8-decode 22:34:30
+POWER_DONE claw-code-optimal-n8-decode 22:34:33
+RUNNING_POWER claw-code-other3-n4-encode 22:34:33
+POWER_DONE claw-code-other3-n4-encode 22:34:38
+RUNNING_POWER claw-code-other3-n4-decode 22:34:38
+POWER_DONE claw-code-other3-n4-decode 22:34:41
+RUNNING_POWER claw-code-optimal3-n4-encode 22:34:41
+POWER_DONE claw-code-optimal3-n4-encode 22:35:14
+RUNNING_POWER claw-code-optimal3-n4-decode 22:35:14
+POWER_DONE claw-code-optimal3-n4-decode 22:35:17
+RUNNING_POWER claw-code-apple-n4-encode 22:35:17
+POWER_DONE claw-code-apple-n4-encode 22:35:28
+RUNNING_POWER claw-code-apple-n4-decode 22:35:28
+POWER_DONE claw-code-apple-n4-decode 22:35:31
+RUNNING_POWER claw-code-bvx3-n4-encode 22:35:31
+POWER_DONE claw-code-bvx3-n4-encode 22:35:36
+RUNNING_POWER claw-code-bvx3-n4-decode 22:35:36
+POWER_DONE claw-code-bvx3-n4-decode 22:35:40
+RUNNING_POWER claw-code-lazy2-n4-encode 22:35:40
+POWER_DONE claw-code-lazy2-n4-encode 22:36:05
+RUNNING_POWER claw-code-lazy2-n4-decode 22:36:05
+POWER_DONE claw-code-lazy2-n4-decode 22:36:09
+RUNNING_POWER claw-code-optimal-n4-encode 22:36:09
+POWER_DONE claw-code-optimal-n4-encode 22:37:03
+RUNNING_POWER claw-code-optimal-n4-decode 22:37:03
+POWER_DONE claw-code-optimal-n4-decode 22:37:07
+RUNNING_POWER llama.cpp-tgz-encode 22:37:14
+POWER_DONE llama.cpp-tgz-encode 22:37:20
+RUNNING_POWER llama.cpp-tgz-decode 22:37:20
 Note: codec flags only affect -c; reading auto-detects. / 提示：引擎旗標僅影響 -c，讀取自動偵測。
-POWER_DONE llama.cpp-tgz-decode 18:30:33
-RUNNING_POWER llama.cpp-zstd-encode 18:30:33
-POWER_DONE llama.cpp-zstd-encode 18:30:36
-RUNNING_POWER llama.cpp-zstd-decode 18:30:36
-POWER_DONE llama.cpp-zstd-decode 18:30:38
-RUNNING_POWER llama.cpp-tar.lz4-encode 18:30:38
-POWER_DONE llama.cpp-tar.lz4-encode 18:30:42
-RUNNING_POWER llama.cpp-tar.lz4-decode 18:30:42
-POWER_DONE llama.cpp-tar.lz4-decode 18:30:43
-RUNNING_POWER llama.cpp-other3-n40-encode 18:30:43
-POWER_DONE llama.cpp-other3-n40-encode 18:30:47
-RUNNING_POWER llama.cpp-other3-n40-decode 18:30:47
-POWER_DONE llama.cpp-other3-n40-decode 18:30:49
-RUNNING_POWER llama.cpp-optimal3-n40-encode 18:30:49
-POWER_DONE llama.cpp-optimal3-n40-encode 18:31:11
-RUNNING_POWER llama.cpp-optimal3-n40-decode 18:31:11
-POWER_DONE llama.cpp-optimal3-n40-decode 18:31:13
-RUNNING_POWER llama.cpp-apple-n40-encode 18:31:13
-POWER_DONE llama.cpp-apple-n40-encode 18:31:22
-RUNNING_POWER llama.cpp-apple-n40-decode 18:31:22
-POWER_DONE llama.cpp-apple-n40-decode 18:31:26
-RUNNING_POWER llama.cpp-bvx3-n40-encode 18:31:26
-POWER_DONE llama.cpp-bvx3-n40-encode 18:31:30
-RUNNING_POWER llama.cpp-bvx3-n40-decode 18:31:30
-POWER_DONE llama.cpp-bvx3-n40-decode 18:31:32
-RUNNING_POWER llama.cpp-lazy2-n40-encode 18:31:32
-POWER_DONE llama.cpp-lazy2-n40-encode 18:31:42
-RUNNING_POWER llama.cpp-lazy2-n40-decode 18:31:42
-POWER_DONE llama.cpp-lazy2-n40-decode 18:31:45
-RUNNING_POWER llama.cpp-optimal-n40-encode 18:31:45
-POWER_DONE llama.cpp-optimal-n40-encode 18:32:16
-RUNNING_POWER llama.cpp-optimal-n40-decode 18:32:16
-POWER_DONE llama.cpp-optimal-n40-decode 18:32:18
-RUNNING_POWER llama.cpp-other3-n8-encode 18:32:18
-POWER_DONE llama.cpp-other3-n8-encode 18:32:22
-RUNNING_POWER llama.cpp-other3-n8-decode 18:32:22
-POWER_DONE llama.cpp-other3-n8-decode 18:32:24
-RUNNING_POWER llama.cpp-optimal3-n8-encode 18:32:24
-POWER_DONE llama.cpp-optimal3-n8-encode 18:32:47
-RUNNING_POWER llama.cpp-optimal3-n8-decode 18:32:47
-POWER_DONE llama.cpp-optimal3-n8-decode 18:32:50
-RUNNING_POWER llama.cpp-apple-n8-encode 18:32:50
-POWER_DONE llama.cpp-apple-n8-encode 18:32:59
-RUNNING_POWER llama.cpp-apple-n8-decode 18:32:59
-POWER_DONE llama.cpp-apple-n8-decode 18:33:03
-RUNNING_POWER llama.cpp-bvx3-n8-encode 18:33:03
-POWER_DONE llama.cpp-bvx3-n8-encode 18:33:06
-RUNNING_POWER llama.cpp-bvx3-n8-decode 18:33:06
-POWER_DONE llama.cpp-bvx3-n8-decode 18:33:09
-RUNNING_POWER llama.cpp-lazy2-n8-encode 18:33:09
-POWER_DONE llama.cpp-lazy2-n8-encode 18:33:19
-RUNNING_POWER llama.cpp-lazy2-n8-decode 18:33:19
-POWER_DONE llama.cpp-lazy2-n8-decode 18:33:22
-RUNNING_POWER llama.cpp-optimal-n8-encode 18:33:22
-POWER_DONE llama.cpp-optimal-n8-encode 18:33:54
-RUNNING_POWER llama.cpp-optimal-n8-decode 18:33:54
-POWER_DONE llama.cpp-optimal-n8-decode 18:33:57
-RUNNING_POWER llama.cpp-other3-n4-encode 18:33:57
-POWER_DONE llama.cpp-other3-n4-encode 18:34:01
-RUNNING_POWER llama.cpp-other3-n4-decode 18:34:01
-POWER_DONE llama.cpp-other3-n4-decode 18:34:04
-RUNNING_POWER llama.cpp-optimal3-n4-encode 18:34:04
-POWER_DONE llama.cpp-optimal3-n4-encode 18:34:37
-RUNNING_POWER llama.cpp-optimal3-n4-decode 18:34:37
-POWER_DONE llama.cpp-optimal3-n4-decode 18:34:40
-RUNNING_POWER llama.cpp-apple-n4-encode 18:34:40
-POWER_DONE llama.cpp-apple-n4-encode 18:34:49
-RUNNING_POWER llama.cpp-apple-n4-decode 18:34:49
-POWER_DONE llama.cpp-apple-n4-decode 18:34:53
-RUNNING_POWER llama.cpp-bvx3-n4-encode 18:34:53
-POWER_DONE llama.cpp-bvx3-n4-encode 18:34:58
-RUNNING_POWER llama.cpp-bvx3-n4-decode 18:34:58
-POWER_DONE llama.cpp-bvx3-n4-decode 18:35:01
-RUNNING_POWER llama.cpp-lazy2-n4-encode 18:35:01
-POWER_DONE llama.cpp-lazy2-n4-encode 18:35:13
-RUNNING_POWER llama.cpp-lazy2-n4-decode 18:35:13
-POWER_DONE llama.cpp-lazy2-n4-decode 18:35:16
-RUNNING_POWER llama.cpp-optimal-n4-encode 18:35:16
-POWER_DONE llama.cpp-optimal-n4-encode 18:36:01
-RUNNING_POWER llama.cpp-optimal-n4-decode 18:36:01
-POWER_DONE llama.cpp-optimal-n4-decode 18:36:05
-POWER_BENCHMARK_DONE 18:36:05
-POWER_BENCHMARK_DONE 18:36:05
-RUNNING_TRACE_ANALYSIS 18:36:05
-TRACE_PACKAGE_COUNT_ANALYSIS_START 0 expected=unknown 18:36:05
-TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data 18:36:05
-TRACE_ANALYSIS_DONE 18:36:05
-RUNNING_CPU_CALL_TREE_ANALYSIS 18:36:05
-CPU_CALL_TREE_TRACE_COUNT_START 0 expected=unknown 18:36:06
-CPU_CALL_TREE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data 18:36:06
-CPU_CALL_TREE_ANALYSIS_DONE 18:36:06
-RUNNING_GIT_GC 18:36:06
-GIT_GC_DONE 18:36:21
-RUNNING_BENCHMARK_RESULT_REBUILD 18:36:21
-[Info] generated rows: 54
-[Info] wrote BenchMarkResult.csv
-BENCHMARK_RESULT_REBUILD_DONE 18:36:21
-RUNNING_POWER_SUMMARY_INTEGRATE 18:36:21
-[Info] integrated CPU power/energy and TGZ energy ratios into BenchMarkResult.csv
-[Info] integrated CPU power/energy extrema and TGZ energy ratios into best_points/best_points.csv
-[Info] wrote best_points/best_points.md
-POWER_SUMMARY_INTEGRATE_DONE 18:36:21
-RUNNING_BEST_POINTS_ANALYSIS 18:36:21
-[Info] wrote best_points/best_points.md
-[Info] wrote best_points/best_points.csv
-BEST_POINTS_ANALYSIS_DONE 18:36:22
-RUNNING_COMPARISON 18:36:22
-
-==============================================================================
-  macOS vs Windows — dataset=claw-code  mac_n=40  win_n=40(inflight)
-  macOS  : BenchMarkResult.csv
-  Windows: encode_summary.csv
-  Win Dec: decode_summary.csv
-  Win RSS: rss_summary.csv
-
-  Workflow: R{N}-Mac first → R{N}-Win → this script.
-  Semantic: macOS -n 40 = 40 repetitions (avg).
-            Windows -n 40 = inflight chunk count (single run).
-==============================================================================
-
-------------------------------------------------------------------------------
-  1a. Encode MB/s  壓縮速度  (ratio = format / TGZ, per platform)
-------------------------------------------------------------------------------
-  Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Bar(Mac)
-  ----------------------  ---------  -------  ---------  -------  -------  --------------------
-  TGZ                        294.62   1.0000     173.91   1.0000    0.590  ############........
-  LZFSE (Other3)             490.02   1.6632     192.59   1.1074    0.393  ####################
-  LZFSE (Optimal3)            68.08   0.2311      30.44   0.1750    0.447  ###.................
-  LZFSE (BVX3)               498.17   1.6909     192.76   1.1084    0.387  ####################
-  LZFSE (Lazy2)               70.75   0.2401      38.97   0.2241    0.551  ###.................
-  LZFSE (Optimal)             36.57   0.1241      18.01   0.1035    0.492  #...................
-  TLZ4                       466.99   1.5851     182.25   1.0480    0.390  ###################.
-  ZSTD                       468.16   1.5890     120.81   0.6946    0.258  ###################.
-
-------------------------------------------------------------------------------
-  1b. Decode MB/s  解壓速度  (Mac: avg n=40; Windows: single run total)
-------------------------------------------------------------------------------
-  Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Verify  Bar(Mac)
-  ----------------------  ---------  -------  ---------  -------  -------  ------  --------------------
-  TGZ                        424.51   1.0000     121.40   1.0000    0.286    PASS  ###########.........
-  LZFSE (Other3)             556.28   1.3104     191.78   1.5798    0.345    PASS  ###############.....
-  LZFSE (Optimal3)           548.09   1.2911     191.36   1.5763    0.349    PASS  ###############.....
-  LZFSE (BVX3)               561.11   1.3218     188.89   1.5559    0.337    PASS  ###############.....
-  LZFSE (Lazy2)              517.24   1.2184     186.71   1.5380    0.361    PASS  ##############......
-  LZFSE (Optimal)            390.50   0.9199     195.26   1.6084    0.500    PASS  ###########.........
-  TLZ4                       741.95   1.7478     244.56   2.0145    0.330    PASS  ####################
-  ZSTD                       666.87   1.5709     229.54   1.8908    0.344    PASS  ##################..
-
-------------------------------------------------------------------------------
-  1c. Compress Size & Ratio  壓縮大小與比率  (ratio = format / TGZ, per platform)
-------------------------------------------------------------------------------
-  Format                   Mac MiB  Mac/TGZ   Win MiB  Win/TGZ  Mac/Win
-  ----------------------  --------  -------  --------  -------  -------
-  TGZ                        469.0   1.0000     468.6   1.0000   1.0009
-  LZFSE (Other3)             460.0   0.9812     459.8   0.9812   1.0005
-  LZFSE (Optimal3)           438.0   0.9344     437.8   0.9344   1.0004
-  LZFSE (BVX3)               433.0   0.9244     433.1   0.9243   0.9998
-  LZFSE (Lazy2)              407.0   0.8683     407.1   0.8687   0.9999
-  LZFSE (Optimal)            387.0   0.8253     386.6   0.8252   1.0009
-  TLZ4                       552.0   1.1786     549.8   1.1734   1.0040
-  ZSTD                       366.0   0.7805     365.7   0.7806   1.0007
-
-------------------------------------------------------------------------------
-  2. RSS MB  peak memory  (Mac + Windows when rss_summary.csv is available)
-------------------------------------------------------------------------------
-  Format                   Mac Enc   Mac/TGZ   Win Enc   Win/TGZ   Mac Dec   Win Dec
-  ----------------------  --------  --------  --------  --------  --------  --------
-  TGZ                       202.00    1.0000      6.40    1.0000     45.00      5.90
-  LZFSE (Other3)            347.40    1.7198    130.30   20.3594    305.40    257.50
-  LZFSE (Optimal3)          554.00    2.7426    499.10   77.9844    323.20    255.40
-  LZFSE (BVX3)              367.50    1.8193    139.30   21.7656    319.40    248.50
-  LZFSE (Lazy2)             502.50    2.4876    482.70   75.4219    323.80    248.80
-  LZFSE (Optimal)           558.10    2.7629    508.80   79.5000    335.40    244.90
-  TLZ4                       81.60    0.4040      8.80    1.3750     33.80      8.80
-  ZSTD                      392.40    1.9426      8.30    1.2969      9.20      8.80
-
-------------------------------------------------------------------------------
-  3. CPU Energy J  能耗  (Mac only — macOS powermetrics required)
-------------------------------------------------------------------------------
-  Format                      Enc J   Enc/TGZ      Dec J   Dec/TGZ
-  ----------------------  ---------  --------  ---------  --------
-  TGZ                         93.65    1.0000      15.05    1.0000
-  LZFSE (Other3)              43.58    0.4653       6.23    0.4137
-  LZFSE (Optimal3)           445.80    4.7602       6.54    0.4346
-  LZFSE (BVX3)                45.30    0.4837       8.94    0.5941
-  LZFSE (Lazy2)              194.51    2.0770       6.92    0.4600
-  LZFSE (Optimal)            652.04    6.9624       7.78    0.5168
-  TLZ4                        43.12    0.4604       4.15    0.2755
-  ZSTD                        48.91    0.5222       8.50    0.5650
-
-==============================================================================
-
-[OK] /Users/raliclo/proj/lzfse2/helper_windows/bench_results_csv/comparison.csv written (8 rows)
-  TGZ                  Win enc  173.91 MB/s  dec  121.40 MB/s
-  LZFSE (Other3)       Win enc  192.59 MB/s  dec  191.78 MB/s
-  LZFSE (Optimal3)     Win enc   30.44 MB/s  dec  191.36 MB/s
-  LZFSE (BVX3)         Win enc  192.76 MB/s  dec  188.89 MB/s
-  LZFSE (Lazy2)        Win enc   38.97 MB/s  dec  186.71 MB/s
-  LZFSE (Optimal)      Win enc   18.01 MB/s  dec  195.26 MB/s
-  TLZ4                 Win enc  182.25 MB/s  dec  244.56 MB/s
-  ZSTD                 Win enc  120.81 MB/s  dec  229.54 MB/s
-COMPARISON_DONE 18:36:22
-RUNNING md-translate 18:36:22
-TRANSLATE_DONE 18:39:42
-Done.
-BENCH_DONE 18:39:42
+POWER_DONE llama.cpp-tgz-decode 22:37:22
+RUNNING_POWER llama.cpp-zstd-encode 22:37:22
+POWER_DONE llama.cpp-zstd-encode 22:37:25
+RUNNING_POWER llama.cpp-zstd-decode 22:37:25
+POWER_DONE llama.cpp-zstd-decode 22:37:27
+RUNNING_POWER llama.cpp-tar.lz4-encode 22:37:27
+POWER_DONE llama.cpp-tar.lz4-encode 22:37:30
+RUNNING_POWER llama.cpp-tar.lz4-decode 22:37:30
+POWER_DONE llama.cpp-tar.lz4-decode 22:37:32
+RUNNING_POWER llama.cpp-other3-n40-encode 22:37:32
+POWER_DONE llama.cpp-other3-n40-encode 22:37:35
+RUNNING_POWER llama.cpp-other3-n40-decode 22:37:35
+POWER_DONE llama.cpp-other3-n40-decode 22:37:37
+RUNNING_POWER llama.cpp-optimal3-n40-encode 22:37:37
+POWER_DONE llama.cpp-optimal3-n40-encode 22:37:55
+RUNNING_POWER llama.cpp-optimal3-n40-decode 22:37:55
+POWER_DONE llama.cpp-optimal3-n40-decode 22:37:57
+RUNNING_POWER llama.cpp-apple-n40-encode 22:37:57
+POWER_DONE llama.cpp-apple-n40-encode 22:38:06
+RUNNING_POWER llama.cpp-apple-n40-decode 22:38:06
+POWER_DONE llama.cpp-apple-n40-decode 22:38:10
+RUNNING_POWER llama.cpp-bvx3-n40-encode 22:38:10
+POWER_DONE llama.cpp-bvx3-n40-encode 22:38:13
+RUNNING_POWER llama.cpp-bvx3-n40-decode 22:38:13
+POWER_DONE llama.cpp-bvx3-n40-decode 22:38:15
+RUNNING_POWER llama.cpp-lazy2-n40-encode 22:38:15
+POWER_DONE llama.cpp-lazy2-n40-encode 22:38:24
+RUNNING_POWER llama.cpp-lazy2-n40-decode 22:38:24
+POWER_DONE llama.cpp-lazy2-n40-decode 22:38:26
+RUNNING_POWER llama.cpp-optimal-n40-encode 22:38:26
+POWER_DONE llama.cpp-optimal-n40-encode 22:38:51
+RUNNING_POWER llama.cpp-optimal-n40-decode 22:38:51
+POWER_DONE llama.cpp-optimal-n40-decode 22:38:53
+RUNNING_POWER llama.cpp-other3-n8-encode 22:38:53
+POWER_DONE llama.cpp-other3-n8-encode 22:38:57
+RUNNING_POWER llama.cpp-other3-n8-decode 22:38:57
+POWER_DONE llama.cpp-other3-n8-decode 22:38:59
+RUNNING_POWER llama.cpp-optimal3-n8-encode 22:38:59
+POWER_DONE llama.cpp-optimal3-n8-encode 22:39:19
+RUNNING_POWER llama.cpp-optimal3-n8-decode 22:39:19
+POWER_DONE llama.cpp-optimal3-n8-decode 22:39:21
+RUNNING_POWER llama.cpp-apple-n8-encode 22:39:21
+POWER_DONE llama.cpp-apple-n8-encode 22:39:30
+RUNNING_POWER llama.cpp-apple-n8-decode 22:39:30
+POWER_DONE llama.cpp-apple-n8-decode 22:39:34
+RUNNING_POWER llama.cpp-bvx3-n8-encode 22:39:34
+POWER_DONE llama.cpp-bvx3-n8-encode 22:39:37
+RUNNING_POWER llama.cpp-bvx3-n8-decode 22:39:37
+POWER_DONE llama.cpp-bvx3-n8-decode 22:39:40
+RUNNING_POWER llama.cpp-lazy2-n8-encode 22:39:40
+POWER_DONE llama.cpp-lazy2-n8-encode 22:39:49
+RUNNING_POWER llama.cpp-lazy2-n8-decode 22:39:49
+POWER_DONE llama.cpp-lazy2-n8-decode 22:39:51
+RUNNING_POWER llama.cpp-optimal-n8-encode 22:39:51
+POWER_DONE llama.cpp-optimal-n8-encode 22:40:19
+RUNNING_POWER llama.cpp-optimal-n8-decode 22:40:19
+POWER_DONE llama.cpp-optimal-n8-decode 22:40:22
+RUNNING_POWER llama.cpp-other3-n4-encode 22:40:22
+POWER_DONE llama.cpp-other3-n4-encode 22:40:26
+RUNNING_POWER llama.cpp-other3-n4-decode 22:40:26
+POWER_DONE llama.cpp-other3-n4-decode 22:40:29
+RUNNING_POWER llama.cpp-optimal3-n4-encode 22:40:29
+POWER_DONE llama.cpp-optimal3-n4-encode 22:40:57
+RUNNING_POWER llama.cpp-optimal3-n4-decode 22:40:57
+POWER_DONE llama.cpp-optimal3-n4-decode 22:41:00
+RUNNING_POWER llama.cpp-apple-n4-encode 22:41:00
+POWER_DONE llama.cpp-apple-n4-encode 22:41:08
+RUNNING_POWER llama.cpp-apple-n4-decode 22:41:08
+POWER_DONE llama.cpp-apple-n4-decode 22:41:12
+RUNNING_POWER llama.cpp-bvx3-n4-encode 22:41:12
+POWER_DONE llama.cpp-bvx3-n4-encode 22:41:16
+RUNNING_POWER llama.cpp-bvx3-n4-decode 22:41:16
+POWER_DONE llama.cpp-bvx3-n4-decode 22:41:19
+RUNNING_POWER llama.cpp-lazy2-n4-encode 22:41:19
+POWER_DONE llama.cpp-lazy2-n4-encode 22:41:30
+RUNNING_POWER llama.cpp-lazy2-n4-decode 22:41:30
+POWER_DONE llama.cpp-lazy2-n4-decode 22:41:33
+RUNNING_POWER llama.cpp-optimal-n4-encode 22:41:33
+POWER_DONE llama.cpp-optimal-n4-encode 22:42:10
+RUNNING_POWER llama.cpp-optimal-n4-decode 22:42:10
+POWER_DONE llama.cpp-optimal-n4-decode 22:42:13
+POWER_BENCHMARK_DONE 22:42:13
+POWER_BENCHMARK_DONE 22:42:13
+RUNNING_TRACE_ANALYSIS 22:42:13
+TRACE_PACKAGE_COUNT_ANALYSIS_START 42 expected=42 22:42:13
+RUNNING_TRACE_ANALYSIS claw-code-tar.lz4.trace 22:42:13
+TRACE_ANALYSIS_OK claw-code-tar.lz4.trace 22:42:17
+RUNNING_TRACE_TABLE_EXPORT claw-code-tar.lz4.trace time-profile 22:42:17
+TRACE_TABLE_EXPORT_OK claw-code-tar.lz4.trace time-profile 22:42:18
+RUNNING_TRACE_TABLE_EXPORT claw-code-tar.lz4.trace time-sample 22:42:18
+TRACE_TABLE_EXPORT_OK claw-code-tar.lz4.trace time-sample 22:42:21
+RUNNING_TRACE_ANALYSIS claw-code-tgz.trace 22:42:21
+TRACE_ANALYSIS_OK claw-code-tgz.trace 22:42:22
+RUNNING_TRACE_TABLE_EXPORT claw-code-tgz.trace time-profile 22:42:22
+TRACE_TABLE_EXPORT_OK claw-code-tgz.trace time-profile 22:42:24
+RUNNING_TRACE_TABLE_EXPORT claw-code-tgz.trace time-sample 22:42:24
+TRACE_TABLE_EXPORT_OK claw-code-tgz.trace time-sample 22:42:27
+RUNNING_TRACE_ANALYSIS claw-code-zstd.trace 22:42:27
+TRACE_ANALYSIS_OK claw-code-zstd.trace 22:42:29
+RUNNING_TRACE_TABLE_EXPORT claw-code-zstd.trace time-profile 22:42:29
+TRACE_TABLE_EXPORT_OK claw-code-zstd.trace time-profile 22:42:31
+RUNNING_TRACE_TABLE_EXPORT claw-code-zstd.trace time-sample 22:42:31
+TRACE_TABLE_EXPORT_OK claw-code-zstd.trace time-sample 22:42:33
+RUNNING_TRACE_ANALYSIS llama.cpp-tar.lz4.trace 22:42:33
+TRACE_ANALYSIS_OK llama.cpp-tar.lz4.trace 22:42:35
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tar.lz4.trace time-profile 22:42:35
+TRACE_TABLE_EXPORT_OK llama.cpp-tar.lz4.trace time-profile 22:42:37
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tar.lz4.trace time-sample 22:42:37
+TRACE_TABLE_EXPORT_OK llama.cpp-tar.lz4.trace time-sample 22:42:39
+RUNNING_TRACE_ANALYSIS llama.cpp-tgz.trace 22:42:39
+TRACE_ANALYSIS_OK llama.cpp-tgz.trace 22:42:40
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tgz.trace time-profile 22:42:40
+TRACE_TABLE_EXPORT_OK llama.cpp-tgz.trace time-profile 22:42:43
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tgz.trace time-sample 22:42:43
+TRACE_TABLE_EXPORT_OK llama.cpp-tgz.trace time-sample 22:42:45
+RUNNING_TRACE_ANALYSIS llama.cpp-zstd.trace 22:42:45
+TRACE_ANALYSIS_OK llama.cpp-zstd.trace 22:42:47
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-zstd.trace time-profile 22:42:47
+TRACE_TABLE_EXPORT_OK llama.cpp-zstd.trace time-profile 22:42:49
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-zstd.trace time-sample 22:42:49
+TRACE_TABLE_EXPORT_OK llama.cpp-zstd.trace time-sample 22:42:51
+RUNNING_TRACE_ANALYSIS claw-code-apple-n4.trace.timeout 22:42:51
+TRACE_ANALYSIS_FAILED claw-code-apple-n4.trace.timeout 11 22:42:51
+RUNNING_TRACE_ANALYSIS claw-code-apple-n40.trace.timeout 22:42:51
+TRACE_ANALYSIS_FAILED claw-code-apple-n40.trace.timeout 11 22:42:52
+RUNNING_TRACE_ANALYSIS claw-code-apple-n8.trace.timeout 22:42:52
+TRACE_ANALYSIS_FAILED claw-code-apple-n8.trace.timeout 11 22:42:52
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n4.trace.timeout 22:42:53
+TRACE_ANALYSIS_FAILED claw-code-bvx3-n4.trace.timeout 11 22:42:53
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n40.trace.timeout 22:42:53
+TRACE_ANALYSIS_FAILED claw-code-bvx3-n40.trace.timeout 11 22:42:54
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n8.trace.timeout 22:42:54
+TRACE_ANALYSIS_FAILED claw-code-bvx3-n8.trace.timeout 11 22:42:54
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n4.trace.timeout 22:42:54
+TRACE_ANALYSIS_FAILED claw-code-lazy2-n4.trace.timeout 11 22:42:55
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n40.trace.timeout 22:42:55
+TRACE_ANALYSIS_FAILED claw-code-lazy2-n40.trace.timeout 11 22:42:55
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n8.trace.timeout 22:42:55
+TRACE_ANALYSIS_FAILED claw-code-lazy2-n8.trace.timeout 11 22:42:56
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n4.trace.timeout 22:42:56
+TRACE_ANALYSIS_FAILED claw-code-optimal-n4.trace.timeout 11 22:42:56
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n40.trace.timeout 22:42:56
+TRACE_ANALYSIS_FAILED claw-code-optimal-n40.trace.timeout 11 22:42:57
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n8.trace.timeout 22:42:57
+TRACE_ANALYSIS_FAILED claw-code-optimal-n8.trace.timeout 11 22:42:57
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n4.trace.timeout 22:42:57
+TRACE_ANALYSIS_FAILED claw-code-optimal3-n4.trace.timeout 11 22:42:58
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n40.trace.timeout 22:42:58
+TRACE_ANALYSIS_FAILED claw-code-optimal3-n40.trace.timeout 11 22:42:59
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n8.trace.timeout 22:42:59
+TRACE_ANALYSIS_FAILED claw-code-optimal3-n8.trace.timeout 11 22:42:59
+RUNNING_TRACE_ANALYSIS claw-code-other3-n4.trace.timeout 22:42:59
+TRACE_ANALYSIS_FAILED claw-code-other3-n4.trace.timeout 11 22:43:00
+RUNNING_TRACE_ANALYSIS claw-code-other3-n40.trace.timeout 22:43:00
+TRACE_ANALYSIS_FAILED claw-code-other3-n40.trace.timeout 11 22:43:00
+RUNNING_TRACE_ANALYSIS claw-code-other3-n8.trace.timeout 22:43:00
+TRACE_ANALYSIS_FAILED claw-code-other3-n8.trace.timeout 11 22:43:01
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n4.trace.timeout 22:43:01
+TRACE_ANALYSIS_FAILED llama.cpp-apple-n4.trace.timeout 11 22:43:01
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n40.trace.timeout 22:43:01
+TRACE_ANALYSIS_FAILED llama.cpp-apple-n40.trace.timeout 11 22:43:02
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n8.trace.timeout 22:43:02
+TRACE_ANALYSIS_FAILED llama.cpp-apple-n8.trace.timeout 11 22:43:02
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n4.trace.timeout 22:43:02
+TRACE_ANALYSIS_FAILED llama.cpp-bvx3-n4.trace.timeout 11 22:43:03
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n40.trace.timeout 22:43:03
+TRACE_ANALYSIS_FAILED llama.cpp-bvx3-n40.trace.timeout 11 22:43:04
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n8.trace.timeout 22:43:04
+TRACE_ANALYSIS_FAILED llama.cpp-bvx3-n8.trace.timeout 11 22:43:04
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n4.trace.timeout 22:43:04
+TRACE_ANALYSIS_FAILED llama.cpp-lazy2-n4.trace.timeout 11 22:43:05
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n40.trace.timeout 22:43:05
+TRACE_ANALYSIS_FAILED llama.cpp-lazy2-n40.trace.timeout 11 22:43:05
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n8.trace.timeout 22:43:05
+TRACE_ANALYSIS_FAILED llama.cpp-lazy2-n8.trace.timeout 11 22:43:06
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n4.trace.timeout 22:43:06
+TRACE_ANALYSIS_FAILED llama.cpp-optimal-n4.trace.timeout 11 22:43:06
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n40.trace.timeout 22:43:06
+TRACE_ANALYSIS_FAILED llama.cpp-optimal-n40.trace.timeout 11 22:43:07
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n8.trace.timeout 22:43:07
+TRACE_ANALYSIS_FAILED llama.cpp-optimal-n8.trace.timeout 11 22:43:07
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n4.trace.timeout 22:43:07
+TRACE_ANALYSIS_FAILED llama.cpp-optimal3-n4.trace.timeout 11 22:43:08
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n40.trace.timeout 22:43:08
+TRACE_ANALYSIS_FAILED llama.cpp-optimal3-n40.trace.timeout 11 22:43:08
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n8.trace.timeout 22:43:08
+TRACE_ANALYSIS_FAILED llama.cpp-optimal3-n8.trace.timeout 11 22:43:09
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n4.trace.timeout 22:43:09
+TRACE_ANALYSIS_FAILED llama.cpp-other3-n4.trace.timeout 11 22:43:10
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n40.trace.timeout 22:43:10
+TRACE_ANALYSIS_FAILED llama.cpp-other3-n40.trace.timeout 11 22:43:10
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n8.trace.timeout 22:43:10
+TRACE_ANALYSIS_FAILED llama.cpp-other3-n8.trace.timeout 11 22:43:11
+TRACE_ANALYSIS_DONE_WITH_FAILURES 36 22:43:11
+TRACE_ANALYSIS_FAILED 1 22:43:11
+BENCH_FAILED 1 22:43:11
