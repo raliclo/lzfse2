@@ -1,0 +1,14 @@
+{
+    "version": "0.1.0",
+    "description": "Multi-core LZFSE/LZFSE2 compression CLI (other3/bvx3), Apple-compatible and self-contained",
+    "homepage": "https://github.com/raliclo/lzfse2",
+    "license": "BSD-3-Clause",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/raliclo/lzfse2/releases/download/v0.1.0/lzfse-cli.zip",
+            "hash": "261bac900f6f4a9c9e2ce62147b770443ed9e831bddea4d90cf51b23b2089f63"
+        }
+    },
+    "extract_dir": "lzfse-cli",
+    "bin": "lzfse.exe"
+}
