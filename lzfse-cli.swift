@@ -4066,10 +4066,18 @@ if algo == .apple {
 // ---------------------------------------------------------------------
 // 2. 設定輸入源 / Set up input source
 // ---------------------------------------------------------------------
+// In-flight chunk budget: one per core, not two. Measured on a 4P+6E M4, -n at
+// twice the core count beat -n at the core count by 2.7%, which is inside the
+// noise, while doubling the peak memory held by in-flight chunks. Once every
+// core has work, oversubscription buys nothing. The cap stays at cores * 4 so a
+// specific workload can still be tuned upward by hand.
+// 在途分塊數：每核一個而非兩個。於 4P+6E 的 M4 上實測，-n 取核心數兩倍相對取核心
+// 數僅快 2.7%（在雜訊範圍內），卻使在途分塊佔用的峰值記憶體加倍。核心都有工作
+// 之後，過度訂閱不再帶來收益。上限維持 cores * 4，特定工作負載仍可手動調高。
 let inflightN: Int = {
     let cores = max(1, ProcessInfo.processInfo.activeProcessorCount)
     let cap = cores * 4
-    var n = cores * 2
+    var n = cores
     if let index = args.firstIndex(of: "-n"), index + 1 < args.count {
         guard let v = Int(args[index + 1]) else {
             eprint("Error: -n expects an integer. / 錯誤：-n 需要整數。")

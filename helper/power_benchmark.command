@@ -14,7 +14,15 @@ POWER_STATUS="${POWER_STATUS:-${POWER_DIR}/power_status.txt}"
 # 500ms 間隔：每個 powermetrics period 覆蓋更完整的能量積分，
 # 避免短窗口在 CPU 負載驟升瞬間只取到極少樣本，確保覆蓋完整 decode 執行期。
 POWER_INTERVAL_MS="${POWER_INTERVAL_MS:-500}"
-POWER_SAMPLERS="${POWER_SAMPLERS:-cpu_power,gpu_power}"
+# tasks + --show-process-energy adds the ALL_TASKS "Energy Impact" total. It is
+# Apple's unitless relative metric, not mW, but it keeps reading when the CPU
+# power estimate does not: macOS 27.0 build 26A5388g reported CPU Power 0 mW
+# while Energy Impact still tracked load (26A5406e restored CPU Power).
+# tasks 加上 --show-process-energy 可取得 ALL_TASKS 的 "Energy Impact" 總計。
+# 它是 Apple 的無單位相對指標而非 mW，但在 CPU 功率估算失效時仍有讀數：
+# macOS 27.0 build 26A5388g 回報 CPU Power 0 mW，Energy Impact 仍隨負載變動
+# （26A5406e 已修復 CPU Power）。
+POWER_SAMPLERS="${POWER_SAMPLERS:-cpu_power,gpu_power,tasks}"
 LZFSE_DECODE_REPEAT="${LZFSE_DECODE_REPEAT:-3}"
 # TGZ 必須明確走 swift_tar，不依賴 PATH shim（power 步驟未帶 shim，裸 tar 會
 # 落到 /usr/bin/tar 的單執行緒 gzip，量到的能耗與官方 swift_tar benchmark 不符）。
@@ -47,8 +55,8 @@ powerRoundStatus() {
 
 csvHeader() {
     cat > "$POWER_CSV" <<'EOF'
-algorithm,encode_decode,n,duration_ns,cpu_power_mw,cpu_energy_j,gpu_power_mw,ane_power_mw,dram_power_mw,combined_power_mw,energy_j,status
-演算法,壓縮/解壓縮,在途任務數,耗時(ns),CPU功率(mW),CPU能耗(J),GPU功率(mW),ANE功率(mW),DRAM功率(mW),總功率(mW),總能耗(J),狀態
+algorithm,encode_decode,n,duration_ns,cpu_power_mw,cpu_energy_j,gpu_power_mw,ane_power_mw,dram_power_mw,combined_power_mw,energy_j,energy_impact,status
+演算法,壓縮/解壓縮,在途任務數,耗時(ns),CPU功率(mW),CPU能耗(J),GPU功率(mW),ANE功率(mW),DRAM功率(mW),總功率(mW),總能耗(J),Energy Impact(相對值),狀態
 EOF
 }
 
@@ -60,11 +68,12 @@ csvEscape() {
 
 appendCsv() {
     local dataset="$1" n="$2" phase="$3" algo="$4" duration_ns="$5"
-    local cpu="$6" cpu_energy="$7" gpu="$8" ane="$9" dram="${10}" combined="${11}" energy="${12}" csv_status="${13}"
+    local cpu="$6" cpu_energy="$7" gpu="$8" ane="$9" dram="${10}" combined="${11}" energy="${12}"
+    local energy_impact="${13}" csv_status="${14}"
     local algorithm="${dataset}-${algo}"
     {
         csvEscape "$algorithm"
-        printf ",%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" "$phase" "$n" "$duration_ns" "$cpu" "$cpu_energy" "$gpu" "$ane" "$dram" "$combined" "$energy" "$csv_status"
+        printf ",%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" "$phase" "$n" "$duration_ns" "$cpu" "$cpu_energy" "$gpu" "$ane" "$dram" "$combined" "$energy" "$energy_impact" "$csv_status"
         printf "\n"
     } >> "$POWER_CSV"
 }
@@ -97,6 +106,11 @@ parsePowerLog() {
         /Combined Power/ {
             add("combined", valueAfterColon($0))
         }
+        # ALL_TASKS is the system-wide roll-up row; Energy Impact is its last field.
+        # ALL_TASKS 為系統層級彙總列，Energy Impact 是該列最後一個欄位。
+        /^ALL_TASKS/ {
+            add("energy_impact", $NF)
+        }
         END {
             cpu = cnt["cpu"] ? sprintf("%.3f", sum["cpu"] / cnt["cpu"]) : ""
             gpu = cnt["gpu"] ? sprintf("%.3f", sum["gpu"] / cnt["gpu"]) : ""
@@ -109,7 +123,8 @@ parsePowerLog() {
             if (power_for_energy == "") power_for_energy = 0
             cpu_energy = cpu == "" ? "" : sprintf("%.6f", (duration_ns / 1000000000.0 / repeat) * ((cpu + 0) / 1000.0))
             energy = sprintf("%.6f", (duration_ns / 1000000000.0 / repeat) * (power_for_energy / 1000.0))
-            printf "%s|%s|%s|%s|%s|%s|%s|%s\n", samples, cpu, cpu_energy, gpu, ane, dram, combined, energy
+            energy_impact = cnt["energy_impact"] ? sprintf("%.2f", sum["energy_impact"] / cnt["energy_impact"]) : ""
+            printf "%s|%s|%s|%s|%s|%s|%s|%s|%s\n", samples, cpu, cpu_energy, gpu, ane, dram, combined, energy, energy_impact
         }
     ' "$raw_log"
 }
@@ -188,7 +203,7 @@ measurePower() {
     echo "RUNNING_POWER ${label} $(date +%H:%M:%S)" >> "$POWER_STATUS"
     powerRoundStatus "RUNNING_POWER ${label}"
 
-    sudo -n /usr/bin/powermetrics --samplers "$POWER_SAMPLERS" -i "$POWER_INTERVAL_MS" > "$raw_log" 2>&1 &
+    sudo -n /usr/bin/powermetrics --samplers "$POWER_SAMPLERS" --show-process-energy -i "$POWER_INTERVAL_MS" > "$raw_log" 2>&1 &
     local pm_pid=$!
     sleep 0.2
     start_real="$EPOCHREALTIME"
@@ -208,7 +223,7 @@ measurePower() {
         repeat="$LZFSE_DECODE_REPEAT"
     fi
     parsed="$(parsePowerLog "$raw_log" "$duration_ns" "$repeat")"
-    IFS='|' read -r samples cpu cpu_energy gpu ane dram combined energy <<< "$parsed"
+    IFS='|' read -r samples cpu cpu_energy gpu ane dram combined energy energy_impact <<< "$parsed"
 
     if [[ $stop_rc -ne 0 ]]; then
         result_status="failed:powermetrics_stop"
@@ -227,7 +242,7 @@ measurePower() {
         echo "POWER_FAILED ${label} ${rc} $(date +%H:%M:%S)" >> "$POWER_STATUS"
         powerRoundStatus "POWER_FAILED ${label} ${rc}"
     fi
-    appendCsv "$dataset" "$n" "$phase" "$algo" "$duration_ns" "$cpu" "$cpu_energy" "$gpu" "$ane" "$dram" "$combined" "$energy" "$result_status"
+    appendCsv "$dataset" "$n" "$phase" "$algo" "$duration_ns" "$cpu" "$cpu_energy" "$gpu" "$ane" "$dram" "$combined" "$energy" "$energy_impact" "$result_status"
     [[ $stop_rc -eq 0 ]] || return "$stop_rc"
     return "$rc"
 }

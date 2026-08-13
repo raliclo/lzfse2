@@ -58,6 +58,12 @@ BENCH_POWER_FIELDS = [
     "Decode CPU Energy(J)",
     "Encode CPU Energy Ratio (TGZ=1)",
     "Decode CPU Energy Ratio (TGZ=1)",
+    # Apple's unitless relative metric. Kept alongside the mW columns because it
+    # still reads when the CPU power estimate does not (see macOS 26A5388g).
+    # Apple 的無單位相對指標。與 mW 欄位並存，因為 CPU 功率估算失效時它仍有讀數
+    # （見 macOS 26A5388g）。
+    "Encode Energy Impact",
+    "Decode Energy Impact",
 ]
 
 BENCH_FIELD_ENGLISH = {
@@ -90,6 +96,8 @@ BENCH_FIELD_ENGLISH = {
     "Decode CPU Power(mW)": "decode_cpu_power_mw",
     "Encode CPU Energy(J)": "encode_cpu_energy_j",
     "Decode CPU Energy(J)": "decode_cpu_energy_j",
+    "Encode Energy Impact": "encode_energy_impact",
+    "Decode Energy Impact": "decode_energy_impact",
     "Encode CPU Energy Ratio (TGZ=1)": "encode_cpu_energy_ratio_tgz",
     "Decode CPU Energy Ratio (TGZ=1)": "decode_cpu_energy_ratio_tgz",
 }
@@ -302,6 +310,8 @@ def integrate_benchmark(power: dict[tuple[str, str, str, str], dict[str, str]]) 
         row["Decode CPU Power(mW)"] = decode.get("cpu_power_mw", "")
         row["Encode CPU Energy(J)"] = encode.get("cpu_energy_j", "")
         row["Decode CPU Energy(J)"] = decode.get("cpu_energy_j", "")
+        row["Encode Energy Impact"] = encode.get("energy_impact", "")
+        row["Decode Energy Impact"] = decode.get("energy_impact", "")
         row.pop("Encode Power Status", None)
         row.pop("Decode Power Status", None)
 

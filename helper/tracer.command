@@ -9,7 +9,12 @@ LOG_OUT="$TRACE_DIR/tracer.log"
 STATUS_OUT="$TRACE_DIR/tracer_status.txt"
 PACKAGE_COUNT_FILE="$TRACE_DIR/.trace_package_count"
 TRACE_TIMEOUT_SECONDS="${TRACE_TIMEOUT_SECONDS:-300}"
-XCTRACE_TIME_LIMIT="${XCTRACE_TIME_LIMIT:-5m}"
+# 60s is enough: the Time Profiler samples periodically, so a minute already
+# yields a representative symbol distribution, and the trace dominated the
+# round's wall time at 5m. Raise it only when a specific run needs the tail.
+# 60 秒已足夠：Time Profiler 是週期取樣，一分鐘即可得到具代表性的符號分布，而
+# 5 分鐘會讓 trace 主導整輪耗時。唯有特定執行需要尾段時才調高。
+XCTRACE_TIME_LIMIT="${XCTRACE_TIME_LIMIT:-60s}"
 
 mkdir -p "$TRACE_DIR"
 echo "RUNNING tracer $(date +%H:%M:%S)" > "$STATUS_OUT"

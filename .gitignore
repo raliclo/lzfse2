@@ -19,6 +19,17 @@ trace/*.trace.timeout
 trace/.trace_package_count
 trace/analysis/cpu_call_tree
 trace/analysis/toc
+
+# system_tracer.command output: the .trace bundle is ~38 MB per run and the
+# XML/log are regenerable from it. The summary CSV is kept, matching how the
+# other verification scripts commit only their *_output/summary files.
+# system_tracer.command 的產物：.trace bundle 每次執行約 38 MB，XML 與 log 都可
+# 由它重新產生。僅保留 summary CSV，與其他驗證腳本只提交 *_output／summary 的
+# 慣例一致。
+trace_system/*.trace
+trace_system/*.trace.timeout
+trace_system/*.thread-state.xml
+trace_system/*.record.log
 *.xml
 powerResults/tmp/
 gitOwner.sh
