@@ -12,7 +12,7 @@ code, and README language-switch links.
 | 路徑 | 用途 |
 |---|---|
 | `md-translate.swift` | translator source / 翻譯器 source |
-| `bin/md-translate` | macOS arm64 binary / macOS arm64 執行檔 |
+| `bin/md-translate` | macOS arm64 binary, intentionally committed — see below / macOS arm64 執行檔，刻意入版控，見下 |
 | `build-mac.sh` | macOS build entrypoint / macOS 建置入口 |
 | `md-translate-mac.sh` | rebuild and translate project Markdown / 重建並翻譯專案 Markdown |
 | `clean_zh.py` | remove duplicated English prose from bilingual optimization notes / 清理雙語 optimization 記錄中的重複英文 |
@@ -74,3 +74,29 @@ benchmark pipeline return a nonzero status.
 
 This tool supports macOS only. Windows-specific wrappers and Mach-O binaries
 disguised with an `.exe` suffix are no longer retained.
+
+## 入版控的 binary：明確例外 / Committed binary: a deliberate exception
+
+本專案一般不把編譯產物納入版控——`swift_tar` 甚至為此改寫過歷史以清除已入版的
+binary，`release/`、`helper_windows/release/` 也都列在 `.gitignore`。
+`bin/md-translate` 是這條規則的**唯一例外**，且為刻意如此。
+
+This repository does not normally track build output — `swift_tar` even had its
+history rewritten to purge committed binaries, and `release/` and
+`helper_windows/release/` are both gitignored. `bin/md-translate` is the **one
+deliberate exception** to that rule.
+
+例外的範圍限定如下，逾越即應重新檢討：
+
+The exception is scoped as follows; anything beyond this warrants revisiting it:
+
+- 僅此一個檔案，且僅 macOS arm64。/ This one file only, macOS arm64 only.
+- 必須能由 `build-mac.sh` 從 `md-translate.swift` 完整重建；binary 不是唯一
+  來源。/ It must remain fully reproducible from `md-translate.swift` via
+  `build-mac.sh`; the binary is never the only source of truth.
+- 改動 `md-translate.swift` 後應一併重建並提交 binary，避免兩者不同步。/ When
+  `md-translate.swift` changes, rebuild and commit the binary in the same change
+  so the two do not drift apart.
+- 這不是放寬對其他編譯產物的政策；`release/` 等目錄仍維持不入版控。/ This does
+  not relax the policy for any other build output; `release/` and friends stay
+  untracked.
