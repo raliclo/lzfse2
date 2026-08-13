@@ -3,7 +3,26 @@ setopt NULL_GLOB
 
 
 source ./zshrc.sh
-source ./compile.sh
+
+# lzfse is always rebuilt here, but never as root. compile.sh writes
+# /opt/homebrew/bin/lzfse-debug, and once that file is root-owned every later
+# non-root build dies with `ld: can't write output file`. gitOwner.sh only chowns
+# the project directory, so nothing repairs it. This script normally runs under
+# `sudo ./benchmark2.sh`, so drop back to the invoking user for the build.
+# 此處一律重新編譯 lzfse，但絕不以 root 執行。compile.sh 會寫入
+# /opt/homebrew/bin/lzfse-debug，該檔一旦變成 root 所有，之後每次非 root 的建置
+# 都會以 `ld: can't write output file` 失敗。gitOwner.sh 只 chown 專案目錄，不會
+# 修復它。本腳本通常以 `sudo ./benchmark2.sh` 執行，故編譯時降回呼叫者身分。
+if [[ -n "${SUDO_USER:-}" ]]; then
+    sudo -u "$SUDO_USER" --preserve-env=PATH ./compile.sh
+else
+    ./compile.sh
+fi
+compile_rc=$?
+if [[ $compile_rc -ne 0 ]]; then
+    echo "benchmark2.sh aborted: compile.sh failed with status $compile_rc" >&2
+    exit $compile_rc
+fi
 
 # Step.1 初始化狀態與輸出路徑 / Initialize status and output paths.
 export ROUND_STATUS_FILE="${ROUND_STATUS_FILE:-round_status.txt}"
@@ -20,57 +39,19 @@ roundStatus() {
 # Step.2 清理前輪暫存檔 / Clean temporary artifacts from previous rounds.
 cleanTempFiles
 
-# Step.3 設定 benchmark 掃描參數 / Configure benchmark sweep parameters.
-# 下一輪啟用記憶體峰值量測（probe）：正式壓縮/解壓 benchmark 完成後，才量所有格式 encode+decode peak RSS。
-# 預設開啟；要關閉就在呼叫前 export LZFSE_MEMPROBE=0。probe 會額外重跑各格式 encode/decode，耗時略增。
-# 本輪固定同碼掃 -n 40 / 8 / 4，結果檔名會帶 -n40 / -n8 / -n4。
-# Enable peak-RSS probe for the next round (default on); set LZFSE_MEMPROBE=0 to disable.
-export LZFSE_MEMPROBE="${LZFSE_MEMPROBE:-1}"
-typeset -a LZFSE_N_SWEEP
-if [[ -n "${LZFSE_N_SWEEP_OVERRIDE:-}" ]]; then
-    LZFSE_N_SWEEP=(${=LZFSE_N_SWEEP_OVERRIDE})
-else
-    LZFSE_N_SWEEP=(40 8 4)
-fi
-if [[ "$LZFSE_MEMPROBE" == "1" ]]; then
-    echo "[Info] Running Benchmark WITH probe mode (LZFSE_MEMPROBE=1). Peak-RSS probes run after compression/decompression benchmark and will be recorded in the result txt."
-else
-    echo "[Info] Running Benchmark without probe mode. Results will be saved as ${LZ4BENCH_LOG_DIR}/lz4bench-<dataset>-n<N>.txt."
-fi
+# Steps 3 to 6 — the lz4bench sweeps and the Time Profiler traces — run in
+# benchmark.sh, which executes before this script. The step numbering continues
+# from there rather than restarting, so a round's status log reads as one
+# sequence. A copy of the sweep machinery used to sit here but was never called;
+# it printed "[Info] Running Benchmark WITH probe mode" into the log of a script
+# that runs no benchmarks, which made the log actively misleading.
+# Steps 3 至 6——lz4bench 掃描與 Time Profiler trace——在 benchmark.sh 中執行，該
+# 腳本先於本腳本執行。步驟編號由該處延續而非重新起算，使一輪的狀態記錄讀起來
+# 是單一序列。此處原本有一份掃描機制的副本，但從未被呼叫；它會把「[Info] Running
+# Benchmark WITH probe mode」印進一個不執行任何 benchmark 的腳本的記錄中，反而造成
+# 誤導。
 mkdir -p "$LZ4BENCH_LOG_DIR"
 
-run_lz4bench_sweep() {
-    local dataset="$1"
-    local n suffix out rc
-
-    cleanup_bench_artifacts() {
-        rm -rf "${dataset}".*(N)
-        rm -rf xbenchTest
-    }
-
-    for n in "${LZFSE_N_SWEEP[@]}"; do
-        suffix="-n${n}"
-        out="${LZ4BENCH_LOG_DIR}/lz4bench-${dataset}${suffix}.txt"
-        export LZFSE_BENCH_N="$n"
-        export LZFSE_BENCH_SUFFIX="$suffix"
-
-        cleanup_bench_artifacts
-        echo "[Info] Running ${dataset} benchmark with -n ${n}; output=${out}"
-        roundStatus "RUNNING_LZ4BENCH ${dataset}${suffix}"
-        diskcheck || { echo "Benchmark aborted: insufficient disk space." >&2; roundStatus "LZ4BENCH_FAILED ${dataset}${suffix} diskcheck"; cleanup_bench_artifacts; return 1; }
-        lz4bench "$dataset" > "$out" 2>&1
-        rc=$?
-        cleanup_bench_artifacts
-        if [[ $rc -ne 0 ]]; then
-            echo "Benchmark aborted: ${dataset} lz4bench -n ${n} failed with status $rc." >&2
-            roundStatus "LZ4BENCH_FAILED ${dataset}${suffix} ${rc}"
-            return $rc
-        fi
-        roundStatus "LZ4BENCH_OK ${dataset}${suffix}"
-        echo "[Info] Completed ${dataset} benchmark with -n ${n}; output=${out} ,Sleeping 60s before next sweep."
-        sleep 60
-    done
-}
 # Step.7 執行 powermetrics power benchmark / Run powermetrics power benchmark.
 roundStatus "RUNNING_POWER_BENCHMARK"
 ./helper/power_benchmark.command >> "$ROUND_STATUS_FILE" 2>&1

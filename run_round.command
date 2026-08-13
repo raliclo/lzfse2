@@ -1,18 +1,25 @@
 #!/bin/zsh
 # Cowork 自動化執行器：compile → 測試守門 → benchmark
 # Auto-runner: compile → gate on tests → benchmark
-# Usage: run_round.command [-swift_tar] [-power-test]
+# Usage: run_round.command [-swift_tar] [-power-test] [-full]
 #   -swift_tar  : 把 tar 導向已安裝的 swift_tar（不修改 zshrc.sh）；
 #                 不帶此旗標時用系統 tar。
 #   -power-test : 執行 Time Profiler trace（helper/tracer.command）。預設關閉，
 #                 因為它會主導整輪耗時；關閉時 trace_analysis 與
 #                 cpu_call_tree_analysis 會沿用 trace/ 中上一輪的結果。
+#   -full       : 等同同時指定 -swift_tar 與 -power-test，即完整一輪。這是最慢
+#                 的組合，但唯有它能在同一輪內同時取得 swift_tar 的數據與新的
+#                 trace，兩者因而共用相同的機器狀態與熱度條件。
 #   -swift_tar  : points tar at the installed swift_tar (zshrc.sh untouched);
 #                 without this flag, uses system tar.
 #   -power-test : runs the Time Profiler traces (helper/tracer.command). Off by
 #                 default because they dominate the round's wall time; when off,
 #                 trace_analysis and cpu_call_tree_analysis reuse the previous
 #                 round's results from trace/.
+#   -full       : equivalent to -swift_tar -power-test, i.e. a complete round.
+#                 It is the slowest combination, but it is the only one that
+#                 collects swift_tar figures and fresh traces in the same round,
+#                 so the two share identical machine state and thermal history.
 cd /Users/raliclo/proj/lzfse2 || exit 1
 
 : > round_status.txt
@@ -29,7 +36,13 @@ export LZFSE_POWER_TEST=0
 for arg in "$@"; do
     [[ "$arg" == "-swift_tar" ]] && USE_SWIFT_TAR=1
     [[ "$arg" == "-power-test" ]] && export LZFSE_POWER_TEST=1
+    # -full is a shorthand, not a third mode: it sets the same two variables the
+    # individual flags do, so there is one code path to reason about.
+    # -full 只是簡寫而非第三種模式：它設定的就是那兩個旗標各自會設的變數，因此
+    # 只有一條程式路徑需要推敲。
+    [[ "$arg" == "-full" ]] && { USE_SWIFT_TAR=1; export LZFSE_POWER_TEST=1 }
 done
+echo "MODE swift_tar=$USE_SWIFT_TAR power_test=$LZFSE_POWER_TEST $(date +%H:%M:%S)" >> round_status.txt
 
 # swift_tar compile + test（無條件，與 lzfse 相同）
 # swift_tar compile + test (unconditional, same gate as lzfse)
