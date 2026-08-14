@@ -16,6 +16,20 @@ if "%LZFSE_REQUIRE_NATIVE_ZLIB%"=="1" (
     echo [Info] TGZ backend: %SWIFT_TAR_BIN% ^(native zlib^)
 )
 
+set "_zstd_tar="
+if "%LZFSE_REQUIRE_NATIVE_ZSTD%"=="1" (
+    if not defined SWIFT_TAR_BIN (
+        echo [Error] native zstd mode requires SWIFT_TAR_BIN. >&2
+        exit /b 1
+    )
+    if not exist "%SWIFT_TAR_BIN%" (
+        echo [Error] SWIFT_TAR_BIN not found: %SWIFT_TAR_BIN% >&2
+        exit /b 1
+    )
+    set "_zstd_tar=%SWIFT_TAR_BIN%"
+    echo [Info] ZSTD backend: %SWIFT_TAR_BIN% ^(native libzstd, level 9^)
+)
+
 if "%~1"=="" (
     echo Usage: encode-win.bat ^<dataset^> [n] [write]
     exit /b 1
@@ -180,10 +194,25 @@ exit /b
 
 :encodeZSTD
 call :setTarSource "%~1"
+:: Native mode is one in-process step, not tar piped into zstd.exe. The level is
+:: passed explicitly rather than inherited: this is a measurement harness, so it
+:: should pin what it measures instead of tracking a default that may move. 9
+:: matches the external branch below, which is what makes the two comparable --
+:: while the native level was silently 3, the gap read as an implementation
+:: difference when it was a level difference.
+if "%LZFSE_REQUIRE_NATIVE_ZSTD%"=="1" goto :encodeZSTDNative
 if "%_write%"=="1" (
     cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | zstd -9 -q -f -o "%~1.tar.zst"
 ) else (
     cmd /d /c pushd "!_tar_parent!" ^&^& tar -cf - "!_tar_leaf!" | zstd -9 -q -c - > nul 2>&1
+)
+exit /b
+
+:encodeZSTDNative
+if "%_write%"=="1" (
+    "!_zstd_tar!" -c --zstd --zstd-level 9 -f "%~1.tar.zst" -C "!_tar_parent!" "!_tar_leaf!"
+) else (
+    "!_zstd_tar!" -c --zstd --zstd-level 9 -f - -C "!_tar_parent!" "!_tar_leaf!" > nul 2>&1
 )
 exit /b
 

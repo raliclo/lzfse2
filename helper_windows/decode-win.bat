@@ -20,6 +20,20 @@ if "%LZFSE_REQUIRE_NATIVE_ZLIB%"=="1" (
     echo [Info] TGZ backend: %SWIFT_TAR_BIN% ^(native zlib^)
 )
 
+set "_zstd_tar="
+if "%LZFSE_REQUIRE_NATIVE_ZSTD%"=="1" (
+    if not defined SWIFT_TAR_BIN (
+        echo [Error] native zstd mode requires SWIFT_TAR_BIN. >&2
+        exit /b 1
+    )
+    if not exist "%SWIFT_TAR_BIN%" (
+        echo [Error] SWIFT_TAR_BIN not found: %SWIFT_TAR_BIN% >&2
+        exit /b 1
+    )
+    set "_zstd_tar=%SWIFT_TAR_BIN%"
+    echo [Info] ZSTD backend: %SWIFT_TAR_BIN% ^(native libzstd^)
+)
+
 set "_dataset=%~1"
 set "_logprefix=%~nx1"
 if "%_logprefix%"=="" set "_logprefix=dataset"
@@ -236,11 +250,23 @@ if "%_write%"=="1" (
 exit /b
 
 :decodeZSTD
+:: Native mode extracts in one process; the external branch pipes zstd.exe into
+:: tar. Decode needs no level flag -- the level is recorded in the frame.
+if "%LZFSE_REQUIRE_NATIVE_ZSTD%"=="1" goto :decodeZSTDNative
 if "%_write%"=="1" (
     call :prepareOut "decoded\%_logprefix%\zstd"
     zstd -d -c -q "%~1.tar.zst" | tar xf - -C "decoded\%_logprefix%\zstd" > nul
 ) else (
     zstd -d -c -q "%~1.tar.zst" > nul 2>&1
+)
+exit /b
+
+:decodeZSTDNative
+if "%_write%"=="1" (
+    call :prepareOut "decoded\%_logprefix%\zstd"
+    "!_zstd_tar!" -x -f "%~1.tar.zst" -C "decoded\%_logprefix%\zstd" > nul
+) else (
+    "!_zstd_tar!" --to-stdout -x -f "%~1.tar.zst" > nul 2>&1
 )
 exit /b
 
@@ -280,7 +306,12 @@ if !ERRORLEVEL! == 0 ( echo [PASS] LZ4 & call :writeVerify "bench_logs\%_logpref
 exit /b
 
 :verifyStreamZSTD
+if "%LZFSE_REQUIRE_NATIVE_ZSTD%"=="1" goto :verifyStreamZSTDNative
 zstd -d -c -q "%_dataset%.tar.zst" | tar tf - > nul 2>&1
+goto :verifyStreamZSTDResult
+:verifyStreamZSTDNative
+"!_zstd_tar!" -t -f "%_dataset%.tar.zst" > nul 2>&1
+:verifyStreamZSTDResult
 if !ERRORLEVEL! == 0 ( echo [PASS] ZSTD & call :writeVerify "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt" PASS ) else ( echo [FAIL] ZSTD & call :writeVerify "bench_logs\%_logprefix%-decodeZSTD%_nsuffix%%_mode_suffix%-results.txt" FAIL )
 exit /b
 

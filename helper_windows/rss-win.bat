@@ -24,6 +24,8 @@ $cli = Join-Path $dir 'lzfse.exe'
 $sysTar = Join-Path $env:SystemRoot 'System32\tar.exe'
 $nativeZlibRequired = ($env:LZFSE_REQUIRE_NATIVE_ZLIB -eq '1')
 $tgzTar = if ($nativeZlibRequired) { $env:SWIFT_TAR_BIN } else { $sysTar }
+$nativeZstdRequired = ($env:LZFSE_REQUIRE_NATIVE_ZSTD -eq '1')
+$zstdTar = if ($nativeZstdRequired) { $env:SWIFT_TAR_BIN } else { '' }
 $csvDir = Join-Path $dir 'bench_results_csv'
 $benchLogDir = Join-Path $dir 'bench_logs'
 $tmpRoot = Join-Path $benchLogDir ('rss_tmp_' + [guid]::NewGuid().ToString('N'))
@@ -64,6 +66,15 @@ if ($nativeZlibRequired) {
     Write-Log ('[rss] TGZ backend: ' + $tgzTar + ' (native zlib; ' + $identity.Trim() + ')')
 } else {
     Write-Log ('[rss] TGZ backend: ' + $tgzTar + ' (system tar)')
+}
+
+if ($nativeZstdRequired -and (-not $zstdTar -or -not (Test-Path -LiteralPath $zstdTar -PathType Leaf))) {
+    # Fail rather than fall back: a silent fall-back to zstd.exe is exactly how
+    # the ZSTD rows came to be labelled native while measuring the external tool.
+    # 直接失敗而非退回：靜默退回 zstd.exe 正是先前 ZSTD 數據被標為 native、實際卻量
+    # 到外部工具的成因。
+    Write-Log ('[rss] native zstd required but SWIFT_TAR_BIN is missing: ' + $zstdTar)
+    exit 1
 }
 
 if (-not (Test-Path -LiteralPath $cli)) { Write-Log 'lzfse.exe not found; run compile.bat first'; exit 1 }
@@ -272,7 +283,39 @@ if ($lz4Exe) {
 }
 
 Write-Log ("[rss] ZSTD (" + $outputMode + ") ...")
-if ($zstdExe) {
+if ($nativeZstdRequired) {
+    # One in-process step, so this is Measure-StandaloneRSS as TGZ uses, not the
+    # tar-piped-into-a-tool helper the external branch needs. The two shapes
+    # measure different things: a pipeline's RSS excludes whatever tar itself
+    # holds, a single process includes it.
+    # 原生模式為單一行程，故與 TGZ 相同使用 Measure-StandaloneRSS，而非外部分支所需
+    # 的「tar 導入工具」輔助函式。兩者量到的並不相同：pipeline 的 RSS 不含 tar 自身
+    # 佔用，單一行程則包含在內。
+    Write-Log ('  backend: ' + $zstdTar + ' (native libzstd, level 9)')
+    if ($writeMode) {
+        $out = Join-Path $tmpRoot 'out.tar.zst'
+        $e = Measure-StandaloneRSS $zstdTar "-c --zstd --zstd-level 9 -f `"$out`" -C `"$parent`" `"$name`""
+    } else {
+        $e = Measure-StandaloneRSS $zstdTar "-c --zstd --zstd-level 9 -f - -C `"$parent`" `"$name`""
+    }
+    $encRss = $e.rss_mb
+    if ($e.exit -ne 0) { Write-Log ("  [warn] zstd encode exit " + $e.exit + ": " + (($e.err -split "`n")[0])) }
+    $archive = Archive-Path 'tar.zst'
+    $decRss = ''
+    if (Test-Path -LiteralPath $archive) {
+        if ($writeMode) {
+            $outDir = Join-Path $tmpRoot 'decode_zstd'
+            New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+            $d = Measure-StandaloneRSS $zstdTar "-x -f `"$archive`" -C `"$outDir`""
+        } else {
+            $d = Measure-StandaloneRSS $zstdTar "--to-stdout -x -f `"$archive`""
+        }
+        $decRss = $d.rss_mb
+        if ($d.exit -ne 0) { Write-Log ("  [warn] zstd decode exit " + $d.exit + ": " + (($d.err -split "`n")[0])) }
+    } else { Write-Log ("  (skip decode: $archive not found)") }
+    Write-Log ("  encode RSS = $encRss MB   decode RSS = $decRss MB")
+    $rows += ($name + ",ZSTD," + $outputMode + "," + $encRss + "," + $decRss)
+} elseif ($zstdExe) {
     if ($writeMode) {
         $out = Join-Path $tmpRoot 'out.tar.zst'
         $e = Measure-TarToProcessRSS $zstdExe "-9 -q -f - -o `"$out`"" $parent $name

@@ -11,6 +11,7 @@ chcp 65001 > nul
 :: subsequent lines in this environment (reproduced independent of chcp).
 setlocal EnableDelayedExpansion
 set "LZFSE_REQUIRE_NATIVE_ZLIB=0"
+set "LZFSE_REQUIRE_NATIVE_ZSTD=0"
 cd /d "%~dp0"
 :: 每輪開始前清除舊狀態檔，確保本輪資料全新 / Clear status file so this round starts fresh
 type nul > windows_round_status.txt
@@ -62,6 +63,15 @@ if "%USE_SWIFT_TAR%"=="1" (
         echo [Error] -swift_tar requires zlib_linkage=static in version-win.txt. >&2
         exit /b 1
     )
+    :: ZSTD is gated the same way as TGZ. Without this the ZSTD rows measured the
+    :: external zstd.exe while the round was labelled as a swift_tar round, which
+    :: is the gap OPTIMIZATION.md recorded as unresolved.
+    findstr /c:"zstd_linkage=static" "!_swift_tar_version!" > nul
+    if errorlevel 1 (
+        echo SWIFT_TAR_NATIVE_ZSTD_NOT_VERIFIED %TIME:~0,8% >> windows_round_status.txt
+        echo [Error] -swift_tar requires zstd_linkage=static in version-win.txt. >&2
+        exit /b 1
+    )
     set "_swift_tar_shim_dir=%TEMP%\lzfse2-swift-tar-shim"
     if not exist "!_swift_tar_shim_dir!" mkdir "!_swift_tar_shim_dir!"
     powershell -NoProfile -Command "$src='!_swift_tar_exe!'; $dst='!_swift_tar_shim_dir!\tar.exe'; for ($i=1; $i -le 10; $i++) { try { Copy-Item -LiteralPath $src -Destination $dst -Force; exit 0 } catch { Write-Output ('shim copy retry '+$i+': '+$_.Exception.Message); Start-Sleep -Milliseconds 500 } }; exit 1" >> windows_round_status.txt 2>&1
@@ -72,6 +82,7 @@ if "%USE_SWIFT_TAR%"=="1" (
     )
     set "SWIFT_TAR_BIN=!_swift_tar_shim_dir!\tar.exe"
     set "LZFSE_REQUIRE_NATIVE_ZLIB=1"
+    set "LZFSE_REQUIRE_NATIVE_ZSTD=1"
     set "PATH=!_swift_tar_shim_dir!;%PATH%"
     set "_swift_tar_version_output=%TEMP%\lzfse2-swift-tar-version.txt"
     "!SWIFT_TAR_BIN!" --version > "!_swift_tar_version_output!" 2>&1
@@ -86,7 +97,7 @@ if "%USE_SWIFT_TAR%"=="1" (
         type "!_swift_tar_version_output!" >> windows_round_status.txt
         exit /b 1
     )
-    echo USING_SWIFT_TAR !SWIFT_TAR_BIN! NATIVE_ZLIB=static %TIME:~0,8% >> windows_round_status.txt
+    echo USING_SWIFT_TAR !SWIFT_TAR_BIN! NATIVE_ZLIB=static NATIVE_ZSTD=static %TIME:~0,8% >> windows_round_status.txt
     type "!_swift_tar_version_output!" >> windows_round_status.txt
     del /q "!_swift_tar_version_output!" > nul 2>&1
 
