@@ -37,7 +37,7 @@ set "USE_SWIFT_TAR=0"
 for %%A in (%*) do if /i "%%~A"=="-swift_tar" set "USE_SWIFT_TAR=1"
 if "%USE_SWIFT_TAR%"=="1" (
     set "_swift_tar_exe=..\swift_tar\release\swift_tar.exe"
-    set "_swift_tar_version=..\swift_tar\version.txt"
+    set "_swift_tar_version=..\swift_tar\version-win.txt"
     if not exist "!_swift_tar_exe!" (
         echo SWIFT_TAR_NOT_FOUND %TIME:~0,8% >> windows_round_status.txt
         echo [Error] -swift_tar requested but !_swift_tar_exe! not found. Run swift_tar\compile_tar-win.bat first. / 已指定 -swift_tar 但找不到 !_swift_tar_exe!，請先執行 swift_tar\compile_tar-win.bat。 >&2
@@ -45,10 +45,12 @@ if "%USE_SWIFT_TAR%"=="1" (
     )
     if not exist "!_swift_tar_version!" (
         echo SWIFT_TAR_VERSION_NOT_FOUND %TIME:~0,8% >> windows_round_status.txt
-        echo [Error] -swift_tar requires ..\swift_tar\version.txt to verify native zlib linkage. >&2
+        echo [Error] -swift_tar requires ..\swift_tar\version-win.txt to verify native zlib linkage. >&2
         exit /b 1
     )
-    :: findstr /x exact-line match is unreliable against version.txt since
+    :: The stamp is per platform -- version-win.txt here, version-mac.txt on
+    :: macOS -- so a build on one platform cannot overwrite the other's record.
+    :: findstr /x exact-line match is unreliable against it since
     :: generate_version.sh is a zsh script that writes LF-only line endings,
     :: not the CRLF Windows findstr /x expects; use a substring match instead.
     :: NOTE: keep comments in this block free of parenthesis characters --
@@ -57,7 +59,7 @@ if "%USE_SWIFT_TAR%"=="1" (
     findstr /c:"zlib_linkage=static" "!_swift_tar_version!" > nul
     if errorlevel 1 (
         echo SWIFT_TAR_NATIVE_ZLIB_NOT_VERIFIED %TIME:~0,8% >> windows_round_status.txt
-        echo [Error] -swift_tar requires zlib_linkage=static in version.txt. >&2
+        echo [Error] -swift_tar requires zlib_linkage=static in version-win.txt. >&2
         exit /b 1
     )
     set "_swift_tar_shim_dir=%TEMP%\lzfse2-swift-tar-shim"
