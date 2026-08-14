@@ -421,7 +421,15 @@ extract () {
                     fi
                     return 0
                     ;;
-                *.zst)                memProbe "decode ${1##*/}" zstd -d -q -f "$1" -o /dev/null; return 0 ;;
+                *.zst)
+                    if [[ "${LZFSE_REQUIRE_NATIVE_ZSTD:-0}" == "1" ]]; then
+                        [[ -n "${SWIFT_TAR_BIN:-}" && -x "$SWIFT_TAR_BIN" ]] || { echo "[Error] native zstd probe requires SWIFT_TAR_BIN." >&2; return 1; }
+                        memProbe "decode ${1##*/}" "$SWIFT_TAR_BIN" -t -f "$1"
+                    else
+                        memProbe "decode ${1##*/}" tar tzf "$1"
+                    fi
+                    return 0
+                    ;;
                 *.tar.lz4)            memProbe "decode ${1##*/}" lz4 -d -q -f "$1" /dev/null; return 0 ;;
                 *) echo "[MEM] $1: 非 lzfse 格式，略過解碼量測 / non-lzfse, skipped"; return 0 ;;
             esac
@@ -437,7 +445,7 @@ extract () {
             *.lzfse.other3)     echo "lzfse -decode -i $1 -so -algo other3 ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo other3 "${n_args[@]}" | tar -xf -  ;;
             *.lzfse.apple)      echo "lzfse -decode -i $1 -so -algo apple ${n_args[*]} | tar -xf - " ; lzfse -decode -i "$1" -so -algo apple "${n_args[@]}" | tar -xf -  ;;
             *.tar.lz4)   lz4 -T0 -d -q -c $1 | tar -xf - ;;
-            *.zst)       zstd -d -c "$1" | tar -xf - ;;
+            *.zst)       benchmarkZstdDecode "$1" ;;
             *.tar.xz)    tar xf "$1"      ;;
             *.tar.bz2)   tar xjf "$1"     ;;
             *.tar.gz)    benchmarkTgzTar xzf "$1" ;;
@@ -533,6 +541,21 @@ function benchmarkTgzTar() {
     fi
 }
 
+function benchmarkZstdDecode() {   # $1 = archive
+    if [[ "${LZFSE_REQUIRE_NATIVE_ZSTD:-0}" == "1" ]]; then
+        if [[ -z "${SWIFT_TAR_BIN:-}" || ! -x "$SWIFT_TAR_BIN" ]]; then
+            echo "[Error] -swift_tar native zstd mode requires executable SWIFT_TAR_BIN." >&2
+            return 1
+        fi
+        # swift_tar detects zstd by magic and untars in the same process, so no
+        # pipe and no second binary. / swift_tar 依 magic 偵測 zstd 並於同一行程
+        # 內解 tar，因此不需管線、也不需第二個 binary。
+        "$SWIFT_TAR_BIN" -x -f "$1"
+    else
+        zstd -d -c "$1" | tar -xf -
+    fi
+}
+
 ## This script helps to creat a tar.xz for a folder.
 function getar() {
     local tar_parent="${1:h}"
@@ -614,7 +637,33 @@ function getzstd() {
    local tar_parent="${1:h}"
    local tar_leaf="${1:t}"
    [[ -z "$tar_parent" || "$tar_parent" == "$1" ]] && tar_parent="."
-   tar -cf - -C "$tar_parent" "$tar_leaf" | zstd -9 -T0 -c > "$1.zst"
+   # Encode must go through the same gate as decode. Otherwise native mode would
+   # pair a system-tar archive with a swift_tar extraction, and the AppleDouble
+   # entries bsdtar writes for extended attributes (com.apple.provenance is on
+   # every file in both corpora) come back as literal `._` files instead of
+   # being restored as attributes -- a different file count, a different amount
+   # of write work, and a decode number that is not comparable.
+   # encode 必須與 decode 走同一個閘門，否則 native 模式會變成「系統 tar 建檔、
+   # swift_tar 解出」：bsdtar 為擴充屬性寫入的 AppleDouble 項目（兩份語料的每個
+   # 檔案都帶有 com.apple.provenance）會被還原成實體的 `._` 檔案，而非還原為屬性
+   # ——檔案數不同、寫入工作量不同，解碼數字也就失去可比性。
+   if [[ "${LZFSE_REQUIRE_NATIVE_ZSTD:-0}" == "1" ]]; then
+       if [[ -z "${SWIFT_TAR_BIN:-}" || ! -x "$SWIFT_TAR_BIN" ]]; then
+           echo "[Error] -swift_tar native zstd mode requires executable SWIFT_TAR_BIN." >&2
+           return 1
+       fi
+       # Level 9 matches the external path's `zstd -9`, so the two rows differ only
+       # by implementation, not by setting. swift_tar still compresses in
+       # independent 4 MiB chunks (that is what makes it parallel), so its output
+       # can be larger than a single external stream on highly redundant data --
+       # a design trade-off to report, not a defect.
+       # 等級 9 與外部路徑的 `zstd -9` 一致，使兩列只差在實作而非設定。swift_tar
+       # 仍以獨立的 4 MiB 分塊壓縮（正是其得以並行的原因），故在高度冗餘的資料上
+       # 其輸出可能大於單一外部串流——這是應如實回報的設計取捨，並非缺陷。
+       "$SWIFT_TAR_BIN" -c --zstd --zstd-level 9 -f "$1.zst" -C "$tar_parent" "$tar_leaf"
+   else
+       tar -cf - -C "$tar_parent" "$tar_leaf" | zstd -9 -T0 -c > "$1.zst"
+   fi
     # tar -I 'zstd -1' -cvf $1.zst $1
     du -sh "$1"
     du -sh "$1.zst"
