@@ -377,6 +377,82 @@ trash () {
     command mv "$@" ~/.Trash ; 
 }
 
+# ------------------------------------------------------------------------------
+# FUNCTION: open()   [Windows only / 僅限 Windows]
+# DESCRIPTION: macOS-style `open`, backed by Windows Explorer, so the same
+#              command works on either platform.
+# 功能描述：以 Windows Explorer 實作的 macOS 風格 `open`，使同一道指令在兩個平台
+#          皆可使用。
+#
+#   open              current directory / 目前目錄
+#   open <dir>        that folder / 該資料夾
+#   open <file>       the file's default application / 該檔案的預設應用程式
+#   open <url>        the default browser / 預設瀏覽器
+#   open -R <path>    reveal the item, selected, in its parent folder
+#                     在上層資料夾中選取並顯示該項目
+#
+# Defined only on Windows. macOS already ships `open`, and shadowing it would
+# break -a, -e, -t and its other flags.
+# 僅在 Windows 定義。macOS 本身即有 `open`，覆寫它會使 -a、-e、-t 等旗標失效。
+#
+# Paths go through `cygpath -w`: Explorer cannot read MSYS paths such as
+# /c/Users, and handing it one opens the wrong place without reporting an error.
+# 路徑一律經 `cygpath -w` 轉換：Explorer 無法解讀 /c/Users 這類 MSYS 路徑，直接
+# 傳入會靜默開到錯誤的位置而不報錯。
+#
+# explorer.exe exits 1 whether or not it succeeded -- verified: a real folder
+# and a nonexistent path both return 1 -- so its status carries no information.
+# It is discarded and the path is validated here, which is what makes this
+# function's own exit status meaningful.
+# explorer.exe 不論成功與否都回傳 1——實測：真實資料夾與不存在的路徑皆為 1——其
+# 結束碼因此不帶任何資訊。故予以捨棄，改由本函式自行驗證路徑，使本函式的結束碼
+# 才具意義。
+#
+# `-a <app>` is not implemented; invoke the application directly.
+# 未實作 `-a <app>`；請直接呼叫該應用程式。
+# ------------------------------------------------------------------------------
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        function open() {
+            emulate -L zsh
+            local reveal=0
+            if [[ $1 == -R ]]; then
+                reveal=1
+                shift
+            fi
+            local target=${1:-.}
+
+            if [[ -e $target ]]; then
+                local win
+                win=$(cygpath -w -a -- "$target") || return 1
+                if (( reveal )); then
+                    explorer.exe "/select,$win"
+                else
+                    explorer.exe "$win"
+                fi
+                return 0
+            fi
+
+            # Not an existing path: hand schemes such as https:// or mailto: to
+            # Explorer, which routes them to the registered handler. cygpath
+            # would corrupt these.
+            # 不是既有路徑：https://、mailto: 等 scheme 交給 Explorer，由它轉給已
+            # 註冊的處理程式；這些字串經 cygpath 會被破壞。
+            if [[ $target == *://* || $target == mailto:* ]]; then
+                if (( reveal )); then
+                    print -u2 -- "open: -R needs a path, not a URL / -R 需要路徑而非 URL"
+                    return 1
+                fi
+                explorer.exe "$target"
+                return 0
+            fi
+
+            print -u2 -- "open: no such file or directory: $target"
+            return 1
+        }
+        ;;
+esac
+
 # ==============================================================================
 # 📦 ARCHIVE EXTRACTION UTILITIES / 壓縮檔解包自動化工具
 # ==============================================================================
