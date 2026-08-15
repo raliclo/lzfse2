@@ -32,6 +32,19 @@ cleanTempFiles() {
     rm -rf xbenchTest
     rm -rf llama.cpp.*(N)
 }
+
+# Clean up on the way out, not only at the happy path's checkpoints. The sweeps
+# below already call cleanTempFiles between runs, but a Ctrl-C or any failure
+# outside the diskcheck path used to leave xbenchTest (an extracted tree, about
+# the size of the corpus at ~1.4 GB) plus the per-format archives behind. The
+# results live in $LZ4BENCH_LOG_DIR and BenchMarkResult.csv, neither of which
+# cleanTempFiles touches, so running it on EXIT costs nothing.
+# 離開時一併清理，而非只在正常流程的節點清理。下方的掃描本就會在各次執行之間呼叫
+# cleanTempFiles，但 Ctrl-C、或 diskcheck 以外的任何失敗，原本會留下 xbenchTest
+# （解壓樹，約當語料大小 1.4 GB）與各格式封存。結果檔位於 $LZ4BENCH_LOG_DIR 與
+# BenchMarkResult.csv，皆不在 cleanTempFiles 的範圍內，故於 EXIT 執行它不付任何代價。
+trap 'cleanTempFiles' EXIT INT TERM
+
 roundStatus() {
     echo "$@ $(date +%H:%M:%S)" >> "$ROUND_STATUS_FILE"
 }
