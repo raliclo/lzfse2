@@ -167,6 +167,96 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R48-Mac：CPU power 恢復後的首輪有效量測（2026-08-15）
+
+> **目標**：R47-Mac 的 CPU power 全為 0，該輪判定為 macOS 27.0 build 26A5388g 的 powermetrics 缺陷、而非量測方式問題。本輪在 build 26A5406e 上以 `-full`（`-swift_tar -power-test`）重跑，驗證該判定，並取得 `os_version` 與 `Energy Impact` 兩個欄位就位後的第一份完整資料。過程中修好三處會讓整輪白跑的中止。
+
+執行時間 17:11:55 → 18:52:22（1 小時 40 分），機器 `Mac16,10`，`os_version` 記為 `27.0 (26A5406e)`。
+
+## 1. CPU power 恢復，84/84 列皆有讀數
+
+R47-Mac 的判定成立。同為 macOS 27.0、僅 build 由 26A5388g 更新至 26A5406e，本輪 84 筆功率量測全部有讀數：
+
+| | R47-Mac（26A5388g） | R48-Mac（26A5406e） |
+| --- | --- | --- |
+| `cpu_power_mw` 非零列 | 1 / 84 | **84 / 84** |
+| 平均 | — | **10621 mW** |
+| 範圍 | — | 1847 – 17737 mW |
+
+**產品版本相同而量測能力不同**，這正是 R47-Mac 加入 `os_version` 欄位、且必須記到 build 而非僅記 `27.0` 的理由；本輪即為該決定的驗證。
+
+數值有合理的區分度，且與 R47-Mac 新增的 `Energy Impact` 欄位排序一致（claw-code、decode、n=40）：
+
+| 格式 | CPU Power (mW) | Energy Impact |
+| --- | ---: | ---: |
+| LZFSE (Other3) | 11277 | 17571 |
+| LZFSE (Optimal3) | 10179 | 17805 |
+| LZFSE (Apple) | 4413 | 7994 |
+| TGZ | 4258 | 7981 |
+| ZSTD | 3097 | 5044 |
+| TLZ4 | 2184 | 2471 |
+
+LZFSE 家族功耗最高、lz4 最低，與各自的計算量相符。兩個指標的取得路徑互相獨立（一個來自 `cpu_power` sampler，一個來自 `tasks --show-process-energy`），排序一致因而是交叉驗證，不是同一個數字的兩種寫法。
+
+## 2. 解壓速度的輪間差異：E-Cluster 是否參與
+
+壓縮比 18/18 組與 R47-Mac 完全相同，證實演算法未變。但 decode 速度的變化有正有負、幅度懸殊（claw-code：TLZ4 +110.2%、Apple +77.4%，而 Lazy2 −18.7%）。追查後，**成因是量測期間 E-Cluster 是否在工作**，而非任何程式碼改動。
+
+`powerResults/raw/` 的 powermetrics 原始輸出直接記錄了這件事（claw-code、decode、n=40）：
+
+| 格式 | R47-Mac E-Cluster | R48-Mac E-Cluster | decode Δ |
+| --- | --- | --- | ---: |
+| LZFSE (Apple) | active **100.00%** @ 2880 MHz | **idle 100%** | +77.4% |
+| TLZ4 | active 99.41% | **idle 100%** | +110.2% |
+| LZFSE (Optimal3) | active 98.92% | active 75.82% | +75.2% |
+| LZFSE (Other3) | active 98.22% | active 77.32% | +2.1% |
+| TGZ | active 100.00% | active 100.00% | +6.0% |
+| ZSTD | active 99.88% | active 100.00% | +87.9% |
+
+**E-Cluster 完全退出的兩項（Apple、TLZ4）正是提升最大的兩項；兩輪皆滿載的 TGZ 幾乎不變。** P-Cluster 兩輪都是 ~4040 MHz、residency ~100%，並無差異——變的只有 E-Cluster。ZSTD 是本表唯一的例外（E 兩輪皆滿載卻仍提升 87.9%），故此關聯是主要成因而非唯一成因。
+
+需要留意 powermetrics 量的是**全系統**而非單一程序：E-Cluster active 100% 代表當時機器上有工作在 E core 執行，可能來自 benchmark 自身的其他階段，也可能來自背景程序。因此更準確的說法是「R47-Mac 的這幾筆量測是在系統較忙的狀態下取得」，而非「該程序被排到 E core」——後者需要 thread-level 的 trace 才能斷定（`helper/system_tracer.command` 產出的 `running_p_core_ms` / `running_e_core_ms` 可用於此，本輪未納入）。
+
+### 已排除的候選成因
+
+- **swift_tar 的平行小檔解出**：`16cd98e`（「Extract small files in parallel on macOS and Linux」）提交於 2026-08-11 11:16，而 R47-Mac 的 binary 建置於同日 18:42，gitlink 亦為 `16cd98e`——**該輪已含此改動**，其 +171% 的效益早在 R47-Mac 就已量到並記錄。兩輪之間 `swift_tar.swift` 的 50 行 diff 全屬 `--zstd-level`，`FileWriterPool` / `TarReader` / extract 相關識別字在該 diff 中出現 0 次。
+- **lzfse 預設 `-n` 由 `cores * 2` 改為 `cores`**：benchmark 全程以 `LZFSE_BENCH_N` 明確指定 `-n`（40 / 8 / 4），不取用預設值。
+- **swift_tar 版本本身**：以 `16cd98e` 重建舊版與本輪版本做 A/B（同一份 1.3 GB tar、交錯 3 輪），新版快 4–30%，但舊版自身的變異即達 63%（1.32 → 2.15 秒），不足以解釋 Apple 的 −44%。
+
+### 佐證：事後重測
+
+以本輪的 binary 重測 claw-code Apple 解壓（n=40，同條件）得 **1.81 / 1.76 / 1.82 秒**，與 R48-Mac 的 1.78 秒一致，而 R47-Mac 的 3.15 秒為離群值。**因此本輪數字才是常態，R47-Mac 的 Apple/TLZ4 偏慢**——方向與「本輪變快」相反，兩者的差別在於前者說明了基準有問題，後者會被誤讀為本輪有所改善。
+
+**結論：本輪的 decode 速度變化不應解讀為效能改善，R47-Mac 對應欄位亦不宜作為基準引用。** 若要消除這類輪間差異，量測需在 E-Cluster 閒置的條件下進行，或改以 thread-level trace 記錄實際的 P/E 分配。
+
+## 3. 三處會讓整輪白跑的中止（詳見 commit 58d9157）
+
+三者互不相關，但都在同一種情境浮現：整輪跑了數十分鐘之後才中止。
+
+1. **`sudo --preserve-env` 被 sudoers 拒絕**。`run_round.command` 原以 `--preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB` 呼叫 `benchmark2.sh`，而本機 sudoers 採 `env_reset` 且未授予 `SETENV`，直接回報「sorry, you are not allowed to set the following environment variables」。該步位於耗時約 37 分鐘的 `benchmark.sh` **之後**。改以檔案交付（`.bench_env`，sudo 前寫出、事後刪除，`benchmark2.sh` 在 `source ./zshrc.sh` 之前載入），不需更動 sudoers。**PATH 必須一併傳遞**：sudo 會以 `secure_path` 取代 PATH，使 `tar → swift_tar` 的 shim 消失，整輪將靜默改用系統 tar——而那正是 `-swift_tar` 要避免的事，且不會報錯。
+2. **tracer 把正常結束誤判為失敗**。`--time-limit` 提前中止目標程序時，xctrace 以非零結束，即使錄製已完整儲存。實例 `claw-code/other3 -n 4` 回傳 54，其 trace 為 4.3 MB、`xctrace export --toc` 匯出正常，**比被判成功者更大**，卻中止了整輪。改為在非零時先驗證錄製可否解析，可解析即接受；損壞的 trace 仍拒絕。**兩處呼叫點都需修正**——首次只改了無 `-n` 的分支，而帶 `-n` 的 trace 走另一條，故重跑時仍以同一個 rc 54 中止。
+3. **啟動腳本在無 tty 時拒絕啟動**。`sudo -v` 即使 timestamp 有效也堅持要 tty（其職責是重新驗證、會預備提示密碼），`sudo -n` 則直接成功。改為先試非互動，再依 tty 存在與否決定互動或明確中止。
+
+## 4. 判定一輪是否完成，不能只看 exit code
+
+修正前的一次執行以 `exit 0` 結束並被回報為「完成」，但那個 0 來自 `benchmark2.sh`，掩蓋了 tracer 的 `TRACER_FAILED 54`：trace 僅 3 筆、llama.cpp 一筆未跑。實際判準應為：
+
+| 判準 | 該次 | 本輪 |
+| --- | --- | --- |
+| `LZ4BENCH_OK` | 6 / 6 | 6 / 6 |
+| `TRACE_DONE` | 3 | **43** |
+| llama.cpp trace | **0** | **21** |
+| `TRACER_FAILED` | **1** | **0** |
+| `TRACER_DONE` | **0** | **1** |
+
+42 個 trace 分析完畢後依既有流程清除（`COUNT_START 42 expected=42` → `CLEANED before=42 after=0`），保留 `trace_summary.csv`（43 列）與 `cpu_call_tree_summary/`。
+
+## 5. 本輪資料
+
+6 次 `-n` 掃描（claw-code 與 llama.cpp 各 n=40/8/4）、84 筆功率量測與其 powermetrics 原始輸出、72 筆 RSS、42 筆 trace 分析。
+
+---
+
 # R47-Win：正式重測（TGZ null-mode 修正驗收 + run_round.bat 再修兩個解析 bug）（2026-07-18）
 
 > **目標**：在 Pre-R47 的基礎設施修正之上執行完整 `run_round.bat -swift_tar`，驗收 TGZ to-stdout null-mode 修正與 backend 身份檢查在真實流程中正確運作，並產出 R47 正式效能數據。過程中又發現並修正兩個 `run_round.bat` 的 cmd.exe 解析 bug；第一次正式跑完後使用者判斷 `llama.cpp` 數據不可靠，重測一次後確認、採用重測數據為本輪正式結果。

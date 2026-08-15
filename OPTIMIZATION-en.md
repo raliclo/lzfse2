@@ -167,6 +167,96 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R48-Mac: The first round of effective measurement after CPU power recovery (2026-08-15)
+
+> **Target**: The CPU power of R47-Mac is all 0, and this round is determined to be a powermetrics defect of macOS 27.0 build 26A5388g, not a measurement method problem. In this round, rerun with `-full` ( `-swift_tar -power-test`) on build 26A5406e, verify the judgment, and obtain the first complete data after the two fields of `os_version` and `Energy Impact` are in place. Repairing three places in the process will stop the whole round of running in vain.
+
+Running time 17:11:55 → 18:52:22 (1 hour and 40 minutes), the machine `Mac16,10`, `os_version` is recorded as `27.0 (26A5406e)`.
+
+## 1. CPU power recovery, 84/84 columns have readings
+
+The judgment of R47-Mac is valid. It is the same macOS 27.0, only build updated from 26A5388g to 26A5406e, and all 84 power tests in this round have readings:
+
+| | R47-Mac (26A5388g) | R48-Mac (26A5406e) |
+| --- | --- | --- |
+| `cpu_power_mw` Non-zero column | 1 / 84 | **84 / 84** |
+| Average | — | **10621 mW** |
+| Range | — | 1847 – 17737 mW |
+
+**The product version is the same but the measurement capacity is different**, which is the reason why R47-Mac joins the `os_version` field and must be recorded in the build instead of only `27.0`; this round is the verification of the decision.
+
+The numerical value has a reasonable distinction and is consistent with the `Energy Impact` field sorting added by R47-Mac (claw-code, decode, n=40):
+
+| Format | CPU Power (mW) | Energy Impact |
+| --- | ---: | ---: |
+| LZFSE (Other3) | 11277 | 17571 |
+| LZFSE (Optimal3) | 10179 | 17805 |
+| LZFSE (Apple) | 4413 | 7994 |
+|TGZ|4258|7981|
+| ZSTD | 3097 | 5044 |
+| TLZ4 | 2184 | 2471 |
+
+The LZFSE family has the highest power consumption and the lowest lz4, which is consistent with their respective computing volume. The acquisition paths of the two indicators are independent of each other (one from `cpu_power` sampler, the other from `tasks --show-process-energy`), and the sorting is consistent, so it is cross-verification, not the same number.
+
+## two Inter-wheel difference in decompression speed: whether E-Cluster participates
+
+The compression ratio of group 18/18 is exactly the same as that of R47-Mac, confirming that the algorithm has not changed. However, the changes in decode speed are positive and negative, and the magnitude is very different (claw-code: TLZ4 +110.2%, Apple +77.4%, and Lazy2 −18.7%). After tracking, **the cause is whether E-Cluster is working during the measurement**, not any code changes.
+
+The original output of powermetrics of `powerResults/raw/` directly records this matter (claw-code, decode, n=40):
+
+| Format | R47-Mac E-Cluster | R48-Mac E-Cluster | decode Δ |
+| --- | --- | --- | ---: |
+| LZFSE (Apple) | active **100.00%** @ 2880 MHz | **idle 100%** | +77.4% |
+| TLZ4 | active 99.41% | **idle 100%** | +110.2% |
+| LZFSE (Optimal3) | active 98.92% | active 75.82% | +75.2% |
+| LZFSE (Other3) | active 98.22% | active 77.32% | +2.1% |
+| TGZ | active 100.00% | active 100.00% | +6.0% |
+| ZSTD | active 99.88% | active 100.00% | +87.9% |
+
+** The two E-Cluster completely withdrawn (Apple, TLZ4) are the two biggest upgrades; the TGZ, which is full of both rounds, is almost unchanged. ** Both rounds of P-Cluster are ~4040 MHz, residency ~100%, there is no difference - only E-Cluster has changed. ZSTD is the only exception in this table (E both rounds are full but still increased by 87.9%), so this association is the main cause, not the only cause.
+
+What needs to be noted in powermetrics is **the whole system** rather than a single process: E-Cluster active 100% means that the machine is working on E core at that time, which may come from other stages of the benchmark itself or from the background process. Therefore, it is more accurate to say that "these measurements of R47-Mac were obtained in a busy state of the system", rather than "the process is queued to E core" - the latter requires thread-level trace to be determined ( `running_p_core_ms` / `running_e_core_ms` output by `helper/system_tracer.command` can be used for this, which is not included in this round).
+
+### Excluded candidate causes
+
+- **swift_tar's parallel small file solution**: `16cd98e` ("Extract small files in parallel on macOS and Linux") was submitted at 2026-08-11 11:16, and the binary of R47-Mac was established at 18:42 on the same day. gitlink is also `16cd98e` - **This round has included this change**, and its +171% benefit has been measured and recorded as early as R47-Mac. The 50 lines of diff of `swift_tar.swift` between the two rounds are all `--zstd-level`, and `FileWriterPool` / `TarReader` / extract related identifiers appear 0 times in the diff.
+- **lzfse default `-n` changed from `cores * 2` to `cores` **: Benchmark clearly specifies `-n` (40 / 8 / 4) with `LZFSE_BENCH_N` throughout the whole process, and the default value is not accessed.
+- **swift_tar version itself**: Rebuild the old version with `16cd98e` to do A/B with this version (the same 1.3 GB tar, staggered 3 rounds), the new version is 4–30% faster, but the mutation of the old version itself reaches 63% (1.32 → 2.15 seconds), which is not enough to explain Apple's −44%.
+
+### Evidence: Retest after the fact
+
+With this round of binary retest claw-code Apple decompression (n=40, same conditions) to get **1.81 / 1.76 / 1.82 seconds**, which is consistent with the 1.78 seconds of R48-Mac, while the 3.15 seconds of R47-Mac is an outly value. **Therefore, this round of numbers is the norm. R47-Mac's Apple/TLZ4 is slow** - the opposite direction to "this round becomes faster". The difference between the two is that the former shows that there is a problem with the benchmark, and the latter will be misread as improving this round.
+
+** Conclusion: The decode speed change of this round should not be interpreted as a performance improvement, and the corresponding field of R47-Mac should not be used as a benchmark reference. ** To eliminate such inter-wheel differences, the measurement needs to be carried out under the condition that the E-Cluster is idle, or record the actual P/E allocation with thread-level trace.
+
+## three. Three places will stop the whole round in vain (see commit 58d9157 for details)
+
+The three are not related to each other, but they all emerge in the same situation: the whole round is stopped after running for dozens of minutes.
+
+1. ** `sudo --preserve-env` was rejected by sudoers**. `run_round.command` originally called `benchmark2.sh` with `--preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB`, and the local sudoers adopted `env_reset` and did not grant `SETENV`, directly returning "sorry, you are not allowed to set the following environment variables". This step takes about 37 minutes after `benchmark.sh` **. Change to file delivery ( `.bench_env`, written before sudo, deleted afterwards, `benchmark2.sh` loaded before `source ./zshrc.sh`), no need to change sudoers. **PATH must be passed together**: sudo will replace PATH with `secure_path`, so that the shim of `tar → swift_tar` disappears, and the whole round will be silently changed to the system tar - and that is exactly what `-swift_tar` should avoid, and will not report errors.
+2. **tracer misjudges the normal end as failure**. `--time-limit` When the target process is stopped in advance, xctrace ends with non-zero, even if the recording has been fully saved. Example `claw-code/other3 -n 4` return 54, its trace is 4.3 MB, `xctrace export --toc` export is normal, **larger than the successful person**, but the whole round is suspended. Instead, verify whether the recording can be parsed first when it is not zero. If it can be parsed, it will be accepted; the damaged trace still refuses. ** Both call points need to be modified** - For the first time, only the branch without `-n` was changed, and the trace with `-n` went to another one, so it was still stopped with the same rc 54 when rerunning.
+3. **The activation stet is refused to be activated when there is no tty**. `sudo -v` insists on tty even if the timestamp is valid (its duty is to re-verify and prepare the prompt password), and `sudo -n` is directly successful. Instead, try non-interaction first, and then decide to interact or explicitly stop according to the existence of tty.
+
+## four. To determine whether a round is completed, you can't just look at the exit code.
+
+An execution before the correction ended with `exit 0` and was returned as "completed", but the 0 came from `benchmark2.sh`, covering tracer's `TRACER_FAILED 54`: trace only 3 strokes and llama.cpp did not run. The actual judgment should be:
+
+| Judge | This time | This round |
+| --- | --- | --- |
+| `LZ4BENCH_OK` | 6/6 | 6/6 |
+| `TRACE_DONE` | 3 | **43** |
+| llama.cpp trace | **0** | **21** |
+| `TRACER_FAILED` | **1** | **0** |
+| `TRACER_DONE` | **0** | **1** |
+
+After the analysis of 42 traces, it is cleared according to the existing process ( `COUNT_START 42 expected=42` → `CLEANED before=42 after=0`), and `trace_summary.csv` (43 columns) and `cpu_call_tree_summary/` are retained.
+
+## five. Data of this round
+
+6 `-n` scans (claw-code and llama.cpp n=40/8/4 each), 84 power measurements and its powermetrics original output, 72 RSS, 42 trace analysis.
+
+---
+
 # R47-Win: Official retest (TGZ null-mode correction acceptance + run_round.bat fix two more analysis bugs) (2026-07-18)
 
 > **Goal**: Run the complete `run_round.bat -swift_tar` on the infrastructure correction of Pre-R47, accept TGZ to-stdout null-mode correction and backend identity check to operate correctly in the real process, and output R47 official performance data. In the process, the cmd.exe parsing bug of two `run_round.bat` was found and corrected. After the first official run, the user judged that the `llama.cpp` data was unreliable. After retesting once, it was confirmed that the retest data was the official result of this round.

@@ -1,6 +1,6 @@
 # swift_tar parallel extraction: correctness
-date      : 2026-08-11T10:43:12Z
-swift_tar : swift_tar 20260811-184213
+date      : 2026-08-15T09:12:20Z
+swift_tar : swift_tar 20260815-171155
 host      : Darwin 27.0.0 arm64
 -n values : 1 2 8 16   repeats: 3
 umask     : 022   (modes must survive it -- see the modes case)
@@ -24,7 +24,7 @@ a regression to umask defaults.
 ## 3. symlink and hardlink
   [PASS] symlink points at its target -- got 'a.txt'
   [PASS] symlink was not overwritten by a queued write -- must still be a symlink, not a regular file
-  [PASS] hardlink shares an inode with its target -- inodes 166594762 / 166594762
+  [PASS] hardlink shares an inode with its target -- inodes 172758037 / 172758037
 ## 4. mtime is restored by the worker (futimens), not the main thread
   a.txt mtime 1577905445 (source 1577905445)
   [PASS] mtime preserved through the pool
@@ -49,8 +49,8 @@ undoes the read-only precondition. Archive a named file instead.
 此處的封存不可含有 './' 成員。主語料含有（以 '-C src .' 建立），而解開該成員
 會還原「目的目錄本身」的權限——這是正確的 tar 行為，卻會靜默地解除唯讀前提。
 改為只封存具名檔案。
-  SKIP: this filesystem lets the owner write into a 0555 directory
-  [PASS] unwritable destination fails loudly -- SKIPPED -- precondition unavailable here
+  extracting into a read-only directory -> exit 1
+  [PASS] unwritable destination fails loudly -- exit was 1
 ## summary: 12/12 passed
   PASS  identical to the reference across 4 -n values x 3 repeats
   PASS  mode preserved: ./a.txt
