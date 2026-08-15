@@ -316,6 +316,41 @@ raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true, /Users/raliclo
 
 R42 Windows round 已補齊 `other3 -optimal3`，Windows 結果位於 [`helper_windows/bench_results_csv/BenchMarkResult-Win.csv`](helper_windows/bench_results_csv/BenchMarkResult-Win.csv)，跨平台合併比較位於 [`helper_windows/bench_results_csv/comparison.csv`](helper_windows/bench_results_csv/comparison.csv)。Windows 本輪 `-n 40` 表示單次 inflight chunk count；macOS `n=40` 是 40 次平均，兩者的測試語意不同，尤其 decode 寫檔路徑會受到 NTFS / bsdtar / file creation 成本影響。
 
+### 一輪需時多久 / How long a round takes
+
+**完整一輪約 1.5–2 小時。** 自動化工具（含 LLM agent）若以逾時包裝執行，逾時值必須涵蓋整段時間，否則會在中途被中止而白費——這已實際發生過一次。更穩妥的做法是讓它脫離工具的生命週期執行（Windows 用 `Start-Process`，macOS 用 `nohup`），再以狀態檔判斷完成，而非等程序結束。
+
+A full round takes roughly 1.5 to 2 hours. Any automation that wraps it in a
+timeout must cover the whole span, or the round is killed partway and the time
+is wasted -- which has happened. Safer still is to detach it from the tool's
+lifecycle (`Start-Process` on Windows, `nohup` on macOS) and judge completion
+from the status file rather than from process exit.
+
+Windows（`helper_windows/run_round.bat -swift_tar`，2026-08-15 實測，n=40，Ryzen 5 7535HS）：
+
+| 階段 | claw-code（1.4 GB 單一大檔） | llama.cpp（40,675 個小檔） |
+|---|---:|---:|
+| encode nul | 4m23s | 14m41s |
+| encode write | 3m18s | 4m02s |
+| decode nul | 1m15s | 2m28s |
+| decode write | 12m42s | **44m+**（含解壓樹逐檔驗證） |
+| rss nul | 4m25s | ~4m |
+| rss write | 4m07s | ~4m |
+| 小計 | **約 30m** | **約 73m** |
+
+外加 `system-info-win.bat` 約 1m34s、前後兩次 `git gc`、以及收尾的 `summarize_win.py` 與 `comparison_win.py`。
+
+最耗時的單一階段是 **llama.cpp 的 decode write**：40,675 個小檔逐一落盤後還要逐檔比對解壓樹，佔整輪約一半時間。它也是最容易讓人誤判為卡住的階段——期間狀態檔會長時間沒有新的 `[INFO] Running` 行。
+
+macOS（`run_round.command -full`）另含 powermetrics 功耗量測與 Time Profiler trace，且 `-n` 掃 40/8/4 三組，因此更久；`claude_test_sample_script.zsh` 的說明以 1–2 小時為準。
+
+The single longest phase is llama.cpp's decode-write, which writes 40,675 small
+files and then compares the extracted tree file by file -- about half the round.
+It is also the phase most easily mistaken for a hang, since no new
+`[INFO] Running` line appears in the status file for a long stretch. The macOS
+round additionally collects powermetrics energy figures and Time Profiler
+traces, and sweeps `-n` over 40/8/4, so it runs longer.
+
 ### 測試機硬體比較
 
 Windows 資訊由 [`helper_windows/system-info-win.bat`](helper_windows/system-info-win.bat) 產生，原始 log 位於 [`helper_windows/bench_logs/system-info.txt`](helper_windows/bench_logs/system-info.txt)，時間戳記為 `2026-07-05 18:06:28`。Mac 欄位依本輪 README / benchmark 記錄；未在 log 中保存的細節以「未記錄」標示。

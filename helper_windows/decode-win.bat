@@ -180,6 +180,20 @@ goto :EOF
 if "%_write%"=="1" (
     call :prepareOut "decoded\%_logprefix%\tgz"
     "!_tgz_tar!" xzf "%~1.tgz" -C "decoded\%_logprefix%\tgz" > nul
+    exit /b
+)
+:: --to-stdout is bsdtar's spelling and swift_tar has no such option. While the
+:: two shared this line, a -swift_tar round silently extracted the whole tree to
+:: disk here and the figure was recorded as a null-mode decode. swift_tar now
+:: rejects the unknown option, so the backends need separate lines: -t walks the
+:: archive without writing, and is what zshrc.sh already uses on macOS, keeping
+:: the two platforms comparable.
+:: --to-stdout 是 bsdtar 的寫法，swift_tar 並無此選項。兩者共用這一行期間，
+:: -swift_tar 輪次其實在此把整棵樹解到磁碟，卻被記為 null 模式的解壓數據。
+:: swift_tar 現已拒絕未知選項，故兩種後端必須分開：-t 會走完整個封存但不寫入，
+:: 且與 macOS 的 zshrc.sh 一致，使兩平台可比。
+if "%LZFSE_REQUIRE_NATIVE_ZLIB%"=="1" (
+    "!_tgz_tar!" -t -f "%~1.tgz" > nul 2>&1
 ) else (
     "!_tgz_tar!" --to-stdout -xzf "%~1.tgz" > nul 2>&1
 )
@@ -266,7 +280,12 @@ if "%_write%"=="1" (
     call :prepareOut "decoded\%_logprefix%\zstd"
     "!_zstd_tar!" -x -f "%~1.tar.zst" -C "decoded\%_logprefix%\zstd" > nul
 ) else (
-    "!_zstd_tar!" --to-stdout -x -f "%~1.tar.zst" > nul 2>&1
+    :: -t rather than --to-stdout: see :decodeTgz. The external branch above runs
+    :: zstd -d -c, which decompresses without parsing tar, so this row carries a
+    :: little more work on the native side than on the external one.
+    :: 用 -t 而非 --to-stdout，理由見 :decodeTgz。上方的外部分支執行 zstd -d -c，
+    :: 只解壓縮而不解析 tar，故此列在 native 側的工作量略多於外部側。
+    "!_zstd_tar!" -t -f "%~1.tar.zst" > nul 2>&1
 )
 exit /b
 

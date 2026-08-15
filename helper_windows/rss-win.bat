@@ -308,7 +308,7 @@ if ($nativeZstdRequired) {
             New-Item -ItemType Directory -Force -Path $outDir | Out-Null
             $d = Measure-StandaloneRSS $zstdTar "-x -f `"$archive`" -C `"$outDir`""
         } else {
-            $d = Measure-StandaloneRSS $zstdTar "--to-stdout -x -f `"$archive`""
+            $d = Measure-StandaloneRSS $zstdTar "-t -f `"$archive`""
         }
         $decRss = $d.rss_mb
         if ($d.exit -ne 0) { Write-Log ("  [warn] zstd decode exit " + $d.exit + ": " + (($d.err -split "`n")[0])) }
@@ -356,7 +356,7 @@ if (Test-Path -LiteralPath $archive) {
         New-Item -ItemType Directory -Force -Path $outDir | Out-Null
         $d = Measure-StandaloneRSS $tgzTar "-xzf `"$archive`" -C `"$outDir`""
     } else {
-        $d = Measure-StandaloneRSS $tgzTar "--to-stdout -xzf `"$archive`""
+        $d = Measure-StandaloneRSS $tgzTar "-t -f `"$archive`""
     }
     $decRss = $d.rss_mb
     if ($d.exit -ne 0) { Write-Log ("  [warn] tgz decode exit " + $d.exit + ": " + (($d.err -split "`n")[0])) }
