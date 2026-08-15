@@ -133,6 +133,37 @@ elif [ "$(uname -s)" = "Darwin" ]; then
     fi
     export PATH="$PATH:/Users/$UsrNAME/.cargo/bin"
     COLOR_FLAG="-G"
+else
+    case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        # Windows under MSYS/Cygwin zsh. Without this branch neither of the two
+        # above matched, leaving PACORES, UsrPATH, UsrNAME, READLINK and
+        # COLOR_FLAG unset: anything deriving a thread count from PACORES fell
+        # back to an empty value rather than to the machine's core count.
+        # MSYS／Cygwin zsh 下的 Windows。缺少本分支時上述兩者皆不符合，PACORES、
+        # UsrPATH、UsrNAME、READLINK 與 COLOR_FLAG 全部未設定：任何以 PACORES
+        # 推導執行緒數的地方會取到空值，而非機器的核心數。
+        SETCC="gcc"
+        GCC_VER=15
+        PACORES=${NUMBER_OF_PROCESSORS:-$(nproc 2>/dev/null)}
+        PACORES=${PACORES:-1}
+        UsrPATH="/c/Users"
+        UsrNAME=$(whoami)
+        # No Homebrew here; OPT_PREFIX below is derived from BREW_PREFIX, so it
+        # is pointed at the MSYS tree to keep that derivation meaningful.
+        # 此處沒有 Homebrew；下方的 OPT_PREFIX 由 BREW_PREFIX 推導，故指向 MSYS
+        # 樹狀目錄，使該推導仍具意義。
+        export BREW_PREFIX="/usr"
+        export BLOCKSIZE=4096
+        # GNU coreutils readlink is the native one here, unlike macOS where the
+        # BSD version requires greadlink from Homebrew.
+        # 此處的 readlink 原生即為 GNU coreutils 版本，不像 macOS 的 BSD 版需另外
+        # 安裝 Homebrew 的 greadlink。
+        READLINK="readlink"
+        system_VER=64
+        COLOR_FLAG="--color=auto"
+        ;;
+    esac
 fi
 
 # Set Homebrew optimization prefix / 設定 Homebrew 套件優化路徑字首
@@ -251,9 +282,34 @@ local RESET="%{$(tput sgr0)%}"
 # PS1 Multi-line Layout Design / 雙行排版設計
 # Upper line: Full horizontal divider line followed by working directory, host, and user info.
 # Lower line: Clean input area starting with '=>'.
-export PS1='________________________________________________________________________________
+#
+# Windows uses zsh's own prompt escapes instead of the tput colours above. The
+# %{ %} zero-width markers are processed in an earlier pass than $-expansion, so
+# a colour arriving through ${BOLD} and friends is no longer honoured as
+# zero-width: zsh counts the invisible colour bytes as visible width, the cursor
+# drifts, and on the slower Windows console typed keys get dropped or
+# scrambled. Native escapes are counted as zero-width correctly.
+# Windows 改用 zsh 原生 prompt 跳脫序列，而非上方的 tput 色碼。%{ %} 零寬標記的
+# 處理階段早於 $ 展開，因此經由 ${BOLD} 等變數傳入的色碼不再被視為零寬：zsh 會把
+# 不可見的色碼位元組算成可見寬度，造成游標偏移，在較慢的 Windows console 上更會
+# 吞字或打亂輸入。原生跳脫序列則能被正確視為零寬。
+#
+# The two forms render the same prompt: %d is the working directory, %m the host
+# and %n the user, matching ${HOSTNAME} and ${USER} above.
+# 兩種寫法呈現相同的提示字元：%d 為工作目錄、%m 為主機名稱、%n 為使用者，與上方的
+# ${HOSTNAME}、${USER} 對應。
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        export PS1='________________________________________________________________________________
+%B%F{cyan}%d %F{cyan}@%m %F{blue}(%n)%f%b
+=>'
+        ;;
+    *)
+        export PS1='________________________________________________________________________________
 ${BOLD}${CYAN}%d ${CYAN}@${HOSTNAME} ${BLUE}(${USER})${RESET}
 =>'
+        ;;
+esac
 
 # Synchronize setup to sudo sessions / 將提示字元設定同步套用至 sudo 權限環境
 export SUDO_PS=$PS1
@@ -1126,7 +1182,15 @@ function START_UP@END() {
     alias cgrep="grep --color=always"
     # printenv       # Output environment map on terminal login / 登入時印出當前環境變數快照
     # makeram
-    diskutil list | grep "RAMDisk" -B4 | grep "/dev" | awk '{print $1}' | tail -n +2 | xargs -I {} diskutil eject {}
+    # diskutil is macOS-only; on Windows this printed "command not found" on
+    # every shell start. Guarded by presence rather than by platform so it also
+    # stays quiet anywhere else diskutil is absent.
+    # diskutil 僅存在於 macOS；在 Windows 上會使每次啟動 shell 都印出
+    # "command not found"。以「指令是否存在」而非平台判斷，因此在其他沒有
+    # diskutil 的環境同樣保持安靜。
+    if (( $+commands[diskutil] )); then
+        diskutil list | grep "RAMDisk" -B4 | grep "/dev" | awk '{print $1}' | tail -n +2 | xargs -I {} diskutil eject {}
+    fi
     # claudeCodeEnv 2>&1 > /dev/null
     # antigravity support
     export PATH="/Users/raliclo/.local/bin:$PATH"
