@@ -1,7 +1,7 @@
 #!/bin/zsh
 # 強制重啟：不詢問、不彈框。強制 kill -9 Claude 與所有使用者 GUI App
 # （僅保留 Terminal 執行本腳本與 Finder），確保沒有任何 App 能否決重啟。
-# 重啟後 LaunchAgent 自動重開 Claude / check.sh / caffeinate。
+# 重啟後 LaunchAgent 自動重開 Claude / check.zsh / caffeinate。
 # 本腳本刻意保留於 lzfse2，不自我刪除。
 
 osascript -e 'display notification "5 秒後強制重啟：強制關閉所有 App（不會詢問、不會保存）" with title "lzfse2 reboot" subtitle "請立即停手…" sound name "Submarine"' 2>/dev/null

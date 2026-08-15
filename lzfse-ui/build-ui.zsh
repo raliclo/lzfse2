@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 
 # Build script for LZFSE_UI
 # Run from: lzfse-ui/   (this directory)

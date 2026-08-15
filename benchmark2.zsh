@@ -4,35 +4,35 @@ setopt NULL_GLOB
 
 # Settings from run_round.command arrive in a file, not the environment: sudo
 # runs with env_reset here and refuses --preserve-env for these names. Sourced
-# before zshrc.sh because the functions there read SWIFT_TAR_BIN and
+# before zshrc.zsh because the functions there read SWIFT_TAR_BIN and
 # LZFSE_REQUIRE_NATIVE_ZLIB at call time, and PATH must already carry the
 # tar->swift_tar shim by then. Absent when run without -swift_tar, which is why
 # the test is silent rather than an error.
 # 來自 run_round.command 的設定以檔案傳遞，而非環境變數：本機 sudo 採 env_reset，
-# 且拒絕以 --preserve-env 傳遞這些名稱。於 zshrc.sh 之前載入，因為其中的函式在呼叫
+# 且拒絕以 --preserve-env 傳遞這些名稱。於 zshrc.zsh 之前載入，因為其中的函式在呼叫
 # 當下才讀取 SWIFT_TAR_BIN 與 LZFSE_REQUIRE_NATIVE_ZLIB，且屆時 PATH 必須已含
 # tar→swift_tar 的 shim。未帶 -swift_tar 時此檔不存在，故此處靜默略過而非報錯。
 [[ -f ./.bench_env ]] && source ./.bench_env
 
-source ./zshrc.sh
+source ./zshrc.zsh
 
-# lzfse is always rebuilt here, but never as root. compile.sh writes
+# lzfse is always rebuilt here, but never as root. compile.zsh writes
 # /opt/homebrew/bin/lzfse-debug, and once that file is root-owned every later
 # non-root build dies with `ld: can't write output file`. gitOwner.sh only chowns
 # the project directory, so nothing repairs it. This script normally runs under
-# `sudo ./benchmark2.sh`, so drop back to the invoking user for the build.
-# 此處一律重新編譯 lzfse，但絕不以 root 執行。compile.sh 會寫入
+# `sudo ./benchmark2.zsh`, so drop back to the invoking user for the build.
+# 此處一律重新編譯 lzfse，但絕不以 root 執行。compile.zsh 會寫入
 # /opt/homebrew/bin/lzfse-debug，該檔一旦變成 root 所有，之後每次非 root 的建置
 # 都會以 `ld: can't write output file` 失敗。gitOwner.sh 只 chown 專案目錄，不會
-# 修復它。本腳本通常以 `sudo ./benchmark2.sh` 執行，故編譯時降回呼叫者身分。
+# 修復它。本腳本通常以 `sudo ./benchmark2.zsh` 執行，故編譯時降回呼叫者身分。
 if [[ -n "${SUDO_USER:-}" ]]; then
-    sudo -u "$SUDO_USER" --preserve-env=PATH ./compile.sh
+    sudo -u "$SUDO_USER" --preserve-env=PATH ./compile.zsh
 else
-    ./compile.sh
+    ./compile.zsh
 fi
 compile_rc=$?
 if [[ $compile_rc -ne 0 ]]; then
-    echo "benchmark2.sh aborted: compile.sh failed with status $compile_rc" >&2
+    echo "benchmark2.zsh aborted: compile.zsh failed with status $compile_rc" >&2
     exit $compile_rc
 fi
 
@@ -65,12 +65,12 @@ roundStatus() {
 cleanTempFiles
 
 # Steps 3 to 6 — the lz4bench sweeps and the Time Profiler traces — run in
-# benchmark.sh, which executes before this script. The step numbering continues
+# benchmark.zsh, which executes before this script. The step numbering continues
 # from there rather than restarting, so a round's status log reads as one
 # sequence. A copy of the sweep machinery used to sit here but was never called;
 # it printed "[Info] Running Benchmark WITH probe mode" into the log of a script
 # that runs no benchmarks, which made the log actively misleading.
-# Steps 3 至 6——lz4bench 掃描與 Time Profiler trace——在 benchmark.sh 中執行，該
+# Steps 3 至 6——lz4bench 掃描與 Time Profiler trace——在 benchmark.zsh 中執行，該
 # 腳本先於本腳本執行。步驟編號由該處延續而非重新起算，使一輪的狀態記錄讀起來
 # 是單一序列。此處原本有一份掃描機制的副本，但從未被呼叫；它會把「[Info] Running
 # Benchmark WITH probe mode」印進一個不執行任何 benchmark 的腳本的記錄中，反而造成
@@ -162,7 +162,7 @@ roundStatus "COMPARISON_DONE"
 
 # Step.15 翻譯文件為英文版（繁中 → 英文；輸出檔名加 -en）
 roundStatus "RUNNING_MD_TRANSLATE"
-./helper/md-translate/md-translate-mac.sh >> "$ROUND_STATUS_FILE" 2>&1
+./helper/md-translate/md-translate-mac.zsh >> "$ROUND_STATUS_FILE" 2>&1
 rc=$?
 if [[ $rc -ne 0 ]]; then
     roundStatus "TRANSLATE_FAILED $rc"

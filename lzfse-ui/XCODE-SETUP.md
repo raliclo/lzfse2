@@ -106,7 +106,7 @@ This repo includes a generated app icon:
 - `lzfse-ui/AppIcon.png` — source image
 - `lzfse-ui/AppIcon.icns` — macOS bundle icon generated from the PNG
 
-For the command-line build, `build-ui.sh` embeds `AppIcon.icns` automatically and writes `CFBundleIconFile=AppIcon`.
+For the command-line build, `build-ui.zsh` embeds `AppIcon.icns` automatically and writes `CFBundleIconFile=AppIcon`.
 
 For Xcode, use either approach:
 

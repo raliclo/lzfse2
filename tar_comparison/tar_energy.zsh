@@ -1,12 +1,12 @@
 #!/bin/zsh
 # =====================================================================
-# tar_energy.sh — controlled A/B: system tar vs swift_tar, CPU energy
+# tar_energy.zsh — controlled A/B: system tar vs swift_tar, CPU energy
 #                 for TGZ encode/decode via powermetrics (needs sudo).
 #                 energy_J = duration_s * avg_CPU_mW / 1000
-# tar_energy.sh —— 受控 A/B：系統 tar vs swift_tar，用 powermetrics 量
+# tar_energy.zsh —— 受控 A/B：系統 tar vs swift_tar，用 powermetrics 量
 #                 TGZ encode/decode 的 CPU 能耗（需 sudo）。
 #
-# Usage / 用法：sudo -v && tar_comparison/tar_energy.sh [corpus]
+# Usage / 用法：sudo -v && tar_comparison/tar_energy.zsh [corpus]
 # =====================================================================
 set -u
 zmodload zsh/datetime

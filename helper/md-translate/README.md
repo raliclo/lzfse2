@@ -13,8 +13,8 @@ code, and README language-switch links.
 |---|---|
 | `md-translate.swift` | translator source / 翻譯器 source |
 | `bin/md-translate` | macOS arm64 binary, intentionally committed — see below / macOS arm64 執行檔，刻意入版控，見下 |
-| `build-mac.sh` | macOS build entrypoint / macOS 建置入口 |
-| `md-translate-mac.sh` | rebuild and translate project Markdown / 重建並翻譯專案 Markdown |
+| `build-mac.zsh` | macOS build entrypoint / macOS 建置入口 |
+| `md-translate-mac.zsh` | rebuild and translate project Markdown / 重建並翻譯專案 Markdown |
 | `clean_zh.py` | remove duplicated English prose from bilingual optimization notes / 清理雙語 optimization 記錄中的重複英文 |
 | `translate_status.txt` | ignored runtime log / 已忽略的執行紀錄 |
 
@@ -26,7 +26,7 @@ Requires macOS 15 or later, a Swift compiler, and installed source and target
 translation languages.
 
 ```sh
-./helper/md-translate/build-mac.sh
+./helper/md-translate/build-mac.zsh
 ```
 
 建置結果為 `helper/md-translate/bin/md-translate`。
@@ -46,7 +46,7 @@ helper/md-translate/bin/md-translate \
 Full project translation flow:
 
 ```sh
-./helper/md-translate/md-translate-mac.sh
+./helper/md-translate/md-translate-mac.zsh
 ```
 
 執行紀錄寫入本目錄的 `translate_status.txt`，build 與 pipeline 狀態仍追加至
@@ -91,9 +91,9 @@ deliberate exception** to that rule.
 The exception is scoped as follows; anything beyond this warrants revisiting it:
 
 - 僅此一個檔案，且僅 macOS arm64。/ This one file only, macOS arm64 only.
-- 必須能由 `build-mac.sh` 從 `md-translate.swift` 完整重建；binary 不是唯一
+- 必須能由 `build-mac.zsh` 從 `md-translate.swift` 完整重建；binary 不是唯一
   來源。/ It must remain fully reproducible from `md-translate.swift` via
-  `build-mac.sh`; the binary is never the only source of truth.
+  `build-mac.zsh`; the binary is never the only source of truth.
 - 改動 `md-translate.swift` 後應一併重建並提交 binary，避免兩者不同步。/ When
   `md-translate.swift` changes, rebuild and commit the binary in the same change
   so the two do not drift apart.

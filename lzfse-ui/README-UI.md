@@ -1,7 +1,7 @@
 # LZFSE UI
 
 A macOS SwiftUI app providing a graphical interface for the LZFSE compression engine.  
-Mirrors the behaviour of `lzfseX` and `extract()` from `zshrc.sh`.
+Mirrors the behaviour of `lzfseX` and `extract()` from `zshrc.zsh`.
 
 ---
 
@@ -25,11 +25,11 @@ Mirrors the behaviour of `lzfseX` and `extract()` from `zshrc.sh`.
 
 ```bash
 cd lzfse-ui
-./build-ui.sh        # creates lzfse-ui/LZFSE_UI.app
+./build-ui.zsh        # creates lzfse-ui/LZFSE_UI.app
 open "LZFSE_UI.app"
 ```
 
-`build-ui.sh` also generates the macOS app icon from `AppIcon.png`, writes `AppIcon.icns`, copies it into the bundle resources, and sets `CFBundleIconFile` to `AppIcon`.
+`build-ui.zsh` also generates the macOS app icon from `AppIcon.png`, writes `AppIcon.icns`, copies it into the bundle resources, and sets `CFBundleIconFile` to `AppIcon`.
 
 Or manually:
 ```bash
@@ -127,7 +127,7 @@ Note: in the current implementation, `.lzfse` itself is included in the lzfseX s
 | Can't select `.lzfse.apple` in file picker | Fixed — no content-type filter applied |
 | Decode failed | File may be corrupt; verify source |
 | Out of memory | Reduce Parallel Tasks |
-| App icon does not appear | Rebuild with `./build-ui.sh`; verify `Contents/Resources/AppIcon.icns` exists |
+| App icon does not appear | Rebuild with `./build-ui.zsh`; verify `Contents/Resources/AppIcon.icns` exists |
 | App crashes | Check both Swift files are in build target |
 
 ---

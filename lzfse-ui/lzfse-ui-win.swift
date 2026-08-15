@@ -8,8 +8,8 @@
 //    1. 介面框架改用 SwiftCrossUI（跨平台），Windows 後端為 WinUIBackend。
 //       UI framework is SwiftCrossUI; the Windows backend is WinUIBackend.
 //    2. 直接 import lzfse-cli 的 codec（runParallelEncode / LZFSEv1）——
-//       build-win.sh 會以 grep -v 移除 lzfse-cli.swift 結尾的 runCLI() 後一起編入同一個 target。
-//       The lzfse-cli codec (runParallelEncode / LZFSEv1) is linked directly; build-win.sh
+//       build-win.zsh 會以 grep -v 移除 lzfse-cli.swift 結尾的 runCLI() 後一起編入同一個 target。
+//       The lzfse-cli codec (runParallelEncode / LZFSEv1) is linked directly; build-win.zsh
 //       strips the trailing runCLI() line from lzfse-cli.swift and compiles it into this target.
 //    3. 移除 Apple (.apple) 演算法——Windows 無 Compression framework。
 //       The Apple (.apple) algorithm is removed — no Compression framework on Windows.

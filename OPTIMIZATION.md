@@ -233,13 +233,13 @@ LZFSE 家族功耗最高、lz4 最低，與各自的計算量相符。兩個指�
 
 三者互不相關，但都在同一種情境浮現：整輪跑了數十分鐘之後才中止。
 
-1. **`sudo --preserve-env` 被 sudoers 拒絕**。`run_round.command` 原以 `--preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB` 呼叫 `benchmark2.sh`，而本機 sudoers 採 `env_reset` 且未授予 `SETENV`，直接回報「sorry, you are not allowed to set the following environment variables」。該步位於耗時約 37 分鐘的 `benchmark.sh` **之後**。改以檔案交付（`.bench_env`，sudo 前寫出、事後刪除，`benchmark2.sh` 在 `source ./zshrc.sh` 之前載入），不需更動 sudoers。**PATH 必須一併傳遞**：sudo 會以 `secure_path` 取代 PATH，使 `tar → swift_tar` 的 shim 消失，整輪將靜默改用系統 tar——而那正是 `-swift_tar` 要避免的事，且不會報錯。
+1. **`sudo --preserve-env` 被 sudoers 拒絕**。`run_round.command` 原以 `--preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB` 呼叫 `benchmark2.zsh`，而本機 sudoers 採 `env_reset` 且未授予 `SETENV`，直接回報「sorry, you are not allowed to set the following environment variables」。該步位於耗時約 37 分鐘的 `benchmark.zsh` **之後**。改以檔案交付（`.bench_env`，sudo 前寫出、事後刪除，`benchmark2.zsh` 在 `source ./zshrc.zsh` 之前載入），不需更動 sudoers。**PATH 必須一併傳遞**：sudo 會以 `secure_path` 取代 PATH，使 `tar → swift_tar` 的 shim 消失，整輪將靜默改用系統 tar——而那正是 `-swift_tar` 要避免的事，且不會報錯。
 2. **tracer 把正常結束誤判為失敗**。`--time-limit` 提前中止目標程序時，xctrace 以非零結束，即使錄製已完整儲存。實例 `claw-code/other3 -n 4` 回傳 54，其 trace 為 4.3 MB、`xctrace export --toc` 匯出正常，**比被判成功者更大**，卻中止了整輪。改為在非零時先驗證錄製可否解析，可解析即接受；損壞的 trace 仍拒絕。**兩處呼叫點都需修正**——首次只改了無 `-n` 的分支，而帶 `-n` 的 trace 走另一條，故重跑時仍以同一個 rc 54 中止。
 3. **啟動腳本在無 tty 時拒絕啟動**。`sudo -v` 即使 timestamp 有效也堅持要 tty（其職責是重新驗證、會預備提示密碼），`sudo -n` 則直接成功。改為先試非互動，再依 tty 存在與否決定互動或明確中止。
 
 ## 4. 判定一輪是否完成，不能只看 exit code
 
-修正前的一次執行以 `exit 0` 結束並被回報為「完成」，但那個 0 來自 `benchmark2.sh`，掩蓋了 tracer 的 `TRACER_FAILED 54`：trace 僅 3 筆、llama.cpp 一筆未跑。實際判準應為：
+修正前的一次執行以 `exit 0` 結束並被回報為「完成」，但那個 0 來自 `benchmark2.zsh`，掩蓋了 tracer 的 `TRACER_FAILED 54`：trace 僅 3 筆、llama.cpp 一筆未跑。實際判準應為：
 
 | 判準 | 該次 | 本輪 |
 | --- | --- | --- |
@@ -263,7 +263,7 @@ LZFSE 家族功耗最高、lz4 最低，與各自的計算量相符。兩個指�
 
 ## 本輪額外修正（Pre-R47 之後才發現）
 
-1. **`findstr /x` 對 LF-only 檔案不可靠**：`swift_tar/version.txt` 由 `generate_version.sh`（zsh script）用 `echo` 產生，是 LF-only 換行；Windows `findstr /x`（整行完全比對）預期 CRLF 結尾，即使 `findstr /n`（無 `/x`）能正確找到該行內容，`/x` 仍回報找不到，導致 `run_round.bat -swift_tar` 一律印出「`-swift_tar requires zlib_linkage=static in version.txt`」而中止。修法：`run_round.bat` 第 51 行改用不加 `/x` 的子字串比對（key=value 在檔案中是唯一字串，安全）。
+1. **`findstr /x` 對 LF-only 檔案不可靠**：`swift_tar/version.txt` 由 `generate_version.zsh`（zsh script）用 `echo` 產生，是 LF-only 換行；Windows `findstr /x`（整行完全比對）預期 CRLF 結尾，即使 `findstr /n`（無 `/x`）能正確找到該行內容，`/x` 仍回報找不到，導致 `run_round.bat -swift_tar` 一律印出「`-swift_tar requires zlib_linkage=static in version.txt`」而中止。修法：`run_round.bat` 第 51 行改用不加 `/x` 的子字串比對（key=value 在檔案中是唯一字串，安全）。
 2. **`::` 註解裡的括號打壞 `if (...)` 區塊解析**：修正上一項時，在 `if "%USE_SWIFT_TAR%"=="1" ( ... )` 區塊內加了含括號的多行 `::` 註解（例如 `(exact whole-line match)`）。`::` 在 batch 裡其實是偽 label，不是真正的註解機制，即使括號成對，只要出現在 `( ... )` 區塊內就會打亂 cmd.exe 對外層括號的計數，導致 `writes was unexpected at this time.`（`writes` 正是註解裡的字）。修法：把註解改寫成完全不含括號的版本，並在檔案裡留一條提醒。
 
 兩者都用**真正原生 Windows 執行**（非 MSYS bash 包的 cmd.exe）重現與驗證——這個環境下透過 Git Bash 呼叫 `cmd.exe /c` 曾觀察到路徑/解析行為與原生執行不一致（沿用本檔案既有的 chcp 65001 解析問題記錄），因此本次修正全程改以 PowerShell 原生呼叫 `.bat` 驗證，而非透過 Bash 工具包一層 cmd.exe。
@@ -348,7 +348,7 @@ Pre-R47 把 `decode-win.bat` 的 non-write 分支從 `tar xzf ... > nul`（實�
 
 # Pre-R47：修正 R46-Win-Retest 遺留的 TGZ null-mode 與 backend 身份驗證問題（2026-07-18）
 
-> **目標**：R46-Win-Retest 的結論 3、4 點指出兩個尚未解決的缺口——(a) `decode-win.bat` 的 TGZ null-mode 實際上是 `tar xzf ... > nul`，`> nul` 只丟棄 stdout，`x` 仍會落盤，並非真正的 to-null decode；(b) benchmark 各腳本經由 PATH shim 呼叫 `tar`，沒有在執行當下驗證真的解析到 `swift_tar.exe` 與其 native zlib 連結方式。本次由 codex review 產出修正，涵蓋 Windows 四支 `.bat`/`.ps1` 與 macOS 的 `run_round.command`／`zshrc.sh`，**僅為基礎設施修正，尚未執行完整 R47 benchmark，本次 commit 不含新的效能數據**。
+> **目標**：R46-Win-Retest 的結論 3、4 點指出兩個尚未解決的缺口——(a) `decode-win.bat` 的 TGZ null-mode 實際上是 `tar xzf ... > nul`，`> nul` 只丟棄 stdout，`x` 仍會落盤，並非真正的 to-null decode；(b) benchmark 各腳本經由 PATH shim 呼叫 `tar`，沒有在執行當下驗證真的解析到 `swift_tar.exe` 與其 native zlib 連結方式。本次由 codex review 產出修正，涵蓋 Windows 四支 `.bat`/`.ps1` 與 macOS 的 `run_round.command`／`zshrc.zsh`，**僅為基礎設施修正，尚未執行完整 R47 benchmark，本次 commit 不含新的效能數據**。
 
 ## 本輪變更
 
@@ -363,9 +363,9 @@ Pre-R47 把 `decode-win.bat` 的 non-write 分支從 `tar xzf ... > nul`（實�
   - 新增 `$tgzTar`：`LZFSE_REQUIRE_NATIVE_ZLIB=1` 時使用 `$env:SWIFT_TAR_BIN` 並以 `--version` 驗證輸出符合 `^swift_tar `，失敗立即 `exit 1`；否則沿用 `System32\tar.exe`。TGZ encode/decode RSS 量測改用 `$tgzTar`。
 - **macOS [`run_round.command`](run_round.command)**
   - `-swift_tar` 模式新增 `SWIFT_TAR_BIN --version` identity check 與 `command -v tar` 是否確實解析到 shim 目錄的驗證，任一失敗記錄 `round_status.txt` 並 `exit 1`。
-  - 匯出 `SWIFT_TAR_BIN`、`LZFSE_REQUIRE_NATIVE_ZLIB=1`（未啟用時為 `0`）；`sudo` 呼叫 `benchmark2.sh` 時新增 `--preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB`，確保 native zlib 旗標與路徑在 sudo 子行程中不遺失。
+  - 匯出 `SWIFT_TAR_BIN`、`LZFSE_REQUIRE_NATIVE_ZLIB=1`（未啟用時為 `0`）；`sudo` 呼叫 `benchmark2.zsh` 時新增 `--preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB`，確保 native zlib 旗標與路徑在 sudo 子行程中不遺失。
   - 額外修正：`swift_tar_identity="$($SWIFT_TAR_BIN --version 2>&1)"` 補上雙引號成 `"$SWIFT_TAR_BIN"`，避免路徑含空白時被拆字。
-- **macOS [`zshrc.sh`](zshrc.sh)**
+- **macOS [`zshrc.zsh`](zshrc.zsh)**
   - 新增 `benchmarkTgzTar()` 共用函式：`LZFSE_REQUIRE_NATIVE_ZLIB=1` 時要求 `SWIFT_TAR_BIN` 可執行才呼叫，否則報錯；未啟用時呼叫原本 PATH 上的 `tar`。
   - `extract()`（`.tgz`/`.tar.gz` 解壓與 memProbe 分支）、`getar()`（TGZ 建立）、`archiveMemProbe()`（encode RSS 探測）四處全部改走 `benchmarkTgzTar`，取代原本寫死的 `tar`。
 
@@ -503,15 +503,15 @@ Windows 與 Mac 的 file-mode 差距仍以 `llama.cpp` decode 最大（TGZ 0.099
 
 ## 本輪變更
 
-- 新增 `swift_tar/zlib`（zlib 1.3.2）為 git submodule，`build_zlib-win.sh` 負責用現有工具鏈靜態編譯。
+- 新增 `swift_tar/zlib`（zlib 1.3.2）為 git submodule，`build_zlib-win.zsh` 負責用現有工具鏈靜態編譯。
 - `compile_tar-win.bat` 補上 zlib 的 include/lib 連結旗標。
 - `swift_tar.swift`：TGZ 的 compress/decompress 路徑改走原生 zlib API（37 行變更），不再對每個 chunk spawn `gzip.exe`。其餘外部程序 codec（bzip2/xz/lzip/zstd/lz4）維持不變，仍走 R45-Win 修好的 DispatchQueue pipe 後端。
-- `verifications/tgz_inflight_rss_win.sh` 重新掃描 `-n 4..40`，`README.md`／`README.zh-TW.md` 補上 native zlib 結果段落。
+- `verifications/tgz_inflight_rss_win.zsh` 重新掃描 `-n 4..40`，`README.md`／`README.zh-TW.md` 補上 native zlib 結果段落。
 
 ## 驗證
 
 - `swift_tar -test -debug`：6/6 全過（含 Windows `-write_foundation`/`-write_ucrt` 雙後端、雙向與系統 tar 互通）。
-- `tgz_inflight_rss_win.sh` 完整 `-n 4..40` 掃描（claw-code, 1.4G）：encode 時間從 27–47s 降到 7.2–15.6s（`-n 12..40` 穩定在 7.2–7.8s，非常接近 Mac 4.3–7.6s）；decode 從 17–19s 降到 9.7–11.0s（仍慢於 Mac 2.8–3.9s，見「待辦」）。encode RSS 呈現與 `-n` 線性關係（55.6MB@n4 → 208.0MB@n40），decode RSS 打平在 43–45MB。詳見 `swift_tar/verifications/README.md`。
+- `tgz_inflight_rss_win.zsh` 完整 `-n 4..40` 掃描（claw-code, 1.4G）：encode 時間從 27–47s 降到 7.2–15.6s（`-n 12..40` 穩定在 7.2–7.8s，非常接近 Mac 4.3–7.6s）；decode 從 17–19s 降到 9.7–11.0s（仍慢於 Mac 2.8–3.9s，見「待辦」）。encode RSS 呈現與 `-n` 線性關係（55.6MB@n4 → 208.0MB@n40），decode RSS 打平在 43–45MB。詳見 `swift_tar/verifications/README.md`。
 - 本節以下數字為 `run_round.bat -swift_tar` 官方完整輪次（含 verify／RSS／comparison），非上述 ad-hoc 掃描。
 
 ## 1. Windows 實測結果（`-swift_tar`，native zlib，n=40 inflight）
@@ -582,7 +582,7 @@ Windows 與 Mac 的 file-mode 差距仍以 `llama.cpp` decode 最大（TGZ 0.099
 ## 待辦
 
 - llama.cpp TGZ decode 仍受限於小檔案開檔/寫入開銷，native zlib 對此資料集效益有限；若要繼續縮小 Win/Mac decode 差距，下一步應該是 profiling ucrt 寫入路徑本身（而非 gzip 層）。
-- Windows TGZ decode（claw-code 121.40 MB/s）雖已比 R45-Win-Retest1 大幅提升，仍低於 Mac（395.47 MB/s，比率 0.307）；`tgz_inflight_rss_win.sh` 的 ad-hoc 掃描顯示 decode 時間 9.7–11.0s vs Mac 2.8–3.9s，差距未完全消除，後續可比對 inflate buffer size／syscall 次數。
+- Windows TGZ decode（claw-code 121.40 MB/s）雖已比 R45-Win-Retest1 大幅提升，仍低於 Mac（395.47 MB/s，比率 0.307）；`tgz_inflight_rss_win.zsh` 的 ad-hoc 掃描顯示 decode 時間 9.7–11.0s vs Mac 2.8–3.9s，差距未完全消除，後續可比對 inflate buffer size／syscall 次數。
 - claw-code encode 側普遍下滑 10%–32%（TGZ 除外）暫歸類雜訊，下輪重跑確認是否重現。
 
 ---
@@ -657,17 +657,17 @@ Windows 與 Mac 的 file-mode 差距仍以 `llama.cpp` decode 最大（TGZ 0.099
 
 | 項目 | 說明 |
 | --- | --- |
-| `benchmark.sh`：Step 6 停用 | `./helper/tracer.command` 呼叫整段註解（含 `RUNNING_TRACER` / `TRACER_DONE` 狀態列），本輪起不再產生新 `.trace` 檔案。 |
-| `helper/trace_analysis.command`：`package_count -eq 0` 分支改為優雅跳過 | 原本 `exit 1`（`TRACE_ANALYSIS_FAILED no_trace_found`）會中斷 `sudo ./benchmark2.sh`；改為 `TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data` 並 `exit 0`。判斷點在既有的 `rm -rf "$ANALYSIS_DIR"` **之前**，故上一輪的 `trace/analysis/*` 產出不會被清除，pipeline 沿用舊資料繼續往下跑。 |
+| `benchmark.zsh`：Step 6 停用 | `./helper/tracer.command` 呼叫整段註解（含 `RUNNING_TRACER` / `TRACER_DONE` 狀態列），本輪起不再產生新 `.trace` 檔案。 |
+| `helper/trace_analysis.command`：`package_count -eq 0` 分支改為優雅跳過 | 原本 `exit 1`（`TRACE_ANALYSIS_FAILED no_trace_found`）會中斷 `sudo ./benchmark2.zsh`；改為 `TRACE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data` 並 `exit 0`。判斷點在既有的 `rm -rf "$ANALYSIS_DIR"` **之前**，故上一輪的 `trace/analysis/*` 產出不會被清除，pipeline 沿用舊資料繼續往下跑。 |
 | `helper/cpu_call_tree_analysis.command`：`trace_count_start -eq 0` 分支同步修正 | 同樣把 `exit 1`（`source_trace_missing`）改為 `CPU_CALL_TREE_ANALYSIS_SKIPPED_NO_NEW_TRACE keep_previous_data` 並 `exit 0`，判斷點同樣在 `rm -rf "$OUT_DIR"` 之前，`cpu_call_tree_summary/` 舊資料保留。 |
-| `benchmark2.sh`：Step 8/9 恢復呼叫 | 因為 Step 8/9 本身已能優雅處理「無新 trace」情況，不再需要整段註解跳過；改回正常呼叫，靠 script 自身的 exit 0 保護 pipeline。 |
+| `benchmark2.zsh`：Step 8/9 恢復呼叫 | 因為 Step 8/9 本身已能優雅處理「無新 trace」情況，不再需要整段註解跳過；改回正常呼叫，靠 script 自身的 exit 0 保護 pipeline。 |
 
 ## 影響範圍
 
 - `trace/` 下的原始 `.trace` bundle 本輪起不再產生（`tracer.command` 的 `CLEAN_OLD_TRACES` 清理步驟也連帶不執行），但這不影響判斷邏輯：`trace_analysis.command`／`cpu_call_tree_analysis.command` 純粹以 `*.trace(N)` glob 是否為空來決定要不要重新分析。
 - `BenchMarkResult.csv` 的 `Trace wall time(秒)`、`CPU Symbol Status`、`CPU Top Symbol` 等欄位本輪起沿用 **R45-Mac 最後一次成功分析**的 `trace_summary.csv` / `cpu_call_tree_summary.csv`，數值不會隨 R46+ 的程式碼變動而更新——解讀時需注意這些欄位反映的是舊版程式碼行為，非本輪即時量測。
 - `helper/benchmark_result_rebuild.command` 完全不受影響：無論資料是新產生還是沿用舊檔，`load_trace_summaries()` / `load_cpu_summaries()` 都是單純讀檔。
-- 若未來需要真正刷新 trace 資料，需手動重新啟用 `benchmark.sh` Step 6（取消註解 `tracer.command` 呼叫）。**重新啟用時機**：下次 `lzfse-cli.swift` 本身有程式碼變動時即應重新開啟——trace 的意義在於側寫「被量測的程式碼」，程式碼沒變就沒有重新 profile 的必要。
+- 若未來需要真正刷新 trace 資料，需手動重新啟用 `benchmark.zsh` Step 6（取消註解 `tracer.command` 呼叫）。**重新啟用時機**：下次 `lzfse-cli.swift` 本身有程式碼變動時即應重新開啟——trace 的意義在於側寫「被量測的程式碼」，程式碼沒變就沒有重新 profile 的必要。
 
 ## Benchmark 結果（2026-07-15 實跑，`-swift_tar`，swift_tar `20260714-232304`）
 
@@ -1040,7 +1040,7 @@ Windows 與 Mac 的 file-mode 差距仍以 `llama.cpp` decode 最大（TGZ 0.099
 | --- | --- |
 | **swift_tar submodule 更新** | 同步至 R44-Win 版本（`11076e6`）：新增 `-test -debug` 自我測試旗標、移除 WinSDK 直接相依、修正 `archiveName()` 磁碟機代號路徑問題、修正 `compile_tar-win.bat` move retry 問題。詳見 R44-Win 章節。 |
 | **run_round.command：swift_tar test 無條件化** | 原本 swift_tar compile + `-test -debug` 只在 `-swift_tar` 旗標時執行；改為**無條件**在最前面執行（與 lzfse `-test` 相同地位），PATH shim 仍僅在 `-swift_tar` 時設定。 |
-| **benchmark2.sh：power_summary_integrate 順序修正** | 原本 Step 12 跑 `best_points_analysis`（需要 BenchMarkResult.csv 含 power 欄），Step 13 才跑 `power_summary_integrate`（補寫 power 欄），順序錯誤導致 `BEST_POINTS_ANALYSIS_FAILED`。已對調為：Step 12 = `power_summary_integrate`、Step 13 = `best_points_analysis`；並讓 `power_summary_integrate` 在 `best_points.csv` 尚未產生時跳過 best_points 更新而不中斷。 |
+| **benchmark2.zsh：power_summary_integrate 順序修正** | 原本 Step 12 跑 `best_points_analysis`（需要 BenchMarkResult.csv 含 power 欄），Step 13 才跑 `power_summary_integrate`（補寫 power 欄），順序錯誤導致 `BEST_POINTS_ANALYSIS_FAILED`。已對調為：Step 12 = `power_summary_integrate`、Step 13 = `best_points_analysis`；並讓 `power_summary_integrate` 在 `best_points.csv` 尚未產生時跳過 best_points 更新而不中斷。 |
 
 ## 驗證
 
@@ -1395,7 +1395,7 @@ Windows 與 Mac 的 file-mode 差距仍以 `llama.cpp` decode 最大（TGZ 0.099
 
 # R43-Win：swift_tar Windows 移植 + -swift_tar round + scoop 發佈流程（2026-07-08）
 
-> **目標**：把 R43-Mac 的 `swift_tar` 移植到 Windows（原本完全沒有 Windows 支援：`compile_tar.sh` 連結 Homebrew 的 zlib/libbz2/liblzma/libzstd/liblz4，`swift_tar.swift` 也大量用 POSIX `lstat`/`symlink`/`link`/`chmod`），打包成可攜式 `swift_tar_win.zip`，建立 scoop bucket 讓 `swift_tar`／`lzfse` 可用 `scoop install` 發佈，並跑一輪帶 `-swift_tar` 的 `run_round.bat`，實測拿 swift_tar 取代系統 tar 對 Windows benchmark 的實際影響。
+> **目標**：把 R43-Mac 的 `swift_tar` 移植到 Windows（原本完全沒有 Windows 支援：`compile_tar.zsh` 連結 Homebrew 的 zlib/libbz2/liblzma/libzstd/liblz4，`swift_tar.swift` 也大量用 POSIX `lstat`/`symlink`/`link`/`chmod`），打包成可攜式 `swift_tar_win.zip`，建立 scoop bucket 讓 `swift_tar`／`lzfse` 可用 `scoop install` 發佈，並跑一輪帶 `-swift_tar` 的 `run_round.bat`，實測拿 swift_tar 取代系統 tar 對 Windows benchmark 的實際影響。
 
 ## 本輪變更
 
@@ -1405,7 +1405,7 @@ Windows 與 Mac 的 file-mode 差距仍以 `llama.cpp` decode 最大（TGZ 0.099
 | **swift_tar 檔案識別（Windows）** | 用 `GetFileAttributesW`/`CreateFileW`/`GetFileInformationByHandle` 取代 `lstat`（reparse point ⟺ symlink，volume serial + file index 取代 dev/ino 做 hardlink 去重）；`CreateSymbolicLinkW`/`CreateHardLinkW` 取代 `symlink()`/`link()`，失敗時只警告並略過（不中止整個 extract）；Windows 無 Unix 權限位元，`chmod` 為 no-op，新建項目一律給慣例值 `0o755`/`0o644`。 |
 | **`swift_tar/compile_tar-win.bat`** | 新增：編譯 `swift_tar.exe`（不需連結 C 庫，比 macOS 版簡單），並自動呼叫 `package_win.ps1` 打包 `swift_tar_win.zip`。 |
 | **`swift_tar/package_win.ps1`** | 新增：從 `swiftc` 路徑自動偵測 Swift runtime 目錄，把 `swift_tar.exe` + 32 個 runtime DLL 打包成可攜式 `swift_tar_win.zip`（24.5 MB，跟既有 `lzfse-cli.zip` 同量級）。 |
-| **`swift_tar/build_tool_install-win.sh`** | 新增：檢查/安裝建置工具鏈（Swift toolchain、MSVC C++ build tools、scoop、`gzip`/`bzip2`/`xz`/`zstd`/`lz4`/`lzip`）；用 `vswhere` 而非 PATH 判斷 MSVC 是否已裝（避免誤判 MSYS 附帶的無關 `link.exe`），用 `scoop list` 而非 PATH 判斷壓縮工具是否已裝（避免誤判 busybox 附帶的閹割版 applet）。執行時順手發現 `xz`、`bzip2` 的 scoop shim 都被 busybox 的閹割版蓋掉（只能解壓、不能壓縮），已改裝正牌套件。 |
+| **`swift_tar/build_tool_install-win.zsh`** | 新增：檢查/安裝建置工具鏈（Swift toolchain、MSVC C++ build tools、scoop、`gzip`/`bzip2`/`xz`/`zstd`/`lz4`/`lzip`）；用 `vswhere` 而非 PATH 判斷 MSVC 是否已裝（避免誤判 MSYS 附帶的無關 `link.exe`），用 `scoop list` 而非 PATH 判斷壓縮工具是否已裝（避免誤判 busybox 附帶的閹割版 applet）。執行時順手發現 `xz`、`bzip2` 的 scoop shim 都被 busybox 的閹割版蓋掉（只能解壓、不能壓縮），已改裝正牌套件。 |
 | **`bucket/swift_tar.json`、`bucket/lzfse.json`** | 新增：標準 scoop manifest，供本 repo 直接當 scoop bucket 使用（`scoop bucket add <name> <repo>`）。`swift_tar.json` 宣告 `depends: [gzip, bzip2, xz, zstd, lz4, lzip]`。 |
 | **`swift_tar/scoop_release.bat`、`helper_windows/scoop_release.bat`** | 新增：各自重建 zip 後，呼叫 `update_scoop_manifest.ps1` 用文字替換（非 `ConvertTo-Json`，避免整檔重排格式）更新對應 manifest 的 `hash` 欄位。 |
 | **`helper_windows/run_round.bat` `-swift_tar` 旗標** | 仿照 `run_round.command` 的 `-swift_tar`：帶旗標時建立 PATH shim（`tar.exe` 複製指向已編譯好的 `swift_tar.exe`，非系統 PATH），prepend 進本 session PATH；不帶旗標維持原行為。 |
@@ -1712,9 +1712,9 @@ Windows 與 Mac 的 file-mode 差距仍以 `llama.cpp` decode 最大（TGZ 0.099
 
 ## 產出
 - `lzfse-ui/lzfse-ui-win.swift` — SwiftCrossUI（WinUIBackend）GUI，對應 macOS 的 `lzfse-ui/lzfse-ui.swift`。
-  直接 import codec（`build-win.sh` 以 `grep -v` 移除 `runCLI()` 後一起編入同一 target）。
-- `lzfse-ui/build-win.sh` + `build-win.bat` → `lzfse-ui/release/LZFSE_UI_Win.zip`（GUI app + 隨附 `lzfse.exe`）。
-- `helper_windows/build-cli-win.sh` + `build-cli-win.bat` → `helper_windows/release/lzfse-cli.zip`
+  直接 import codec（`build-win.zsh` 以 `grep -v` 移除 `runCLI()` 後一起編入同一 target）。
+- `lzfse-ui/build-win.zsh` + `build-win.bat` → `lzfse-ui/release/LZFSE_UI_Win.zip`（GUI app + 隨附 `lzfse.exe`）。
+- `helper_windows/build-cli-win.zsh` + `build-cli-win.bat` → `helper_windows/release/lzfse-cli.zip`
   （`lzfse.exe` + 32 個 Swift runtime DLL，免裝 Swift 即可執行 / self-contained, runs without Swift installed）。
 - `lzfse-ui/screenshot-win.bat`、`lzfse-ui/README-UI-Win.md`。
 
@@ -3073,7 +3073,7 @@ MB/s 仍以實際 raw bytes / duration ns 計算，不使用顯示值反推。
 
 ## harness 修正
 
-- `zshrc.sh` 的 compare fail-fast 已生效：本輪在 `llama.cpp-n40 optimal` compare 失敗後停止，未繼續跑 trace / power。
+- `zshrc.zsh` 的 compare fail-fast 已生效：本輪在 `llama.cpp-n40 optimal` compare 失敗後停止，未繼續跑 trace / power。
 - 另修正 `nanoTimeElapsed`：現在會回傳被測 command 的 exit code；`lz4bench` 壓縮階段改為同時檢查 `encode_rc == 0` 與產物存在。下次若 encode 已失敗但半成品存在，會在 encode 階段寫 `ENCODE_FAILED ... <rc>` 並停止，不會誤記為 `ENCODED`。
 - `cpu_call_tree_analysis.command` 已在所有 summary 寫完後清除 `trace/*.trace` 與 `trace/*.trace.timeout`，並寫入 `CPU_CALL_TREE_TRACE_CLEANED`，避免分析後保留大型 trace 佔空間。
 
@@ -3393,7 +3393,7 @@ CPU call tree 顯示 tag-packing 有降低部分 parser 成本，但不是主瓶
 
 ## 資料狀態
 
-本節依最新 `BenchMarkResult.csv`、`best_points/best_points.md`、`trace/analysis/trace_summary.csv`、`trace/analysis/cpu_call_tree_summary/`、`round_status.txt` 與 `lzfse-test.txt` 彙整。這輪先前曾出現 `BenchMarkResult.csv` 的 CPU 欄位空白，原因是 `benchmark.sh` 的排程先執行 `benchmark_result_rebuild.command --write`，後執行 `cpu_call_tree_analysis.command`。目前流程已修正為：
+本節依最新 `BenchMarkResult.csv`、`best_points/best_points.md`、`trace/analysis/trace_summary.csv`、`trace/analysis/cpu_call_tree_summary/`、`round_status.txt` 與 `lzfse-test.txt` 彙整。這輪先前曾出現 `BenchMarkResult.csv` 的 CPU 欄位空白，原因是 `benchmark.zsh` 的排程先執行 `benchmark_result_rebuild.command --write`，後執行 `cpu_call_tree_analysis.command`。目前流程已修正為：
 
 `trace_analysis` → `cpu_call_tree_analysis` → `git gc` → `benchmark_result_rebuild --write` → `best_points_analysis`
 
@@ -3469,7 +3469,7 @@ RSS 取捨仍清楚：n40 通常給 LZFSE 家族最高壓縮速度，但 encode 
 
 ## 完成狀態
 
-本輪 staged 的 `.txt` / `.csv` / `.md` 結果已覆蓋 `lz4bench_log/` 的 n4 / n8 / n40 批次、`memprobeResults/` 的兩資料集記憶體量測、`trace/analysis/trace_summary.csv`、`trace/analysis/cpu_call_tree_summary/` 與 `lzfse-test.txt`。`benchmark.sh` 已完整跑完，`round_status.txt` 結尾為 `BENCH_DONE 16:59:54`。`helper/tracer.command` 以 `EXIT 0` / `TRACE_DONE 16:45:49` 結束；`helper/trace_analysis.command` 以 `TRACE_ANALYSIS_DONE 16:51:29` 結束；`helper/cpu_call_tree_analysis.command` 以 `CPU_CALL_TREE_ANALYSIS_DONE 16:59:54` 結束。
+本輪 staged 的 `.txt` / `.csv` / `.md` 結果已覆蓋 `lz4bench_log/` 的 n4 / n8 / n40 批次、`memprobeResults/` 的兩資料集記憶體量測、`trace/analysis/trace_summary.csv`、`trace/analysis/cpu_call_tree_summary/` 與 `lzfse-test.txt`。`benchmark.zsh` 已完整跑完，`round_status.txt` 結尾為 `BENCH_DONE 16:59:54`。`helper/tracer.command` 以 `EXIT 0` / `TRACE_DONE 16:45:49` 結束；`helper/trace_analysis.command` 以 `TRACE_ANALYSIS_DONE 16:51:29` 結束；`helper/cpu_call_tree_analysis.command` 以 `CPU_CALL_TREE_ANALYSIS_DONE 16:59:54` 結束。
 
 `trace/analysis/trace_summary.csv` 顯示外部工具 `tgz`、`zstd`、`tar.lz4` 在兩個資料集都正常完成；所有 LZFSE encode trace 都是 `300s` timeout trace，但 `target_seen=yes`、`time-profile=ok`、`time-sample=ok`。因此這批 LZFSE trace 可用於 hotspot 方向判斷，不應拿來計算完整執行時間或 MB/s。
 
@@ -3654,7 +3654,7 @@ Trace 本次沒有重跑，且舊 `trace/analysis` export 已移除。前次分�
 ## 本輪腳本與輸出整理
 
 - `helper/benchmark_result_rebuild.command` 只讀 `lz4bench_log/lz4bench-*-n*.txt`，不再 fallback 根目錄舊 log；輸出 `BenchMarkResult.csv` 為 UTF-8 BOM。
-- `benchmark.sh` 已把 lz4bench 結果寫入 `lz4bench_log/`，最後步驟會重建 `BenchMarkResult.csv` 並產生 Best Points。
+- `benchmark.zsh` 已把 lz4bench 結果寫入 `lz4bench_log/`，最後步驟會重建 `BenchMarkResult.csv` 並產生 Best Points。
 - `helper/best_points_analysis.command` 已輸出 `best_points/best_points.md` 與 `best_points/best_points.csv`，包含 TGZ、最佳壓縮比、最佳/最差壓縮 MB/s、最佳/最差解壓 MB/s、最低/最高 Encode RSS、最低/最高 Decode RSS。
 - `helper/trace_analysis.command` 的 CSV 輸出改為 UTF-8 BOM；本輪未執行。
 - `helper/tracer.command` 已加入開跑前清除舊 `*.trace`，避免新舊 trace 混雜；本輪未執行。
@@ -3928,7 +3928,7 @@ Trace 的可用結論很窄：lazy2 / optimal 是長段，尤其 claw-code optim
 - ✅ `claw-code` / `llama.cpp`：各 8 格式壓縮與解壓完成，7/7 一致性通過。
 - ✅ `lzfse-test.txt`：未見失敗標記。
 - ✅ `memprobeResults`：兩資料集各 8 格式 encode + decode peak RSS 皆產出。
-- ✅ helper 修正：`benchmark.sh` 使用 zsh safe glob，`run_round.command` 正確回報 benchmark exit code；`zshrc.sh` 的 `extract` / `lzfseX` / `lz4bench` 支援 lazy2/optimal 產物與完整 probe。
+- ✅ helper 修正：`benchmark.zsh` 使用 zsh safe glob，`run_round.command` 正確回報 benchmark exit code；`zshrc.zsh` 的 `extract` / `lzfseX` / `lz4bench` 支援 lazy2/optimal 產物與完整 probe。
 
 ## 實測結果
 
@@ -4012,7 +4012,7 @@ MB/s 計算改以 decimal MB/s：`raw_bytes / elapsed_ns * 1000`。原始大小�
 - ✅ `llama.cpp`：8 格式壓縮與解壓完成，7/7 一致性通過。
 - ✅ `lzfse-test.txt`：各測試案例 lazy2 / optimal 自我往返、平行解碼、Apple 相容/拒解路徑皆通過，未見失敗標記。
 - ✅ `memprobeResults`：取得 llama.cpp 的 lazy2 / optimal encode 與 decode peak RSS。
-- ⚠️ `round_status.txt` 仍記錄 `benchmark.sh` 的 zsh `nomatch` 訊息；結果檔仍已完整產出，但 helper 清理段需修正為 `NULL_GLOB` 或 glob qualifier，避免狀態檔誤導。
+- ⚠️ `round_status.txt` 仍記錄 `benchmark.zsh` 的 zsh `nomatch` 訊息；結果檔仍已完整產出，但 helper 清理段需修正為 `NULL_GLOB` 或 glob qualifier，避免狀態檔誤導。
 
 ## 實測結果
 
@@ -4065,7 +4065,7 @@ MB/s 計算改以 decimal MB/s：`raw_bytes / elapsed_ns * 1000`。原始大小�
 1. **短期成功條件改為 profiling 驗證**：40+ MB/s 可保留為中期目標，但下一輪不要直接承諾速度；先用 Time Profiler 找出 claw optimal 約 49 秒中的前二大熱點，至少用一個單點改動證明同輪 ≥10% 改善。
 2. **段層級成本閘優先於全域 optimal**：對每段做 cheap probe，估算 optimal 相對 lazy2 的可能收益；低收益段直接走 lazy2/greedy，高收益段才進 DP。llama.cpp 的 optimal 只多省 1.8% 體積卻花 2.85x 時間，是最明顯的候選。
 3. **DP 核心仍需 UnsafePointer/SIMD，但要被 profiling 指向**：R19 的方向仍成立，不過這輪資料顯示性能收益不可誇大。若 profiler 顯示成本集中在 chain walk、`matchLength`、dense relax、`rebuildPrices` 或預篩，就只改第一、第二熱點，避免大範圍重寫。
-4. **helper 需先清理狀態可信度**：`round_status.txt` 的 `nomatch` 訊息會干擾判讀；下一次 benchmark 前先修 `benchmark.sh` 清理 glob，並讓 `run_round.command` 在 benchmark 非 0 時寫 `BENCH_FAILED`。
+4. **helper 需先清理狀態可信度**：`round_status.txt` 的 `nomatch` 訊息會干擾判讀；下一次 benchmark 前先修 `benchmark.zsh` 清理 glob，並讓 `run_round.command` 在 benchmark 非 0 時寫 `BENCH_FAILED`。
 
 ## 下一輪計畫
 
@@ -4155,7 +4155,7 @@ MB/s 計算改以 decimal MB/s：`raw_bytes / elapsed_ns * 1000`。原始大小�
 
 ## 下一輪計畫
 
-- **已備妥 probe**：`benchmark.sh` 預設 `export LZFSE_MEMPROBE=1`，下一輪會自動對 lazy2 / optimal 的 **encode + decode** 量 peak RSS（`zshrc.sh` 的 `memProbe`，已修正為「`time -l` 直接前綴 lzfse」而非包 `sh -c` 管線，否則量到的是 shell）。預期實證 optimal 在 1.3GB GGUF 的記憶體上界 ≈ maxTasks × chunkSize。要關閉：`export LZFSE_MEMPROBE=0`。
+- **已備妥 probe**：`benchmark.zsh` 預設 `export LZFSE_MEMPROBE=1`，下一輪會自動對 lazy2 / optimal 的 **encode + decode** 量 peak RSS（`zshrc.zsh` 的 `memProbe`，已修正為「`time -l` 直接前綴 lzfse」而非包 `sh -c` 管線，否則量到的是 shell）。預期實證 optimal 在 1.3GB GGUF 的記憶體上界 ≈ maxTasks × chunkSize。要關閉：`export LZFSE_MEMPROBE=0`。
 - **DP 核心 UnsafePointer 化 + SIMD**：把 `lzParseOptimal` 的 price/match 熱迴圈全面指標化，消除 Swift bounds-check 與 ARC 開銷，目標 claw optimal 29→40+ MB/s。
 - **量測硬化**：解壓改多次取中位數（壓縮 MB/s 已證實夠穩，續作主軸），消除 page-cache 造成的 ±88% 解壓噪音。
 - **編碼器調度器**：依區塊熵自動選 bvx1/bvx2/bvx3，整合 -lazy/-optimal。
@@ -4243,7 +4243,7 @@ MB/s 計算改以 decimal MB/s：`raw_bytes / elapsed_ns * 1000`。原始大小�
 | 熵取樣 | 前 1KB 單點 | **三點（前/中/後 512B）平均**，更能代表整段 |
 | 文字保護 | 無 | **`isText` 守門**：可列印字元 ≥85% 的段，即使高熵也**不跳 DP**（避免文字段誤判為擬亂而失比率） |
 
-**`zshrc.sh`（`lz4bench`）：** 壓縮計時前先 `tar -cf - "$1" > /dev/null` 預讀整個資料集進 OS cache，消除「第一個格式 cold-cache、後續 warm-cache」的計時偏差。
+**`zshrc.zsh`（`lz4bench`）：** 壓縮計時前先 `tar -cf - "$1" > /dev/null` 預讀整個資料集進 OS cache，消除「第一個格式 cold-cache、後續 warm-cache」的計時偏差。
 
 ## 測試完整度
 
@@ -4262,7 +4262,7 @@ MB/s 計算改以 decimal MB/s：`raw_bytes / elapsed_ns * 1000`。原始大小�
 | **Lazy2**（未受本輪改動） | 47.36 | 37.40 | 129.59 | 75.80 |
 | **Optimal** | 25.36 | 16.17 | 46.92 | 26.17 |
 
-> tgz/zstd/bvx3/lazy2 皆與熵閘無關卻同步下降 15–60%，可確定是**系統負載**（背景 check.sh、caffeinate、dispatch、Claude 同時運行）造成，**非演算法退步**。因此本輪「絕對壓縮 MB/s」不可跨輪比較。
+> tgz/zstd/bvx3/lazy2 皆與熵閘無關卻同步下降 15–60%，可確定是**系統負載**（背景 check.zsh、caffeinate、dispatch、Claude 同時運行）造成，**非演算法退步**。因此本輪「絕對壓縮 MB/s」不可跨輪比較。
 
 ## 可信指標：壓縮比（deterministic）
 
@@ -4293,7 +4293,7 @@ MB/s 計算改以 decimal MB/s：`raw_bytes / elapsed_ns * 1000`。原始大小�
 
 ## 下一輪計畫
 
-- **乾淨環境量測**：在系統閒置（暫停 check.sh / dispatch）下重跑一輪，才能隔離出 7.2 門檻 + 35% 覆蓋率 + 三點取樣對 llama optimal 的真實加速。
+- **乾淨環境量測**：在系統閒置（暫停 check.zsh / dispatch）下重跑一輪，才能隔離出 7.2 門檻 + 35% 覆蓋率 + 三點取樣對 llama optimal 的真實加速。
 - **編碼器調度器**：依區塊熵自動選 bvx1/bvx2/bvx3，導入 -lazy/-optimal。
 - **Swift 熱迴圈 UnsafePointer 化**：claw（文字）optimal 受文字保護全程 DP，加速須靠 DP 本身的 SIMD/指標化，挑戰 C 版 zstd。
 
@@ -4325,7 +4325,7 @@ MB/s 計算改以 decimal MB/s：`raw_bytes / elapsed_ns * 1000`。原始大小�
 - **claw-code**：✅ 全部完成（8 格式壓縮 + 解壓縮，7 項一致性全通過）
 - **llama.cpp**：✅ 全部完成（8 格式壓縮 + 解壓縮，7 項一致性全通過）
 - **lzfse-test**：✅ 全綠（含 bvx3 lazy2/optimal 自我往返與平行解碼）
-- ✅ **磁碟充足**：benchmark.sh 雙重 diskcheck 通過（開頭 28GB、llama 段前 26GB，均 ≥25GB 門檻）；EXIT 0、BENCH_DONE 19:57:21。
+- ✅ **磁碟充足**：benchmark.zsh 雙重 diskcheck 通過（開頭 28GB、llama 段前 26GB，均 ≥25GB 門檻）；EXIT 0、BENCH_DONE 19:57:21。
 
 ## 實測結果（R16 vs R15，MB/s 以實際 bytes/ns 計）
 
@@ -4417,7 +4417,7 @@ R14 的粗估 `totalBarren` 熵代理（70% 荒漠閾值）已被真正的 greed
 - **llama.cpp**：✅ 全部完成（8 格式壓縮 + 解壓縮，8 項一致性全通過）
 - **lzfse-test**：✅ 全綠（compile 8s，含 bvx3 lazy2/optimal 自我往返）
 - ✅ **磁碟充足**：最終重跑磁碟 **43 GB 可用**（≫25 GB 門檻），壓縮與解壓縮數字均可靠。首輪（磁碟 15 GB + 殘檔）解壓數字已廢棄，以本重跑為準。
-- ✅ **benchmark.sh 強化**：加入雙重磁碟空間檢查（開頭 + llama 段前，< 25 GB → `"Benchmark aborted: insufficient disk space"` 並中止）及 `rm -rf llama.cpp.*` 殘檔清理，防止下次重跑受磁碟壓力影響。
+- ✅ **benchmark.zsh 強化**：加入雙重磁碟空間檢查（開頭 + llama 段前，< 25 GB → `"Benchmark aborted: insufficient disk space"` 並中止）及 `rm -rf llama.cpp.*` 殘檔清理，防止下次重跑受磁碟壓力影響。
 
 ## 實測結果（R15 重跑 vs R14，磁碟 43 GB）
 
@@ -4469,7 +4469,7 @@ R14 的粗估 `totalBarren` 熵代理（70% 荒漠閾值）已被真正的 greed
 3. **Bug 修復經驗**：greedy 路徑的 match 必須限制在段邊界內（`segLimit = max(0, segEnd - i - 4)`），否則跨段後 `litStart > segStart` 導致 `pushRun` 負 L 長度、串流損毀。
 4. **壓縮大小代價**：optimal 比率略降（llama +0.78%），可接受的速度換比率取捨。
 5. **解壓縮數字（重跑）可靠**：claw optimal 622.95 MB/s、llama optimal 197.97 MB/s，磁碟充足條件下解壓極快，bvx3 家族共用位元流優勢明顯。
-6. **benchmark.sh 改善**：新增磁碟不足 abort（< 25 GB）+ llama 前殘檔清理，避免未來重跑受磁碟壓力污染數據。
+6. **benchmark.zsh 改善**：新增磁碟不足 abort（< 25 GB）+ llama 前殘檔清理，避免未來重跑受磁碟壓力污染數據。
 
 ## 下一輪計畫
 
@@ -4538,7 +4538,7 @@ R14 實作的五項策略為 optimal 帶來顯著改善（+10–18% 壓縮速度
 
 ## 本輪改動
 
-**`zshrc.sh` — `lz4bench` 接回 `diskcheck`：** R11 將磁碟預檢抽成獨立 `diskcheck()` 後，未接回 `lz4bench`，使預檢成為死碼。本輪在 `lz4bench` 開頭加入 `diskcheck "$1"`，每輪基準開跑前主動回報磁碟可用空間（本輪：充足 claw 32 GB / llama 31 GB），避免再度於磁碟壓力下產生失真數據。`extract`、`lzfseX` 對 lazy2/optimal 的處理（`-lazy2`/`-optimal` 旗標、`-algo bvx3` 解碼）經查已正確，維持不動。
+**`zshrc.zsh` — `lz4bench` 接回 `diskcheck`：** R11 將磁碟預檢抽成獨立 `diskcheck()` 後，未接回 `lz4bench`，使預檢成為死碼。本輪在 `lz4bench` 開頭加入 `diskcheck "$1"`，每輪基準開跑前主動回報磁碟可用空間（本輪：充足 claw 32 GB / llama 31 GB），避免再度於磁碟壓力下產生失真數據。`extract`、`lzfseX` 對 lazy2/optimal 的處理（`-lazy2`/`-optimal` 旗標、`-algo bvx3` 解碼）經查已正確，維持不動。
 
 ## 測試完整度
 
@@ -4719,7 +4719,7 @@ df -h ~
 
 ## 本輪改動
 
-**`zshrc.sh` — `lz4bench` 函式重構（inline cleanup 模式）：**
+**`zshrc.zsh` — `lz4bench` 函式重構（inline cleanup 模式）：**
 
 - 解壓縮改為依序執行：解壓 → 與 tgz 比對 → **立即刪除** → 下一格式
 - 磁碟峰值用量從 ~14–18GB 降至 ~3.5GB
@@ -4889,7 +4889,7 @@ open run_profile.command   # 取 claw-code bvx3 -optimal 20 秒樣本
 ```
 
 ⚠️ **磁碟管理**：下次 benchmark 前，先確認有 ≥25G 可用空間（xbenchTest 佔 ~18G）。
-可在 benchmark.sh 執行後立即 `rm -rf ~/proj/lzfse2/xbenchTest` 清理。
+可在 benchmark.zsh 執行後立即 `rm -rf ~/proj/lzfse2/xbenchTest` 清理。
 
 ---
 
@@ -5068,7 +5068,7 @@ llama 的 GGUF 長 match 體內有海量「純插入」位置——BT 每個位�
 | optRepStrongLen | 64 → 128 | claw optimal 比率 +3.5% 的頭號嫌疑回調 |
 | lazy2 insert-stride（新） | match ≥ 256 體內每 2 格插入 | LZ4 HC 風格：插入流量減半、鏈更短 |
 
-zshrc.sh 經驗證已完整支援 optimal（extract/lzfseX/lz4bench），無需修改。
+zshrc.zsh 經驗證已完整支援 optimal（extract/lzfseX/lz4bench），無需修改。
 
 ## 實測結果（07:50–07:59）
 
@@ -5354,7 +5354,7 @@ delta 0.00%、150 組隨機往返 + 約束全過。
    （btopt/btultra）真正的比率來源是「價格驅動的全段最優解析」——這是本輪主菜。
    price-driven optimal parsing.
 
-另發現並修正一個 benchmark 工具 bug：`zshrc.sh` 的 `lzfseX` 從未把 `-lazy2`
+另發現並修正一個 benchmark 工具 bug：`zshrc.zsh` 的 `lzfseX` 從未把 `-lazy2`
 旗標傳給編碼器，先前 CSV 的 "Lazy2" 行實際上跑的是預設 bvx3。
 were really default bvx3 runs.
 
@@ -5649,7 +5649,7 @@ static func get64(_ d: [UInt8], _ p: Int) -> UInt64
 
 ### 未採用：vDSP/Accelerate 向量化成本計算
 跨平台考量（Accelerate 僅 Apple 平台）+ 現有 SIMD4 fast-skip 已覆蓋熱點，
-投報率低。`-Ounchecked` 屬建置旗標層級，建議在 benchmark.sh 實驗。
+投報率低。`-Ounchecked` 屬建置旗標層級，建議在 benchmark.zsh 實驗。
 
 ### 分散式運算對 other3 的影響
 本次只改 `runParallelEncode` 的 signal 時機與記憶體界限，**不改變 chunk 切分、

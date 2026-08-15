@@ -27,10 +27,10 @@ swiftc -O lzfse-cli.swift -o lzfse
 Or run the auxiliary stet:
 
 ```sh
-./compile.sh
+./compile.zsh
 ```
 
-`compile.sh` WILL ALSO COPY THE BINER FILE TO `/opt/homebrew/bin`, SO THIS STEP MAY REQUIRE A WRITE AUTHORITION.
+`compile.zsh` WILL ALSO COPY THE BINER FILE TO `/opt/homebrew/bin`, SO THIS STEP MAY REQUIRE A WRITE AUTHORITION.
 
 ## macOS Graphical Interface (LZFSE_UI)
 
@@ -40,11 +40,11 @@ The UI for macOS uses SwiftUI, located in `lzfse-ui/lzfse-ui.swift`, and shares 
 
 ```sh
 cd lzfse-ui
-./build-ui.sh
+./build-ui.zsh
 open "LZFSE_UI.app"
 ```
 
-`build-ui.sh` will generate `AppIcon.icns` from `AppIcon.png`, put it into the app bundle and set up `CFBundleIconFile=AppIcon`. Examples of manual compilation:
+`build-ui.zsh` will generate `AppIcon.icns` from `AppIcon.png`, put it into the app bundle and set up `CFBundleIconFile=AppIcon`. Examples of manual compilation:
 
 ```sh
 swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
@@ -66,13 +66,13 @@ The Windows graphic front-end created by SwiftCrossUI (WinUIBackend) corresponds
 
 ```sh
 cd lzfse-ui
-./build-win.sh            # 或在檔案總管按兩下 build-win.bat
+./build-win.zsh            # 或在檔案總管按兩下 build-win.bat
 # → lzfse-ui/release/LZFSE_UI_Win.zip （GUI app + 隨附 lzfse.exe）
 ```
 
 The current focus of Windows UI/build:
 
-- `build-win.sh` will build the SwiftCrossUI app first, and then run `helper_windows/compile.bat` to obtain the latest `lzfse.exe`, and package it into `LZFSE_UI_Win.zip`.
+- `build-win.zsh` will build the SwiftCrossUI app first, and then run `helper_windows/compile.bat` to obtain the latest `lzfse.exe`, and package it into `LZFSE_UI_Win.zip`.
 - SwiftCrossUI dependency currently uses the `develop` branch of `https://github.com/raliclo/swift-cross-ui.git` to obtain a new folder selection API.
 - The Windows version of the folder selection has been changed to SwiftCrossUI `chooseFile(... allowSelectingFiles: false, allowSelectingDirectories: true)`, which is processed by `FolderPicker` of WinUIBackend; the self-made `SHBrowseForFolderW` helper is no longer used.
 - UI provides `Optimal3 / Optimal Analysis` ( `-algo other3 -optimal3`), BVX3 Lazy2 / Optimal, Equivalent Command, encapsulated `.\lzfse.exe` unpacking commands.
@@ -84,7 +84,7 @@ The current focus of Windows UI/build:
 
 ```sh
 cd helper_windows
-./build-cli-win.sh        # 或按兩下 build-cli-win.bat
+./build-cli-win.zsh        # 或按兩下 build-cli-win.bat
 # → helper_windows/release/lzfse-cli.zip
 ```
 
@@ -305,7 +305,7 @@ sudo EDITOR=nano visudo
 
 Add the following line:
 ```
-raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true, /Users/raliclo/proj/lzfse2/benchmark.sh, /Users/raliclo/proj/lzfse2/benchmark2.sh, /Users/raliclo/proj/lzfse2/run_round.command, /Users/raliclo/proj/lzfse2/helper/reboot.command,/Users/raliclo/proj/lzfse2/gitOwner.sh
+raliclo ALL=(ALL) NOPASSWD: /usr/bin/powermetrics, /usr/bin/true, /Users/raliclo/proj/lzfse2/benchmark.zsh, /Users/raliclo/proj/lzfse2/benchmark2.zsh, /Users/raliclo/proj/lzfse2/run_round.command, /Users/raliclo/proj/lzfse2/helper/reboot.command,/Users/raliclo/proj/lzfse2/gitOwner.sh
 ```
 
 Save and leave (press Ctrl + O -> Enter -> Ctrl + X in the same way).

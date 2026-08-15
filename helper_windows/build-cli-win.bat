@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
-REM build-cli-win.bat -- 一鍵建置 lzfse CLI 自包含包（透過 Git Bash 執行 build-cli-win.sh）
-REM build-cli-win.bat -- one-click build for the self-contained lzfse CLI zip (runs build-cli-win.sh via Git Bash)
+REM build-cli-win.bat -- 一鍵建置 lzfse CLI 自包含包（透過 Git Bash 執行 build-cli-win.zsh）
+REM build-cli-win.bat -- one-click build for the self-contained lzfse CLI zip (runs build-cli-win.zsh via Git Bash)
 REM
 REM 用法 / Usage: 直接在檔案總管中按兩下本檔即可。
 REM               Just double-click this file in File Explorer.
@@ -35,7 +35,7 @@ echo.
 
 REM 以登入 shell 執行，讓 ~/.bash_profile 設定的 Swift / VS 工具鏈 PATH 生效
 REM Run as a login shell so the Swift / VS toolchain PATH from ~/.bash_profile applies
-"%BASH%" -lc "cd \"$(cygpath -u '%CD%')\" && ./build-cli-win.sh"
+"%BASH%" -lc "cd \"$(cygpath -u '%CD%')\" && ./build-cli-win.zsh"
 set "RC=%ERRORLEVEL%"
 
 echo.

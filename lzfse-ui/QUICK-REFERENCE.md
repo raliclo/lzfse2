@@ -10,8 +10,8 @@
 
 ### Or Use Build Script
 ```bash
-chmod +x build-ui.sh
-./build-ui.sh
+chmod +x build-ui.zsh
+./build-ui.zsh
 open "LZFSE_UI.app"
 ```
 

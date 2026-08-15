@@ -52,7 +52,7 @@ if "%USE_SWIFT_TAR%"=="1" (
     :: The stamp is per platform -- version-win.txt here, version-mac.txt on
     :: macOS -- so a build on one platform cannot overwrite the other's record.
     :: findstr /x exact-line match is unreliable against it since
-    :: generate_version.sh is a zsh script that writes LF-only line endings,
+    :: generate_version.zsh is a zsh script that writes LF-only line endings,
     :: not the CRLF Windows findstr /x expects; use a substring match instead.
     :: NOTE: keep comments in this block free of parenthesis characters --
     :: :: comments are parsed as pseudo-labels, and stray parentheses inside

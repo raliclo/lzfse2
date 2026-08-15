@@ -7,28 +7,28 @@ per-round sections of [OPTIMIZATION.md](./OPTIMIZATION.md).
 
 ---
 
-## 1. 把 lz4bench 相關函式移出 zshrc.sh / Split the lz4bench functions out of zshrc.sh
+## 1. 把 lz4bench 相關函式移出 zshrc.zsh / Split the lz4bench functions out of zshrc.zsh
 
-**動機**：`zshrc.sh` 要與 `~/proj/fastZsh` 共用，而 lz4bench 是 lzfse2 專屬的
+**動機**：`zshrc.zsh` 要與 `~/proj/fastZsh` 共用，而 lz4bench 是 lzfse2 專屬的
 量測程式碼，不該進入共用的 shell 設定。
-**Why**: `zshrc.sh` is to be shared with `~/proj/fastZsh`, and the lz4bench
+**Why**: `zshrc.zsh` is to be shared with `~/proj/fastZsh`, and the lz4bench
 functions are lzfse2-specific measurement code that does not belong in a shared
 shell profile.
 
 **現況調查（2026-08-15，勿重做）/ Findings, so this is not re-derived:**
 
-- 分界線乾淨：benchmark 函式集中在 **zshrc.sh 的 664–1134 行**，12 個函式、
+- 分界線乾淨：benchmark 函式集中在 **zshrc.zsh 的 664–1134 行**，12 個函式、
   約 470 行、佔全檔 1204 行的 39%，且為**連續區塊**——前面是 `ffilter`(652)、
   後面是 `claudeCodeEnv`(1135)，兩者皆為通用函式，不需東拼西湊。
   The block is contiguous: lines 664–1134, 12 functions, ~470 of 1204 lines,
   bracketed by general-purpose functions on both sides.
-- **零反向相依**：沒有任何通用函式呼叫 benchmark 函式，故 `zshrc.sh` 移除該區塊
+- **零反向相依**：沒有任何通用函式呼叫 benchmark 函式，故 `zshrc.zsh` 移除該區塊
   後不會壞。
   No general-purpose function calls a benchmark one, so removing the block
   cannot break the remainder.
-- **唯一跨界相依**：`lz4bench` → `nanoTimeElapsed`（zshrc.sh:606）。後者是通用的
+- **唯一跨界相依**：`lz4bench` → `nanoTimeElapsed`（zshrc.zsh:606）。後者是通用的
   計時包裝器（`nanoTimeElapsed <command>`），且 **fastZsh 已有它**（19 處），
-  故應留在 `zshrc.sh`，由載入順序保證可用。
+  故應留在 `zshrc.zsh`，由載入順序保證可用。
   The only edge is `lz4bench` → `nanoTimeElapsed`, a general-purpose timing
   wrapper that fastZsh already carries, so it stays put.
 
@@ -44,9 +44,9 @@ shell profile.
 **做法 / Approach:**
 
 ```zsh
-# lzfse2/lz4bench.zsh  ← 新檔，放專案根目錄（benchmark.sh 用相對路徑 source）
-# benchmark.sh / benchmark2.sh 的第 5 行 `source ./zshrc.sh` 改為兩行：
-source ./zshrc.sh      # 通用，提供 nanoTimeElapsed
+# lzfse2/lz4bench.zsh  ← 新檔，放專案根目錄（benchmark.zsh 用相對路徑 source）
+# benchmark.zsh / benchmark2.zsh 的第 5 行 `source ./zshrc.zsh` 改為兩行：
+source ./zshrc.zsh      # 通用，提供 nanoTimeElapsed
 source ./lz4bench.zsh  # benchmark 專用
 ```
 
@@ -63,12 +63,12 @@ lzfse2 side cleanly separable.
 
 ---
 
-## 2. ✅ 已完成（26aa779）：benchmark.sh／benchmark2.sh 中斷時的清理
+## 2. ✅ 已完成（26aa779）：benchmark.zsh／benchmark2.zsh 中斷時的清理
 
-`benchmark.sh` 有 9 處 `rm`，但 **0 個 `trap`**——只在正常流程的節點清理。
+`benchmark.zsh` 有 9 處 `rm`，但 **0 個 `trap`**——只在正常流程的節點清理。
 Ctrl-C，或 diskcheck 以外的失敗，會留下 `xbenchTest`（解壓樹，約等於語料大小
 1.4 GB）與各格式封存。在可用空間僅 28 GB 時，一次中斷可能殘留數 GB。
-`benchmark.sh` has nine `rm` calls and no `trap`, so it only cleans at the happy
+`benchmark.zsh` has nine `rm` calls and no `trap`, so it only cleans at the happy
 path's checkpoints. A Ctrl-C, or any failure other than the diskcheck one,
 leaves `xbenchTest` (~1.4 GB) and the per-format archives behind.
 
@@ -103,8 +103,8 @@ impossible to attribute.
 - `claude_test_sample_script.zsh`：完整一輪的無人值守啟動範本，含 caffeinate／
   磁碟／語料／工作區四項前置檢查與 sudo keep-alive。`--check` 實測 5/5 通過。
   背景說明：本機無 NOPASSWD 設定（2026-08-15 確認），而
-  `run_round.command:134` 的 `sudo ./benchmark2.sh` 位於耗時約 38 分鐘的
-  `benchmark.sh` 之後，屆時 5 分鐘的 sudo timestamp 早已過期，整輪會**靜默卡住
+  `run_round.command:134` 的 `sudo ./benchmark2.zsh` 位於耗時約 38 分鐘的
+  `benchmark.zsh` 之後，屆時 5 分鐘的 sudo timestamp 早已過期，整輪會**靜默卡住
   等待密碼**——不是失敗，是無限等待。keep-alive 每 50 秒刷新即可避免。
   A launcher for the full round with four preflight checks and a sudo
   keep-alive. There is no NOPASSWD rule on this machine, and the round's `sudo`

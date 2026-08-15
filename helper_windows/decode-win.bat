@@ -186,12 +186,12 @@ if "%_write%"=="1" (
 :: two shared this line, a -swift_tar round silently extracted the whole tree to
 :: disk here and the figure was recorded as a null-mode decode. swift_tar now
 :: rejects the unknown option, so the backends need separate lines: -t walks the
-:: archive without writing, and is what zshrc.sh already uses on macOS, keeping
+:: archive without writing, and is what zshrc.zsh already uses on macOS, keeping
 :: the two platforms comparable.
 :: --to-stdout 是 bsdtar 的寫法，swift_tar 並無此選項。兩者共用這一行期間，
 :: -swift_tar 輪次其實在此把整棵樹解到磁碟，卻被記為 null 模式的解壓數據。
 :: swift_tar 現已拒絕未知選項，故兩種後端必須分開：-t 會走完整個封存但不寫入，
-:: 且與 macOS 的 zshrc.sh 一致，使兩平台可比。
+:: 且與 macOS 的 zshrc.zsh 一致，使兩平台可比。
 if "%LZFSE_REQUIRE_NATIVE_ZLIB%"=="1" (
     "!_tgz_tar!" -t -f "%~1.tgz" > nul 2>&1
 ) else (

@@ -7,7 +7,7 @@ lzfse2/
 ├── lzfse-cli.swift     ← shared engine (must be included in every build)
 └── lzfse-ui/
     ├── lzfse-ui.swift  ← SwiftUI app entry point
-    ├── build-ui.sh     ← automated build script
+    ├── build-ui.zsh     ← automated build script
     ├── AppIcon.png     ← source icon image
     ├── AppIcon.icns    ← generated macOS bundle icon
     └── Info.plist      ← app bundle metadata
@@ -21,8 +21,8 @@ lzfse2/
 
 ```bash
 cd lzfse-ui
-chmod +x build-ui.sh
-./build-ui.sh
+chmod +x build-ui.zsh
+./build-ui.zsh
 open "LZFSE_UI.app"
 ```
 

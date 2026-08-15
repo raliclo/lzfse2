@@ -2,7 +2,7 @@
 setopt NULL_GLOB
 
 
-source ./zshrc.sh
+source ./zshrc.zsh
 
 # Step.1 初始化狀態與輸出路徑 / Initialize status and output paths.
 export ROUND_STATUS_FILE="${ROUND_STATUS_FILE:-round_status.txt}"
@@ -127,4 +127,4 @@ else
     roundStatus "TRACER_SKIPPED (use -power-test to enable)"
 fi
 
-echo "Step1. Done. Please run sudo ./benchmark2.sh to continue the benchmark process."
+echo "Step1. Done. Please run sudo ./benchmark2.zsh to continue the benchmark process."

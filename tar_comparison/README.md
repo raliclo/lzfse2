@@ -13,18 +13,18 @@ peak RSS、CPU 能耗**。
 
 | File | Purpose |
 | --- | --- |
-| `tar_ab.sh` | Pass 1 — encode/decode wall time + peak RSS (`/usr/bin/time -l`, no sudo). |
-| `tar_energy.sh` | Pass 2 — CPU energy per phase via `powermetrics` (needs sudo). |
+| `tar_ab.zsh` | Pass 1 — encode/decode wall time + peak RSS (`/usr/bin/time -l`, no sudo). |
+| `tar_energy.zsh` | Pass 2 — CPU energy per phase via `powermetrics` (needs sudo). |
 | `results.txt` | Captured raw output + summary of the 2026-07-15 run. |
 
 ## Usage / 用法
 
 ```sh
 # Pass 1: time + RSS (no sudo) / 時間 + RSS（免 sudo）
-tar_comparison/tar_ab.sh            # defaults to the claw-code corpus
+tar_comparison/tar_ab.zsh            # defaults to the claw-code corpus
 
 # Pass 2: energy (needs sudo) / 能耗（需 sudo）
-sudo -v && tar_comparison/tar_energy.sh
+sudo -v && tar_comparison/tar_energy.zsh
 ```
 
 Both scripts `cd` to the repo root and default to the `claw-code` corpus; pass a

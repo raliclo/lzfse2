@@ -183,7 +183,7 @@ Labels and button text update contextually:
 
 ## Decompression Logic (extract() convention)
 
-All decompression follows `extract()` in `zshrc.sh`:
+All decompression follows `extract()` in `zshrc.zsh`:
 
 ```
 *.lzfse.bvx3.optimal  →  lzfse | tar -xf - -C <dir>
@@ -201,7 +201,7 @@ Detection is automatic from the file suffix (`isLzfseXArchive()`). No manual tog
 
 ## Folder Compression (lzfseX convention)
 
-Mirrors `lzfseX` in `zshrc.sh`:
+Mirrors `lzfseX` in `zshrc.zsh`:
 
 ```bash
 tar -cf - -C <parent> <folder> | lzfse -encode -si -o <output>
@@ -335,7 +335,7 @@ lzfse2/
 ├── lzfse-cli.swift          # CLI tool + shared engine (LZFSEv1, runParallelEncode, LZFSEError)
 └── lzfse-ui/
     ├── lzfse-ui.swift       # SwiftUI app (this file)
-    ├── build-ui.sh          # Build script (uses ../lzfse-cli.swift)
+    ├── build-ui.zsh          # Build script (uses ../lzfse-cli.swift)
     ├── AppIcon.png          # Source app icon image
     ├── AppIcon.icns         # Generated macOS app icon
     ├── AppIconGenerator.swift # Legacy/preview-only icon generator reference
@@ -346,7 +346,7 @@ lzfse2/
 ### Build
 ```bash
 cd lzfse-ui
-./build-ui.sh
+./build-ui.zsh
 # or manually:
 swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
     -framework SwiftUI \
@@ -354,9 +354,9 @@ swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
     -o "LZFSE_UI.app/Contents/MacOS/LZFSE UI"
 ```
 
-`build-ui.sh` regenerates `AppIcon.icns` from `AppIcon.png`, places it under `LZFSE_UI.app/Contents/Resources/`, and writes `CFBundleIconFile=AppIcon` into the generated bundle `Info.plist`.
+`build-ui.zsh` regenerates `AppIcon.icns` from `AppIcon.png`, places it under `LZFSE_UI.app/Contents/Resources/`, and writes `CFBundleIconFile=AppIcon` into the generated bundle `Info.plist`.
 
-`build-win.sh` uses the same `AppIcon.png` to generate temporary `.win-build/AppIcon.ico` and `.win-build/AppIcon.res`, then links the resource into `LZFSE_UI_Win.exe`. This gives the Windows app the matching Explorer and taskbar icon.
+`build-win.zsh` uses the same `AppIcon.png` to generate temporary `.win-build/AppIcon.ico` and `.win-build/AppIcon.res`, then links the resource into `LZFSE_UI_Win.exe`. This gives the Windows app the matching Explorer and taskbar icon.
 
 ---
 
@@ -379,6 +379,6 @@ swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
 |-----------|---------------|
 | **Clarity** | Bilingual labels, contextual help text, visual hierarchy |
 | **Feedback** | Status panel always visible; progress spinner during processing |
-| **Convention** | Matches `lzfseX` / `extract()` from `zshrc.sh` exactly |
+| **Convention** | Matches `lzfseX` / `extract()` from `zshrc.zsh` exactly |
 | **Safety** | Action button disabled until both paths set; Reset always available |
 | **Efficiency** | Auto-suggest paths; equivalent command updates live with algorithm and BVX3 flags |

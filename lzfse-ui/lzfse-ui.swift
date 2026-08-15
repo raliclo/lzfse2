@@ -3,7 +3,7 @@
 //  編譯指令（從 lzfse-ui/ 目錄執行）：
 //  swiftc -O ./opt/homebrew/bin/lzfse-cli.swift lzfse-ui.swift -o lzfse-ui -framework SwiftUI
 //
-//  或執行 ./build-ui.sh，或用 Xcode 新增 macOS App 專案包含兩個 Swift 檔
+//  或執行 ./build-ui.zsh，或用 Xcode 新增 macOS App 專案包含兩個 Swift 檔
 //
 
 import SwiftUI
@@ -277,7 +277,7 @@ struct ContentView: View {
 
                 if isDecoding && isLzfseX {
                     Divider()
-                    InfoText("lzfseX archive detected — will extract via tar -xf - (matches extract() in zshrc.sh)")
+                    InfoText("lzfseX archive detected — will extract via tar -xf - (matches extract() in zshrc.zsh)")
                     InfoText("偵測到 lzfseX 壓縮包，將以 tar -xf - 解包（符合 extract() 行為）")
                 }
 
@@ -441,7 +441,7 @@ class LZFSEViewModel: ObservableObject {
 
     // True when the input follows the lzfseX naming convention (.lzfse.algo),
     // meaning it was created by lzfseX (tar archive compressed with lzfse).
-    // These must be extracted via `lzfse | tar -xf -`, matching extract() in zshrc.sh.
+    // These must be extracted via `lzfse | tar -xf -`, matching extract() in zshrc.zsh.
     var inputIsLzfseXArchive: Bool {
         guard let path = inputFilePath else { return false }
         return isLzfseXArchive(path)
@@ -534,7 +534,7 @@ class LZFSEViewModel: ObservableObject {
 
     func selectOutputLocation() {
         if operation == .decode {
-            // Decode: always a folder picker, matching extract() in zshrc.sh.
+            // Decode: always a folder picker, matching extract() in zshrc.zsh.
             // lzfseX archives (.lzfse.algo) → tar is extracted INTO the chosen folder.
             // Plain .lzfse → decoded file is placed INSIDE the chosen folder.
             let panel = NSOpenPanel()

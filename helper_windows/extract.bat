@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 > nul
 :: Usage: extract.bat <archive> [probe]
-:: Windows port of extract() from zshrc.sh
+:: Windows port of extract() from zshrc.zsh
 :: probe mode: decode to nul (memProbe / peak-RSS not available on Windows)
 
 set "_file=%~1"

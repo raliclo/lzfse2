@@ -1,11 +1,11 @@
 #!/bin/zsh
 # =====================================================================
-# tar_ab.sh — controlled A/B: system tar vs swift_tar, encode/decode
+# tar_ab.zsh — controlled A/B: system tar vs swift_tar, encode/decode
 #             wall time + peak RSS (no sudo).
-# tar_ab.sh —— 受控 A/B：系統 tar vs swift_tar，量測 encode/decode 的
+# tar_ab.zsh —— 受控 A/B：系統 tar vs swift_tar，量測 encode/decode 的
 #             牆鐘時間與 peak RSS（免 sudo）。
 #
-# Usage / 用法：tar_comparison/tar_ab.sh [corpus]   (預設 claw-code)
+# Usage / 用法：tar_comparison/tar_ab.zsh [corpus]   (預設 claw-code)
 # =====================================================================
 set -u
 cd "${0:A:h}/.." || exit 1          # repo root / 專案根目錄

@@ -11,12 +11,12 @@
 # 取得 swift_tar 數據與新 trace 的組合，兩者因而共用相同的機器狀態與熱度條件。
 # 整輪需 1-2 小時。有三件事會讓這段時間白費，本腳本在開跑前逐一檢查。
 #
-#   1. sudo -- run_round.command:134 runs `sudo ./benchmark2.sh` AFTER
-#      benchmark.sh, which alone takes ~38 minutes. The sudo timestamp lasts 5
+#   1. sudo -- run_round.command:134 runs `sudo ./benchmark2.zsh` AFTER
+#      benchmark.zsh, which alone takes ~38 minutes. The sudo timestamp lasts 5
 #      minutes by default, so by then it has long expired and the round stops
 #      dead waiting for a password. It does not fail; it waits forever. The
 #      keep-alive loop below refreshes the timestamp every 50 s.
-#      sudo -- run_round.command:134 的 `sudo ./benchmark2.sh` 位於 benchmark.sh
+#      sudo -- run_round.command:134 的 `sudo ./benchmark2.zsh` 位於 benchmark.zsh
 #      「之後」，而後者本身就要約 38 分鐘。sudo timestamp 預設僅 5 分鐘，屆時早已
 #      過期，整輪會停在該處等待密碼——它不會失敗，而是無限等待。下方的 keep-alive
 #      迴圈每 50 秒刷新一次 timestamp。
@@ -29,9 +29,9 @@
 #      （helper/setup_launchagents.command），通常已滿足；此處仍檢查，因為在第 50
 #      分鐘掛掉的代價，遠高於多做這一行驗證。
 #
-#   3. Disk -- benchmark.sh calls diskcheck before every -n sweep and aborts
+#   3. Disk -- benchmark.zsh calls diskcheck before every -n sweep and aborts
 #      below 20 GB. Failing here is safe but wastes whatever has already run.
-#      磁碟 -- benchmark.sh 在每次 -n 掃描前呼叫 diskcheck，低於 20 GB 即中止。
+#      磁碟 -- benchmark.zsh 在每次 -n 掃描前呼叫 diskcheck，低於 20 GB 即中止。
 #      在此失敗是安全的，但已跑完的部分就白費了。
 #
 # Usage / 用法:
@@ -84,9 +84,9 @@ else
 fi
 
 # --- 2. disk ---------------------------------------------------------
-# Same 20 GB threshold as diskcheck() in zshrc.sh, checked up front so a
+# Same 20 GB threshold as diskcheck() in zshrc.zsh, checked up front so a
 # shortfall is known now rather than 50 minutes in.
-# 與 zshrc.sh 中 diskcheck() 相同的 20 GB 門檻，提前檢查，讓空間不足在此刻就浮現，
+# 與 zshrc.zsh 中 diskcheck() 相同的 20 GB 門檻，提前檢查，讓空間不足在此刻就浮現，
 # 而非在第 50 分鐘才發現。
 avail_gb=$(( $(df -k . | tail -1 | awk '{print $4}') / 1024 / 1024 ))
 if (( avail_gb >= 20 )); then
@@ -126,8 +126,8 @@ say ""
 # nohup 會關閉 stdin，sudo 屆時無從提示。本機並無 NOPASSWD 設定（2026-08-15 確認），
 # 故 keep-alive 並非可選項。
 say "== sudo =="
-say "  run_round.command needs sudo partway through (benchmark2.sh, gitOwner.sh)."
-say "  run_round.command 中途需要 sudo（benchmark2.sh、gitOwner.sh）。"
+say "  run_round.command needs sudo partway through (benchmark2.zsh, gitOwner.sh)."
+say "  run_round.command 中途需要 sudo（benchmark2.zsh、gitOwner.sh）。"
 # Try non-interactively first. `sudo -v` insists on a tty even when the timestamp
 # is already valid, because its job is to re-validate and it prepares to prompt;
 # `sudo -n` just succeeds if a valid timestamp exists. Without this order the

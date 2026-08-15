@@ -5,7 +5,7 @@ A SwiftCrossUI (WinUIBackend) GUI for LZFSE compression/decompression, the Windo
 counterpart of the macOS `lzfse-ui.swift`.
 
 - UI 原始碼 / UI source: `lzfse-ui-win.swift`
-- 建置腳本 / Build script: `build-win.sh`
+- 建置腳本 / Build script: `build-win.zsh`
 - 壓縮 codec / Codec: 直接 import 專案根目錄的 `lzfse-cli.swift`（建置時以 `grep -v` 移除結尾 `runCLI()`）
   imports the project-root `lzfse-cli.swift` as a library (the trailing `runCLI()` is stripped with `grep -v` at build time)
 
@@ -82,8 +82,8 @@ with the Swift toolchain installed they're already on PATH. **The zip does not b
 
 ## 從 zip 執行 / Run from the zip
 
-`build-win.sh` 會在 `lzfse-ui/` 產出 `LZFSE_UI_Win.zip`，內含：
-`build-win.sh` produces `LZFSE_UI_Win.zip` in `lzfse-ui/`, containing:
+`build-win.zsh` 會在 `lzfse-ui/` 產出 `LZFSE_UI_Win.zip`，內含：
+`build-win.zsh` produces `LZFSE_UI_Win.zip` in `lzfse-ui/`, containing:
 
 ```
 LZFSE_UI_Win/
@@ -107,15 +107,15 @@ Extract and run `LZFSE_UI_Win.exe` inside the folder.
 
 ```bash
 # 從 lzfse-ui/ 目錄執行 / Run from the lzfse-ui/ directory
-./build-win.sh
+./build-win.zsh
 ```
 
 **建置需求 / Build requirements**：
 - **Git for Windows（提供 Git Bash）** / **Git for Windows (provides Git Bash)**
-  `build-win.sh` 是 bash 腳本，須在 **Git Bash** 中執行。Git for Windows 已內建本腳本所需的
+  `build-win.zsh` 是 bash 腳本，須在 **Git Bash** 中執行。Git for Windows 已內建本腳本所需的
   `bash`、`grep`、`sed`、`tar`（bsdtar）等工具，**無需另外安裝**（路徑轉換用 `sed`，不依賴 `cygpath`）。
   下載 / Download: <https://gitforwindows.org>
-  `build-win.sh` is a bash script and must run in **Git Bash**. Git for Windows bundles the
+  `build-win.zsh` is a bash script and must run in **Git Bash**. Git for Windows bundles the
   `bash`, `grep`, `sed` and `tar` (bsdtar) the script needs — **no separate install required**
   (path conversion uses `sed`, not `cygpath`).
 - Swift for Windows 工具鏈（已驗證 6.3.2，x86_64-windows-msvc）/ toolchain (verified 6.3.2)
@@ -151,9 +151,9 @@ Extract and run `LZFSE_UI_Win.exe` inside the folder.
 
 As of the 2026-07-07 Windows UI / benchmark status:
 
-- `build-win.sh` builds the SwiftCrossUI app, then runs `helper_windows/compile.bat` to build a fresh companion CLI.
-- `build-win.sh` currently pins the SwiftCrossUI dependency to the `develop` branch of `https://github.com/raliclo/swift-cross-ui.git` instead of the previous `0.7.0` up-to-next-minor requirement.
-- `build-win.sh` also embeds the Windows app icon into `LZFSE_UI_Win.exe`: it uses the same `AppIcon.png` source image as the macOS app, generates `.win-build/AppIcon.ico`, compiles `.win-build/AppIcon.res` with `llvm-rc.exe`, and links that resource into the exe. File Explorer and the Windows taskbar should therefore show the LZFSE UI icon. If Windows still shows an old/default icon, use a fresh extraction folder or restart Explorer to clear the icon cache.
+- `build-win.zsh` builds the SwiftCrossUI app, then runs `helper_windows/compile.bat` to build a fresh companion CLI.
+- `build-win.zsh` currently pins the SwiftCrossUI dependency to the `develop` branch of `https://github.com/raliclo/swift-cross-ui.git` instead of the previous `0.7.0` up-to-next-minor requirement.
+- `build-win.zsh` also embeds the Windows app icon into `LZFSE_UI_Win.exe`: it uses the same `AppIcon.png` source image as the macOS app, generates `.win-build/AppIcon.ico`, compiles `.win-build/AppIcon.res` with `llvm-rc.exe`, and links that resource into the exe. File Explorer and the Windows taskbar should therefore show the LZFSE UI icon. If Windows still shows an old/default icon, use a fresh extraction folder or restart Explorer to clear the icon cache.
 - The Windows UI now exposes `Optimal3 Parsing / 標準格式最優解析` under Other3 encode mode. The equivalent command becomes `-algo other3 -optimal3`; output remains standard Apple-compatible LZFSE.
 - The file section is more compact: `Reset / 重置` and `Compress / Decompress` now sit on the right side of the `Files / 檔案` header instead of taking a separate bottom row.
 - The final `LZFSE_UI_Win.zip` contains:

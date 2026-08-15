@@ -2,7 +2,7 @@
 # Cowork 自動化執行器：compile → 測試守門 → benchmark
 # Auto-runner: compile → gate on tests → benchmark
 # Usage: run_round.command [-swift_tar] [-power-test] [-full]
-#   -swift_tar  : 把 tar 導向已安裝的 swift_tar（不修改 zshrc.sh）；
+#   -swift_tar  : 把 tar 導向已安裝的 swift_tar（不修改 zshrc.zsh）；
 #                 不帶此旗標時用系統 tar。
 #   -power-test : 執行 Time Profiler trace（helper/tracer.command）。預設關閉，
 #                 因為它會主導整輪耗時；關閉時 trace_analysis 與
@@ -10,7 +10,7 @@
 #   -full       : 等同同時指定 -swift_tar 與 -power-test，即完整一輪。這是最慢
 #                 的組合，但唯有它能在同一輪內同時取得 swift_tar 的數據與新的
 #                 trace，兩者因而共用相同的機器狀態與熱度條件。
-#   -swift_tar  : points tar at the installed swift_tar (zshrc.sh untouched);
+#   -swift_tar  : points tar at the installed swift_tar (zshrc.zsh untouched);
 #                 without this flag, uses system tar.
 #   -power-test : runs the Time Profiler traces (helper/tracer.command). Off by
 #                 default because they dominate the round's wall time; when off,
@@ -47,7 +47,7 @@ echo "MODE swift_tar=$USE_SWIFT_TAR power_test=$LZFSE_POWER_TEST $(date +%H:%M:%
 # swift_tar compile + test（無條件，與 lzfse 相同）
 # swift_tar compile + test (unconditional, same gate as lzfse)
 echo "RUNNING_SWIFT_TAR_COMPILE $(date +%H:%M:%S)" >> round_status.txt
-./swift_tar/compile_tar.sh >> round_status.txt 2>&1
+./swift_tar/compile_tar.zsh >> round_status.txt 2>&1
 swift_tar_compile_rc=$?
 SWIFT_TAR_BIN="/opt/homebrew/bin/swift_tar"
 if [[ $swift_tar_compile_rc -ne 0 ]] || [[ ! -x "$SWIFT_TAR_BIN" ]]; then
@@ -89,9 +89,9 @@ if [[ $? -ne 0 ]] || grep -q "FAIL" debug/swift_tar-parallel-extract.txt; then
 fi
 echo "SWIFT_TAR_PARALLEL_EXTRACT_OK $(date +%H:%M:%S)" >> round_status.txt
 
-# -swift_tar PATH shim（不修改 zshrc.sh）：只在明確帶 -swift_tar 旗標時
+# -swift_tar PATH shim（不修改 zshrc.zsh）：只在明確帶 -swift_tar 旗標時
 # 建立 tar→swift_tar symlink 並 prepend 進 PATH。
-# PATH shim (zshrc.sh untouched): only when -swift_tar is explicitly passed,
+# PATH shim (zshrc.zsh untouched): only when -swift_tar is explicitly passed,
 # symlink tar -> swift_tar and prepend it to PATH.
 if [[ "$USE_SWIFT_TAR" == "1" ]]; then
     SWIFT_TAR_SHIM_DIR="/tmp/lzfse2-swift-tar-shim"
@@ -118,7 +118,7 @@ echo PATH="$PATH" >> round_status.txt
 git gc --prune=now --aggressive >> round_status.txt 2>&1
 echo "RUNNING compile $(date +%H:%M:%S)" >> round_status.txt
 rm -f ./lzfse
-./compile.sh >> round_status.txt 2>&1
+./compile.zsh >> round_status.txt 2>&1
 if [[ ! -x ./lzfse ]]; then
     echo "COMPILE_FAILED $(date +%H:%M:%S)" >> round_status.txt
     exit 1
@@ -129,15 +129,15 @@ if grep -q "✗" lzfse-test.txt; then
 fi
 echo "TEST_OK $(date +%H:%M:%S)" >> round_status.txt
 echo "RUNNING benchmark $(date +%H:%M:%S)" >> round_status.txt
-./benchmark.sh >> round_status.txt 2>&1
+./benchmark.zsh >> round_status.txt 2>&1
 # Hand the settings over in a file rather than across the sudo boundary. sudoers
 # here runs with env_reset and grants no SETENV, so
 # `sudo --preserve-env=SWIFT_TAR_BIN,...` is refused outright -- "sorry, you are
 # not allowed to set the following environment variables" -- and the round dies
-# after benchmark.sh has already spent ~37 minutes. A file needs no sudoers
+# after benchmark.zsh has already spent ~37 minutes. A file needs no sudoers
 # change, so the round stops depending on how this machine is configured.
 # 以檔案交付設定，而非讓其跨越 sudo 邊界。本機 sudoers 採 env_reset 且未授予
-# SETENV，故 `sudo --preserve-env=...` 會被直接拒絕，而此時 benchmark.sh 已耗掉約
+# SETENV，故 `sudo --preserve-env=...` 會被直接拒絕，而此時 benchmark.zsh 已耗掉約
 # 37 分鐘。改用檔案則不需更動 sudoers，整輪也就不再取決於這台機器的設定方式。
 #
 # PATH is included deliberately: sudo replaces it with secure_path, which would
@@ -151,10 +151,10 @@ if [[ "$USE_SWIFT_TAR" == "1" ]]; then
         print -r -- "export LZFSE_REQUIRE_NATIVE_ZLIB=${(q)LZFSE_REQUIRE_NATIVE_ZLIB}"
         print -r -- "export PATH=${(q)PATH}"
     } > .bench_env
-    sudo ./benchmark2.sh >> round_status.txt 2>&1
+    sudo ./benchmark2.zsh >> round_status.txt 2>&1
 else
     rm -f .bench_env
-    sudo ./benchmark2.sh >> round_status.txt 2>&1
+    sudo ./benchmark2.zsh >> round_status.txt 2>&1
 fi
 rm -f .bench_env
 rc=$?

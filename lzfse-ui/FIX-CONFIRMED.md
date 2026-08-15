@@ -83,8 +83,8 @@ swiftc -O lzfse-cli.swift lzfse-ui.swift -o LZFSE-UI \
 ### Build Script Method
 
 ```bash
-chmod +x build-ui.sh
-./build-ui.sh
+chmod +x build-ui.zsh
+./build-ui.zsh
 open "LZFSE_UI.app"
 ```
 
@@ -124,7 +124,7 @@ A: No, `lzfse-ui.swift` is ready to use as-is.
 **Optional but helpful:**
 - `BUILD-INSTRUCTIONS.md` (build guide)
 - `README-UI.md` (user manual)
-- `build-ui.sh` (automated build script)
+- `build-ui.zsh` (automated build script)
 
 ## Next Steps
 

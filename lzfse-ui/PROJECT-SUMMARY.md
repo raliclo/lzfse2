@@ -20,9 +20,9 @@ This package contains everything you need to create a modern macOS graphical use
 
 3. **AppIcon.png / AppIcon.icns**
    - Checked-in app icon source image and macOS bundle icon
-   - `build-ui.sh` regenerates `AppIcon.icns` from `AppIcon.png`
+   - `build-ui.zsh` regenerates `AppIcon.icns` from `AppIcon.png`
    - Bundle `Info.plist` references it as `CFBundleIconFile=AppIcon`
-   - Windows `build-win.sh` uses the same `AppIcon.png` to generate `.win-build/AppIcon.ico` / `.win-build/AppIcon.res` and embeds that resource into `LZFSE_UI_Win.exe`
+   - Windows `build-win.zsh` uses the same `AppIcon.png` to generate `.win-build/AppIcon.ico` / `.win-build/AppIcon.res` and embeds that resource into `LZFSE_UI_Win.exe`
 
 ### Documentation
 
@@ -47,7 +47,7 @@ This package contains everything you need to create a modern macOS graphical use
 
 ### Build Files
 
-7. **build-ui.sh**
+7. **build-ui.zsh**
    - Automated build script
    - Creates .app bundle
    - Generates and embeds the app icon
@@ -89,12 +89,12 @@ See **XCODE-SETUP.md** for detailed instructions.
 
 1. **Make executable**
    ```bash
-   chmod +x build-ui.sh
+   chmod +x build-ui.zsh
    ```
 
 2. **Build**
    ```bash
-   ./build-ui.sh
+   ./build-ui.zsh
    ```
    This also generates `AppIcon.icns` and embeds it into `LZFSE_UI.app`.
 
@@ -142,8 +142,8 @@ See **XCODE-SETUP.md** for detailed instructions.
 ### 5. Custom App Icon ✓
 - `AppIcon.png` is the source image
 - `AppIcon.icns` is the macOS bundle icon
-- `build-ui.sh` embeds the icon automatically
-- `build-win.sh` embeds a Windows icon resource generated from the same `AppIcon.png`, so `LZFSE_UI_Win.exe` uses the matching icon in File Explorer and the taskbar
+- `build-ui.zsh` embeds the icon automatically
+- `build-win.zsh` embeds a Windows icon resource generated from the same `AppIcon.png`, so `LZFSE_UI_Win.exe` uses the matching icon in File Explorer and the taskbar
 
 ---
 
@@ -377,7 +377,7 @@ In `lzfse-ui.swift`, search for:
 ### For Personal Use
 
 ```bash
-./build-ui.sh
+./build-ui.zsh
 cp -r "LZFSE_UI.app" /Applications/
 ```
 
@@ -457,12 +457,12 @@ After setup:
 You now have everything needed to build and use a modern macOS UI for LZFSE compression:
 
 1. **Complete source code** (lzfse-ui.swift)
-2. **Build scripts** (build-ui.sh)
+2. **Build scripts** (build-ui.zsh)
 3. **Comprehensive documentation** (4 detailed guides)
 4. **Full feature implementation** (all requirements met)
 
 Choose your path:
-- **Quick start**: Use build-ui.sh
+- **Quick start**: Use build-ui.zsh
 - **Full development**: Follow XCODE-SETUP.md
 - **Learn the design**: Read UI-DESIGN.md
 

@@ -34,7 +34,7 @@ if (-not $proc) {
         (Join-Path $batdir "LZFSE_UI_Win\LZFSE_UI_Win.exe")
     )
     $exe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if (-not $exe) { Write-Host "找不到 LZFSE_UI_Win.exe；請先開啟 App 或先 build-win.sh。/ LZFSE_UI_Win.exe not found."; exit 1 }
+    if (-not $exe) { Write-Host "找不到 LZFSE_UI_Win.exe；請先開啟 App 或先 build-win.zsh。/ LZFSE_UI_Win.exe not found."; exit 1 }
     $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru
     $launched = $true
     Start-Sleep -Seconds 10

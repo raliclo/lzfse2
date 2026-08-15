@@ -12,5 +12,5 @@ git push --set-upstream origin dev -f
 git checkout main
 git pull origin dev
 git reset HEAD~1
-source zshrc.sh
+source zshrc.zsh
 diskcheck
