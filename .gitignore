@@ -47,3 +47,12 @@ helper_windows/lzfse-build-*
 helper_windows/claw-code
 helper_windows/llama.cpp
 helper_windows/bench_logs/rss_tmp*
+
+# run_round.command writes this just before `sudo ./benchmark2.sh` and removes it
+# straight after: sudoers here runs with env_reset, so the settings cannot cross
+# the sudo boundary as environment variables. It holds machine-specific paths and
+# is regenerated every round, so it must never be committed.
+# run_round.command 於 `sudo ./benchmark2.sh` 之前寫出、之後隨即刪除：本機 sudoers
+# 採 env_reset，設定無法以環境變數跨越 sudo 邊界。其中含機器特有路徑且每輪重新產生，
+# 故不得入版。
+.bench_env

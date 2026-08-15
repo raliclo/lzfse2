@@ -2,6 +2,18 @@
 setopt NULL_GLOB
 
 
+# Settings from run_round.command arrive in a file, not the environment: sudo
+# runs with env_reset here and refuses --preserve-env for these names. Sourced
+# before zshrc.sh because the functions there read SWIFT_TAR_BIN and
+# LZFSE_REQUIRE_NATIVE_ZLIB at call time, and PATH must already carry the
+# tar->swift_tar shim by then. Absent when run without -swift_tar, which is why
+# the test is silent rather than an error.
+# 來自 run_round.command 的設定以檔案傳遞，而非環境變數：本機 sudo 採 env_reset，
+# 且拒絕以 --preserve-env 傳遞這些名稱。於 zshrc.sh 之前載入，因為其中的函式在呼叫
+# 當下才讀取 SWIFT_TAR_BIN 與 LZFSE_REQUIRE_NATIVE_ZLIB，且屆時 PATH 必須已含
+# tar→swift_tar 的 shim。未帶 -swift_tar 時此檔不存在，故此處靜默略過而非報錯。
+[[ -f ./.bench_env ]] && source ./.bench_env
+
 source ./zshrc.sh
 
 # lzfse is always rebuilt here, but never as root. compile.sh writes

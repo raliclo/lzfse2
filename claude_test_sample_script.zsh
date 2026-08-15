@@ -128,8 +128,27 @@ say ""
 say "== sudo =="
 say "  run_round.command needs sudo partway through (benchmark2.sh, gitOwner.sh)."
 say "  run_round.command 中途需要 sudo（benchmark2.sh、gitOwner.sh）。"
-sudo -v || { print -ru2 -- "sudo failed; aborting / sudo 失敗，中止"; exit 1 }
-good "sudo timestamp acquired / 已取得 sudo timestamp"
+# Try non-interactively first. `sudo -v` insists on a tty even when the timestamp
+# is already valid, because its job is to re-validate and it prepares to prompt;
+# `sudo -n` just succeeds if a valid timestamp exists. Without this order the
+# script refuses to start under any tty-less caller -- cron, a CI runner, an
+# agent shell -- even though sudo would have worked perfectly.
+# 先嘗試非互動。`sudo -v` 即使在 timestamp 仍有效時也堅持要 tty，因為它的職責是
+# 重新驗證、會預備提示密碼；`sudo -n` 則在 timestamp 有效時直接成功。若順序相反，
+# 本腳本在任何無 tty 的呼叫者下（cron、CI runner、agent shell）都會拒絕啟動——
+# 即使 sudo 其實完全可用。
+if sudo -n true 2>/dev/null; then
+    good "sudo already valid (non-interactive) / sudo 已可用（非互動）"
+elif [[ -t 0 ]]; then
+    sudo -v || { print -ru2 -- "sudo failed; aborting / sudo 失敗，中止"; exit 1 }
+    good "sudo timestamp acquired / 已取得 sudo timestamp"
+else
+    print -ru2 -- "sudo needs a password but there is no terminal to ask on."
+    print -ru2 -- "sudo 需要密碼，但沒有可供輸入的終端。"
+    print -ru2 -- "Run 'sudo -v' in a terminal first, then re-run this script."
+    print -ru2 -- "請先在終端執行 'sudo -v'，再重新執行本腳本。"
+    exit 1
+fi
 
 # 50 s, comfortably inside the 5-minute default timeout.
 # 50 秒，明顯短於預設的 5 分鐘逾時。

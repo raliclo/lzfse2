@@ -97,6 +97,10 @@ trace_one() {
         n_args=(-n "$trace_n")
     fi
     local trace_out="$TRACE_DIR/${dataset}-${algo}${trace_suffix}.trace"
+    # Published for the caller: on a non-zero xctrace exit it has to decide
+    # whether a usable recording was still produced. / 供呼叫端使用：xctrace
+    # 以非零結束時，呼叫端需據此判斷是否仍產出了可用的紀錄。
+    LAST_TRACE_OUT="$trace_out"
     local compressed_out="$TRACE_DIR/${dataset}.${algo}${trace_suffix}.out"
     local compressed_active="${compressed_out}.active"
 
@@ -222,6 +226,25 @@ trace_one() {
                     echo "TRACE_TIMEOUT ${dataset} ${algo} ${TRACE_TIMEOUT_SECONDS}s $(date +%H:%M:%S)" >> "$STATUS_OUT"
                     traceRoundStatus "TRACE_TIMEOUT ${dataset} ${algo} ${TRACE_TIMEOUT_SECONDS}s"
                     continue
+                elif [[ -d "${LAST_TRACE_OUT:-}" ]] \
+                     && xcrun xctrace export --input "$LAST_TRACE_OUT" --toc >/dev/null 2>&1; then
+                    # xctrace exits non-zero when --time-limit cuts the target
+                    # short, even though the recording is complete and saved.
+                    # That is the normal outcome here, not an error: the limit
+                    # exists precisely because the Time Profiler samples
+                    # periodically and a minute is already representative. The
+                    # recording is what matters, so verify it can be parsed and
+                    # accept it. Observed with claw-code/other3 -n 4, which
+                    # returned 54 alongside a 4.3 MB trace that exported fine --
+                    # and aborted a round that had run for 37 minutes.
+                    # 當 --time-limit 提前中止目標程序時，xctrace 會以非零結束，即使
+                    # 錄製已完整儲存。在此那是正常結果而非錯誤：設定時間上限的理由，
+                    # 正是 Time Profiler 採週期取樣、一分鐘已具代表性。真正重要的是
+                    # 錄製本身，故改為驗證其可否解析，可解析即接受。實例：
+                    # claw-code/other3 -n 4 回傳 54，但其 4.3 MB 的 trace 可正常匯出
+                    # ——卻中止了一輪已執行 37 分鐘的量測。
+                    echo "TRACE_OK ${dataset} ${algo} (rc ${rc}, recording verified) $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                    traceRoundStatus "TRACE_DONE ${dataset} ${algo} (rc ${rc}, verified)"
                 else
                     echo "TRACE_FAILED ${dataset} ${algo} ${rc} $(date +%H:%M:%S)" >> "$STATUS_OUT"
                     traceRoundStatus "TRACE_FAILED ${dataset} ${algo} ${rc}"
@@ -244,6 +267,19 @@ trace_one() {
                         echo "TRACE_TIMEOUT ${dataset} ${algo} -n ${trace_n} ${TRACE_TIMEOUT_SECONDS}s $(date +%H:%M:%S)" >> "$STATUS_OUT"
                         traceRoundStatus "TRACE_TIMEOUT ${dataset} ${algo} -n ${trace_n} ${TRACE_TIMEOUT_SECONDS}s"
                         continue
+                    elif [[ -d "${LAST_TRACE_OUT:-}" ]] \
+                         && xcrun xctrace export --input "$LAST_TRACE_OUT" --toc >/dev/null 2>&1; then
+                        # Same as the no--n branch above: --time-limit cutting the
+                        # target short makes xctrace exit non-zero even though the
+                        # recording completed. This is the branch the -n traces take,
+                        # and the one that actually aborted a 37-minute round on
+                        # claw-code/other3 -n 4 (rc 54, 4.3 MB trace, exported fine).
+                        # 與上方無 -n 分支相同：--time-limit 提前中止目標程序，會讓
+                        # xctrace 以非零結束，即使錄製已完成。帶 -n 的 trace 走的正是
+                        # 本分支，也正是它中止了一輪已跑 37 分鐘的量測
+                        # （claw-code/other3 -n 4，rc 54，4.3 MB trace，匯出正常）。
+                        echo "TRACE_OK ${dataset} ${algo} -n ${trace_n} (rc ${rc}, recording verified) $(date +%H:%M:%S)" >> "$STATUS_OUT"
+                        traceRoundStatus "TRACE_DONE ${dataset} ${algo} -n ${trace_n} (rc ${rc}, verified)"
                     else
                         echo "TRACE_FAILED ${dataset} ${algo} -n ${trace_n} ${rc} $(date +%H:%M:%S)" >> "$STATUS_OUT"
                         traceRoundStatus "TRACE_FAILED ${dataset} ${algo} -n ${trace_n} ${rc}"

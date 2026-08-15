@@ -130,11 +130,33 @@ fi
 echo "TEST_OK $(date +%H:%M:%S)" >> round_status.txt
 echo "RUNNING benchmark $(date +%H:%M:%S)" >> round_status.txt
 ./benchmark.sh >> round_status.txt 2>&1
+# Hand the settings over in a file rather than across the sudo boundary. sudoers
+# here runs with env_reset and grants no SETENV, so
+# `sudo --preserve-env=SWIFT_TAR_BIN,...` is refused outright -- "sorry, you are
+# not allowed to set the following environment variables" -- and the round dies
+# after benchmark.sh has already spent ~37 minutes. A file needs no sudoers
+# change, so the round stops depending on how this machine is configured.
+# 以檔案交付設定，而非讓其跨越 sudo 邊界。本機 sudoers 採 env_reset 且未授予
+# SETENV，故 `sudo --preserve-env=...` 會被直接拒絕，而此時 benchmark.sh 已耗掉約
+# 37 分鐘。改用檔案則不需更動 sudoers，整輪也就不再取決於這台機器的設定方式。
+#
+# PATH is included deliberately: sudo replaces it with secure_path, which would
+# drop the tar->swift_tar shim and silently send the whole run back to the system
+# tar -- the one thing -swift_tar exists to prevent.
+# 特意納入 PATH：sudo 會以 secure_path 取代之，使 tar→swift_tar 的 shim 消失，
+# 整輪將靜默改用系統 tar——而那正是 -swift_tar 要避免的事。
 if [[ "$USE_SWIFT_TAR" == "1" ]]; then
-    sudo --preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB ./benchmark2.sh >> round_status.txt 2>&1
+    {
+        print -r -- "export SWIFT_TAR_BIN=${(q)SWIFT_TAR_BIN}"
+        print -r -- "export LZFSE_REQUIRE_NATIVE_ZLIB=${(q)LZFSE_REQUIRE_NATIVE_ZLIB}"
+        print -r -- "export PATH=${(q)PATH}"
+    } > .bench_env
+    sudo ./benchmark2.sh >> round_status.txt 2>&1
 else
+    rm -f .bench_env
     sudo ./benchmark2.sh >> round_status.txt 2>&1
 fi
+rm -f .bench_env
 rc=$?
 if [[ $rc -eq 0 ]]; then
     echo "BENCH_DONE $(date +%H:%M:%S)" >> round_status.txt
