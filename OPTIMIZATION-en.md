@@ -372,6 +372,21 @@ external tool. A `SWIFT_TAR_NATIVE_ZSTD_NOT_VERIFIED` line means
 `version-win.txt` lacks `zstd_linkage=static`, and that round's ZSTD must not be
 labelled native.
 
+**That line is build provenance, not run-time evidence.** `run_round.bat` now
+carries a `:verifyNativeZstd` subroutine that strips PATH down to the shim plus
+System32, putting any external `zstd.exe` out of reach, and asks swift_tar to
+write and read back a zstd archive. On success it records
+
+```
+NATIVE_ZSTD_PROVEN in-process, external zstd.exe out of PATH <time>
+```
+
+On failure it writes `NATIVE_ZSTD_PROBE_FAILED` and **aborts the round** within
+seconds rather than measuring the wrong tool for ninety minutes. It is not
+airtight: a swift_tar that located `zstd.exe` by absolute path would still pass.
+It discriminates the case that actually occurred, which is resolution through
+PATH.
+
 Three further checkpoints:
 
 - **ZSTD's RSS should leave 8.9 MB behind.** R47-Win reported 8.9 MB for ZSTD in

@@ -342,6 +342,18 @@ USING_SWIFT_TAR ... NATIVE_ZLIB=static NATIVE_ZSTD=static <時間>
 工具卻被標為 swift_tar 的成因。若看到 `SWIFT_TAR_NATIVE_ZSTD_NOT_VERIFIED`，表示
 `version-win.txt` 缺 `zstd_linkage=static`，該輪的 ZSTD 不可標為 native。
 
+**但那一行只是建置來源，不是執行時的證據。**`run_round.bat` 現在另有一支
+`:verifyNativeZstd` 子程序：它把 PATH 縮到只剩 shim 與 System32，使外部
+`zstd.exe` 構不到，再請 swift_tar 寫出並讀回一個 zstd 封存。通過時記下
+
+```
+NATIVE_ZSTD_PROVEN in-process, external zstd.exe out of PATH <時間>
+```
+
+失敗則寫 `NATIVE_ZSTD_PROBE_FAILED` 並**中止整輪**——在數秒內，而不是等九十分鐘
+之後才發現量錯對象。此檢查並非滴水不漏：若 swift_tar 以絕對路徑找到 `zstd.exe`
+仍會通過；它判別的是實際發生過的那一種，也就是經由 PATH 解析。
+
 其餘三項檢查點：
 
 - **ZSTD 的 RSS 應離開 8.9 MB**。R47-Win 兩個資料集的 ZSTD RSS 都是 8.9 MB，那是

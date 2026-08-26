@@ -101,6 +101,15 @@ if "%USE_SWIFT_TAR%"=="1" (
     type "!_swift_tar_version_output!" >> windows_round_status.txt
     del /q "!_swift_tar_version_output!" > nul 2>&1
 
+    :: The USING_SWIFT_TAR line above records build provenance only.
+    :: version-win.txt says the EXE was linked against static libzstd, which
+    :: cannot show which implementation actually ran. R47-Win logged
+    :: NATIVE_ZLIB=static and still measured
+    :: the external zstd.exe on every ZSTD row, so provenance has misled once
+    :: already. The subroutine proves it at run time and aborts if it cannot.
+    call :verifyNativeZstd
+    if errorlevel 1 exit /b 1
+
     :: Self-test: verify swift_tar round-trips correctly against the
     :: platform's standard tar before trusting it for the whole round.
     :: Calls SWIFT_TAR_BIN explicitly, the same native-zlib backend exported
@@ -264,3 +273,53 @@ echo DONE %TIME:~0,8% >> windows_round_status.txt
 
 echo [OK] 全部完成 / All done
 pause
+exit /b 0
+
+:: ===========================================================================
+:: verifyNativeZstd -- prove ZSTD is handled in-process, not by zstd.exe.
+::
+:: PATH is stripped to the shim plus System32, putting any external zstd.exe
+:: out of reach, and swift_tar is then asked to write a zstd archive and read
+:: it back. Shelling out fails here, in seconds, rather than silently
+:: measuring the wrong tool for the next ninety minutes.
+::
+:: Not airtight: a swift_tar that located zstd.exe by absolute path would still
+:: pass. It discriminates the case that actually occurred, which is resolution
+:: through PATH.
+::
+:: This file has no other subroutine; it is placed after the main flow, which
+:: ends in exit /b 0 above so control cannot fall through into it. Labels must
+:: stay outside every parenthesised block -- cmd.exe does not handle them
+:: reliably inside one, and a goto would abandon the rest of the block.
+:: NOTE: keep the comments here free of parenthesis characters.
+:: ===========================================================================
+:verifyNativeZstd
+setlocal EnableDelayedExpansion
+set "_nz_dir=%TEMP%\lzfse2-native-zstd-probe"
+if exist "!_nz_dir!" rmdir /s /q "!_nz_dir!"
+mkdir "!_nz_dir!"
+echo native zstd probe> "!_nz_dir!\probe.txt"
+set "PATH=%_swift_tar_shim_dir%;%SystemRoot%\System32"
+"%SWIFT_TAR_BIN%" -c --zstd --zstd-level 9 -f "!_nz_dir!\probe.tar.zst" -C "!_nz_dir!" probe.txt >> windows_round_status.txt 2>&1
+if errorlevel 1 goto :nativeZstdFailed
+"%SWIFT_TAR_BIN%" --identify -f "!_nz_dir!\probe.tar.zst" > "!_nz_dir!\identify.txt" 2>&1
+if errorlevel 1 goto :nativeZstdFailed
+findstr /c:"zstd" "!_nz_dir!\identify.txt" > nul
+if errorlevel 1 goto :nativeZstdFailed
+"%SWIFT_TAR_BIN%" --cat -f "!_nz_dir!\probe.tar.zst" > "!_nz_dir!\probe.tar" 2>> windows_round_status.txt
+if errorlevel 1 goto :nativeZstdFailed
+type "!_nz_dir!\identify.txt" >> windows_round_status.txt
+echo NATIVE_ZSTD_PROVEN in-process, external zstd.exe out of PATH %TIME:~0,8% >> windows_round_status.txt
+rmdir /s /q "!_nz_dir!" > nul 2>&1
+endlocal
+exit /b 0
+
+:nativeZstdFailed
+echo NATIVE_ZSTD_PROBE_FAILED %TIME:~0,8% >> windows_round_status.txt
+if exist "!_nz_dir!\identify.txt" type "!_nz_dir!\identify.txt" >> windows_round_status.txt
+rmdir /s /q "!_nz_dir!" > nul 2>&1
+endlocal
+echo [Error] swift_tar could not handle zstd with the external zstd.exe out of PATH. >&2
+echo [Error] This round would measure the external tool on every ZSTD row. Aborting. >&2
+echo [Error] swift_tar 在外部 zstd.exe 不在 PATH 時無法處理 zstd。本輪的 ZSTD 各列會量到外部工具，中止。 >&2
+exit /b 1
