@@ -554,11 +554,29 @@ extract () {
                     return 0
                     ;;
                 *.zst)
+                    # 兩支都只做 raw decompression，與 helper_windows/rss-win.bat 同口徑：
+                    # native 以 --cat 在 zstd filter 之後停止，external 用 zstd -d -c，兩者
+                    # 皆不解析 tar。先前 native 用 -t、external 用 tar tzf，兩者都會走過每一
+                    # 個 header——在 llama.cpp 的 40,675 個成員上，那是 native 側與 external
+                    # 側都揹著、而「解壓縮速度／記憶體」一詞並不包含的工作。
+                    # Both sides do raw decompression only, matching rss-win.bat: --cat stops
+                    # after the zstd filter and zstd -d -c never parses tar. The former pair
+                    # (-t and tar tzf) walked every header, which on llama.cpp's 40,675
+                    # members is work the phrase "decode speed/memory" does not cover.
+                    #
+                    # stdout 必須在此丟棄。memProbe 是 `/usr/bin/time -l "$@" 2>&1 | awk`，
+                    # 受測程序的 stdout 會流進 awk；-t 只吐檔名無妨，但 --cat 會把整條 tar
+                    # 串流灌進管線，寫管線的成本會被記進受測程序。以 sh -c 'exec "$@" >…'
+                    # 重導：exec 取代行程映像，故 time -l 量到的仍是目標本身。
+                    # stdout must be discarded here. memProbe pipes the measured process's
+                    # stdout into awk, and --cat would send the whole tar stream through it,
+                    # charging the pipe writes to the measurement. exec replaces the process
+                    # image, so time -l still measures the target and not a wrapper.
                     if [[ "${LZFSE_REQUIRE_NATIVE_ZSTD:-0}" == "1" ]]; then
                         [[ -n "${SWIFT_TAR_BIN:-}" && -x "$SWIFT_TAR_BIN" ]] || { echo "[Error] native zstd probe requires SWIFT_TAR_BIN." >&2; return 1; }
-                        memProbe "decode ${1##*/}" "$SWIFT_TAR_BIN" -t -f "$1"
+                        memProbe "decode ${1##*/}" /bin/sh -c 'exec "$@" >/dev/null' sh "$SWIFT_TAR_BIN" --cat -f "$1"
                     else
-                        memProbe "decode ${1##*/}" tar tzf "$1"
+                        memProbe "decode ${1##*/}" /bin/sh -c 'exec "$@" >/dev/null' sh zstd -d -c "$1"
                     fi
                     return 0
                     ;;

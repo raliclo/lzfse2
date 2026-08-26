@@ -280,12 +280,12 @@ if "%_write%"=="1" (
     call :prepareOut "decoded\%_logprefix%\zstd"
     "!_zstd_tar!" -x -f "%~1.tar.zst" -C "decoded\%_logprefix%\zstd" > nul
 ) else (
-    :: -t rather than --to-stdout: see :decodeTgz. The external branch above runs
-    :: zstd -d -c, which decompresses without parsing tar, so this row carries a
-    :: little more work on the native side than on the external one.
-    :: 用 -t 而非 --to-stdout，理由見 :decodeTgz。上方的外部分支執行 zstd -d -c，
-    :: 只解壓縮而不解析 tar，故此列在 native 側的工作量略多於外部側。
-    "!_zstd_tar!" -t -f "%~1.tar.zst" > nul 2>&1
+    :: --cat stops after the native zstd filter and writes the raw tar stream to
+    :: nul. That matches the external branch's zstd -d -c exactly: neither side
+    :: parses tar or writes members, so their null-mode MB/s is comparable.
+    :: --cat 在原生 zstd filter 後停止，將原始 tar 串流寫入 nul，與外部分支的
+    :: zstd -d -c 完全同形：兩端皆不解析 tar、不寫出成員，null-mode MB/s 才可比較。
+    "!_zstd_tar!" --cat -f "%~1.tar.zst" > nul 2>&1
 )
 exit /b
 

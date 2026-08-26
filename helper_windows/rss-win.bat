@@ -308,7 +308,11 @@ if ($nativeZstdRequired) {
             New-Item -ItemType Directory -Force -Path $outDir | Out-Null
             $d = Measure-StandaloneRSS $zstdTar "-x -f `"$archive`" -C `"$outDir`""
         } else {
-            $d = Measure-StandaloneRSS $zstdTar "-t -f `"$archive`""
+            # Match external zstd -d -c below: decode the zstd filter to a raw
+            # tar stream and drain it, without parsing tar in either branch.
+            # 與下方 external zstd -d -c 對齊：只解開 zstd filter 並排空原始 tar
+            # 串流，兩個分支都不解析 tar。
+            $d = Measure-StandaloneRSS $zstdTar "--cat -f `"$archive`""
         }
         $decRss = $d.rss_mb
         if ($d.exit -ne 0) { Write-Log ("  [warn] zstd decode exit " + $d.exit + ": " + (($d.err -split "`n")[0])) }
