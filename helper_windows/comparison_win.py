@@ -1,4 +1,4 @@
-"""以 BenchMarkResult.csv（macOS）與 encode_summary.csv（Windows）產生比較報告。
+"""以 BenchMarkResult.csv2（macOS）與 encode_summary.csv（Windows）產生比較報告。
 
 工作流程 / Workflow:
     每輪先跑 R{N}-Mac，再跑 R{N}-Win（含 decode），最後執行本腳本。
@@ -151,7 +151,7 @@ def section(title):
 # ── loaders ──────────────────────────────────────────────────────────────────
 
 def load_mac(path, dataset, n):
-    """Return {format: row_dict} from BenchMarkResult.csv, filtered by dataset+n."""
+    """Return {format: row_dict} from BenchMarkResult.csv2, filtered by dataset+n."""
     with path.open(newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
         rows   = list(reader)
@@ -534,11 +534,11 @@ def main():
     here   = Path(__file__).resolve().parent
     csv_dir = here / "bench_results_csv"
     ap     = argparse.ArgumentParser(description="macOS vs Windows benchmark comparison")
-    ap.add_argument("--mac",         type=Path, default=here.parent / "BenchMarkResult.csv")
+    ap.add_argument("--mac",         type=Path, default=here.parent / "BenchMarkResult.csv2")
     ap.add_argument("--win-summary", type=Path, default=csv_dir / "encode_summary.csv")
     ap.add_argument("--win-decode",  type=Path, default=None)
     ap.add_argument("--win-rss",     type=Path, default=None)
-    ap.add_argument("--output",      type=Path, default=csv_dir / "comparison.csv")
+    ap.add_argument("--output",      type=Path, default=csv_dir / "comparison.csv2")
     ap.add_argument("--n",           type=int,  default=40)
     ap.add_argument("--dataset",     default="claw-code")
     args = ap.parse_args()

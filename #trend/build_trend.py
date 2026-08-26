@@ -101,22 +101,30 @@ REPO_ROOT = str(_pathlib.Path.home() / 'proj' / 'lzfse2')
 def git_csv(commit):
     if commit == 'local':
         try:
-            with open(f'{REPO_ROOT}/BenchMarkResult.csv', encoding='utf-8-sig') as f:
+            with open(f'{REPO_ROOT}/BenchMarkResult.csv2', encoding='utf-8-sig') as f:
                 return f.read()
         except Exception:
             return ''
     if commit == 'win-local':
         try:
-            with open(f'{REPO_ROOT}/helper_windows/bench_results_csv/BenchMarkResult-Win.csv', encoding='utf-8-sig') as f:
+            with open(f'{REPO_ROOT}/helper_windows/bench_results_csv/BenchMarkResult-Win.csv2', encoding='utf-8-sig') as f:
                 return f.read()
         except Exception:
             return ''
-    r = subprocess.run(
-        ['git', 'show', f'{commit}:BenchMarkResult.csv'],
-        capture_output=True, text=True, errors='replace',
-        cwd=REPO_ROOT
-    )
-    return r.stdout if r.returncode == 0 else ''
+    # The file was BenchMarkResult.csv until the 2026-08-26 rename; every
+    # commit before it still carries the old name, so the trend has to ask for
+    # both or it loses its entire history at the rename.
+    # 本檔在 2026-08-26 改名前叫 BenchMarkResult.csv，該日之前的每一個 commit 仍是
+    # 舊名，故必須兩個都問，否則趨勢圖會在改名處失去全部歷史。
+    for name in ('BenchMarkResult.csv2', 'BenchMarkResult.csv'):
+        r = subprocess.run(
+            ['git', 'show', f'{commit}:{name}'],
+            capture_output=True, text=True, errors='replace',
+            cwd=REPO_ROOT
+        )
+        if r.returncode == 0:
+            return r.stdout
+    return ''
 
 def extract_row(commit):
     raw = git_csv(commit)

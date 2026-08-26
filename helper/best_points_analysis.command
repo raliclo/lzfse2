@@ -1,8 +1,8 @@
 #!/bin/zsh
 set -euo pipefail
 
-# Generate best-point analysis from BenchMarkResult.csv.
-# 從 BenchMarkResult.csv 產生最佳點分析。
+# Generate best-point analysis from BenchMarkResult.csv2.
+# 從 BenchMarkResult.csv2 產生最佳點分析。
 
 SCRIPT_DIR="${0:A:h}"
 cd "$SCRIPT_DIR/.."
@@ -10,9 +10,9 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
 OUT_DIR="${BEST_POINTS_DIR:-best_points}"
-CSV_IN="${BENCHMARK_RESULT_CSV:-BenchMarkResult.csv}"
+CSV_IN="${BENCHMARK_RESULT_CSV:-BenchMarkResult.csv2}"
 MD_OUT="$OUT_DIR/best_points.md"
-CSV_OUT="$OUT_DIR/best_points.csv"
+CSV_OUT="$OUT_DIR/best_points.csv2"
 
 mkdir -p "$OUT_DIR"
 
@@ -254,7 +254,7 @@ with csv_out.open("w", encoding="utf-8-sig", newline="") as handle:
 lines: list[str] = []
 lines.append("# Best Points Analysis / 最佳點分析")
 lines.append("")
-lines.append("Source: `BenchMarkResult.csv`")
+lines.append("Source: `BenchMarkResult.csv2`")
 lines.append("")
 lines.append("> TGZ / Apple / TLZ4 / ZSTD use `log nX` only as the source log batch. `-n` does not affect those algorithms. / TGZ、Apple、TLZ4、ZSTD 的 `log nX` 只代表來源 log 批次，`-n` 不影響這些演算法。")
 lines.append("")

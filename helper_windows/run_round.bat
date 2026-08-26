@@ -251,10 +251,10 @@ if not "%_summary_rc%"=="0" (
 echo SUMMARY_OK %TIME:~0,8% >> windows_round_status.txt
 
 :: Step 3: macOS vs Windows comparison / macOS vs Windows 比較
-del /Q bench_results_csv\comparison.csv > nul 2>&1
+del /Q bench_results_csv\comparison.csv2 > nul 2>&1
 for %%D in (%_bench_datasets%) do (
     echo [INFO] Running comparison_win.py %%~nxD !TIME:~0,8! >> windows_round_status.txt
-    set "_comparison_output=bench_results_csv\comparison.csv"
+    set "_comparison_output=bench_results_csv\comparison.csv2"
     set "_comparison_log=%TEMP%\lzfse-comparison-%%~nxD-%RANDOM%.log"
     python comparison_win.py --dataset "%%~nxD" --output "!_comparison_output!" > "!_comparison_log!" 2>&1
     set "_comparison_rc=!ERRORLEVEL!"

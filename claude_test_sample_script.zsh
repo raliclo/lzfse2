@@ -186,6 +186,6 @@ else
     stop_keepalive
     say ""
     say "== Done, exit $rc / 完成 =="
-    say "  results: BenchMarkResult.csv, powerResults/, trace/"
+    say "  results: BenchMarkResult.csv2, powerResults/, trace/"
     exit $rc
 fi

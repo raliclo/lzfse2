@@ -1,12 +1,12 @@
 #!/bin/zsh
 set -euo pipefail
 
-# Rebuild BenchMarkResult.csv from lz4bench + memProbe + trace summaries.
-# 從 lz4bench、memProbe、trace summary 重新產生 BenchMarkResult.csv。
+# Rebuild BenchMarkResult.csv2 from lz4bench + memProbe + trace summaries.
+# 從 lz4bench、memProbe、trace summary 重新產生 BenchMarkResult.csv2。
 #
 # Usage / 用法:
 #   helper/benchmark_result_rebuild.command          # print CSV to stdout / 輸出到 stdout
-#   helper/benchmark_result_rebuild.command --write  # overwrite BenchMarkResult.csv / 覆寫檔案
+#   helper/benchmark_result_rebuild.command --write  # overwrite BenchMarkResult.csv2 / 覆寫檔案
 
 cd /Users/raliclo/proj/lzfse2
 export LANG=en_US.UTF-8
@@ -387,8 +387,8 @@ print(f"[Info] generated rows: {len(rows)}", file=sys.stderr)
 PY
 
 if [[ "$write_output" == "yes" ]]; then
-    cp "$tmp_out" BenchMarkResult.csv
-    echo "[Info] wrote BenchMarkResult.csv" >&2
+    cp "$tmp_out" BenchMarkResult.csv2
+    echo "[Info] wrote BenchMarkResult.csv2" >&2
 else
     cat "$tmp_out"
 fi

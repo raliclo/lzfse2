@@ -9,8 +9,8 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
 POWER_CSV="${POWER_CSV:-powerResults/power_summary.csv}"
-BENCHMARK_CSV="${BENCHMARK_RESULT_CSV:-BenchMarkResult.csv}"
-BEST_POINTS_CSV="${BEST_POINTS_CSV:-best_points/best_points.csv}"
+BENCHMARK_CSV="${BENCHMARK_RESULT_CSV:-BenchMarkResult.csv2}"
+BEST_POINTS_CSV="${BEST_POINTS_CSV:-best_points/best_points.csv2}"
 BEST_POINTS_MD="${BEST_POINTS_MD:-best_points/best_points.md}"
 
 python3 - <<'PY' "$POWER_CSV" "$BENCHMARK_CSV" "$BEST_POINTS_CSV" "$BEST_POINTS_MD"
@@ -357,7 +357,7 @@ def power_cell(row: dict[str, str], key: str) -> str:
 
 def integrate_best_points(benchmark_rows: list[dict[str, str]]) -> None:
     if not best_points_csv.exists():
-        print(f"[Info] best_points.csv not found, skipping best-points integration: {best_points_csv}", file=sys.stderr)
+        print(f"[Info] best_points.csv2 not found, skipping best-points integration: {best_points_csv}", file=sys.stderr)
         return
 
     fieldnames, rows = read_csv_rows(best_points_csv)
@@ -472,7 +472,7 @@ def write_best_points_md(records: list[dict[str, str]]) -> None:
     lines: list[str] = []
     lines.append("# Best Points Analysis / 最佳點分析")
     lines.append("")
-    lines.append("Source: `best_points/best_points.csv`")
+    lines.append("Source: `best_points/best_points.csv2`")
     lines.append("")
     lines.append("> TGZ / Apple / TLZ4 / ZSTD use `log nX` only as the source log batch. `-n` does not affect those algorithms. / TGZ、Apple、TLZ4、ZSTD 的 `log nX` 只代表來源 log 批次，`-n` 不影響這些演算法。")
     lines.append("")

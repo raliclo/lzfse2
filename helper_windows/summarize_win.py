@@ -287,7 +287,7 @@ def fmt_mib_from_bytes(num_bytes):
 
 
 def load_mac_result_template(path, dataset, n_value):
-    """Return (header, zh_labels, raw_size_mib) from BenchMarkResult.csv."""
+    """Return (header, zh_labels, raw_size_mib) from BenchMarkResult.csv2."""
     default_header = [
         "dataset", "n", "format", "raw_size_mib", "compressed_size_mib",
         "encode_seconds", "decode_seconds", "encode_mb_s", "decode_mb_s",
@@ -364,7 +364,7 @@ def ensure_windows_mode_columns(header, labels):
 
 
 def write_benchmark_result_win(path, mac_template_path, dataset, n_value, enc_rows, dec_rows):
-    """Write BenchMarkResult-Win.csv with the same columns as BenchMarkResult.csv."""
+    """Write BenchMarkResult-Win.csv2 with the same columns as BenchMarkResult.csv2."""
     header, labels, raw_size = load_mac_result_template(mac_template_path, dataset, n_value)
     header, labels = ensure_windows_mode_columns(list(header), list(labels))
     raw_mib = parse_mib(raw_size)
@@ -492,8 +492,8 @@ def main():
     parser.add_argument("--results-dir", type=Path, default=here)
     parser.add_argument("--output", type=Path, default=csv_dir / "encode_summary.csv")
     parser.add_argument("--decode-output", type=Path, default=csv_dir / "decode_summary.csv")
-    parser.add_argument("--benchmark-result-output", type=Path, default=csv_dir / "BenchMarkResult-Win.csv")
-    parser.add_argument("--mac-result", type=Path, default=here.parent / "BenchMarkResult.csv")
+    parser.add_argument("--benchmark-result-output", type=Path, default=csv_dir / "BenchMarkResult-Win.csv2")
+    parser.add_argument("--mac-result", type=Path, default=here.parent / "BenchMarkResult.csv2")
     parser.add_argument("--status-log", type=Path, default=here / "windows_round_status.txt")
     parser.add_argument("--rss-summary", type=Path, default=csv_dir / "rss_summary.csv")
     args = parser.parse_args()
