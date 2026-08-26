@@ -7,59 +7,56 @@ per-round sections of [OPTIMIZATION.md](./OPTIMIZATION.md).
 
 ---
 
-## 1. 把 lz4bench 相關函式移出 zshrc.zsh / Split the lz4bench functions out of zshrc.zsh
+## 1. ✅ 已完成（2026-08-26）：把 benchmark 函式移出 zshrc.zsh / Split the benchmark functions out of zshrc.zsh
 
-**動機**：`zshrc.zsh` 要與 `~/proj/fastZsh` 共用，而 lz4bench 是 lzfse2 專屬的
-量測程式碼，不該進入共用的 shell 設定。
-**Why**: `zshrc.zsh` is to be shared with `~/proj/fastZsh`, and the lz4bench
-functions are lzfse2-specific measurement code that does not belong in a shared
-shell profile.
+**動機**：`zshrc.zsh` 要與 `~/proj/fastZsh` 共用，而量測程式碼不該進入共用的 shell
+設定。
+**Why**: `zshrc.zsh` is to be shared with `~/proj/fastZsh`, and measurement code
+does not belong in a shared shell profile.
 
-**現況調查（2026-08-15，勿重做）/ Findings, so this is not re-derived:**
+**結果**：`zshrc.zsh` 1374 → **635 行**；新增 `lz4bench.zsh` **762 行**。四個 source
+點（`benchmark.zsh`、`benchmark2.zsh`、`develop.command`、`helper/check.zsh`）改為兩行。
 
-- 分界線乾淨：benchmark 函式集中在 **zshrc.zsh 的 664–1134 行**，12 個函式、
-  約 470 行、佔全檔 1204 行的 39%，且為**連續區塊**——前面是 `ffilter`(652)、
-  後面是 `claudeCodeEnv`(1135)，兩者皆為通用函式，不需東拼西湊。
-  The block is contiguous: lines 664–1134, 12 functions, ~470 of 1204 lines,
-  bracketed by general-purpose functions on both sides.
-- **零反向相依**：沒有任何通用函式呼叫 benchmark 函式，故 `zshrc.zsh` 移除該區塊
-  後不會壞。
-  No general-purpose function calls a benchmark one, so removing the block
-  cannot break the remainder.
-- **唯一跨界相依**：`lz4bench` → `nanoTimeElapsed`（zshrc.zsh:606）。後者是通用的
-  計時包裝器（`nanoTimeElapsed <command>`），且 **fastZsh 已有它**（19 處），
-  故應留在 `zshrc.zsh`，由載入順序保證可用。
-  The only edge is `lz4bench` → `nanoTimeElapsed`, a general-purpose timing
-  wrapper that fastZsh already carries, so it stays put.
+**先前的分析有兩處是錯的，記在這裡以免重蹈 / Two errors in the earlier analysis:**
 
-**移出的 12 個函式 / The 12 to move:**
-`benchmarkTgzTar`、`benchmarkZstdDecode`、`getar`、`getzstd`、`tlz4`、`lzfseX`、
-`diskcheck`、`benchStatus`、`benchAlgoName`、`memProbe`、`archiveMemProbe`、
-`lz4bench`
+1. **「零反向相依」不成立。** 該結論寫於 2026-08-15，實測時已經失效：`extract()`
+   （在區塊之前，原本要留下）呼叫 `memProbe` 8 次、`benchmarkTgzTar` 3 次、
+   `benchmarkZstdDecode` 1 次。而且 `benchmarkTgzTar` 不只在量測路徑上——`*.tgz)`
+   的一般解壓就走它。照原計畫搬完，`zshrc.zsh` 單獨載入時解 `.tgz` 會壞。
+   The "no reverse dependency" finding was already false by the time it was
+   acted on: `extract()` calls three of the functions that were to move, and
+   `benchmarkTgzTar` sits on the ordinary `.tgz` path, not only the benchmark's.
 
-**留下的 / What stays:**
-`START_UP@BEGIN`／`@END`、`zshCompletions`、`setcc`、`cheditor`、`cd`、
-`makeram`、`nanoTimeElapsed`、`ffilter`、`claudeCodeEnv`、`gemma4`
+   **修法**：`extract()` 一併搬走。它已經不是通用函式——帶有純為量測而生的
+   `probe` 模式與兩個後端閘門。`~/proj/fastZsh/zshrc` 自有一份較早、未長出這些閘門
+   的 `extract()`（第 366 行），故搬走不會使那邊失去該功能。**fastZsh 未被改動。**
+   `extract()` moved too; fastZsh keeps its own earlier copy and was not touched.
 
-**做法 / Approach:**
+2. **函式數與行號全部過期。** 分析時記的是 12 個函式、664–1134 行、全檔 1204 行。
+   實際是 **20 個函式、674–1303 行、全檔 1374 行**——`473a247`（解壓一致性改用
+   manifest 比對）在其間新增了 8 個 `benchStat*` / `benchManifest*` 函式。區塊仍
+   連續，兩側鄰居仍是 `ffilter` 與 `claudeCodeEnv`。
+   The counts and line numbers had drifted: 20 functions over 674-1303, not 12
+   over 664-1134, because a later commit added eight more into the same block.
 
-```zsh
-# lzfse2/lz4bench.zsh  ← 新檔，放專案根目錄（benchmark.zsh 用相對路徑 source）
-# benchmark.zsh / benchmark2.zsh 的第 5 行 `source ./zshrc.zsh` 改為兩行：
-source ./zshrc.zsh      # 通用，提供 nanoTimeElapsed
-source ./lz4bench.zsh  # benchmark 專用
-```
+**唯一跨界相依**：`lz4bench.zsh` → `nanoTimeElapsed`（12 處），後者留在
+`zshrc.zsh`，由載入順序保證可用。反向為零。
+The single cross-file edge is `lz4bench.zsh` -> `nanoTimeElapsed`; nothing goes
+the other way.
 
-**驗證 / Verify:** 兩檔各跑 `zsh -n`；再確認 `diskcheck`、`benchAlgoName` 這類
-純函式在 source 後可用，最後跑一次 benchmark 的最短路徑確認載入順序正確。
+**驗證**：兩檔 `zsh -n` 通過；`zshrc.zsh` 對已搬走的函式零殘留參照；載入兩檔後 24
+個函式全部就位，只載入 `zshrc.zsh` 時 benchmark 函式全部不存在；實跑
+`benchAlgoName`、`diskcheck`、`nanoTimeElapsed`，以及 `extract <archive> probe` 的
+native 與 external 兩支分支（10.8 MB / 2.1 MB，與分離前量到的相同）。
+Verified: both files pass `zsh -n`, all 24 functions resolve with both sourced
+and none of the benchmark ones leak with only `zshrc.zsh`, and the probe path
+reports the same figures as before the split.
 
-**注意 / Caveat:** `fastZsh/zshrc` 目前是 677 行（2026-06-12），lzfse2 版本已
-1204 行，兩者相異 790 行。共用之前需要先決定同步方向；本項只負責把 lzfse2 這側
-切乾淨，不處理兩邊的合併。fastZsh 自身已含 2 個 benchmark 函式，是否一併清掉屬
-另一個決定。
-`fastZsh/zshrc` is 677 lines from 2026-06-12 against lzfse2's 1204, diverging by
-790 lines. Reconciling the two is a separate decision; this item only makes the
-lzfse2 side cleanly separable.
+**時機**：第 3 條原本要求「先跑完整一輪再搬」，本次由使用者指示提前執行。因此下一輪
+的數字若與 R48-Mac 有出入，**載入路徑的改變是需要先排除的因素之一**。
+Sequencing note: item 3 asked for this to wait until after a round; it was done
+first at the user's direction, so a change in the next round's numbers has the
+load path as one candidate cause to rule out.
 
 ---
 
@@ -89,12 +86,16 @@ with SIGINT: zero leftovers, both result files intact.
 
 ---
 
-## 3. 第 1 項的時機 / Sequencing for item 1
+## 3. ~~第 1 項的時機~~（已不適用 / no longer applicable）
 
-**先跑完整一輪拿到資料，再做第 1 項的搬移。** 它會改變 benchmark 的載入路徑；若與量測混在一起，之後就分不清數字的變動來自程式碼還是重構。
-Run the full round first, then do item 1. It changes the benchmark's load path;
-interleaving that with a measurement round makes any change in the numbers
-impossible to attribute.
+原文：先跑完整一輪拿到資料，再做第 1 項的搬移；它會改變 benchmark 的載入路徑，若與
+量測混在一起，之後就分不清數字的變動來自程式碼還是重構。
+
+2026-08-26 由使用者指示提前執行。這條的顧慮並未消失，只是轉為第 1 項末尾記下的
+「排除因素」：下一輪若數字有出入，載入路徑是候選原因之一。
+Superseded on 2026-08-26 at the user's direction. The concern did not go away;
+it became a note in item 1 about what to rule out if the next round's numbers
+move.
 
 ---
 

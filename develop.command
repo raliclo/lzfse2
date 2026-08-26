@@ -13,4 +13,5 @@ git checkout main
 git pull origin dev
 git reset HEAD~1
 source zshrc.zsh
+source lz4bench.zsh   # diskcheck 住在這裡 / diskcheck lives here
 diskcheck

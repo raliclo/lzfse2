@@ -2,7 +2,8 @@
 setopt NULL_GLOB
 
 
-source ./zshrc.zsh
+source ./zshrc.zsh      # 通用 shell 設定，提供 nanoTimeElapsed / general profile
+source ./lz4bench.zsh   # benchmark 專用；順序有意義 / benchmark only; the order matters
 
 # Step.1 初始化狀態與輸出路徑 / Initialize status and output paths.
 export ROUND_STATUS_FILE="${ROUND_STATUS_FILE:-round_status.txt}"

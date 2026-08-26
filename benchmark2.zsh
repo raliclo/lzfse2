@@ -14,7 +14,8 @@ setopt NULL_GLOB
 # tar→swift_tar 的 shim。未帶 -swift_tar 時此檔不存在，故此處靜默略過而非報錯。
 [[ -f ./.bench_env ]] && source ./.bench_env
 
-source ./zshrc.zsh
+source ./zshrc.zsh      # 通用 shell 設定，提供 nanoTimeElapsed / general profile
+source ./lz4bench.zsh   # benchmark 專用；順序有意義 / benchmark only; the order matters
 
 # lzfse is always rebuilt here, but never as root. compile.zsh writes
 # /opt/homebrew/bin/lzfse-debug, and once that file is root-owned every later
