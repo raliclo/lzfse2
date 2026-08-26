@@ -848,6 +848,147 @@ function benchAlgoName() {
     esac
 }
 
+function benchStatMode() {
+    if stat --version > /dev/null 2>&1; then
+        stat -c '%a' "$1" 2>/dev/null
+    else
+        stat -f '%Lp' "$1" 2>/dev/null
+    fi
+}
+
+function benchStatMtime() {
+    if stat --version > /dev/null 2>&1; then
+        stat -c '%Y' "$1" 2>/dev/null
+    else
+        stat -f '%m' "$1" 2>/dev/null
+    fi
+}
+
+function benchStatSize() {
+    if stat --version > /dev/null 2>&1; then
+        stat -c '%s' "$1" 2>/dev/null
+    else
+        stat -f '%z' "$1" 2>/dev/null
+    fi
+}
+
+function benchStatIdentity() {
+    if stat --version > /dev/null 2>&1; then
+        stat -c '%d:%i:%h' "$1" 2>/dev/null
+    else
+        stat -f '%d:%i:%l' "$1" 2>/dev/null
+    fi
+}
+
+function benchSha256() {
+    local digest
+    if command -v sha256sum > /dev/null 2>&1; then
+        digest="$(sha256sum "$1")"
+        echo "${digest%% *}"
+    elif command -v shasum > /dev/null 2>&1; then
+        digest="$(shasum -a 256 "$1")"
+        echo "${digest%% *}"
+    elif command -v openssl > /dev/null 2>&1; then
+        digest="$(openssl dgst -sha256 "$1")"
+        echo "${digest##* }"
+    else
+        echo "[Error] sha256sum, shasum, or openssl is required for manifest hashing." >&2
+        return 1
+    fi
+}
+
+function benchManifestLine() {
+    local root="$1"
+    local rel="$2"
+    local entry_path="$root"
+    [[ "$rel" != "." ]] && entry_path="$root/$rel"
+
+    local file_mode file_mtime
+    file_mode="$(benchStatMode "$entry_path")"
+    file_mtime="$(benchStatMtime "$entry_path")"
+
+    if [[ -L "$entry_path" ]]; then
+        local target
+        target="$(readlink "$entry_path")"
+        printf 'L\t%s\tmode=%s\tmtime=%s\ttarget=%s\n' "$rel" "$file_mode" "$file_mtime" "$target"
+    elif [[ -d "$entry_path" ]]; then
+        printf 'D\t%s\tmode=%s\tmtime=%s\n' "$rel" "$file_mode" "$file_mtime"
+    elif [[ -f "$entry_path" ]]; then
+        local size sha identity nlink hardlink
+        size="$(benchStatSize "$entry_path")"
+        sha="$(benchSha256 "$entry_path")"
+        identity="$(benchStatIdentity "$entry_path")"
+        nlink="${identity##*:}"
+        hardlink="none"
+        if [[ "$nlink" == <-> && "$nlink" -gt 1 ]]; then
+            if [[ -n "${bench_manifest_seen_hardlinks[$identity]:-}" ]]; then
+                hardlink="${bench_manifest_seen_hardlinks[$identity]}"
+            else
+                bench_manifest_seen_hardlinks[$identity]="$rel"
+                hardlink="self"
+            fi
+        fi
+        printf 'F\t%s\tmode=%s\tmtime=%s\tsize=%s\tsha256=%s\thardlink=%s\n' "$rel" "$file_mode" "$file_mtime" "$size" "$sha" "$hardlink"
+    else
+        printf 'O\t%s\tmode=%s\tmtime=%s\n' "$rel" "$file_mode" "$file_mtime"
+    fi
+}
+
+function benchManifestRoot() {
+    local root="$1"
+    local out="$2"
+    if [[ ! -d "$root" ]]; then
+        echo "[Error] manifest root not found: $root" >&2
+        return 1
+    fi
+
+    mkdir -p "${out:h}" > /dev/null 2>&1
+    typeset -gA bench_manifest_seen_hardlinks
+    bench_manifest_seen_hardlinks=()
+
+    {
+        benchManifestLine "$root" "."
+        local rel
+        local entries=()
+        (
+            cd "$root" || exit 1
+            entries=(**/*(DN))
+            printf '%s\n' "${entries[@]}"
+        ) | LC_ALL=C sort -u | while IFS= read -r rel; do
+            [[ -n "$rel" ]] && benchManifestLine "$root" "$rel"
+        done
+    } > "$out"
+}
+
+function benchCompareTreeManifest() {
+    local expected_root="$1"
+    local actual_root="$2"
+    local label="$3"
+    local reusable_expected_manifest="${4:-}"
+    local manifest_dir="${LZ4BENCH_LOG_DIR:-lz4bench_log}/tree_manifest"
+    local expected_manifest="$manifest_dir/${label}.tgz-manifest.txt"
+    local actual_manifest="$manifest_dir/${label}.actual-manifest.txt"
+    local diff_file="$manifest_dir/${label}.manifest-diff.txt"
+
+    mkdir -p "$manifest_dir" > /dev/null 2>&1
+    if [[ -n "$reusable_expected_manifest" && -f "$reusable_expected_manifest" ]]; then
+        expected_manifest="$reusable_expected_manifest"
+    else
+        benchManifestRoot "$expected_root" "$expected_manifest" || return 1
+    fi
+    benchManifestRoot "$actual_root" "$actual_manifest" || return 1
+
+    if diff -u "$expected_manifest" "$actual_manifest" > "$diff_file"; then
+        rm -f "$diff_file"
+        return 0
+    fi
+
+    echo "[Info] manifest expected: $expected_manifest"
+    echo "[Info] manifest actual:   $actual_manifest"
+    echo "[Info] manifest diff:     $diff_file"
+    return 1
+}
+
 # ------------------------------------------------------------------------------
 # FUNCTION: memProbe()
 # DESCRIPTION: 以 /usr/bin/time -l（macOS）量測「單一程序」的 peak RSS。
@@ -1040,6 +1181,10 @@ function lz4bench() {
     local extract_targets=("$1.tgz" "$1.lzfse.other3" "$1.lzfse.other3.optimal3" "$1.lzfse.bvx3.lazy2" "$1.lzfse.bvx3.optimal" "$1.lzfse.bvx3" "$1.lzfse.apple" "$1.tar.lz4" "$1.zst")
     local base_dir="./xbenchTest/tgz"   # tgz 保留到最後作為比對基準
     local is_first=true
+    local manifest_label_base="${1}${status_suffix}"
+    manifest_label_base="${manifest_label_base//\//_}"
+    local manifest_dir="${LZ4BENCH_LOG_DIR:-lz4bench_log}/tree_manifest"
+    local base_manifest="$manifest_dir/${manifest_label_base}.tgz-baseline-manifest.txt"
 
     for target in "${extract_targets[@]}"; do
         local test_dir="./xbenchTest/${target##*.}"
@@ -1075,13 +1220,20 @@ function lz4bench() {
         # Inline consistency check + immediate cleanup (tgz base kept until end)
         if $is_first; then
             is_first=false   # tgz 作為基準，跳過自比對
-            benchStatus "COMPARE_BASE ${1}${status_suffix} tgz"
+            if benchManifestRoot "$base_dir/$1" "$base_manifest"; then
+                benchStatus "COMPARE_BASE ${1}${status_suffix} tgz"
+            else
+                benchStatus "COMPARE_BASE_FAILED ${1}${status_suffix} tgz manifest"
+                echo "[Error] failed to create tgz baseline tree manifest"
+                return 1
+            fi
         else
-            if diff -rq "$base_dir/$1" "$test_dir/$1" > /dev/null 2>&1; then
-                echo "[Success] $target 解壓內容與 tgz 一致！"
+            local compare_label="${manifest_label_base}.${target_algo}"
+            if benchCompareTreeManifest "$base_dir/$1" "$test_dir/$1" "$compare_label" "$base_manifest"; then
+                echo "[Success] $target 解壓 tar 語意與 tgz 一致！"
                 benchStatus "COMPARED_WITH_TGZ_OK ${1}${status_suffix} ${target_algo}"
             else
-                echo "[Warning] $target 解壓內容與 tgz 不一致！"
+                echo "[Warning] $target 解壓 tar 語意與 tgz 不一致！"
                 benchStatus "COMPARED_WITH_TGZ_FAILED ${1}${status_suffix} ${target_algo}"
                 rm -rf "$test_dir"
                 return 1
