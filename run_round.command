@@ -26,6 +26,7 @@ cd /Users/raliclo/proj/lzfse2 || exit 1
 
 USE_SWIFT_TAR=0
 export LZFSE_REQUIRE_NATIVE_ZLIB=0
+export LZFSE_REQUIRE_NATIVE_ZSTD=0
 # Time Profiler traces are off by default because they dominate the round's wall
 # time. -power-test turns them back on; without it, trace_analysis and
 # cpu_call_tree_analysis reuse the previous round's results from trace/.
@@ -100,6 +101,7 @@ if [[ "$USE_SWIFT_TAR" == "1" ]]; then
     export PATH="$SWIFT_TAR_SHIM_DIR:$PATH"
     export SWIFT_TAR_BIN
     export LZFSE_REQUIRE_NATIVE_ZLIB=1
+    export LZFSE_REQUIRE_NATIVE_ZSTD=1
     rehash
     swift_tar_identity="$("$SWIFT_TAR_BIN" --version 2>&1)"
     if [[ $? -ne 0 || "$swift_tar_identity" != swift_tar\ * ]]; then
@@ -110,7 +112,7 @@ if [[ "$USE_SWIFT_TAR" == "1" ]]; then
         echo "SWIFT_TAR_SHIM_RESOLUTION_FAILED $(command -v tar) $(date +%H:%M:%S)" >> round_status.txt
         exit 1
     fi
-    echo "USING_SWIFT_TAR $SWIFT_TAR_BIN NATIVE_ZLIB=required ${swift_tar_identity} $(date +%H:%M:%S)" >> round_status.txt
+    echo "USING_SWIFT_TAR $SWIFT_TAR_BIN NATIVE_ZLIB=required NATIVE_ZSTD=required ${swift_tar_identity} $(date +%H:%M:%S)" >> round_status.txt
 fi
 
 echo PATH="$PATH" >> round_status.txt
@@ -149,6 +151,7 @@ if [[ "$USE_SWIFT_TAR" == "1" ]]; then
     {
         print -r -- "export SWIFT_TAR_BIN=${(q)SWIFT_TAR_BIN}"
         print -r -- "export LZFSE_REQUIRE_NATIVE_ZLIB=${(q)LZFSE_REQUIRE_NATIVE_ZLIB}"
+        print -r -- "export LZFSE_REQUIRE_NATIVE_ZSTD=${(q)LZFSE_REQUIRE_NATIVE_ZSTD}"
         print -r -- "export PATH=${(q)PATH}"
     } > .bench_env
     sudo ./benchmark2.zsh >> round_status.txt 2>&1
