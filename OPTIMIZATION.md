@@ -167,6 +167,100 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# Pre-R49：ZSTD null 模式的口徑不對等，與 macOS native zstd 閘門缺口（2026-08-26）
+
+> **性質**：基礎設施修正，**不含新的效能數據**，比照 Pre-R47。本輪未執行 benchmark。
+
+## 1. null 模式的兩支比的不是同一件事
+
+`decode-win.bat` 的 non-write 分支，native 與 external 兩端做的工作量不同：
+
+| 分支 | 指令 | 解 zstd | 解析 tar header |
+| --- | --- | :---: | :---: |
+| external | `zstd -d -c > nul` | ✅ | ❌ |
+| native（修正前）| `swift_tar -t -f` | ✅ | ✅ 每一個成員 |
+| native（修正後）| `swift_tar --cat -f` | ✅ | ❌ |
+
+`-t` 是「列出封存」——它會走過每一個 tar header 並組出檔名字串再丟掉。`llama.cpp`
+有 40,675 個成員，等於 native 側白做四萬多次 header 解析與字串格式化，external 側
+一次都沒有。而 native libzstd 對外部 `zstd.exe` 的比較，正是 R46-Win-Retest 結論
+所排定、至今仍未執行的那一項。
+
+偏差量隨成員數放大：`llama.cpp` 受害遠大於單一大檔的 `claw-code`。因此它不是可以
+事後扣除的固定偏移，連資料集之間的形狀都會被扭曲。
+
+修正後兩端都退到純解壓縮。`--cat` 在 zstd filter 之後停止並輸出原始 tar 串流，與
+`zstd -d -c` 的輸出以 `cmp` 驗證**位元組完全相同**。
+
+## 2. 沒有任何已發布數據受此影響
+
+這一點與直覺相反，值得寫清楚：**至今沒有任何一輪產生過 native ZSTD 的數字。**
+
+- R47-Win 的 ZSTD 列明確標為 **ZSTD (external CLI)**，該輪待辦第 1 條即為「native
+  zstd 仍未被 benchmark 覆蓋」。
+- 該閘門是在 R47-Win 之後才補上的（`helper_windows/run_round.bat:85` 設
+  `LZFSE_REQUIRE_NATIVE_ZSTD=1`），尚未有任何一輪使用它跑完。
+
+所以這個偏差從未進入任何已記錄的結果。它本來會汙染的是**下一輪 Windows 的首批
+native ZSTD 數字**——而那批數字正是這項比較存在的目的。修正發生在數字產生之前，
+而不是之後。
+
+## 3. macOS 從未啟用 native zstd 閘門（尚未修）
+
+`run_round.command` 只設定 `LZFSE_REQUIRE_NATIVE_ZLIB`（第 28、102、151 行），
+**從未設定 `LZFSE_REQUIRE_NATIVE_ZSTD`**。`zshrc.zsh` 有三處讀取它（第 575、695、
+800 行），在整輪流程中皆不可達。
+
+因此：
+
+- R48-Mac 及先前各輪的 ZSTD 數字全部是外部 `zstd` CLI，與 Windows 的標示一致。
+- macOS 側的 native zstd 路徑目前**只能手動觸發**，沒有任何自動化涵蓋。
+- 兩平台在此不對稱：Windows 已備妥閘門，macOS 沒有。
+
+本次僅將 macOS 的 `.zst` probe 分支對齊為同一口徑（native `--cat`、external
+`zstd -d -c`），閘門缺口本身未修，列入待辦。
+
+## 4. `memProbe` 的 stdout 會流進量測管線
+
+macOS 側改動時踩到的陷阱，記錄以免重犯。`memProbe` 的實作是：
+
+```zsh
+/usr/bin/time -l "$@" 2>&1 | awk '/maximum resident set size/ {...}'
+```
+
+受測程序的 **stdout 會流進 awk**。`-t` 只吐檔名無妨，`--cat` 卻會把整條 tar 串流
+灌進管線，寫管線的成本會被記進受測程序——量到的就不再只是解壓縮。
+
+改以 `sh -c 'exec "$@" >/dev/null'` 重導：`exec` 取代行程映像，故 `time -l` 量到
+的仍是目標本身而非多包一層。實測 10.8 MB，與直接執行相同。
+
+## 5. 驗證
+
+`swift_tar` 側（b33cac1）：`-test` 16/16 通過、`test/test_blind_findings.zsh`
+138 PASS / 0 FAIL、ZIP `-O` 確認 stdout 正確且磁碟零殘留、安裝版與 `release/`
+的 SHA-256 相同。
+
+lzfse2 側：`zsh -n zshrc.zsh` 通過；native 與 external 兩分支各自以
+`extract <archive> probe` 實跑，回報 10.8 MB 與 2.1 MB，工作目錄無落盤。
+
+**未經執行驗證**：`helper_windows/` 的兩支 `.bat` 與 swift_tar 新增的
+`build_tool_install-win.bat`；本機無 cmd.exe 與 PowerShell。
+
+## 待辦
+
+1. **macOS 補上 native zstd 閘門**：`run_round.command` 需比照
+   `LZFSE_REQUIRE_NATIVE_ZLIB` 的模式設定 `LZFSE_REQUIRE_NATIVE_ZSTD`，否則
+   `zshrc.zsh` 的三處 native 分支永遠不會執行，本次的口徑對齊在 macOS 上也就
+   量不到。
+2. **下一輪 Windows 產生首批 native ZSTD 數字**：該批數字沒有可對照的前值，報告
+   中需標明是新口徑（純解壓縮）下的第一次量測，不可與 R47-Win 的
+   `ZSTD (external CLI)` 直接相減。
+3. **TGZ 的兩支仍不同形**：`decode-win.bat` 的 TGZ null 分支，native 是 `-t`
+   （吐檔名）、external 是 `--to-stdout -xzf`（吐成員內容）——兩者都解析 tar，但
+   輸出量差距極大。本次未動，需另行判斷該對齊到哪一邊。
+
+---
+
 # R48-Mac：CPU power 恢復後的首輪有效量測（2026-08-15）
 
 > **目標**：R47-Mac 的 CPU power 全為 0，該輪判定為 macOS 27.0 build 26A5388g 的 powermetrics 缺陷、而非量測方式問題。本輪在 build 26A5406e 上以 `-full`（`-swift_tar -power-test`）重跑，驗證該判定，並取得 `os_version` 與 `Energy Impact` 兩個欄位就位後的第一份完整資料。過程中修好三處會讓整輪白跑的中止。

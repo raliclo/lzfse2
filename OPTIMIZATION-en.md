@@ -167,6 +167,117 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# Pre-R49: The ZSTD null mode compared unlike things, and macOS never enables the native zstd gate (2026-08-26)
+
+> **Nature**: An infrastructure fix carrying **no new performance data**, as Pre-R47 was. No benchmark was run.
+
+## 1. The two null-mode branches were not measuring the same thing
+
+In `decode-win.bat`'s non-write branch the two sides did different amounts of work:
+
+| Branch | Command | Decodes zstd | Parses tar headers |
+| --- | --- | :---: | :---: |
+| external | `zstd -d -c > nul` | yes | no |
+| native (before) | `swift_tar -t -f` | yes | yes, every member |
+| native (after) | `swift_tar --cat -f` | yes | no |
+
+`-t` lists an archive: it walks every tar header and formats a filename string
+only to discard it. `llama.cpp` holds 40,675 members, so the native side did
+forty thousand header parses that the external side never did -- and the
+native-libzstd-versus-external-`zstd.exe` comparison is precisely the one
+R46-Win-Retest scheduled and that has still not been run.
+
+The bias scales with member count, so `llama.cpp` suffers far more than the
+single-large-file `claw-code`. It is therefore not a fixed offset that could be
+subtracted afterwards; it distorts the shape across datasets.
+
+Both sides now fall back to raw decompression. `--cat` stops after the zstd
+filter and emits the raw tar stream; its output was compared against
+`zstd -d -c` with `cmp` and is **byte-identical**.
+
+## 2. No published figure is affected by this
+
+This runs against intuition and is worth stating plainly: **no round has ever
+produced a native ZSTD number.**
+
+- R47-Win's ZSTD rows are explicitly labelled **ZSTD (external CLI)**, and that
+  round's first TODO reads "native zstd is still not covered by the benchmark".
+- The gate arrived after R47-Win (`helper_windows/run_round.bat:85` sets
+  `LZFSE_REQUIRE_NATIVE_ZSTD=1`) and no round has yet completed with it.
+
+The bias therefore never entered a recorded result. What it would have
+contaminated is the **next Windows round's first native ZSTD figures** -- the
+very numbers this comparison exists to produce. The fix landed before the
+numbers, not after them.
+
+## 3. macOS never enables the native zstd gate (not yet fixed)
+
+`run_round.command` sets only `LZFSE_REQUIRE_NATIVE_ZLIB` (lines 28, 102, 151)
+and **never sets `LZFSE_REQUIRE_NATIVE_ZSTD`**. `zshrc.zsh` reads it in three
+places (lines 575, 695, 800), none of which the round path can reach.
+
+Consequently:
+
+- Every ZSTD figure in R48-Mac and earlier rounds comes from the external `zstd`
+  CLI, matching how Windows labels its own.
+- The macOS native zstd path can only be triggered by hand; no automation covers it.
+- The platforms are asymmetric here: Windows has the gate wired, macOS does not.
+
+This change only puts the macOS `.zst` probe branch on the same caliber (native
+`--cat`, external `zstd -d -c`). The missing gate itself is left as a TODO.
+
+## 4. `memProbe` pipes the measured process's stdout into the measurement
+
+A trap hit while changing the macOS side, recorded so it is not repeated.
+`memProbe` is implemented as:
+
+```zsh
+/usr/bin/time -l "$@" 2>&1 | awk '/maximum resident set size/ {...}'
+```
+
+The measured process's **stdout flows into awk**. That is harmless for `-t`,
+which emits filenames, but `--cat` would push the entire tar stream through the
+pipe and charge those writes to the process under measurement -- which would no
+longer be measuring decompression alone.
+
+The redirect is written as `sh -c 'exec "$@" >/dev/null'`: `exec` replaces the
+process image, so `time -l` still measures the target rather than a wrapper.
+Measured at 10.8 MB, identical to running it directly.
+
+## 5. Verification
+
+On the `swift_tar` side (b33cac1): `-test` passes 16/16,
+`test/test_blind_findings.zsh` reports 138 PASS / 0 FAIL, ZIP `-O` was confirmed
+to put the right bytes on stdout while leaving nothing on disk, and the
+installed binary's SHA-256 matches `release/`.
+
+On the lzfse2 side: `zsh -n zshrc.zsh` passes; both the native and external
+branches were run through `extract <archive> probe`, reporting 10.8 MB and
+2.1 MB with nothing written to the working directory.
+
+**Not verified by execution**: the two `.bat` files under `helper_windows/` and
+swift_tar's new `build_tool_install-win.bat`; this machine has neither cmd.exe
+nor PowerShell.
+
+## TODO
+
+1. **Wire the native zstd gate on macOS**: `run_round.command` needs to set
+   `LZFSE_REQUIRE_NATIVE_ZSTD` the way it already sets
+   `LZFSE_REQUIRE_NATIVE_ZLIB`. Until it does, the three native branches in
+   `zshrc.zsh` never execute and this caliber alignment cannot be measured on
+   macOS at all.
+2. **The next Windows round produces the first native ZSTD figures**: they have
+   no prior value to compare against, and the report must mark them as a first
+   measurement under the new caliber (raw decompression) rather than something
+   to difference against R47-Win's `ZSTD (external CLI)`.
+3. **TGZ's two branches still differ in shape**: in `decode-win.bat`'s TGZ null
+   branch the native side runs `-t` (emitting filenames) while the external side
+   runs `--to-stdout -xzf` (emitting member contents). Both parse tar, but the
+   output volumes are wildly different. Untouched here; which side to align to
+   needs a separate decision.
+
+---
+
 # R48-Mac: The first round of effective measurement after CPU power recovery (2026-08-15)
 
 > **Target**: The CPU power of R47-Mac is all 0, and this round is determined to be a powermetrics defect of macOS 27.0 build 26A5388g, not a measurement method problem. In this round, rerun with `-full` ( `-swift_tar -power-test`) on build 26A5406e, verify the judgment, and obtain the first complete data after the two fields of `os_version` and `Energy Impact` are in place. Repairing three places in the process will stop the whole round of running in vain.
