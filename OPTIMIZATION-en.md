@@ -259,6 +259,72 @@ branches were run through `extract <archive> probe`, reporting 10.8 MB and
 swift_tar's new `build_tool_install-win.bat`; this machine has neither cmd.exe
 nor PowerShell.
 
+## 6. `-swift_tar` governs two things, and they did not arrive together
+
+This section explains a situation that is easy to misremember: "I used the flag
+and got native results" and "native zstd has never been measured" are both true.
+
+Line 11 of `helper_windows/windows_round_status.txt`, left by R47-Win:
+
+```
+USING_SWIFT_TAR ...\lzfse2-swift-tar-shim\tar.exe NATIVE_ZLIB=static 12:17:23
+```
+
+That line carries **only `NATIVE_ZLIB=static`**. Searching every status log and
+result file, `NATIVE_ZSTD=` never appears once. The timeline:
+
+| Event | Date |
+| --- | --- |
+| R46-Win: first native zlib round | 2026-07-13 |
+| R47-Win completes (result files stamped `Jul 18 16:09`) | 2026-07-18 |
+| `f67e78f` adds `LZFSE_REQUIRE_NATIVE_ZSTD=1` at `run_round.bat:85` | **2026-08-14** |
+| The only measurement round since | R48-Mac (Mac, not Windows) |
+
+The gate arrived almost a month after the last Windows round. `f67e78f`'s own
+message says it plainly: the ZSTD rows of a round labelled as a swift_tar round
+measured the external tool. R47-Win's ZSTD RSS is 8.9 MB in both datasets, the
+external `zstd.exe` magnitude, which corroborates it.
+
+What `f67e78f` verified was **functional equivalence** -- both branches extract
+to identical trees, differing by one byte of tar framing -- not performance. No
+benchmark ran.
+
+So the native results `-swift_tar` produced are real and they are **zlib**. The
+ZSTD half will exist for the first time in the next round that enables the gate.
+
+## 7. A cross-round contradiction in TGZ RSS (unverified; not a conclusion)
+
+For the same claw-code TGZ, the RSS figures do not line up:
+
+| Round | Enc RSS | Dec RSS |
+| --- | ---: | ---: |
+| R45-Win-Retest1 (external `gzip.exe`) | 6.6 MB | 6.1 MB |
+| R46-Win | 6.4 MB | 5.9 MB |
+| R46-Win-Retest | 6.4 MB | 5.9 MB |
+| **R47-Win** | **144.1 MB** | **45.2 MB** |
+
+R47-Win jumps about 22x, and that round's section 3 compares only MB/s -- **RSS
+is never mentioned**.
+
+The contradiction sits inside R46-Win's own verification paragraph, where the
+direct `tgz_inflight_rss_win.zsh` scan reports encode RSS scaling linearly with
+`-n` (55.6 MB@n4 to **208.0 MB@n40**) and decode RSS flat at **43-45 MB**. The
+same section's official table is n=40 yet reports 6.4 MB, roughly 30x apart --
+while R47-Win's 45.2 MB lands squarely inside that scan's decode range.
+
+A second sign: moving from spawning `gzip.exe` per 4 MiB chunk to in-process
+zlib moved RSS by only -3.0%, recorded as noise. A backend swap that leaves
+memory almost unchanged is itself suspect.
+
+**Hypothesis** (not verified on a Windows machine): before R47-Win the TGZ RSS
+may have measured something other than swift_tar itself -- likely a child
+process under the shim -- and Pre-R47's identity check is what put it right. If
+so, the conclusion becomes "native zlib's **speed** figures hold across all
+three rounds, but its **RSS** only holds for R47-Win", and R46-Win's and
+R46-Win-Retest's TGZ RSS should be marked as doubtful.
+
+No conclusion is drawn here on purpose; see TODO 4 for how to settle it.
+
 ## TODO
 
 1. **Wire the native zstd gate on macOS**: `run_round.command` needs to set
@@ -275,6 +341,47 @@ nor PowerShell.
    runs `--to-stdout -xzf` (emitting member contents). Both parse tar, but the
    output volumes are wildly different. Untouched here; which side to align to
    needs a separate decision.
+4. **Settle the TGZ RSS contradiction (section 7)**: on Windows, run
+   `verifications/tgz_inflight_rss_win.zsh -n 40` against the same EXE and
+   compare the TGZ encode/decode RSS with the official round's
+   `rss_summary.csv` for the same dataset. If the scan reports ~200 MB where the
+   round reports ~6 MB, the round was measuring the wrong process; if the two
+   agree, the scan and the round differ in caliber and it must be established
+   which one is right. **Until then, do not cite the TGZ RSS from either R46
+   round.**
+
+## What to run in the next Windows round (a direct consequence of section 6)
+
+The precondition already holds: `swift_tar/version-win.txt` carries
+`zstd_linkage=static`, so the check at `run_round.bat:69` will pass.
+
+```bat
+helper_windows\run_round.bat -swift_tar
+```
+
+**The first thing to do once it starts is confirm the gate actually engaged**,
+in `windows_round_status.txt`:
+
+```
+USING_SWIFT_TAR ... NATIVE_ZLIB=static NATIVE_ZSTD=static <time>
+```
+
+**Both** must be present. R47-Win's line carried only the first (section 6), and
+that is exactly how ZSTD rows came to be labelled swift_tar while measuring the
+external tool. A `SWIFT_TAR_NATIVE_ZSTD_NOT_VERIFIED` line means
+`version-win.txt` lacks `zstd_linkage=static`, and that round's ZSTD must not be
+labelled native.
+
+Three further checkpoints:
+
+- **ZSTD's RSS should leave 8.9 MB behind.** R47-Win reported 8.9 MB for ZSTD in
+  both datasets, the external `zstd.exe` magnitude. If the new round still says
+  8.9 MB the gate did not really engage, whatever the status line claims.
+- **The ZSTD null-mode numbers are a first measurement under a new caliber**
+  (section 1). There is no prior value to difference against, and they must not
+  be subtracted from R47-Win's `ZSTD (external CLI)`.
+- **TODO 4 comes for free**: once that round writes `rss_summary.csv` it can be
+  compared against the scan without running anything extra.
 
 ---
 

@@ -246,6 +246,65 @@ lzfse2 側：`zsh -n zshrc.zsh` 通過；native 與 external 兩分支各自以
 **未經執行驗證**：`helper_windows/` 的兩支 `.bat` 與 swift_tar 新增的
 `build_tool_install-win.bat`；本機無 cmd.exe 與 PowerShell。
 
+## 6. `-swift_tar` 一個旗標管兩件事，但兩件事不同時到位
+
+這一節解釋一個容易誤記的情形：「我明明用了旗標拿到 native 結果」與「native zstd
+從未被量測」兩句話同時為真。
+
+`helper_windows/windows_round_status.txt` 第 11 行是 R47-Win 留下的：
+
+```
+USING_SWIFT_TAR ...\lzfse2-swift-tar-shim\tar.exe NATIVE_ZLIB=static 12:17:23
+```
+
+該行**只有 `NATIVE_ZLIB=static`**。搜遍所有狀態記錄與結果檔，`NATIVE_ZSTD=` 從未
+出現過一次。時間軸如下：
+
+| 事件 | 日期 |
+| --- | --- |
+| R46-Win：native zlib 首輪 | 2026-07-13 |
+| R47-Win 跑完（結果檔時間戳 `Jul 18 16:09`）| 2026-07-18 |
+| `f67e78f` 才把 `LZFSE_REQUIRE_NATIVE_ZSTD=1` 加入 `run_round.bat:85` | **2026-08-14** |
+| 其後唯一的量測輪次 | R48-Mac（Mac，非 Windows）|
+
+閘門比最後一輪 Windows 晚了將近一個月。`f67e78f` 的 commit 訊息已寫明：「標示為
+swift_tar 的輪次，其 ZSTD 各列量到的其實是外部工具」。R47-Win 的 ZSTD 兩列 RSS
+皆為 8.9 MB，正是外部 `zstd.exe` 的量級，佐證此點。
+
+`f67e78f` 當時所做的是**功能等價驗證**（兩條分支解出的樹完全相同、大小僅差 1 byte
+的 tar framing），不是效能量測；該次未執行 benchmark。
+
+因此：`-swift_tar` 給的 native 結果為真，指的是 **zlib**；ZSTD 那一半要到啟用閘門
+的下一輪才會首次存在。
+
+## 7. TGZ RSS 的跨輪矛盾（尚未驗證，勿當結論）
+
+同一個 claw-code TGZ，跨輪的 RSS 對不起來：
+
+| 輪次 | Enc RSS | Dec RSS |
+| --- | ---: | ---: |
+| R45-Win-Retest1（外部 `gzip.exe`）| 6.6 MB | 6.1 MB |
+| R46-Win | 6.4 MB | 5.9 MB |
+| R46-Win-Retest | 6.4 MB | 5.9 MB |
+| **R47-Win** | **144.1 MB** | **45.2 MB** |
+
+R47-Win 跳了約 22 倍，而該輪第 3 節只比對 MB/s，**完全沒有提及 RSS**。
+
+矛盾出在 R46-Win 自己的「驗證」段落——`tgz_inflight_rss_win.zsh` 的直接掃描寫著
+「encode RSS 呈現與 `-n` 線性關係（55.6MB@n4 → **208.0MB@n40**），decode RSS 打平
+在 **43–45MB**」。同一節的官方表格是 n=40 卻報 6.4 MB，兩者差約 30 倍；而 R47-Win
+的 45.2 MB 幾乎正中該掃描的 decode 區間。
+
+第二個疑點：由「每個 4 MiB chunk spawn 一次 `gzip.exe`」改為 in-process zlib，RSS
+只變動 −3.0% 而被記為「雜訊」。換掉後端而記憶體幾乎不動，本身即可疑。
+
+**推測**（未經 Windows 實機驗證）：R47-Win 之前的 TGZ RSS 量到的可能不是 swift_tar
+本身，而是 shim 底下的子行程；Pre-R47 補上身份檢查之後才對上。若成立，結論應修正
+為「native zlib 的**速度**數據三輪皆可信，但 **RSS** 只有 R47-Win 那一輪可信」，
+R46-Win 與 R46-Win-Retest 的 TGZ RSS 應標為存疑。
+
+此處刻意不下結論：確認方式見待辦第 4 條。
+
 ## 待辦
 
 1. **macOS 補上 native zstd 閘門**：`run_round.command` 需比照
@@ -258,6 +317,39 @@ lzfse2 側：`zsh -n zshrc.zsh` 通過；native 與 external 兩分支各自以
 3. **TGZ 的兩支仍不同形**：`decode-win.bat` 的 TGZ null 分支，native 是 `-t`
    （吐檔名）、external 是 `--to-stdout -xzf`（吐成員內容）——兩者都解析 tar，但
    輸出量差距極大。本次未動，需另行判斷該對齊到哪一邊。
+4. **確認 TGZ RSS 的跨輪矛盾（第 7 節）**：在 Windows 上以同一個 EXE 跑
+   `verifications/tgz_inflight_rss_win.zsh -n 40`，與官方 round 的
+   `rss_summary.csv` 對照同一資料集的 TGZ encode/decode RSS。若掃描報 ~200 MB 而
+   round 報 ~6 MB，即證實 round 量錯對象；若兩者一致，則是掃描與 round 的量測口徑
+   不同，需查明是哪一個。**在此之前不要引用 R46 兩輪的 TGZ RSS。**
+
+## 下一輪 Windows 該怎麼跑（第 6 節的直接後果）
+
+前置條件已滿足：`swift_tar/version-win.txt` 含 `zstd_linkage=static`，
+`run_round.bat` 第 69 行的檢查會通過。
+
+```bat
+helper_windows\run_round.bat -swift_tar
+```
+
+**開跑後第一件事是確認閘門真的生效**，看 `windows_round_status.txt`：
+
+```
+USING_SWIFT_TAR ... NATIVE_ZLIB=static NATIVE_ZSTD=static <時間>
+```
+
+必須**兩個都在**。R47-Win 那一行只有前者（見第 6 節），而那正是 ZSTD 各列量到外部
+工具卻被標為 swift_tar 的成因。若看到 `SWIFT_TAR_NATIVE_ZSTD_NOT_VERIFIED`，表示
+`version-win.txt` 缺 `zstd_linkage=static`，該輪的 ZSTD 不可標為 native。
+
+其餘三項檢查點：
+
+- **ZSTD 的 RSS 應離開 8.9 MB**。R47-Win 兩個資料集的 ZSTD RSS 都是 8.9 MB，那是
+  外部 `zstd.exe` 的量級。若新一輪仍是 8.9 MB，代表閘門沒真的生效，不要只信狀態
+  記錄那一行。
+- **ZSTD null 模式的數字是全新口徑的第一次量測**（第 1 節），沒有前值可減，不可與
+  R47-Win 的 `ZSTD (external CLI)` 直接相減。
+- **順便收掉第 4 條**：該輪產生 `rss_summary.csv` 之後即可與掃描對照，不必另跑一輪。
 
 ---
 
