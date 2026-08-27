@@ -1,384 +1,489 @@
+proc_pidpath 1244 failed(0)
+proc_pidpath 2363 failed(0)
+proc_pidpath 2365 failed(0)
+proc_pidpath 3918 failed(0)
+proc_pidpath 6719 failed(0)
+proc_pidpath 6878 failed(0)
+proc_pidpath 24628 failed(0)
+proc_pidpath 24979 failed(0)
+proc_pidpath 28019 failed(0)
+proc_pidpath 36947 failed(0)
+proc_pidpath 37623 failed(0)
+proc_pidpath 51424 failed(0)
+proc_pidpath 51463 failed(0)
+proc_pidpath 56848 failed(0)
+proc_pidpath 69058 failed(0)
 Machine model: Mac16,10
-OS version: 26A5406e
+OS version: 26A5421a
 Boot arguments: 
-Boot time: Fri Aug 14 06:59:15 2026
+Boot time: Wed Aug 26 09:35:47 2026
 
+proc_pidpath 1244 failed(0)
+proc_pidpath 2363 failed(0)
+proc_pidpath 2365 failed(0)
+proc_pidpath 3918 failed(0)
+proc_pidpath 6719 failed(0)
+proc_pidpath 6878 failed(0)
+proc_pidpath 24628 failed(0)
+proc_pidpath 24979 failed(0)
+proc_pidpath 28019 failed(0)
+proc_pidpath 36947 failed(0)
+proc_pidpath 37623 failed(0)
+proc_pidpath 51424 failed(0)
+proc_pidpath 51463 failed(0)
+proc_pidpath 56848 failed(0)
+proc_pidpath 69058 failed(0)
 Second underflow occured.
 
 
-*** Sampled system activity (Sat Aug 15 18:38:17 2026 +0800) (515.76ms elapsed) ***
+*** Sampled system activity (Fri Aug 28 02:01:44 2026 +0800) (517.11ms elapsed) ***
 
 *** Running tasks ***
 
 Name                               ID     CPU ms/s  User%  Deadlines (<2 ms, 2-5 ms)  Wakeups (Intr, Pkg idle)  Energy Impact
-DEAD_TASKS                         -1     3871.21   96.08  0.00    0.00               0.00    0.00              9059.64         
-lzfse                              23236  5733.48   95.12  0.00    0.00               0.00    0.00              13257.79         
-claude                             2506   131.59    95.86  7.76    7.76               58.20   0.00              128.35          
-powermetrics                       23234  27.14     14.90  0.00    0.00               1.94    0.00              78.25           
-claude                             2557   11.07     90.56  1.94    0.00               31.04   0.00              18.75           
-Terminal                           396    45.02     86.78  0.00    0.00               5.82    0.00              16.70           
-Claude Helper                      1448   88.64     63.43  0.00    0.00               126.11  0.00              13.67           
-claude                             3362   7.14      90.98  0.00    0.00               11.64   0.00              13.66           
-claude                             2431   11.86     98.24  0.00    0.00               11.64   0.00              9.52            
-WindowServer                       173    31.93     57.69  0.00    0.00               46.56   0.00              6.41            
-Claude                             401    33.90     83.16  5.82    0.00               73.72   0.00              5.48            
-kernel_task                        0      31.12     0.00   461.75  0.00               818.73  0.00              4.82            
-claude                             97561  6.03      88.52  0.00    0.00               9.70    0.00              4.06            
-Claude Helper (Renderer)           1739   24.64     82.89  0.00    0.00               23.28   0.00              3.94            
-claude                             2670   7.44      90.52  0.00    0.00               13.58   0.00              3.18            
-zsh                                18891  0.58      23.25  0.00    0.00               0.00    0.00              1.61            
-ChatGPT                            1713   7.18      66.62  32.98   0.00               65.96   0.00              0.77            
-Code Helper                        1537   2.73      52.69  29.10   0.00               40.74   0.00              0.55            
-bluetoothd                         167    1.41      79.71  0.00    0.00               0.00    0.00              0.43            
-clocksyncd                         334    2.00      46.40  0.00    0.00               0.00    0.00              0.41            
-logd                               102    1.44      48.67  0.00    0.00               0.00    0.00              0.37            
-com.apple.DriverKit-AppleBCMWLAN   312    2.23      65.11  0.00    0.00               23.28   0.00              0.36            
-ControlCenter                      411    1.57      58.44  0.00    0.00               0.00    0.00              0.35            
-nearbyd                            1348   0.99      54.34  0.00    0.00               0.00    0.00              0.35            
-rapportd                           398    0.69      88.48  0.00    0.00               0.00    0.00              0.31            
-claude                             3042   1.59      88.90  0.00    0.00               7.76    0.00              0.30            
-Code Helper                        1538   0.94      17.88  1.94    0.00               3.88    0.00              0.30            
-sharingd                           447    0.71      82.81  0.00    0.00               0.00    0.00              0.25            
-Finder                             413    1.06      52.75  0.00    0.00               3.88    0.00              0.16            
-Code                               405    0.42      42.63  1.94    0.00               3.88    0.00              0.12            
-node                               3070   0.09      75.56  1.94    0.00               3.88    0.00              0.12            
-fseventsd                          107    0.42      12.90  0.00    0.00               1.94    0.00              0.12            
-mDNSResponder                      237    0.62      35.53  5.82    0.00               9.70    0.00              0.12            
-com.apple.DriverKit.AppleUserECM   309    0.70      29.08  0.00    0.00               3.88    0.00              0.10            
-loginwindow                        177    0.70      69.97  0.00    0.00               11.64   0.00              0.07            
-lockoutagent                       827    0.21      34.12  0.00    0.00               1.94    0.00              0.05            
-netbiosd                           1636   0.21      24.93  0.00    0.00               0.00    0.00              0.05            
-remindd                            62645  0.27      13.23  0.00    0.00               1.94    0.00              0.04            
-Google Chrome Helper               1390   0.20      60.90  0.00    0.00               1.94    0.00              0.04            
-Code Helper (Renderer)             1466   0.20      70.06  0.00    0.00               1.94    0.00              0.03            
-airportd                           245    0.29      26.16  0.00    0.00               3.88    0.00              0.03            
-Codex (Service)                    1796   0.09      65.10  0.00    0.00               1.94    0.00              0.02            
-corespotlightd                     444    0.08      11.92  0.00    0.00               3.88    0.00              0.02            
-locationd                          151    0.23      38.08  0.00    0.00               1.94    0.00              0.01            
-configd                            116    0.19      18.62  0.00    0.00               1.94    0.00              0.01            
-Python                             71639  0.07      49.82  0.00    0.00               1.94    0.00              0.01            
-mDNSResponderHelper                266    0.03      31.18  0.00    0.00               1.94    0.00              0.01            
-systemsoundserverd                 430    0.12      14.83  0.00    0.00               1.94    0.00              0.01            
-searchpartyd                       303    0.12      43.59  0.00    0.00               1.94    0.00              0.01            
-Codex (Renderer)                   1919   0.03      34.57  0.00    0.00               1.94    0.00              0.00            
-ALL_TASKS                          -2     7106.68   94.04  550.65  7.76               1442.54 0.00              15727.70         
+DEAD_TASKS                         -1     3861.81   96.10  0.00    0.00               0.00    0.00              8926.96         
+lzfse                              60993  5669.59   94.76  0.00    0.00               0.00    0.00              13068.88         
+powermetrics                       60991  29.18     16.23  0.00    0.00               1.93    0.00              92.83           
+coreaudiod                         316    38.74     83.35  13.54   3.87               77.37   0.00              21.87           
+Google Chrome Helper (Renderer)    30643  94.46     93.72  1.93    0.00               1.93    0.00              21.15           
+claude                             3806   9.26      84.32  0.00    0.00               11.60   0.00              12.40           
+audioanalyticsd                    51577  43.06     89.89  0.00    0.00               0.00    0.00              10.32           
+Terminal                           418    21.52     82.62  0.00    0.00               5.80    0.00              6.03            
+corespotlightd                     475    6.15      56.50  0.00    0.00               5.80    0.00              5.64            
+kernel_task                        0      25.81     0.00   464.19  0.00               545.43  0.00              3.62            
+claude                             3477   7.13      89.76  0.00    0.00               5.80    0.00              2.85            
+WindowManager                      402    5.99      93.06  0.00    0.00               0.00    0.00              1.92            
+Google Chrome Helper               1153   10.96     60.96  0.00    0.00               59.96   0.00              1.82            
+zsh                                56041  0.61      21.65  0.00    0.00               0.00    0.00              1.59            
+callservicesd                      36326  5.48      57.85  0.00    0.00               0.00    0.00              1.51            
+diagnosticd                        36291  3.73      65.52  0.00    0.00               0.00    0.00              1.27            
+claude                             3721   1.61      71.55  0.00    0.00               9.67    0.00              1.19            
+claude                             3637   2.25      78.16  0.00    0.00               9.67    0.00              1.13            
+claude                             6731   2.35      70.81  0.00    0.00               11.60   0.00              1.11            
+WindowServer                       173    3.90      59.01  1.93    0.00               13.54   0.00              1.05            
+Finder                             435    2.94      56.63  0.00    0.00               0.00    0.00              1.03            
+claude                             4236   2.63      84.16  0.00    0.00               9.67    0.00              1.00            
+spotlightknowledged.updater        52538  0.42      66.36  0.00    0.00               0.00    0.00              0.97            
+diagnosticd                        55057  2.80      64.26  0.00    0.00               0.00    0.00              0.97            
+qemu-system-aarch64                38740  5.24      75.02  3.87    38.68              46.42   0.00              0.74            
+SpringBoard                        36243  4.48      69.16  0.00    0.00               63.83   0.00              0.66            
+claude                             2837   1.08      67.67  0.00    0.00               7.74    0.00              0.58            
+BiomeAgent                         52516  1.57      67.60  0.00    0.00               0.00    0.00              0.53            
+Code Helper                        1147   3.55      52.96  0.00    0.00               29.01   0.00              0.47            
+Code Helper                        1253   2.84      53.89  29.01   0.00               38.68   0.00              0.44            
+logd                               102    1.66      54.86  0.00    0.00               0.00    0.00              0.43            
+clocksyncd                         337    1.96      48.05  0.00    0.00               0.00    0.00              0.40            
+SetStoreUpdateService              53101  1.06      64.45  0.00    0.00               0.00    0.00              0.36            
+ControlCenter                      432    1.57      57.89  0.00    0.00               0.00    0.00              0.34            
+com.apple.DriverKit-AppleBCMWLAN   349    2.83      64.00  0.00    0.00               30.95   0.00              0.30            
+launchd                            1      0.13      33.42  0.00    0.00               0.00    0.00              0.28            
+claude                             3016   1.40      90.03  0.00    0.00               3.87    0.00              0.23            
+com.apple.geod                     53019  3.51      36.11  0.00    0.00               1.93    0.00              0.23            
+Claude                             74182  0.87      62.02  5.80    0.00               11.60   0.00              0.15            
+loginwindow                        178    0.82      58.88  0.00    0.00               11.60   0.00              0.14            
+Code Helper (Renderer)             1169   1.95      77.60  0.00    0.00               3.87    0.00              0.13            
+node                               3659   0.10      73.26  1.93    0.00               3.87    0.00              0.11            
+fseventsd                          107    0.40      12.32  0.00    0.00               1.93    0.00              0.10            
+mDNSResponder                      229    1.60      38.15  5.80    0.00               9.67    0.00              0.10            
+com.apple.DriverKit.AppleUserECM   347    0.79      29.99  0.00    0.00               3.87    0.00              0.09            
+homed                              36364  0.38      41.84  0.00    0.00               1.93    0.00              0.08            
+fileproviderd                      466    0.31      38.18  0.00    0.00               3.87    0.00              0.06            
+Google Chrome                      420    0.19      60.15  0.00    0.00               1.93    0.00              0.04            
+nearbyd                            1007   0.13      37.40  0.00    0.00               1.93    0.00              0.04            
+SimMetalHost                       36238  0.13      16.89  0.00    0.00               1.93    0.00              0.03            
+Claude Helper                      74222  0.44      55.62  0.00    0.00               1.93    0.00              0.03            
+Google Chrome Helper (Renderer)    1209   0.14      68.20  0.00    0.00               1.93    0.00              0.02            
+cfprefsd                           378    0.10      18.63  0.00    0.00               1.93    0.00              0.02            
+com.apple.dock.extra               528    0.09      20.29  0.00    0.00               1.93    0.00              0.02            
+locationd                          36267  0.10      39.36  0.00    0.00               1.93    0.00              0.02            
+node                               3738   0.11      56.46  1.93    0.00               3.87    0.00              0.02            
+node                               3823   0.11      63.65  1.93    0.00               3.87    0.00              0.02            
+SimStreamProcessorService          36234  0.09      19.28  0.00    0.00               1.93    0.00              0.02            
+ContinuityCaptureAgent             411    0.08      25.45  0.00    0.00               1.93    0.00              0.02            
+mdworker_shared                    60725  0.10      20.55  0.00    0.00               1.93    0.00              0.02            
+LINE                               430    0.25      71.02  0.00    0.00               3.87    0.00              0.02            
+axassetsd                          56867  0.28      53.24  0.00    0.00               1.93    0.00              0.02            
+Claude Helper                      74315  0.34      67.05  0.00    0.00               1.93    0.00              0.02            
+cfprefsd                           176    0.05      25.04  0.00    0.00               1.93    0.00              0.01            
+Code Helper                        1148   0.12      81.29  0.00    0.00               1.93    0.00              0.01            
+rapportd                           403    0.22      42.04  0.00    0.00               0.00    0.00              0.01            
+Google Chrome Helper (Renderer)    30630  0.06      75.03  0.00    0.00               1.93    0.00              0.01            
+mDNSResponderHelper                253    0.04      36.15  0.00    0.00               1.93    0.00              0.01            
+SimMetalHost                       36239  0.13      22.77  0.00    0.00               1.93    0.00              0.01            
+Code                               428    0.12      63.66  1.93    0.00               3.87    0.00              0.01            
+Google Chrome Helper (Renderer)    30633  0.03      29.79  0.00    0.00               1.93    0.00              0.01            
+ALL_TASKS                          -2     6780.88   94.21  533.73  42.54              1096.48 0.00              15016.15         
 
 **** Processor usage ****
 
 E-Cluster Online: 100%
-E-Cluster HW active frequency: 2492 MHz
-E-Cluster HW active residency:  70.22% (900 MHz: 4.4% 1080 MHz:  14% 1476 MHz: .14% 1860 MHz: .35% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:  73% 2892 MHz: 8.1%)
-E-Cluster idle residency:  29.78%
-CPU 0 frequency: 2746 MHz
-CPU 0 active residency:  65.05% (900 MHz: .45% 1080 MHz: 4.6% 1476 MHz: .02% 1860 MHz: .20% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  60%)
-CPU 0 idle residency:  34.95%
-CPU 1 frequency: 2772 MHz
-CPU 1 active residency:  64.74% (900 MHz: .22% 1080 MHz: 4.0% 1476 MHz: .02% 1860 MHz: .09% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  60%)
-CPU 1 idle residency:  35.26%
-CPU 2 frequency: 2845 MHz
-CPU 2 active residency:  61.30% (900 MHz: .15% 1080 MHz: 1.4% 1476 MHz: .01% 1860 MHz: .06% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  60%)
-CPU 2 idle residency:  38.70%
-CPU 3 frequency: 2865 MHz
-CPU 3 active residency:  62.24% (900 MHz: .11% 1080 MHz: .81% 1476 MHz: .01% 1860 MHz: .01% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  61%)
-CPU 3 idle residency:  37.76%
-CPU 4 frequency: 2851 MHz
-CPU 4 active residency:  62.84% (900 MHz: .16% 1080 MHz: 1.2% 1476 MHz:   0% 1860 MHz: .05% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  61%)
-CPU 4 idle residency:  37.16%
-CPU 5 frequency: 2875 MHz
-CPU 5 active residency:  61.70% (900 MHz: .06% 1080 MHz: .50% 1476 MHz:   0% 1860 MHz: .02% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  61%)
-CPU 5 idle residency:  38.30%
+E-Cluster HW active frequency: 2429 MHz
+E-Cluster HW active residency:  71.60% (900 MHz: 4.9% 1080 MHz:  17% 1476 MHz:   0% 1860 MHz: .35% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:  70% 2892 MHz: 7.6%)
+E-Cluster idle residency:  28.40%
+CPU 0 frequency: 2678 MHz
+CPU 0 active residency:  64.70% (900 MHz: .43% 1080 MHz: 7.1% 1476 MHz:   0% 1860 MHz: .15% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  57%)
+CPU 0 idle residency:  35.30%
+CPU 1 frequency: 2726 MHz
+CPU 1 active residency:  64.19% (900 MHz: .33% 1080 MHz: 5.4% 1476 MHz:   0% 1860 MHz: .21% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  58%)
+CPU 1 idle residency:  35.81%
+CPU 2 frequency: 2843 MHz
+CPU 2 active residency:  59.37% (900 MHz: .11% 1080 MHz: 1.5% 1476 MHz:   0% 1860 MHz: .04% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  58%)
+CPU 2 idle residency:  40.63%
+CPU 3 frequency: 2870 MHz
+CPU 3 active residency:  58.27% (900 MHz: .12% 1080 MHz: .57% 1476 MHz:   0% 1860 MHz:   0% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  58%)
+CPU 3 idle residency:  41.73%
+CPU 4 frequency: 2876 MHz
+CPU 4 active residency:  58.61% (900 MHz: .13% 1080 MHz: .33% 1476 MHz:   0% 1860 MHz: .06% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  58%)
+CPU 4 idle residency:  41.39%
+CPU 5 frequency: 2884 MHz
+CPU 5 active residency:  60.89% (900 MHz: .07% 1080 MHz: .20% 1476 MHz:   0% 1860 MHz: .00% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  61%)
+CPU 5 idle residency:  39.11%
 
-P-Cluster HW active frequency: 3967 MHz
-P-Cluster HW active residency: 100.00% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:  68% 3984 MHz: 7.5% 4044 MHz:  25% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
+P-Cluster HW active frequency: 3970 MHz
+P-Cluster HW active residency: 100.00% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:  66% 3984 MHz: 4.7% 4044 MHz:  30% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
 P-Cluster idle residency:   0.00%
-CPU 6 frequency: 4463 MHz
-CPU 6 active residency:  76.85% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 1.0% 4464 MHz:  76%)
-CPU 6 idle residency:  23.15%
-CPU 7 frequency: 4463 MHz
-CPU 7 active residency:  84.87% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 1.6% 4464 MHz:  83%)
-CPU 7 idle residency:  15.13%
-CPU 8 frequency: 4463 MHz
-CPU 8 active residency:  76.12% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 1.5% 4464 MHz:  75%)
-CPU 8 idle residency:  23.88%
-CPU 9 frequency: 4463 MHz
-CPU 9 active residency:  70.95% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 1.1% 4464 MHz:  70%)
-CPU 9 idle residency:  29.05%
+CPU 6 frequency: 4461 MHz
+CPU 6 active residency:  75.84% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 4.3% 4464 MHz:  71%)
+CPU 6 idle residency:  24.16%
+CPU 7 frequency: 4461 MHz
+CPU 7 active residency:  73.31% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 3.9% 4464 MHz:  69%)
+CPU 7 idle residency:  26.69%
+CPU 8 frequency: 4460 MHz
+CPU 8 active residency:  79.20% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 7.2% 4464 MHz:  72%)
+CPU 8 idle residency:  20.80%
+CPU 9 frequency: 4461 MHz
+CPU 9 active residency:  71.91% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 3.9% 4464 MHz:  68%)
+CPU 9 idle residency:  28.09%
 
-CPU Power: 14294 mW
-GPU Power: 43 mW
+CPU Power: 13753 mW
+GPU Power: 0 mW
 ANE Power: 0 mW
-Combined Power (CPU + GPU + ANE): 14336 mW
+Combined Power (CPU + GPU + ANE): 13753 mW
 
 **** GPU usage ****
 
-GPU HW active frequency: 728 MHz
-GPU HW active residency:   6.26% (338 MHz: .93% 618 MHz:   0% 796 MHz: 5.3% 928 MHz:   0% 952 MHz:   0% 1056 MHz:   0% 1053 MHz:   0% 1170 MHz:   0% 1152 MHz:   0% 1278 MHz:   0% 1204 MHz:   0% 1338 MHz:   0% 1326 MHz:   0% 1470 MHz:   0% 1578 MHz:   0%)
-GPU SW requested state: (P1 :   0% P2 :   0% P3 : 100% P4 :   0% P5 :   0% P6 :   0% P7 :   0% P8 :   0% P9 :   0% P10 :   0% P11 :   0% P12 :   0% P13 :   0% P14 :   0% P15 :   0%)
-GPU SW state: (SW_P1 : .93% SW_P2 :   0% SW_P3 : 5.3% SW_P4 :   0% SW_P5 :   0% SW_P6 :   0% SW_P7 :   0% SW_P8 :   0% SW_P9 :   0% SW_P10 :   0% SW_P11 :   0% SW_P12 :   0% SW_P13 :   0% SW_P14 :   0% SW_P15 :   0%)
-GPU idle residency:  93.74%
-GPU Power: 17 mW
+GPU HW active frequency: 0 MHz
+GPU HW active residency:   0.00% (338 MHz:   0% 618 MHz:   0% 796 MHz:   0% 928 MHz:   0% 952 MHz:   0% 1056 MHz:   0% 1053 MHz:   0% 1170 MHz:   0% 1152 MHz:   0% 1278 MHz:   0% 1204 MHz:   0% 1338 MHz:   0% 1326 MHz:   0% 1470 MHz:   0% 1578 MHz:   0%)
+GPU SW requested state: (P1 :   0% P2 :   0% P3 :   0% P4 :   0% P5 :   0% P6 :   0% P7 :   0% P8 :   0% P9 :   0% P10 :   0% P11 :   0% P12 :   0% P13 :   0% P14 :   0% P15 :   0%)
+GPU SW state: (SW_P1 :   0% SW_P2 :   0% SW_P3 :   0% SW_P4 :   0% SW_P5 :   0% SW_P6 :   0% SW_P7 :   0% SW_P8 :   0% SW_P9 :   0% SW_P10 :   0% SW_P11 :   0% SW_P12 :   0% SW_P13 :   0% SW_P14 :   0% SW_P15 :   0%)
+GPU idle residency: 100.00%
+GPU Power: 0 mW
 
+proc_pidpath 1244 failed(0)
+proc_pidpath 2363 failed(0)
+proc_pidpath 2365 failed(0)
+proc_pidpath 3918 failed(0)
+proc_pidpath 6719 failed(0)
+proc_pidpath 6878 failed(0)
+proc_pidpath 24628 failed(0)
+proc_pidpath 24979 failed(0)
+proc_pidpath 28019 failed(0)
+proc_pidpath 36947 failed(0)
+proc_pidpath 37623 failed(0)
+proc_pidpath 51424 failed(0)
+proc_pidpath 51463 failed(0)
+proc_pidpath 56848 failed(0)
+proc_pidpath 69058 failed(0)
 Second underflow occured.
 
 
-*** Sampled system activity (Sat Aug 15 18:38:18 2026 +0800) (520.57ms elapsed) ***
+*** Sampled system activity (Fri Aug 28 02:01:44 2026 +0800) (517.62ms elapsed) ***
 
 *** Running tasks ***
 
 Name                               ID     CPU ms/s  User%  Deadlines (<2 ms, 2-5 ms)  Wakeups (Intr, Pkg idle)  Energy Impact
-DEAD_TASKS                         -1     7735.34   95.76  0.00    0.00               0.00    0.00              18146.84         
-claude                             2506   200.71    94.32  1.92    7.68               47.99   9.60              403.85          
-powermetrics                       23234  31.32     22.11  0.00    0.00               1.92    0.00              70.39           
-claude                             3042   6.69      88.64  1.92    0.00               9.60    1.92              15.38           
-Claude Helper                      1448   93.32     63.05  0.00    0.00               130.54  13.44             12.96           
-Terminal                           396    78.18     87.97  1.92    0.00               7.68    1.92              12.79           
-mdworker_shared                    22932  23.37     83.43  0.00    0.00               0.00    0.00              7.33            
-mdworker_shared                    22933  21.99     82.24  0.00    0.00               0.00    0.00              6.98            
-mds_stores                         345    25.62     91.11  0.00    0.00               0.00    0.00              6.43            
-sleep                              23240  13.58     39.21  0.00    0.00               0.00    0.00              34.27           
-Claude Helper (Renderer)           1739   43.33     85.89  0.00    0.00               53.75   1.92              6.26            
-kernel_task                        0      44.88     0.00   424.25  0.00               823.54  55.67             6.16            
-WindowServer                       173    34.52     56.70  0.00    0.00               49.91   1.92              6.09            
-claude                             2557   6.01      93.94  0.00    0.00               7.68    0.00              5.96            
-securityd                          149    19.54     40.38  0.00    0.00               0.00    0.00              5.60            
-Claude                             401    37.41     82.77  9.60    0.00               82.55   5.76              5.05            
-launchd                            1      1.76      63.29  0.00    0.00               0.00    0.00              3.65            
-notifyd                            168    3.45      68.18  0.00    0.00               0.00    0.00              3.28            
-zsh                                18891  1.33      23.62  0.00    0.00               0.00    0.00              3.25            
-mds                                132    9.73      47.71  0.00    0.00               1.92    0.00              2.48            
-claude                             2431   5.50      89.93  0.00    0.00               13.44   1.92              2.48            
-cfprefsd                           176    1.08      34.23  0.00    0.00               0.00    0.00              1.74            
-trustd                             212    4.32      73.38  0.00    0.00               0.00    0.00              1.55            
-com.apple.DriverKit-AppleBCMWLAN   312    13.95     64.49  0.00    0.00               182.37  28.79             1.41            
-Code Helper (Renderer)             1466   3.67      67.41  0.00    0.00               1.92    0.00              1.20            
-claude                             3362   1.37      71.27  0.00    0.00               5.76    1.92              1.08            
-claude                             97561  0.83      78.55  0.00    0.00               9.60    0.00              1.08            
-claude                             2670   1.52      88.42  0.00    0.00               7.68    0.00              0.96            
-opendirectoryd                     144    2.73      40.35  0.00    0.00               0.00    0.00              0.93            
-mdworker_shared                    23008  4.81      56.42  0.00    0.00               0.00    0.00              0.90            
-mdworker_shared                    22871  3.96      49.98  0.00    0.00               0.00    0.00              0.75            
-ChatGPT                            1713   6.64      68.13  28.79   0.00               59.51   3.84              0.73            
-analyticsd                         222    2.89      56.45  0.00    0.00               0.00    0.00              0.69            
-Code Helper                        1537   2.69      56.42  28.79   0.00               38.39   3.84              0.43            
-clocksyncd                         334    2.15      47.08  0.00    0.00               0.00    0.00              0.43            
-ControlCenter                      411    2.01      58.89  0.00    0.00               1.92    0.00              0.41            
-codex                              1857   1.39      26.61  0.00    0.00               7.68    0.00              0.32            
-contextstored                      142    0.72      55.52  0.00    0.00               0.00    0.00              0.27            
-logd                               102    1.19      26.72  0.00    0.00               0.00    0.00              0.24            
-mDNSResponder                      237    1.59      36.87  9.60    0.00               15.36   0.00              0.17            
-Code Helper                        1556   0.66      58.24  0.00    0.00               0.00    0.00              0.16            
-symptomsd                          247    0.67      55.87  0.00    0.00               0.00    0.00              0.15            
-node                               3382   0.11      84.87  1.92    0.00               3.84    0.00              0.12            
-spotlightknowledged.importer       3859   0.31      39.97  0.00    0.00               0.00    0.00              0.09            
-com.apple.DriverKit.AppleUserECM   309    0.75      30.54  0.00    0.00               3.84    0.00              0.09            
-Claude Helper                      2001   0.36      54.71  0.00    0.00               1.92    0.00              0.09            
-loginwindow                        177    0.87      58.39  0.00    0.00               11.52   1.92              0.08            
-nsurlsessiond                      555    0.16      38.47  0.00    0.00               1.92    0.00              0.05            
-Python                             71639  0.17      50.48  0.00    0.00               1.92    1.92              0.05            
-fileproviderd                      433    0.44      47.10  0.00    0.00               3.84    0.00              0.05            
-thermalmonitord                    141    0.26      52.36  0.00    0.00               1.92    0.00              0.04            
-WallpaperAerialsExtension          422    0.41      43.19  0.00    0.00               7.68    5.76              0.04            
-gamepolicyd                        289    0.22      35.10  0.00    0.00               1.92    0.00              0.03            
-audioanalyticsd                    462    0.09      13.10  0.00    0.00               1.92    0.00              0.03            
-Google Chrome Helper (Renderer)    1691   0.70      78.02  0.00    0.00               1.92    1.92              0.03            
-Code Helper (Plugin)               1701   0.11      48.45  1.92    0.00               3.84    0.00              0.02            
-bluetoothd                         167    0.08      19.85  0.00    0.00               1.92    0.00              0.02            
-Messages                           408    0.07      22.07  0.00    0.00               1.92    0.00              0.02            
-netbiosd                           1636   0.33      26.65  0.00    0.00               0.00    0.00              0.02            
-nsurlsessiond                      228    0.08      16.99  0.00    0.00               1.92    0.00              0.02            
-axassetsd                          419    0.36      58.20  0.00    0.00               1.92    0.00              0.02            
-UVCAssistant                       316    0.08      30.53  0.00    0.00               1.92    0.00              0.02            
-Claude Helper                      1450   0.08      51.90  0.00    0.00               3.84    0.00              0.02            
-Codex (Renderer)                   1860   0.31      90.36  0.00    0.00               1.92    0.00              0.02            
-SafariBookmarksSyncAgent           2625   0.24      34.79  0.00    0.00               1.92    0.00              0.01            
-Code Helper                        1346   0.07      62.27  0.00    0.00               1.92    0.00              0.01            
-callservicesd                      409    0.18      44.05  0.00    0.00               1.92    0.00              0.01            
-SubmitDiagInfo                     1298   0.18      65.13  0.00    0.00               1.92    0.00              0.01            
-Google Chrome Helper (Renderer)    1639   0.18      82.57  0.00    0.00               1.92    0.00              0.01            
-Codex (Service)                    1794   0.12      14.25  0.00    0.00               1.92    0.00              0.01            
-locationd                          151    0.13      31.14  0.00    0.00               1.92    0.00              0.01            
-codex                              1622   0.18      48.33  0.00    0.00               3.84    0.00              0.01            
-Google Chrome Helper               1390   0.07      49.13  0.00    0.00               1.92    0.00              0.00            
-ALL_TASKS                          -2     8495.55   93.63  510.98  7.68               1644.36 144.07            18756.63         
+DEAD_TASKS                         -1     7713.35   96.15  0.00    0.00               0.00    0.00              17910.07         
+powermetrics                       60991  34.57     25.50  0.00    0.00               1.93    0.00              54.72           
+coreaudiod                         316    42.85     84.07  9.65    1.93               79.17   9.65              22.15           
+Google Chrome Helper (Renderer)    30643  103.71    93.62  5.79    0.00               5.79    0.00              19.00           
+claude                             4236   9.56      83.96  0.00    0.00               9.65    0.00              14.28           
+claude                             3016   9.67      79.12  0.00    0.00               17.38   0.00              13.45           
+audioanalyticsd                    51577  40.91     89.79  0.00    0.00               1.93    0.00              13.15           
+sleep                              60995  13.13     39.28  0.00    0.00               0.00    0.00              38.36           
+mdworker_shared                    60201  39.06     80.79  0.00    0.00               0.00    0.00              4.12            
+mds_stores                         269    49.75     90.40  0.00    0.00               0.00    0.00              3.97            
+mdworker_shared                    60725  37.37     79.78  0.00    0.00               0.00    0.00              3.89            
+claude                             6731   8.44      90.37  0.00    1.93               7.72    0.00              3.55            
+kernel_task                        0      27.10     0.00   401.65  0.00               492.40  15.45             3.40            
+zsh                                56041  1.28      23.29  7.72    0.00               7.72    3.86              3.27            
+claude                             3637   8.12      93.07  0.00    0.00               5.79    0.00              2.56            
+Google Chrome Helper               1153   12.24     62.23  0.00    0.00               59.86   5.79              1.74            
+callservicesd                      36326  5.29      54.99  0.00    0.00               0.00    0.00              1.34            
+mds                                132    16.63     48.21  0.00    0.00               1.93    0.00              1.25            
+claude                             3806   2.58      87.63  0.00    0.00               9.65    0.00              1.11            
+claude                             3477   2.47      78.68  0.00    0.00               11.59   0.00              1.11            
+diagnosticd                        36291  3.16      67.17  0.00    0.00               0.00    0.00              1.08            
+airportd                           226    10.89     56.74  0.00    0.00               1.93    0.00              0.86            
+diagnosticd                        55057  2.39      63.64  0.00    0.00               0.00    0.00              0.83            
+claude                             3721   1.14      82.49  0.00    0.00               7.72    0.00              0.78            
+claude                             2837   1.66      81.61  0.00    0.00               13.52   1.93              0.69            
+com.apple.DriverKit-AppleBCMWLAN   349    6.20      52.81  0.00    0.00               42.48   0.00              0.64            
+Terminal                           418    2.73      42.97  0.00    0.00               3.86    0.00              0.62            
+SpringBoard                        36243  5.04      69.43  0.00    0.00               61.79   0.00              0.59            
+Code Helper                        1147   4.42      54.85  0.00    0.00               30.90   1.93              0.54            
+mdworker_shared                    60099  6.62      42.89  0.00    0.00               0.00    0.00              0.49            
+WindowServer                       173    1.21      42.17  3.86    0.00               13.52   0.00              0.40            
+com.apple.geod                     53019  1.89      15.93  0.00    0.00               1.93    0.00              0.39            
+Code Helper                        1253   3.38      54.08  25.10   0.00               36.69   0.00              0.39            
+clocksyncd                         337    1.98      49.54  0.00    0.00               0.00    0.00              0.38            
+ControlCenter                      432    1.95      58.74  0.00    0.00               1.93    0.00              0.36            
+Code Helper                        1254   1.04      25.74  1.93    0.00               5.79    0.00              0.32            
+mdworker_shared                    59875  3.50      51.33  0.00    0.00               0.00    0.00              0.25            
+Code Helper (Renderer)             1169   2.93      85.29  0.00    0.00               7.72    0.00              0.24            
+Claude                             74182  1.59      62.41  9.65    0.00               21.24   0.00              0.22            
+remoting_me2me_host                1331   2.51      60.33  0.00    0.00               1.93    0.00              0.20            
+logd                               102    2.11      58.04  0.00    0.00               0.00    0.00              0.17            
+fseventsd                          107    1.26      45.88  0.00    0.00               3.86    0.00              0.16            
+Google Chrome                      420    2.11      37.09  0.00    0.00               9.65    0.00              0.16            
+symptomsd                          263    2.07      69.54  0.00    0.00               0.00    0.00              0.15            
+contextstored                      142    1.66      51.22  0.00    0.00               0.00    0.00              0.13            
+loginwindow                        178    0.61      71.88  0.00    0.00               9.65    0.00              0.09            
+mDNSResponder                      229    0.89      41.48  5.79    0.00               9.65    0.00              0.09            
+Claude Helper (Renderer)           74281  0.68      86.91  0.00    0.00               5.79    0.00              0.09            
+locationd                          151    0.89      54.97  0.00    0.00               3.86    0.00              0.09            
+com.apple.DriverKit.AppleUserECM   347    0.82      32.71  0.00    0.00               3.86    0.00              0.09            
+Google Chrome Helper (Renderer)    1209   1.11      31.38  0.00    0.00               0.00    0.00              0.07            
+node                               2873   0.22      84.36  1.93    0.00               3.86    0.00              0.07            
+LINE                               430    0.29      59.05  0.00    0.00               3.86    0.00              0.06            
+mobiletimerd                       55930  0.20      20.63  0.00    0.00               1.93    0.00              0.06            
+lockoutagent                       1017   0.21      34.66  0.00    0.00               1.93    0.00              0.06            
+qemu-system-aarch64                38740  0.39      60.87  1.93    0.00               5.79    0.00              0.05            
+nearbyd                            1007   0.20      31.19  0.00    0.00               1.93    0.00              0.05            
+spotlightknowledged.importer       4004   0.77      37.98  0.00    0.00               0.00    0.00              0.05            
+nsurlsessiond                      232    0.18      20.26  0.00    0.00               1.93    0.00              0.04            
+cloudd                             36322  0.17      23.76  0.00    0.00               1.93    0.00              0.04            
+Google Chrome Helper (Renderer)    30628  0.24      68.59  0.00    0.00               7.72    0.00              0.04            
+Finder                             435    0.14      37.48  0.00    0.00               0.00    0.00              0.04            
+Google Chrome Helper (Renderer)    1208   0.54      40.78  0.00    0.00               0.00    0.00              0.03            
+claude                             95180  0.02      19.14  0.00    0.00               1.93    0.00              0.03            
+dasd                               155    0.11      22.47  0.00    0.00               1.93    0.00              0.02            
+Dock                               431    0.09      19.89  0.00    0.00               1.93    0.00              0.02            
+Messages                           425    0.09      23.40  0.00    0.00               1.93    0.00              0.02            
+Google Chrome Helper (Renderer)    30638  0.26      68.23  0.00    0.00               5.79    0.00              0.02            
+thermalmonitord                    141    0.40      43.71  0.00    0.00               1.93    0.00              0.02            
+UVCAssistant                       315    0.07      28.24  0.00    0.00               1.93    0.00              0.02            
+replayd                            55606  0.06      18.15  0.00    0.00               1.93    0.00              0.02            
+WallpaperAerialsExtension          463    0.07      14.74  0.00    0.00               1.93    0.00              0.02            
+Notes                              424    0.23      25.15  0.00    0.00               1.93    0.00              0.01            
+Google Chrome Helper (Renderer)    30664  0.30      76.71  0.00    0.00               3.86    0.00              0.01            
+gamepolicyd                        298    0.14      36.34  0.00    0.00               1.93    0.00              0.01            
+Claude Helper                      74224  0.15      53.53  0.00    0.00               3.86    0.00              0.01            
+ThemeWidgetControlViewService      6621   0.12      21.68  0.00    0.00               1.93    0.00              0.01            
+Code Helper                        1305   0.03      42.66  0.00    0.00               1.93    0.00              0.01            
+sharingd                           479    0.11      57.99  0.00    0.00               0.00    0.00              0.01            
+wifip2pd                           54401  0.09      42.41  0.00    0.00               0.00    0.00              0.01            
+Google Chrome Helper               1157   0.06      45.80  0.00    0.00               1.93    0.00              0.00            
+ALL_TASKS                          -2     8253.94   94.54  475.25  3.86               1081.88 38.64             18097.39         
 
 **** Processor usage ****
 
 E-Cluster Online: 100%
-E-Cluster HW active frequency: 2261 MHz
-E-Cluster HW active residency:  65.11% (900 MHz: 4.1% 1080 MHz:  26% 1476 MHz: .10% 1860 MHz: 2.1% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:  61% 2892 MHz: 6.9%)
-E-Cluster idle residency:  34.89%
-CPU 0 frequency: 2587 MHz
-CPU 0 active residency:  57.56% (900 MHz: .66% 1080 MHz: 8.6% 1476 MHz: .00% 1860 MHz: .69% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  48%)
-CPU 0 idle residency:  42.44%
-CPU 1 frequency: 2608 MHz
-CPU 1 active residency:  56.22% (900 MHz: .26% 1080 MHz: 8.2% 1476 MHz: .01% 1860 MHz: .61% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  47%)
-CPU 1 idle residency:  43.78%
-CPU 2 frequency: 2749 MHz
-CPU 2 active residency:  50.59% (900 MHz: .23% 1080 MHz: 3.6% 1476 MHz:   0% 1860 MHz: .31% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  46%)
-CPU 2 idle residency:  49.41%
-CPU 3 frequency: 2786 MHz
-CPU 3 active residency:  49.13% (900 MHz: .15% 1080 MHz: 2.6% 1476 MHz:   0% 1860 MHz: .11% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  46%)
-CPU 3 idle residency:  50.87%
-CPU 4 frequency: 2678 MHz
-CPU 4 active residency:  53.44% (900 MHz: .06% 1080 MHz: 6.2% 1476 MHz:   0% 1860 MHz: .03% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  47%)
-CPU 4 idle residency:  46.56%
-CPU 5 frequency: 2824 MHz
-CPU 5 active residency:  50.90% (900 MHz: .05% 1080 MHz: 1.7% 1476 MHz:   0% 1860 MHz: .31% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  49%)
-CPU 5 idle residency:  49.10%
+E-Cluster HW active frequency: 2253 MHz
+E-Cluster HW active residency:  64.03% (900 MHz: 3.8% 1080 MHz:  28% 1476 MHz:   0% 1860 MHz: 1.2% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:  61% 2892 MHz: 6.0%)
+E-Cluster idle residency:  35.97%
+CPU 0 frequency: 2513 MHz
+CPU 0 active residency:  58.37% (900 MHz: .41% 1080 MHz:  11% 1476 MHz:   0% 1860 MHz: .58% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  46%)
+CPU 0 idle residency:  41.63%
+CPU 1 frequency: 2557 MHz
+CPU 1 active residency:  59.21% (900 MHz: .19% 1080 MHz:  11% 1476 MHz:   0% 1860 MHz: .20% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  48%)
+CPU 1 idle residency:  40.79%
+CPU 2 frequency: 2733 MHz
+CPU 2 active residency:  52.01% (900 MHz: .28% 1080 MHz: 4.1% 1476 MHz:   0% 1860 MHz: .24% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  47%)
+CPU 2 idle residency:  47.99%
+CPU 3 frequency: 2707 MHz
+CPU 3 active residency:  52.60% (900 MHz: .07% 1080 MHz: 5.0% 1476 MHz:   0% 1860 MHz: .48% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  47%)
+CPU 3 idle residency:  47.40%
+CPU 4 frequency: 2826 MHz
+CPU 4 active residency:  48.23% (900 MHz: .07% 1080 MHz: 1.6% 1476 MHz:   0% 1860 MHz: .04% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  46%)
+CPU 4 idle residency:  51.77%
+CPU 5 frequency: 2854 MHz
+CPU 5 active residency:  47.56% (900 MHz: .10% 1080 MHz: .89% 1476 MHz:   0% 1860 MHz:   0% 2172 MHz:   0% 2496 MHz:   0% 2808 MHz:   0% 2892 MHz:  47%)
+CPU 5 idle residency:  52.44%
 
-P-Cluster HW active frequency: 3855 MHz
-P-Cluster HW active residency:  81.34% (912 MHz: 2.7% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz: 1.6% 3096 MHz: 1.2% 3300 MHz: .22% 3468 MHz: .07% 3624 MHz: .04% 3756 MHz: .02% 3876 MHz:   0% 3936 MHz:  64% 3984 MHz: 5.4% 4044 MHz:  25% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
-P-Cluster idle residency:  18.66%
-CPU 6 frequency: 4441 MHz
-CPU 6 active residency:  63.97% (912 MHz: .11% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz: .24% 3096 MHz: .31% 3300 MHz: .03% 3468 MHz: .02% 3624 MHz: .00% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz: .03% 3984 MHz: .01% 4044 MHz:   0% 4104 MHz: .01% 4416 MHz: 4.5% 4464 MHz:  59%)
-CPU 6 idle residency:  36.03%
-CPU 7 frequency: 4457 MHz
-CPU 7 active residency:  58.56% (912 MHz: .03% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz: .00% 3096 MHz: .03% 3300 MHz:   0% 3468 MHz: .00% 3624 MHz:   0% 3756 MHz: .01% 3876 MHz:   0% 3936 MHz: .04% 3984 MHz: .01% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 4.4% 4464 MHz:  54%)
-CPU 7 idle residency:  41.44%
-CPU 8 frequency: 4413 MHz
-CPU 8 active residency:  70.44% (912 MHz: .07% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz: 1.1% 3096 MHz: .67% 3300 MHz: .08% 3468 MHz: .02% 3624 MHz: .00% 3756 MHz: .00% 3876 MHz:   0% 3936 MHz: .19% 3984 MHz: .19% 4044 MHz:   0% 4104 MHz: .00% 4416 MHz: 7.9% 4464 MHz:  60%)
-CPU 8 idle residency:  29.56%
-CPU 9 frequency: 4457 MHz
-CPU 9 active residency:  59.05% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz: .01% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz: .26% 3984 MHz: .00% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 4.8% 4464 MHz:  54%)
-CPU 9 idle residency:  40.95%
+P-Cluster HW active frequency: 3871 MHz
+P-Cluster HW active residency:  81.00% (912 MHz: 2.2% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz: 1.1% 2868 MHz: 1.4% 3096 MHz: .04% 3300 MHz:   0% 3468 MHz: .47% 3624 MHz: .06% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:  63% 3984 MHz: 3.2% 4044 MHz:  29% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
+P-Cluster idle residency:  19.00%
+CPU 6 frequency: 4452 MHz
+CPU 6 active residency:  61.71% (912 MHz: .05% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz:   0% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz: .36% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz: .02% 4416 MHz: 3.8% 4464 MHz:  57%)
+CPU 6 idle residency:  38.29%
+CPU 7 frequency: 4446 MHz
+CPU 7 active residency:  62.57% (912 MHz: .01% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz: .00% 2868 MHz: .40% 3096 MHz: .02% 3300 MHz:   0% 3468 MHz: .10% 3624 MHz: .00% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 6.6% 4464 MHz:  55%)
+CPU 7 idle residency:  37.43%
+CPU 8 frequency: 4456 MHz
+CPU 8 active residency:  57.78% (912 MHz: .02% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz: .04% 2868 MHz: .01% 3096 MHz: .00% 3300 MHz:   0% 3468 MHz: .09% 3624 MHz: .01% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 3.4% 4464 MHz:  54%)
+CPU 8 idle residency:  42.22%
+CPU 9 frequency: 4409 MHz
+CPU 9 active residency:  64.28% (912 MHz:   0% 1260 MHz:   0% 1512 MHz:   0% 1800 MHz:   0% 2088 MHz:   0% 2352 MHz:   0% 2616 MHz: .91% 2868 MHz: .99% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz: .12% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz: 3.4% 4464 MHz:  59%)
+CPU 9 idle residency:  35.72%
 
-CPU Power: 11209 mW
-GPU Power: 17 mW
+CPU Power: 11174 mW
+GPU Power: 0 mW
 ANE Power: 0 mW
-Combined Power (CPU + GPU + ANE): 11226 mW
+Combined Power (CPU + GPU + ANE): 11174 mW
 
 **** GPU usage ****
 
-GPU HW active frequency: 720 MHz
-GPU HW active residency:   6.14% (338 MHz: 1.0% 618 MHz:   0% 796 MHz: 5.1% 928 MHz:   0% 952 MHz:   0% 1056 MHz:   0% 1053 MHz:   0% 1170 MHz:   0% 1152 MHz:   0% 1278 MHz:   0% 1204 MHz:   0% 1338 MHz:   0% 1326 MHz:   0% 1470 MHz:   0% 1578 MHz:   0%)
-GPU SW requested state: (P1 :   0% P2 :   0% P3 : 100% P4 :   0% P5 :   0% P6 :   0% P7 :   0% P8 :   0% P9 :   0% P10 :   0% P11 :   0% P12 :   0% P13 :   0% P14 :   0% P15 :   0%)
-GPU SW state: (SW_P1 : 1.0% SW_P2 :   0% SW_P3 : 5.1% SW_P4 :   0% SW_P5 :   0% SW_P6 :   0% SW_P7 :   0% SW_P8 :   0% SW_P9 :   0% SW_P10 :   0% SW_P11 :   0% SW_P12 :   0% SW_P13 :   0% SW_P14 :   0% SW_P15 :   0%)
-GPU idle residency:  93.86%
-GPU Power: 17 mW
+GPU HW active frequency: 0 MHz
+GPU HW active residency:   0.00% (338 MHz:   0% 618 MHz:   0% 796 MHz:   0% 928 MHz:   0% 952 MHz:   0% 1056 MHz:   0% 1053 MHz:   0% 1170 MHz:   0% 1152 MHz:   0% 1278 MHz:   0% 1204 MHz:   0% 1338 MHz:   0% 1326 MHz:   0% 1470 MHz:   0% 1578 MHz:   0%)
+GPU SW requested state: (P1 :   0% P2 :   0% P3 :   0% P4 :   0% P5 :   0% P6 :   0% P7 :   0% P8 :   0% P9 :   0% P10 :   0% P11 :   0% P12 :   0% P13 :   0% P14 :   0% P15 :   0%)
+GPU SW state: (SW_P1 :   0% SW_P2 :   0% SW_P3 :   0% SW_P4 :   0% SW_P5 :   0% SW_P6 :   0% SW_P7 :   0% SW_P8 :   0% SW_P9 :   0% SW_P10 :   0% SW_P11 :   0% SW_P12 :   0% SW_P13 :   0% SW_P14 :   0% SW_P15 :   0%)
+GPU idle residency: 100.00%
+GPU Power: 0 mW
 
+proc_pidpath 1244 failed(0)
+proc_pidpath 2363 failed(0)
+proc_pidpath 2365 failed(0)
+proc_pidpath 3918 failed(0)
+proc_pidpath 6719 failed(0)
+proc_pidpath 6878 failed(0)
+proc_pidpath 24628 failed(0)
+proc_pidpath 24979 failed(0)
+proc_pidpath 28019 failed(0)
+proc_pidpath 36947 failed(0)
+proc_pidpath 37623 failed(0)
+proc_pidpath 51424 failed(0)
+proc_pidpath 51463 failed(0)
+proc_pidpath 56848 failed(0)
+proc_pidpath 69058 failed(0)
 Second underflow occured.
 
 
-*** Sampled system activity (Sat Aug 15 18:38:18 2026 +0800) (517.35ms elapsed) ***
+*** Sampled system activity (Fri Aug 28 02:01:45 2026 +0800) (518.23ms elapsed) ***
 
 *** Running tasks ***
 
 Name                               ID     CPU ms/s  User%  Deadlines (<2 ms, 2-5 ms)  Wakeups (Intr, Pkg idle)  Energy Impact
-powermetrics                       23234  49.13     11.68  0.00    0.00               1.92    0.00              60.09           
-claude                             2506   136.40    92.23  13.45   9.61               71.10   19.22             58.23           
-claude                             97561  22.06     84.89  0.00    1.92               26.90   5.76              13.53           
-Terminal                           396    71.69     86.85  0.00    0.00               3.84    3.84              10.13           
-Claude Helper                      1448   108.34    54.76  0.00    0.00               124.90  48.04             8.35            
-DEAD_TASKS                         -1     8.63      14.44  0.00    0.00               1.93    0.00              7.20            
-claude                             2670   12.28     88.79  0.00    0.00               13.45   0.00              5.18            
-WindowServer                       173    43.02     44.51  0.00    0.00               65.33   15.37             4.00            
-kernel_task                        0      53.71     0.00   190.23  1.92               539.96  230.59            3.39            
-Claude                             401    39.76     77.52  7.69    0.00               76.86   40.35             2.97            
-Claude Helper (Renderer)           1739   30.32     74.97  0.00    0.00               24.98   7.69              2.43            
-claude                             3362   15.83     91.15  1.92    0.00               17.29   3.84              1.99            
-sysmond                            1770   14.33     22.47  0.00    0.00               0.00    0.00              1.99            
-pgrep                              23243  800.73    27.29  0.00    0.00               0.00    0.00              103.66          
-com.apple.DriverKit-AppleBCMWLAN   312    18.31     55.07  0.00    0.00               263.25  142.19            1.36            
-Finder                             413    16.31     41.41  0.00    0.00               3.84    1.92              1.09            
-claude                             2431   4.25      87.56  0.00    0.00               11.53   1.92              0.97            
-claude                             2557   2.72      86.28  0.00    0.00               11.53   1.92              0.94            
-claude                             3042   4.14      91.76  0.00    0.00               13.45   3.84              0.85            
-runningboardd                      178    8.69      68.16  0.00    0.00               0.00    0.00              0.57            
-ChatGPT                            1713   8.53      64.23  34.59   0.00               65.33   30.74             0.56            
-zsh                                23242  176.46    14.43  0.00    0.00               0.00    0.00              27.90           
-zsh                                23241  192.13    16.19  0.00    0.00               0.00    0.00              21.73           
-clocksyncd                         334    3.59      45.26  0.00    0.00               0.00    0.00              0.31            
-ControlCenter                      411    3.03      58.21  0.00    0.00               0.00    0.00              0.27            
-Code Helper                        1537   4.44      54.36  30.74   0.00               42.27   30.74             0.26            
-zsh                                18891  2.70      22.27  0.00    0.00               0.00    0.00              0.17            
-coreauthd                          1198   2.64      16.52  0.00    0.00               0.00    0.00              0.16            
-sharingd                           447    1.75      67.67  0.00    0.00               1.92    0.00              0.12            
-diskarbitrationd                   135    1.75      70.73  0.00    0.00               0.00    0.00              0.11            
-Claude Helper                      2006   0.87      29.45  0.00    0.00               1.92    0.00              0.10            
-rapportd                           398    1.28      73.03  0.00    0.00               0.00    0.00              0.09            
-nearbyd                            1348   1.17      65.99  0.00    0.00               0.00    0.00              0.09            
-launchd                            1      1.46      55.34  0.00    0.00               0.00    0.00              0.08            
-loginwindow                        177    1.18      69.25  0.00    0.00               11.53   1.92              0.08            
-gamepolicyd                        289    1.10      62.22  0.00    0.00               0.00    0.00              0.06            
-com.apple.DriverKit.AppleUserECM   309    1.15      27.06  0.00    0.00               3.84    0.00              0.06            
-mDNSResponder                      237    0.98      39.79  3.84    0.00               7.69    3.84              0.05            
-mobiletimerd                       460    0.45      19.08  0.00    0.00               1.92    1.92              0.04            
-Claude Helper                      2005   0.81      36.09  0.00    0.00               1.92    0.00              0.04            
-Google Chrome                      406    0.98      71.57  0.00    0.00               3.84    0.00              0.04            
-Python                             71639  0.11      53.33  0.00    0.00               1.92    0.00              0.04            
-Code Helper (Renderer)             1466   0.81      84.76  0.00    0.00               1.92    1.92              0.03            
-Code Helper                        1538   0.62      45.69  1.92    0.00               3.84    0.00              0.03            
-logd                               102    0.64      28.67  0.00    0.00               0.00    0.00              0.03            
-airportd                           245    0.46      25.39  0.00    0.00               3.84    0.00              0.03            
-lockoutagent                       827    0.46      29.66  0.00    0.00               1.92    0.00              0.02            
-Code Helper (Plugin)               1557   0.33      49.76  1.92    0.00               3.84    0.00              0.02            
-Code Helper                        1346   0.36      71.14  0.00    0.00               1.92    1.92              0.02            
-UserEventAgent                     105    0.27      17.94  0.00    0.00               0.00    0.00              0.01            
-searchpartyuseragent               1406   0.18      16.58  0.00    0.00               1.92    0.00              0.01            
-Code Helper (Plugin)               1698   0.25      48.36  1.92    0.00               3.84    3.84              0.01            
-com.apple.dock.extra               441    0.16      17.39  0.00    0.00               1.92    0.00              0.01            
-node                               2583   0.23      75.05  1.92    0.00               3.84    3.84              0.01            
-Google Chrome Helper               1390   0.13      14.92  0.00    0.00               1.92    0.00              0.01            
-mediaanalysisd                     511    0.18      31.25  0.00    0.00               1.92    0.00              0.01            
-replayd                            454    0.10      18.80  0.00    0.00               1.92    0.00              0.01            
-corespotlightd                     444    0.11      13.87  0.00    0.00               3.84    0.00              0.01            
-codex                              1857   0.11      54.36  0.00    0.00               1.92    1.92              0.01            
-Code Helper                        1651   0.05      43.80  0.00    0.00               1.92    0.00              0.00            
-mDNSResponderHelper                266    0.08      30.99  0.00    0.00               1.92    1.92              0.00            
-ALL_TASKS                          -2     727.26    60.07  291.87  13.53              1469.02 614.67            191.66          
+powermetrics                       60991  49.71     13.42  0.00    0.00               1.91    0.00              55.07           
+Google Chrome Helper (Renderer)    30643  120.79    91.49  7.66    0.00               9.57    7.66              11.63           
+claude                             3806   14.88     85.22  0.00    0.00               13.40   1.91              9.53            
+DEAD_TASKS                         -1     7.20      16.23  0.00    0.00               1.93    0.00              8.62            
+Terminal                           418    42.46     85.10  0.00    0.00               5.74    0.00              3.67            
+coreaudiod                         316    40.38     86.01  0.00    0.00               93.81   36.37             3.22            
+claude                             3477   15.51     87.68  0.00    0.00               7.66    3.83              2.68            
+kernel_task                        0      35.12     0.00   105.29  0.00               216.33  128.27            1.90            
+WindowManager                      402    8.64      91.92  0.00    0.00               0.00    0.00              1.59            
+Finder                             435    22.27     49.24  0.00    0.00               5.74    1.91              1.38            
+corespotlightd                     475    18.43     54.93  0.00    0.00               3.83    0.00              1.30            
+Google Chrome Helper               1153   12.23     48.50  0.00    0.00               61.26   22.97             0.93            
+WindowServer                       173    7.61      57.07  1.91    0.00               7.66    3.83              0.69            
+Google Chrome                      420    11.90     61.76  0.00    0.00               7.66    1.91              0.55            
+runningboardd                      177    8.74      68.66  0.00    0.00               0.00    0.00              0.54            
+claude                             3637   5.24      81.02  0.00    0.00               13.40   5.74              0.53            
+claude                             6731   5.07      81.20  0.00    1.91               15.32   0.00              0.52            
+com.apple.DriverKit-AppleBCMWLAN   349    8.52      53.94  0.00    0.00               57.43   34.46             0.47            
+Google Chrome Helper               1154   6.42      70.86  0.00    0.00               9.57    3.83              0.41            
+claude                             3016   3.85      89.67  0.00    0.00               7.66    3.83              0.37            
+zsh                                56041  2.11      19.14  1.91    0.00               1.91    0.00              0.35            
+claude                             4236   4.39      79.05  0.00    0.00               11.49   3.83              0.35            
+SpringBoard                        36243  4.87      63.37  0.00    0.00               61.26   28.72             0.31            
+Code Helper                        1147   4.59      45.67  0.00    0.00               30.63   19.14             0.30            
+callservicesd                      36326  3.98      33.58  0.00    0.00               0.00    0.00              0.28            
+BiomeAgent                         52516  4.53      62.73  0.00    0.00               0.00    0.00              0.27            
+Code Helper                        1253   4.27      53.75  24.89   0.00               34.46   17.23             0.23            
+mDNSResponder                      229    3.88      39.67  7.66    0.00               13.40   0.00              0.22            
+clocksyncd                         337    3.71      45.58  0.00    0.00               0.00    0.00              0.21            
+ControlCenter                      432    3.28      57.30  0.00    0.00               0.00    0.00              0.19            
+SetStoreUpdateService              53101  3.04      62.25  0.00    0.00               0.00    0.00              0.19            
+qemu-system-aarch64                38740  2.72      70.82  3.83    9.57               21.06   7.66              0.14            
+claude                             3721   3.01      66.18  0.00    0.00               9.57    3.83              0.12            
+Code Helper (Renderer)             1169   2.53      77.88  0.00    0.00               1.91    0.00              0.12            
+claude                             2837   2.87      70.62  0.00    0.00               7.66    1.91              0.11            
+diskarbitrationd                   135    1.89      74.30  0.00    0.00               0.00    0.00              0.11            
+Google Chrome Helper (Renderer)    1208   2.23      51.92  0.00    0.00               0.00    0.00              0.11            
+sysmond                            55338  5.16      25.69  0.00    0.00               0.00    0.00              0.10            
+Google Chrome Helper (Renderer)    30628  2.28      64.99  0.00    0.00               5.74    1.91              0.10            
+Claude                             74182  2.13      60.64  7.66    0.00               15.32   9.57              0.10            
+spotlightknowledged.updater        52538  1.77      63.77  0.00    0.00               0.00    0.00              0.10            
+loginwindow                        178    1.49      59.21  0.00    0.00               13.40   1.91              0.07            
+Google Chrome Helper (Renderer)    1209   1.31      53.00  0.00    0.00               0.00    0.00              0.06            
+Claude Helper                      74224  1.95      87.73  0.00    0.00               1.91    1.91              0.06            
+gamepolicyd                        298    1.07      64.59  0.00    0.00               0.00    0.00              0.06            
+wifip2pd                           54401  1.28      24.88  0.00    0.00               0.00    0.00              0.06            
+launchd                            1      1.46      47.89  0.00    0.00               0.00    0.00              0.06            
+com.apple.DriverKit.AppleUserECM   347    1.22      27.97  0.00    0.00               3.83    1.91              0.05            
+watchdogd                          129    0.79      24.84  0.00    0.00               1.91    1.91              0.05            
+logd                               102    0.83      24.14  0.00    0.00               0.00    0.00              0.05            
+configd                            116    0.82      20.43  0.00    0.00               0.00    0.00              0.05            
+Google Chrome Helper (Renderer)    1366   0.59      73.72  0.00    0.00               0.00    0.00              0.04            
+WallpaperAerialsExtension          463    0.73      26.26  0.00    0.00               5.74    5.74              0.04            
+fileproviderd                      466    0.48      52.34  0.00    0.00               3.83    1.91              0.02            
+securityd                          149    0.43      42.62  0.00    0.00               0.00    0.00              0.02            
+nsurlsessiond                      427    0.35      24.45  0.00    0.00               1.91    0.00              0.02            
+LINE                               430    0.36      68.99  0.00    0.00               3.83    3.83              0.02            
+airportd                           226    0.29      58.77  0.00    0.00               0.00    0.00              0.02            
+ContinuityCaptureAgent             411    0.28      21.70  0.00    0.00               3.83    1.91              0.01            
+nsurlsessiond                      36297  0.26      32.22  0.00    0.00               1.91    0.00              0.01            
+UserEventAgent                     105    0.23      15.92  0.00    0.00               0.00    0.00              0.01            
+geod                               36308  0.26      31.78  0.00    0.00               1.91    0.00              0.01            
+locationd                          36267  0.27      32.66  0.00    0.00               1.91    0.00              0.01            
+Claude Helper (Renderer)           74281  0.31      83.06  0.00    0.00               1.91    1.91              0.01            
+Code Helper (Plugin)               1296   0.27      49.45  1.91    0.00               3.83    1.91              0.01            
+opendirectoryd                     144    0.20      25.77  0.00    0.00               0.00    0.00              0.01            
+logd                               36244  0.22      45.36  0.00    0.00               0.00    0.00              0.01            
+node                               4254   0.23      76.91  1.91    0.00               3.83    1.91              0.01            
+node                               3823   0.23      76.03  1.91    0.00               3.83    3.83              0.01            
+sharingd                           479    0.15      58.79  0.00    0.00               0.00    0.00              0.01            
+trustd                             415    0.19      33.57  0.00    0.00               1.91    0.00              0.01            
+SimMetalHost                       36237  0.14      19.48  0.00    0.00               1.91    0.00              0.01            
+mediaanalysisd                     55032  0.14      23.77  0.00    0.00               1.91    0.00              0.01            
+Siri AI                            478    0.15      16.54  0.00    0.00               1.91    0.00              0.01            
+SecurityPrivacyExtension           2877   0.16      17.29  0.00    0.00               1.91    1.91              0.01            
+Code Helper                        1305   0.18      63.46  0.00    0.00               3.83    3.83              0.01            
+mDNSResponderHelper                253    0.09      28.78  0.00    0.00               1.91    1.91              0.00            
+ALL_TASKS                          -2     537.84    63.06  167.88  11.58              835.54  391.72            111.33          
 
 **** Processor usage ****
 
 E-Cluster Online: 100%
 E-Cluster HW active frequency: 0 MHz
-E-Cluster HW active residency:   0.00% (900 MHz: 5.7% 1080 MHz:  67% 1476 MHz: 1.6% 1860 MHz: 6.0% 2172 MHz: 8.7% 2496 MHz: 6.8% 2808 MHz: 3.1% 2892 MHz: 1.5%)
+E-Cluster HW active residency:   0.00% (900 MHz: 4.5% 1080 MHz:  80% 1476 MHz: 1.6% 1860 MHz: 2.9% 2172 MHz: 1.8% 2496 MHz: 4.7% 2808 MHz: 3.1% 2892 MHz: 1.8%)
 E-Cluster idle residency: 100.00%
-CPU 0 frequency: 1415 MHz
-CPU 0 active residency:  21.14% (900 MHz: .62% 1080 MHz:  15% 1476 MHz: .56% 1860 MHz: .53% 2172 MHz: 2.1% 2496 MHz: 1.7% 2808 MHz: .73% 2892 MHz: .37%)
-CPU 0 idle residency:  78.86%
-CPU 1 frequency: 1443 MHz
-CPU 1 active residency:  18.87% (900 MHz: .41% 1080 MHz:  13% 1476 MHz: .23% 1860 MHz: .66% 2172 MHz: 2.5% 2496 MHz: 1.4% 2808 MHz: .69% 2892 MHz: .23%)
-CPU 1 idle residency:  81.13%
-CPU 2 frequency: 1511 MHz
-CPU 2 active residency:  13.19% (900 MHz: .26% 1080 MHz: 7.8% 1476 MHz: .25% 1860 MHz: 1.1% 2172 MHz: 2.5% 2496 MHz: .70% 2808 MHz: .48% 2892 MHz: .10%)
-CPU 2 idle residency:  86.81%
-CPU 3 frequency: 1651 MHz
-CPU 3 active residency:   7.64% (900 MHz: .02% 1080 MHz: 3.7% 1476 MHz: .32% 1860 MHz: .70% 2172 MHz: 1.8% 2496 MHz: .68% 2808 MHz: .34% 2892 MHz: .13%)
-CPU 3 idle residency:  92.36%
-CPU 4 frequency: 1724 MHz
-CPU 4 active residency:   3.33% (900 MHz: .03% 1080 MHz: 1.4% 1476 MHz: .07% 1860 MHz: .50% 2172 MHz: .58% 2496 MHz: .56% 2808 MHz: .17% 2892 MHz: .01%)
-CPU 4 idle residency:  96.67%
-CPU 5 frequency: 1933 MHz
-CPU 5 active residency:   1.08% (900 MHz: .00% 1080 MHz: .34% 1476 MHz: .10% 1860 MHz: .05% 2172 MHz: .16% 2496 MHz: .23% 2808 MHz: .20% 2892 MHz:   0%)
-CPU 5 idle residency:  98.92%
+CPU 0 frequency: 1290 MHz
+CPU 0 active residency:  19.75% (900 MHz: .61% 1080 MHz:  16% 1476 MHz: .41% 1860 MHz: .60% 2172 MHz: .52% 2496 MHz: 1.1% 2808 MHz: .62% 2892 MHz: .22%)
+CPU 0 idle residency:  80.25%
+CPU 1 frequency: 1259 MHz
+CPU 1 active residency:  18.03% (900 MHz: .45% 1080 MHz:  15% 1476 MHz: .24% 1860 MHz: .46% 2172 MHz: .29% 2496 MHz: .75% 2808 MHz: .67% 2892 MHz: .18%)
+CPU 1 idle residency:  81.97%
+CPU 2 frequency: 1294 MHz
+CPU 2 active residency:   8.64% (900 MHz: .25% 1080 MHz: 7.0% 1476 MHz: .02% 1860 MHz: .27% 2172 MHz: .15% 2496 MHz: .51% 2808 MHz: .29% 2892 MHz: .16%)
+CPU 2 idle residency:  91.36%
+CPU 3 frequency: 1457 MHz
+CPU 3 active residency:   4.15% (900 MHz: .11% 1080 MHz: 2.9% 1476 MHz: .02% 1860 MHz: .08% 2172 MHz: .17% 2496 MHz: .65% 2808 MHz: .08% 2892 MHz: .15%)
+CPU 3 idle residency:  95.85%
+CPU 4 frequency: 1273 MHz
+CPU 4 active residency:   1.99% (900 MHz: .04% 1080 MHz: 1.7% 1476 MHz: .01% 1860 MHz: .01% 2172 MHz: .00% 2496 MHz: .11% 2808 MHz: .01% 2892 MHz: .11%)
+CPU 4 idle residency:  98.01%
+CPU 5 frequency: 1402 MHz
+CPU 5 active residency:   0.97% (900 MHz: .01% 1080 MHz: .75% 1476 MHz:   0% 1860 MHz: .02% 2172 MHz: .01% 2496 MHz: .09% 2808 MHz:   0% 2892 MHz: .09%)
+CPU 5 idle residency:  99.03%
 
 P-Cluster HW active frequency: 0 MHz
-P-Cluster HW active residency:   0.00% (912 MHz:  48% 1260 MHz:   0% 1512 MHz:  11% 1800 MHz:  16% 2088 MHz: 5.9% 2352 MHz: 4.0% 2616 MHz: 3.3% 2868 MHz: 4.5% 3096 MHz: .56% 3300 MHz: 5.6% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
+P-Cluster HW active residency:   0.00% (912 MHz:  59% 1260 MHz:   0% 1512 MHz: 7.8% 1800 MHz: 9.0% 2088 MHz: 9.0% 2352 MHz: 5.0% 2616 MHz: .28% 2868 MHz: 1.4% 3096 MHz: 8.5% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
 P-Cluster idle residency: 100.00%
-CPU 6 frequency: 1935 MHz
-CPU 6 active residency:   4.39% (912 MHz: .23% 1260 MHz:   0% 1512 MHz: 1.2% 1800 MHz: 1.2% 2088 MHz: .63% 2352 MHz: .12% 2616 MHz: .40% 2868 MHz: .52% 3096 MHz: .01% 3300 MHz: .01% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
-CPU 6 idle residency:  95.61%
-CPU 7 frequency: 1770 MHz
-CPU 7 active residency:   4.13% (912 MHz: .08% 1260 MHz:   0% 1512 MHz: 1.8% 1800 MHz: 1.2% 2088 MHz: .82% 2352 MHz: .03% 2616 MHz: .05% 2868 MHz: .09% 3096 MHz: .05% 3300 MHz: .01% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
-CPU 7 idle residency:  95.87%
-CPU 8 frequency: 2227 MHz
-CPU 8 active residency:   3.54% (912 MHz: .13% 1260 MHz:   0% 1512 MHz: .30% 1800 MHz: 1.6% 2088 MHz: .34% 2352 MHz: .06% 2616 MHz: .12% 2868 MHz: .06% 3096 MHz:   0% 3300 MHz: .95% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
-CPU 8 idle residency:  96.46%
-CPU 9 frequency: 2064 MHz
-CPU 9 active residency:   2.00% (912 MHz: .09% 1260 MHz:   0% 1512 MHz: .15% 1800 MHz: .61% 2088 MHz: .38% 2352 MHz: .52% 2616 MHz: .08% 2868 MHz: .16% 3096 MHz:   0% 3300 MHz: .01% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
-CPU 9 idle residency:  98.00%
+CPU 6 frequency: 1814 MHz
+CPU 6 active residency:   2.91% (912 MHz: .11% 1260 MHz:   0% 1512 MHz: .84% 1800 MHz: .96% 2088 MHz: .76% 2352 MHz: .17% 2616 MHz: .02% 2868 MHz: .05% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
+CPU 6 idle residency:  97.09%
+CPU 7 frequency: 1911 MHz
+CPU 7 active residency:   2.12% (912 MHz: .01% 1260 MHz:   0% 1512 MHz: .31% 1800 MHz: .75% 2088 MHz: .94% 2352 MHz: .11% 2616 MHz: .00% 2868 MHz: .00% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
+CPU 7 idle residency:  97.88%
+CPU 8 frequency: 1855 MHz
+CPU 8 active residency:   1.70% (912 MHz: .05% 1260 MHz:   0% 1512 MHz: .61% 1800 MHz: .11% 2088 MHz: .77% 2352 MHz: .13% 2616 MHz: .02% 2868 MHz:   0% 3096 MHz:   0% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
+CPU 8 idle residency:  98.30%
+CPU 9 frequency: 2621 MHz
+CPU 9 active residency:   1.97% (912 MHz: .02% 1260 MHz:   0% 1512 MHz: .00% 1800 MHz: .02% 2088 MHz: .53% 2352 MHz: .43% 2616 MHz:   0% 2868 MHz: .04% 3096 MHz: .92% 3300 MHz:   0% 3468 MHz:   0% 3624 MHz:   0% 3756 MHz:   0% 3876 MHz:   0% 3936 MHz:   0% 3984 MHz:   0% 4044 MHz:   0% 4104 MHz:   0% 4416 MHz:   0% 4464 MHz:   0%)
+CPU 9 idle residency:  98.03%
 
-CPU Power: 215 mW
-GPU Power: 21 mW
+CPU Power: 135 mW
+GPU Power: 0 mW
 ANE Power: 0 mW
-Combined Power (CPU + GPU + ANE): 236 mW
+Combined Power (CPU + GPU + ANE): 135 mW
 
 **** GPU usage ****
 
-GPU HW active frequency: 718 MHz
-GPU HW active residency:   7.40% (338 MHz: 1.3% 618 MHz:   0% 796 MHz: 6.1% 928 MHz:   0% 952 MHz:   0% 1056 MHz:   0% 1053 MHz:   0% 1170 MHz:   0% 1152 MHz:   0% 1278 MHz:   0% 1204 MHz:   0% 1338 MHz:   0% 1326 MHz:   0% 1470 MHz:   0% 1578 MHz:   0%)
-GPU SW requested state: (P1 :   0% P2 :   0% P3 : 100% P4 :   0% P5 :   0% P6 :   0% P7 :   0% P8 :   0% P9 :   0% P10 :   0% P11 :   0% P12 :   0% P13 :   0% P14 :   0% P15 :   0%)
-GPU SW state: (SW_P1 : 1.3% SW_P2 :   0% SW_P3 : 6.1% SW_P4 :   0% SW_P5 :   0% SW_P6 :   0% SW_P7 :   0% SW_P8 :   0% SW_P9 :   0% SW_P10 :   0% SW_P11 :   0% SW_P12 :   0% SW_P13 :   0% SW_P14 :   0% SW_P15 :   0%)
-GPU idle residency:  92.60%
-GPU Power: 21 mW
+GPU HW active frequency: 0 MHz
+GPU HW active residency:   0.00% (338 MHz:   0% 618 MHz:   0% 796 MHz:   0% 928 MHz:   0% 952 MHz:   0% 1056 MHz:   0% 1053 MHz:   0% 1170 MHz:   0% 1152 MHz:   0% 1278 MHz:   0% 1204 MHz:   0% 1338 MHz:   0% 1326 MHz:   0% 1470 MHz:   0% 1578 MHz:   0%)
+GPU SW requested state: (P1 :   0% P2 :   0% P3 :   0% P4 :   0% P5 :   0% P6 :   0% P7 :   0% P8 :   0% P9 :   0% P10 :   0% P11 :   0% P12 :   0% P13 :   0% P14 :   0% P15 :   0%)
+GPU SW state: (SW_P1 :   0% SW_P2 :   0% SW_P3 :   0% SW_P4 :   0% SW_P5 :   0% SW_P6 :   0% SW_P7 :   0% SW_P8 :   0% SW_P9 :   0% SW_P10 :   0% SW_P11 :   0% SW_P12 :   0% SW_P13 :   0% SW_P14 :   0% SW_P15 :   0%)
+GPU idle residency: 100.00%
+GPU Power: 0 mW
 

@@ -167,236 +167,377 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
-# Pre-R49: The ZSTD null mode compared unlike things, and macOS never enables the native zstd gate (2026-08-26)
+# R49-Mac: The first round of macOS native zstd, and a decompression speed to be determined has dropped across the board (2026-08-27)
 
-> **Nature**: An infrastructure fix carrying **no new performance data**, as Pre-R47 was. No benchmark was run.
+> **Goal**: Run a complete round with `sudo ./run_round.command -full` and accept three repairs (swift_tar
+> symlink mtime, the whole round of root execution to solve sudo, `.csv2` name change), and get the first one on macOS
+> native libzstd data. ** This round of data is complete and there is no failure, but there is an overall decline in each column of decode, and the cause has not been determined.
+> The group numbers shall not be cited as a conclusion before the comparison is completed. **
 
-## 1. The two null-mode branches were not measuring the same thing
+Run 2026-08-27 16:29:59 → 08-28 02:16:07, a total of **9 hours and 46 minutes**. Machine `Mac16,10`,
+`os_version` is written as ** `27.0 (26A5421a)` **. Swift_tar `01f724f`.
 
-In `decode-win.bat`'s non-write branch the two sides did different amounts of work:
+## 1. Why can I finish this round (three obstacles of the previous round)
 
-| Branch | Command | Decodes zstd | Parses tar headers |
+The previous attempt (from 13:57 on the same day) fell in `llama.cpp-n40 other3` and left three problems. This round is solved one by one:
+
+| Obstruct | Solution |
+|---|---|
+| `COMPARED_WITH_TGZ_FAILED` | swift_tar `01f724f` Restore symbol link its own mtime |
+| `sudo: a password is required` | The whole round runs with `sudo`, no longer relying on keep-alive |
+| `.csv2` Whether the name change interrupts the process | Not interrupted; both reconstruction and integration are written to the new file name |
+
+**The item of symlink mtime is worth describing its manifestation. **Two tree manifests 45,756 lines each, put mtime
+After the field is covered, there is no difference in every word - the difference is only 67 symlink mtime, and the difference is 962 seconds, which is just the baseline.
+And compare the interval of two decompressions. The decompression result is completely correct. It is that "the link mtime is covered with the current time of decompression" makes any two
+The decompression several minutes apart is bound to be different, and it is inconsistent to read it as two codecs. Bsdtar will restore it, swift_tar
+No - this is a defect that can only be seen after `473a247` is compared with manifest. The old `diff -rq` follows symlink,
+It will never be found.
+
+Results of this round: **48 times of decompression consistency compared with all `COMPARED_WITH_TGZ_OK`, 0 failure**; no full gear
+`FAILED` / `ERROR` / `Traceback`; 54 data, power field **54/54 all have readings**.
+
+## two The success or failure of `run_round.command` has always been bad.
+
+One thing has been identified in this round: `BENCH_DONE` and the exit code of the whole round **is not credible**.
+
+```zsh
+157:    sudo ./benchmark2.zsh >> round_status.txt 2>&1   # 真正的工作
+162: rm -f .bench_env                                    # 永遠成功
+163: rc=$?                                               # 抓到的是 rm 的狀態
+164: if [[ $rc -eq 0 ]]; then echo "BENCH_DONE" ...
+172: exit $rc
+```
+
+`rc=$?` IS LOCATED AFTER `rm -f`, AND `rm -f` ALSO RETLES 0 FOR NON-EXISTENT FILES. Therefore, `BENCH_DONE` unconditionally
+Write that `BENCH_FAILED` can never run, and the whole round will always exit 0. **Previous time `benchmark2.zsh`
+The whole section did not run (power is empty) but returned the success. This is the reason. **
+
+Therefore, the success judgment of this round does not use `BENCH_DONE`, and changes to the mark written by yourself in each step ( `TRACER_DONE`,
+`POWER_BENCHMARK_DONE`, `BENCHMARK_RESULT_REBUILD_DONE`, `POWER_SUMMARY_INTEGRATE_DONE`,
+`BEST_POINTS_ANALYSIS_DONE`, `COMPARISON_DONE`, `MD_TRANSLATE_DONE`), these tags are not subject to this
+The impact of defects. For the amendment, see Article 1 to be done.
+
+## three. Three caliber changes, which fields each affects
+
+| Change | Impact | Can it be subtracted from R48-Mac |
+| --- | --- | --- |
+| native zstd gate open ( `fbf3512`) | ZSTD All | **No** - Changed to the test implementation |
+| `.zst` probe changed to `--cat` ( `9cf0899`) | ZSTD's `decode_rss_mb` | **No** - Changed the caliber |
+| `lz4bench.zsh` Separation ( `8b2870b`) | All | Yes, this round is for its acceptance |
+
+**ZSTD is the only format with compression ratio change** (claw-code 0.7806 → 0.8165, llama.cpp 0.9069 →
+0.9297). The compression ratio of the remaining seven formats is **the same as that of R48-Mac**, which proves that there is no change in the encoder itself.
+It also makes the difference in ZSTD clearly attributed to the actual replacement rather than anything else.
+
+## four. Encode: Roughly flat, the abnormality of BVX3 has been determined to be noise.
+
+Compared with the number of seconds (MB/s is affected by the total amount, and the number of seconds is more intuitive):
+
+| Format | claw-code R48→R49 | llama.cpp R48→R49 |
+| --- | ---: | ---: |
+| TLZ4 | 2.31 → 2.31 (+0.0%) | 3.99 → 4.05 (+1.5%) |
+| Optimal | 39.10 → 39.23 (+0.3%) | 25.30 → 24.90 (−1.6%) |
+| Optimal3 | 21.09 → 20.90 (−0.9%) | 17.78 → 17.65 (−0.7%) |
+| TGZ | 4.36 → 4.37 (+0.2%) | 4.13 → 4.45 (+7.7%) |
+| Lazy2 | 20.32 → 20.57 (+1.2%) | 7.90 → 8.85 (+12.0%) |
+| Other3 | 2.21 → 2.31 (+4.5%) | 3.40 → 3.61 (+6.2%) |
+| Apple | 9.20 → 9.86 (+7.2%) | 8.88 → 10.32 (+16.2%) |
+| **BVX3** | **2.18 → 2.95(+35.3%)** | **3.50 → 6.35 (+81.4%)** |
+| ZSTD | 2.96 → 2.72（−8.1%)| 3.37 → 2.95（−12.5%)|
+
+**BVX3 was measured after the fact and judged to be a one-time interference of this round, not a return. **With exactly the same conditions as this round
+(Swift_tar shim, `-n 40`, the same claw-code) Retest three times to get 2.17/2.25/2.31 seconds, close to
+The 2.18 seconds of R48-Mac is about 23% faster than the 2.95 seconds of this round. Exclude one by one:
+
+- lzfse source code between `c18e327..HEAD` **zero changes**; `compile.sh`→`compile.zsh` only renamed,
+The content `diff` is exactly the same, and `-O` is still there.
+- "BVX3 has high parallelism, so it is more sensitive" is not valid: actual measurement BVX3 9.0×, Other3 8.9×, both are almost the same,
+And the time of the two is the same (both 2.17 seconds) when re-quantacing.
+- The double volume is carried out under the condition of **background load** (loadavg 5.04), which is still faster than the special operation of this round.
+
+** Conclusion: The BVX3 encode two-grid number of R49-Mac is unreliable and will not be used. **The rest of the encode is adopted in each column;
+In particular, Optimal (39 seconds) changes only +0.3% on claw-code, which proves that the computing power of the machine itself has not decreased.
+
+## five. Decode: Seven comparable formats fell by 30-78% across the board, and the cause is to be determined.
+
+| Format | claw-code | llama.cpp |
+| --- | ---: | ---: |
+| Other3 | −48.3% | −77.8% |
+| TLZ4 | −42.7% | −69.9% |
+| Optimal3 | −40.5% | −75.6% |
+| Optimal | −34.2% | −65.1% |
+| TGZ | −33.8% | −75.1% |
+| Lazy2 | −31.4% | −76.3% |
+| Apple | −32.0% | −65.5% |
+| BVX3 | −29.7% | −69.6% |
+| (ZSTD −53.0% / −80.3%, changed to practice, incomparable) | |
+
+**None of them have become faster. **Confirmed facts:
+
+- ** It will reappear. ** As a general user, the claw-code TGZ was decompressed for 3.09/3.26 seconds, which is exactly this round.
+3.17 seconds; R48-Mac is 2.10 seconds. The same is true for the original timing: `llama.cpp.tgz` changed from about 2.9 seconds to 12.34 seconds.
+- ** The decline is directly proportional to the number of documents. **Claw-code 5,402 gear fell by about 34%, llama.cpp 41,576 gear fell by about 75%
+——Point to **cost per file**, not cost per byte.
+- **All formats are decompressed by swift_tar shim** ( `… | tar -xf -`), so it is reasonable to fall together.
+- **The decompression power is increasing. **Claw-code TGZ's `decode_cpu_power_mw` from 4257.5 liters to
+5043.3 mW (+18.5%), that is, the amount of data per unit has done more work, which is consistent with the explanation of the cost per gear.
+- **It's not that the machine slows down. **Optimal encode 39 seconds is only +0.3% between the two rounds.
+
+Excluded causes:
+
+| Hypothesis | Exclusion basis |
+|---|---|
+| root execution trigger chown | swift_tar source code**without any `chown` ** |
+| root execution itself | Get the same slow number with the general user multiplex |
+| Build optimization flag lost | `-O` is still there; `4f496f1` `compile_tar.zsh` of macOS |
+| E-Cluster participation difference (see R48-Mac Section 2) | Both rounds of E-Cluster idle 100%, P-Cluster about 4000 MHz |
+| manifest comparison is counted in timing | The original `Process extract` timing itself has slowed down |
+
+**Two items that have not been excluded, and both are possible:**
+
+1. **Change the version of the operating system. **R48-Mac is `27.0 (26A5406e)`, and this round is ** `27.0 (26A5421a)` **——
+The product version is the same but the build is different. This file has a precedent: `26A5388g`'s powermetrics return CPU Power
+0 mW and `26A5406e` is normal, and both product versions are also 27.0. OS replacement will change the file system writing.
+The path is consistent with the shape of "cost per gear".
+2. **swift_tar's 98 commits. ** A total of 98 strokes between `26a78cc` (used by R48-Mac) and `01f724f`,
+Among them, `4856f36` ( `-p` / `--same-permissions`) directly changes the permission processing of decompression.
+
+For the discrimination method, see Article 2 of Pending.
+
+## six ZSTD: macOS first native libzstd
+
+This round is the first time on macOS to measure the data of libzstd in the swift_tar trip instead of the external `zstd` CLI - the gate is
+`fbf3512` (2026-08-26) joined, before `run_round.command` has never been set
+`LZFSE_REQUIRE_NATIVE_ZSTD`.
+
+| Data Set | Compression Ratio | Enc MB/s | Dec MB/s | Enc RSS | Dec RSS |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.8165 | 521.20 | 490.86 | 385.2MB | 655.8 MB |
+| llama.cpp | 0.9297 | 491.99 | 121.75 | 497.8 MB | 740.0 MB |
+
+**This is a new reference line, and there is no previous value to be reduced. ** It makes no sense to subtract from the ZSTD column of R48-Mac: that's an external CLI.
+RSS jumped from 8–9 MB (external journey) to 385–740 MB - the external branch volume is `zstd.exe` itself,
+The native branch quantity is the whole swift_tar with tar and in-flight buffer.
+
+## seven Data of this round
+
+6 `-n` scans (claw-code and llama.cpp n=40/8/4 each), 54 results, 84 power measurements and
+Powermetrics original output, 53 RSS, trace and CPU call tree analysis each round.
+`lz4bench_log/tree_manifest/` (242 MB, 54 manifest) does not enter the edition: re-generation in each round, and only in this round
+It is meaningful; the diff in the case of failure has preservation value, and that part will be written into `round_status.txt` and
+`lz4bench_log/*.txt`.
+
+## To be done
+
+1. **Repair the `rc=$?` position of `run_round.command` ** (Section 2). Move it to `rm -f .bench_env`
+Before. Before that, any round of `BENCH_DONE` and exit code do not constitute evidence of success, and the judgment must be
+According to your own `*_DONE` mark in each step.
+2. **Determining the cause of the decline of decode** (Secte 5). Build `26a78cc`'s swift_tar in worktree, in
+**Current OS** is timed for the same claw-code: if you get about 2.1 seconds, the reason is in the 98 commit;
+If it is also about 3.1 seconds, it is caused by the OS version change, and the number of R48-Mac is the group that needs to be re-understood.
+**Before this judgment is completed, the decode columns of R49-Mac shall not be referenced as performance conclusions. **
+3. **BVX3 encode two grids are marked as unreliable** (Section 4), and it has been confirmed that it does not reappear.
+4. ** `os_version` should be included in the inspection items of round comparability. **This round is different from the build of R48-Mac and no one notices it.
+I didn't find it until I traced the decode. This field has long been recorded, and what is missing is the step of "re-version is annotation".
+
+---
+
+# Pre-R49: The caliber of ZSTD null mode is not equal to the macOS native zstd gate gap (2026-08-26)
+
+> **Nature**: Infrastructure modification, **does not contain new performance data**, compared with Pre-R47. This round does not run benchmark.
+
+## 1. The two ratios of the null mode are not the same thing.
+
+The non-write branch of `decode-win.bat`, the workload of native and external is different:
+
+| Branch | Instruction | Solve zstd | Parse tar header |
 | --- | --- | :---: | :---: |
-| external | `zstd -d -c > nul` | yes | no |
-| native (before) | `swift_tar -t -f` | yes | yes, every member |
-| native (after) | `swift_tar --cat -f` | yes | no |
+| external | `zstd -d -c > nul` | ✅ | ❌ |
+| native (before revision) | `swift_tar -t -f` | ✅ | ✅ Every member |
+| native (modified) | `swift_tar --cat -f` | ✅ | ❌ |
 
-`-t` lists an archive: it walks every tar header and formats a filename string
-only to discard it. `llama.cpp` holds 40,675 members, so the native side did
-forty thousand header parses that the external side never did -- and the
-native-libzstd-versus-external-`zstd.exe` comparison is precisely the one
-R46-Win-Retest scheduled and that has still not been run.
+`-t` is "list and seal" - it will go through every tar header and group the file name string and then throw it away. `llama.cpp`
+There are 40,675 members, which is equivalent to more than 40,000 header parsing and string formatting on the native side, external side
+Not once. And the comparison of native libzstd with external `zstd.exe` is the conclusion of R46-Win-Retest.
+The one that has been scheduled and has not been implemented so far.
 
-The bias scales with member count, so `llama.cpp` suffers far more than the
-single-large-file `claw-code`. It is therefore not a fixed offset that could be
-subtracted afterwards; it distorts the shape across datasets.
+The deviation is amplified with the number of members: `llama.cpp` The victim is much greater than the `claw-code` of a single large file. Therefore, it is not possible.
+Even the shape between the data sets will be distorted by the fixed offset deducted after the fact.
 
-Both sides now fall back to raw decompression. `--cat` stops after the zstd
-filter and emits the raw tar stream; its output was compared against
-`zstd -d -c` with `cmp` and is **byte-identical**.
+After correction, both ends retreat to pure decompression. `--cat` stops and outputs the original tar stream after zstd filter, and
+The output of `zstd -d -c` is verified by `cmp` **bytes are exactly the same**.
 
-## 2. No published figure is affected by this
+## two No published data is affected by this.
 
-This runs against intuition and is worth stating plainly: **no round has ever
-produced a native ZSTD number.**
+Contrary to intuition, it is worth writing clearly: ** So far, no round of native ZSTD numbers has been generated. **
 
-- R47-Win's ZSTD rows are explicitly labelled **ZSTD (external CLI)**, and that
-  round's first TODO reads "native zstd is still not covered by the benchmark".
-- The gate arrived after R47-Win (`helper_windows/run_round.bat:85` sets
-  `LZFSE_REQUIRE_NATIVE_ZSTD=1`) and no round has yet completed with it.
+- The ZSTD column of R47-Win is clearly marked as **ZSTD (external CLI)**, and the first to-do article of this round is "native
+Zstd is still not covered by benchmark.
+- The gate was made up after R47-Win ( `helper_windows/run_round.bat:85` set
+`LZFSE_REQUIRE_NATIVE_ZSTD=1`), no round has been used to run.
 
-The bias therefore never entered a recorded result. What it would have
-contaminated is the **next Windows round's first native ZSTD figures** -- the
-very numbers this comparison exists to produce. The fix landed before the
-numbers, not after them.
+Therefore, this deviation has never entered any recorded results. It would have contaminated ** the first batch of the next round of Windows.
+Native ZSTD numbers** - and that batch of numbers is the purpose of this comparison. The correction occurred before the number was generated,
+Instead of after that.
 
-## 3. macOS never enables the native zstd gate (not yet fixed)
+## 3. macOS never enables native zstd gate (not yet repaired)
 
-`run_round.command` sets only `LZFSE_REQUIRE_NATIVE_ZLIB` (lines 28, 102, 151)
-and **never sets `LZFSE_REQUIRE_NATIVE_ZSTD`**. `zshrc.zsh` reads it in three
-places (lines 575, 695, 800), none of which the round path can reach.
+`run_round.command` only sets `LZFSE_REQUIRE_NATIVE_ZLIB` (lines 28, 102, 151),
+** `LZFSE_REQUIRE_NATIVE_ZSTD` has never been set**. `zshrc.zsh` There are three places to read it (No. 575, 695,
+800 lines), can't be reached in the whole process.
 
-Consequently:
+Therefore:
 
-- Every ZSTD figure in R48-Mac and earlier rounds comes from the external `zstd`
-  CLI, matching how Windows labels its own.
-- The macOS native zstd path can only be triggered by hand; no automation covers it.
-- The platforms are asymmetric here: Windows has the gate wired, macOS does not.
+- The ZSTD numbers of R48-Mac and previous rounds are all external `zstd` CLI, which is consistent with the display of Windows.
+- The native zstd path on the macOS side can only be triggered manually at present, and there is no automation coverage.
+- The two platforms are asymmetrical here: Windows has a gate, but macOS has not.
 
-This change only puts the macOS `.zst` probe branch on the same caliber (native
-`--cat`, external `zstd -d -c`). The missing gate itself is left as a TODO.
+This time, only the `.zst` probe branch of macOS is aligned to the same caliber (native `--cat`, external
+`zstd -d -c`), the gate notch itself has not been repaired and is pending.
 
-## 4. `memProbe` pipes the measured process's stdout into the measurement
+## four. The stdout of `memProbe` will flow into the measurement pipeline.
 
-A trap hit while changing the macOS side, recorded so it is not repeated.
-`memProbe` is implemented as:
+The traps you stepped on when making changes to the macOS side should be recorded to avoid re-offending. The implementation of `memProbe` is:
 
 ```zsh
 /usr/bin/time -l "$@" 2>&1 | awk '/maximum resident set size/ {...}'
 ```
 
-The measured process's **stdout flows into awk**. That is harmless for `-t`,
-which emits filenames, but `--cat` would push the entire tar stream through the
-pipe and charge those writes to the process under measurement -- which would no
-longer be measuring decompression alone.
+The **stdout of the test process will flow into awk**. `-t` It's okay to just spit out the file name, but `--cat` will stream the whole tar.
+Infusion pipelines, the cost of writing pipelines will be recorded in the test process - the measured is no longer just decompression.
 
-The redirect is written as `sh -c 'exec "$@" >/dev/null'`: `exec` replaces the
-process image, so `time -l` still measures the target rather than a wrapper.
-Measured at 10.8 MB, identical to running it directly.
+Change to `sh -c 'exec "$@" >/dev/null'` re-conducting: `exec` replaces the travel image, so `time -l` is measured to
+It's still the goal itself, not an extra layer. The actual measurement is 10.8 MB, which is the same as direct execution.
 
-## 5. Verification
+## five. Verify
 
-On the `swift_tar` side (b33cac1): `-test` passes 16/16,
-`test/test_blind_findings.zsh` reports 138 PASS / 0 FAIL, ZIP `-O` was confirmed
-to put the right bytes on stdout while leaving nothing on disk, and the
-installed binary's SHA-256 matches `release/`.
+`swift_tar` side (b33cac1): `-test` 16/16 pass, `test/test_blind_findings.zsh`
+138 PASS / 0 FAIL, ZIP `-O` Confirm that the stdout is correct and the disk is zero residual, installation version and `release/`
+The SHA-256 is the same.
 
-On the lzfse2 side: `zsh -n zshrc.zsh` passes; both the native and external
-branches were run through `extract <archive> probe`, reporting 10.8 MB and
-2.1 MB with nothing written to the working directory.
+Lzfse2 side: `zsh -n zshrc.zsh` passed; native and external branches respectively
+`extract <archive> probe` real operation, return 10.8 MB and 2.1 MB, no drop in the working catalog.
 
-**Not verified by execution**: the two `.bat` files under `helper_windows/` and
-swift_tar's new `build_tool_install-win.bat`; this machine has neither cmd.exe
-nor PowerShell.
+**Unverified**: Two `.bat` of `helper_windows/` and swift_tar added
+`build_tool_install-win.bat`; This machine has no cmd.exe and PowerShell.
 
-## 6. `-swift_tar` governs two things, and they did not arrive together
+## six `-swift_tar` One flag manages two things, but the two things are not in place at the same time.
 
-This section explains a situation that is easy to misremember: "I used the flag
-and got native results" and "native zstd has never been measured" are both true.
+This section explains a situation that is easy to misremember: "I obviously used the flag to get the native result" and "native zstd
+The two sentences "never measured" are true at the same time.
 
-Line 11 of `helper_windows/windows_round_status.txt`, left by R47-Win:
+`helper_windows/windows_round_status.txt` Line 11 is left by R47-Win:
 
 ```
 USING_SWIFT_TAR ...\lzfse2-swift-tar-shim\tar.exe NATIVE_ZLIB=static 12:17:23
 ```
 
-That line carries **only `NATIVE_ZLIB=static`**. Searching every status log and
-result file, `NATIVE_ZSTD=` never appears once. The timeline:
+The line ** only has `NATIVE_ZLIB=static` **. Searching all the status records and result files, `NATIVE_ZSTD=` has never
+It has appeared once. The timeline is as follows:
 
 | Event | Date |
-| --- | --- |
-| R46-Win: first native zlib round | 2026-07-13 |
-| R47-Win completes (result files stamped `Jul 18 16:09`) | 2026-07-18 |
-| `f67e78f` adds `LZFSE_REQUIRE_NATIVE_ZSTD=1` at `run_round.bat:85` | **2026-08-14** |
-| The only measurement round since | R48-Mac (Mac, not Windows) |
+|---|---|
+| R46-Win: native zlib first round | 2026-07-13 |
+| R47-Win Running (Result File Timestamp `Jul 18 16:09`) | 2026-07-18 |
+| `f67e78f` just added `LZFSE_REQUIRE_NATIVE_ZSTD=1` to `run_round.bat:85` | **2026-08-14** |
+| The only measurement round after that | R48-Mac (Mac, non-Windows) |
 
-The gate arrived almost a month after the last Windows round. `f67e78f`'s own
-message says it plainly: the ZSTD rows of a round labelled as a swift_tar round
-measured the external tool. R47-Win's ZSTD RSS is 8.9 MB in both datasets, the
-external `zstd.exe` magnitude, which corroborates it.
+The gate is almost a month later than the last round of Windows. The commit message of `f67e78f` has been written: "Marked as
+In the round of swift_tar, its ZSTD column is actually measured by external tools. R47-Win's ZSTD two-column RSS
+It is all 8.9 MB, which is the magnitude of the external `zstd.exe`, which proves this point.
 
-What `f67e78f` verified was **functional equivalence** -- both branches extract
-to identical trees, differing by one byte of tar framing -- not performance. No
-benchmark ran.
+`f67e78f` What was done at that time was **function equivalent verification** (the tree solved by the two branches is exactly the same, and the size is only 1 byte
+Tar framing), not performance measurement; this time did not run benchmark.
 
-So the native results `-swift_tar` produced are real and they are **zlib**. The
-ZSTD half will exist for the first time in the next round that enables the gate.
+Therefore: The native result given by `-swift_tar` is true, referring to **zlib**; the half of ZSTD has to enable the gate.
+The next round will exist for the first time.
 
-## 7. A cross-round contradiction in TGZ RSS (unverified; not a conclusion)
+## seven Cross-wheel contradiction of TGZ RSS (not verified yet, don't take it as a conclusion)
 
-For the same claw-code TGZ, the RSS figures do not line up:
+The same claw-code TGZ, cross-wheel RSS, sorry to come:
 
 | Round | Enc RSS | Dec RSS |
 | --- | ---: | ---: |
 | R45-Win-Retest1 (external `gzip.exe`) | 6.6 MB | 6.1 MB |
-| R46-Win | 6.4 MB | 5.9 MB |
-| R46-Win-Retest | 6.4 MB | 5.9 MB |
+| R46-Win | 6.4MB | 5.9MB |
+| R46-Win-Retest | 6.4MB | 5.9MB |
 | **R47-Win** | **144.1 MB** | **45.2 MB** |
 
-R47-Win jumps about 22x, and that round's section 3 compares only MB/s -- **RSS
-is never mentioned**.
+R47-Win jumped about 22 times, and the third section of the round only compared MB/s, **no RSS** was mentioned at all.
 
-The contradiction sits inside R46-Win's own verification paragraph, where the
-direct `tgz_inflight_rss_win.zsh` scan reports encode RSS scaling linearly with
-`-n` (55.6 MB@n4 to **208.0 MB@n40**) and decode RSS flat at **43-45 MB**. The
-same section's official table is n=40 yet reports 6.4 MB, roughly 30x apart --
-while R47-Win's 45.2 MB lands squarely inside that scan's decode range.
+The contradiction is that R46-Win's own "verification" paragraph - the direct scan of `tgz_inflight_rss_win.zsh` says
+"Encode RSS presents a linear relationship with `-n` (55.6MB@n4 → **208.0MB@n40**), decode RSS equals
+In **43–45MB**". The official form of the same section is n=40, but it is 6.4 MB, which is about 30 times the difference between the two; and R47-Win
+The 45.2 MB is almost in the decode range of the scan.
 
-A second sign: moving from spawning `gzip.exe` per 4 MiB chunk to in-process
-zlib moved RSS by only -3.0%, recorded as noise. A backend swap that leaves
-memory almost unchanged is itself suspect.
+The second doubt: from "each 4 MiB chunk spawn once `gzip.exe`" to in-process zlib, RSS
+Only the change is −3.0%, so it is recorded as "clutter". If the back-end is replaced and the memory is almost motionless, it is suspicious.
 
-**Hypothesis** (not verified on a Windows machine): before R47-Win the TGZ RSS
-may have measured something other than swift_tar itself -- likely a child
-process under the shim -- and Pre-R47's identity check is what put it right. If
-so, the conclusion becomes "native zlib's **speed** figures hold across all
-three rounds, but its **RSS** only holds for R47-Win", and R46-Win's and
-R46-Win-Retest's TGZ RSS should be marked as doubtful.
+**Conjecture** (without Windows real machine verification): The TGZ RSS before R47-Win may not be swift_tar
+It is itself, but the sub-itinerary under the shim; Pre-R47 can only be checked after the identity check. If it is established, the conclusion should be amended.
+For "native zlib's **speed** data three rounds are reliable, but **RSS** only the round of R47-Win is reliable",
+The TGZ RSS of R46-Win and R46-Win-Retest should be marked as doubtful.
 
-No conclusion is drawn here on purpose; see TODO 4 for how to settle it.
+There is no conclusion here: please refer to Article 4 for the confirmation method.
 
-## TODO
+## To be done
 
-1. **Wire the native zstd gate on macOS**: `run_round.command` needs to set
-   `LZFSE_REQUIRE_NATIVE_ZSTD` the way it already sets
-   `LZFSE_REQUIRE_NATIVE_ZLIB`. Until it does, the three native branches in
-   `zshrc.zsh` never execute and this caliber alignment cannot be measured on
-   macOS at all.
-2. **The next Windows round produces the first native ZSTD figures**: they have
-   no prior value to compare against, and the report must mark them as a first
-   measurement under the new caliber (raw decompression) rather than something
-   to difference against R47-Win's `ZSTD (external CLI)`.
-3. **TGZ's two branches still differ in shape**: in `decode-win.bat`'s TGZ null
-   branch the native side runs `-t` (emitting filenames) while the external side
-   runs `--to-stdout -xzf` (emitting member contents). Both parse tar, but the
-   output volumes are wildly different. Untouched here; which side to align to
-   needs a separate decision.
-4. **Settle the TGZ RSS contradiction (section 7)**: on Windows, run
-   `verifications/tgz_inflight_rss_win.zsh -n 40` against the same EXE and
-   compare the TGZ encode/decode RSS with the official round's
-   `rss_summary.csv` for the same dataset. If the scan reports ~200 MB where the
-   round reports ~6 MB, the round was measuring the wrong process; if the two
-   agree, the scan and the round differ in caliber and it must be established
-   which one is right. **Until then, do not cite the TGZ RSS from either R46
-   round.**
+1. **macOS makes up the native zstd gate**: `run_round.command` needs to be compared
+The mode setting of `LZFSE_REQUIRE_NATIVE_ZLIB` is `LZFSE_REQUIRE_NATIVE_ZSTD`, otherwise
+The three native branches of `zshrc.zsh` will never be executed, and this caliber alignment is also on macOS.
+Can't measure.
+2. **The next round of Windows generates the first batch of native ZSTD numbers**: There is no previous value for this batch of numbers to compare, report
+It needs to be marked as the first measurement under the new aperture (pure decompression), and it cannot be the same as R47-Win.
+`ZSTD (external CLI)` is directly subtracted.
+3. **The two branches of TGZ are still different**: TGZ null branch of `decode-win.bat`, native is `-t`
+(Spit file name), external is `--to-stdout -xzf` (spit member content) - both analyze tar, but
+The output gap is huge. If it is not moved this time, it needs to be judged separately which side to align.
+4. **Confirm the cross-wheel contradiction of TGZ RSS (Section 7)**: Run with the same EXE on Windows
+`verifications/tgz_inflight_rss_win.zsh -n 40`, and the official round's
+`rss_summary.csv` compares the TGZ encode/decode RSS of the same data set. If the scan report is ~200 MB and
+Round report ~6 MB, that is, to confirm the wrong object of round measurement; if the two are the same, it is the measurement aperture of scanning and round.
+It's different. We need to find out which one it is. **Before that, do not refer to the TGZ RSS of the two rounds of R46. **
 
-## What to run in the next Windows round (a direct consequence of section 6)
+## How to run the next round of Windows (direct consequences of Section 6)
 
-The precondition already holds: `swift_tar/version-win.txt` carries
-`zstd_linkage=static`, so the check at `run_round.bat:69` will pass.
+Preconditions have been met: `swift_tar/version-win.txt` contains `zstd_linkage=static`,
+The inspection of line 69 of `run_round.bat` will pass.
 
 ```bat
 helper_windows\run_round.bat -swift_tar
 ```
 
-**The first thing to do once it starts is confirm the gate actually engaged**,
-in `windows_round_status.txt`:
+**The first thing after running is to confirm that the gate is really effective**, see `windows_round_status.txt`:
 
 ```
-USING_SWIFT_TAR ... NATIVE_ZLIB=static NATIVE_ZSTD=static <time>
+USING_SWIFT_TAR ... NATIVE_ZLIB=static NATIVE_ZSTD=static <時間>
 ```
 
-**Both** must be present. R47-Win's line carried only the first (section 6), and
-that is exactly how ZSTD rows came to be labelled swift_tar while measuring the
-external tool. A `SWIFT_TAR_NATIVE_ZSTD_NOT_VERIFIED` line means
-`version-win.txt` lacks `zstd_linkage=static`, and that round's ZSTD must not be
-labelled native.
+Must **both are in **. There is only the former in the line of R47-Win (see Section 6), and that is the ZSTD column to the outside.
+The tool is marked as swift_tar. If you see `SWIFT_TAR_NATIVE_ZSTD_NOT_VERIFIED`, it means
+`version-win.txt` lacks `zstd_linkage=static`, and the ZSTD of this wheel cannot be marked as native.
 
-**That line is build provenance, not run-time evidence.** `run_round.bat` now
-carries a `:verifyNativeZstd` subroutine that strips PATH down to the shim plus
-System32, putting any external `zstd.exe` out of reach, and asks swift_tar to
-write and read back a zstd archive. On success it records
+**But that line is only the source of construction, not the evidence at the time of execution. ** `run_round.bat` Now there is another one
+`:verifyNativeZstd` subprocess: It shrinks PATH to only shim and System32, so that the external
+`zstd.exe` can't be constructed, please ask swift_tar to write and read back a zstd seal. Write it down when you pass.
 
 ```
-NATIVE_ZSTD_PROVEN in-process, external zstd.exe out of PATH <time>
+NATIVE_ZSTD_PROVEN in-process, external zstd.exe out of PATH <時間>
 ```
 
-On failure it writes `NATIVE_ZSTD_PROBE_FAILED` and **aborts the round** within
-seconds rather than measuring the wrong tool for ninety minutes. It is not
-airtight: a swift_tar that located `zstd.exe` by absolute path would still pass.
-It discriminates the case that actually occurred, which is resolution through
-PATH.
+If you fail, write `NATIVE_ZSTD_PROBE_FAILED` and **stop the whole round** - within a few seconds, instead of waiting for 90 minutes.
+Only then did I find the wrong object. This check is not dripping: if swift_tar finds `zstd.exe` in the absolute path
+It will still pass; it distinguishes the one that actually happened, that is, through PATH analysis.
 
-Three further checkpoints:
+The remaining three checkpoints:
 
-- **ZSTD's RSS should leave 8.9 MB behind.** R47-Win reported 8.9 MB for ZSTD in
-  both datasets, the external `zstd.exe` magnitude. If the new round still says
-  8.9 MB the gate did not really engage, whatever the status line claims.
-- **The ZSTD null-mode numbers are a first measurement under a new caliber**
-  (section 1). There is no prior value to difference against, and they must not
-  be subtracted from R47-Win's `ZSTD (external CLI)`.
-- **TODO 4 comes for free**: once that round writes `rss_summary.csv` it can be
-  compared against the scan without running anything extra.
+- **ZSTD's RSS should leave 8.9 MB**. The ZSTD RSS of both R47-Win data sets is 8.9 MB, which is
+The magnitude of external `zstd.exe`. If the new round is still 8.9 MB, it means that the gate is not really effective. Don't just believe the status.
+Record that line.
+- **The number of ZSTD null mode is the first measurement of a new caliber** (Section 1), there is no previous value to be reduced, and it cannot be
+R47-Win's `ZSTD (external CLI)` is directly subtracted.
+- **By the way, remove Article 4**: After this round generates `rss_summary.csv`, it can be compared with the scan, and there is no need to run another round.
 
 ---
 
@@ -598,7 +739,7 @@ The speed hierarchy is similar to that of R46-Win-Retest (mostly within ±10%), 
 - `-swift_tar` mode adds `SWIFT_TAR_BIN --version` identity check and verification of whether `command -v tar` is indeed resolved to the shim directory, and any failure records `round_status.txt` and `exit 1`.
 - Export `SWIFT_TAR_BIN`, `LZFSE_REQUIRE_NATIVE_ZLIB=1` ( `0` when not enabled); add `--preserve-env=PATH,SWIFT_TAR_BIN,LZFSE_REQUIRE_NATIVE_ZLIB` when `sudo` calls `benchmark2.zsh` to ensure that the native zlib flag and path are not lost in the sudo sub-itinerary.
 - Additional correction: `swift_tar_identity="$($SWIFT_TAR_BIN --version 2>&1)"` Add double quotation marks into `"$SWIFT_TAR_BIN"` to avoid being disassembled when the path contains blanks.
-- **macOS [ `zshrc.zsh`](zshrc.zsh)**
+-**macOS [ `zshrc.zsh`](zshrc.zsh)**
 - ADD `benchmarkTgzTar()` COMMON FUNCTION: `LZFSE_REQUIRE_NATIVE_ZLIB=1` REQUIRES `SWIFT_TAR_BIN` TO BE EXECUTABLE TO CALL, OTHERWISE AN ERROR WILL BE REPORTED; CALL `tar` ON THE ORIGINAL PATH WHEN IT IS NOT ENABLED.
 - `extract()` ( `.tgz` / `.tar.gz` decompression and memProbe branch), `getar()` (TGZ creation), `archiveMemProbe()` (encode RSS detection) are all changed to `benchmarkTgzTar` everywhere, replacing the originally written `tar`.
 
@@ -1273,7 +1414,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 |---|---|
 | **swift_tar submodule update** | Synchronize to R44-Win version ( `11076e6`): add `-test -debug` self-test flag, remove WinSDK direct dependence, fix `archiveName()` disk drive code path problem, fix `compile_tar-win.bat` move retry problem. For details, please refer to the R44-Win chapter. |
 | **run_round.command: swift_tar test unconditional** | Originally swift_tar compile + `-test -debug` only runs with the `-swift_tar` flag; changed to **unconditionally** to run at the front (the same status as lzfse `-test`), PATH shim is still only set when `-swift_tar`. |
-| **benchmark2.zsh: power_summary_integrate order correction** | Originally, Step 12 ran `best_points_analysis` (Requires BenchMarkResult.csv with power column), Step 13 ran `power_summary_integrate` (make-up power column), the order error led to `BEST_POINTS_ANALYSIS_FAILED`. It has been adjusted to: Step 12 = `power_summary_integrate`, Step 13 = `best_points_analysis`; and let `power_summary_integrate` skip the best_points update without interruption when `best_points.csv` has not been generated. |
+| **benchmark2.zsh: power_summary_integrate order correction** | Originally, Step 12 ran `best_points_analysis` (Requires BenchMarkResult.csv with power column), Step 13 ran `power_summary_integrate` (rewrite power column), the order error led to `BEST_POINTS_ANALYSIS_FAILED`. It has been adjusted to: Step 12 = `power_summary_integrate`, Step 13 = `best_points_analysis`; and let `power_summary_integrate` skip the best_points update without interruption when `best_points.csv` has not been generated. |
 
 ## Verification
 
@@ -4495,7 +4636,7 @@ This round (and the previous rerun) **Compression MB/s of all formats has decrea
 | **Lazy2** (not changed in this round) | 47.36 | 37.40 | 129.59 | 75.80 |
 | **Optimal** | 25.36 | 16.17 | 46.92 | 26.17 |
 
-> tgz/zstd/bvx3/lazy2 have nothing to do with the entropy gate but decreased by 15-60% synchronously, which can be determined to be caused by **system load** (background check.zsh, caffeinate, dispatch, Claude running at the same time), **non-algorithm regression**. Therefore, this round of "absolute compression MB/s" cannot be compared across wheels.
+> tgz/zstd/bvx3/lazy2 have nothing to do with the entropy gate, but it drops 15–60% synchronously. It can be confirmed that it is caused by **system load** (background check.zsh, caffeinate, dispatch, Claude running at the same time), **non-algorithm regression**. Therefore, this round of "absolute compression MB/s" cannot be compared across wheels.
 
 ## Trusted Indicator: Compression Ratio (deterministic)
 
@@ -4650,7 +4791,7 @@ R14's rough estimate `totalBarren` entropy agent (70% desert threshold) has been
 - **llama.cpp**: ✅ All completed (8 format compression + decompression, 8 consistency all passed)
 - **lzfse-test**: ✅ All green (compile 8s, including bvx3 lazy2/optimal self-round trip)
 - ✅ **Disk sufficient**: Final rerun disk **43 GB available** (≫25 GB threshold), compression and decompression numbers are reliable. The first round (disk 15 GB + residual file) decompression number has been abandoned, subject to this rerun.
-- ✅ **benchmark.zsh Enhancement**: Add double disk space check (before the beginning + llama segment, < 25 GB → `"Benchmark aborted: insufficient disk space"` and stop) and `rm -rf llama.cpp.*` residual file cleaning to prevent the next rerun from being affected by disk pressure.
+- ✅ **benchmark.zsh Enhancement**: Add dual disk space check (before the beginning + llama segment, < 25 GB → `"Benchmark aborted: insufficient disk space"` and stop) and `rm -rf llama.cpp.*` residual file cleaning to prevent the next rerun from being affected by disk pressure.
 
 ## Test results (R15 rerun vs R14, disk 43 GB)
 
@@ -5122,7 +5263,7 @@ open run_profile.command   # 取 claw-code bvx3 -optimal 20 秒樣本
 ```
 
 ⚠️ **Disk Management**: Before the next benchmark, confirm that there is ≥25G available space (xbenchTest accounts for ~18G).
-`rm -rf ~/proj/lzfse2/xbenchTest` can be cleaned up immediately after benchmark.zsh is executed.
+`rm -rf ~/proj/lzfse2/xbenchTest` can be cleaned up immediately after running benchmark.zsh.
 
 ---
 

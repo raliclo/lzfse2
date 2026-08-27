@@ -167,6 +167,182 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R49-Mac：首輪 macOS native zstd，與一項待判定的解壓速度全面下跌（2026-08-27）
+
+> **目標**：以 `sudo ./run_round.command -full` 執行完整一輪，驗收三項修復（swift_tar
+> 的 symlink mtime、整輪 root 執行以解決 sudo、`.csv2` 改名），並取得 macOS 上第一份
+> native libzstd 數據。**本輪資料完整且無失敗，但 decode 各列出現全面下跌，成因尚未判定，
+> 該組數字在對照完成前不得作為結論引用。**
+
+執行 2026-08-27 16:29:59 → 08-28 02:16:07，共 **9 小時 46 分**。機器 `Mac16,10`，
+`os_version` 記為 **`27.0 (26A5421a)`**。swift_tar `01f724f`。
+
+## 1. 本輪為何能跑完（前一次的三個阻礙）
+
+前一次嘗試（同日 13:57 起）在 `llama.cpp-n40 other3` 倒下並留下三個問題，本輪逐一解除：
+
+| 阻礙 | 解法 |
+| --- | --- |
+| `COMPARED_WITH_TGZ_FAILED` | swift_tar `01f724f` 還原符號連結自身的 mtime |
+| `sudo: a password is required` | 整輪以 `sudo` 執行，不再依賴 keep-alive |
+| `.csv2` 改名是否打斷流程 | 未打斷；重建與整合皆寫入新檔名 |
+
+**symlink mtime 那一項值得記述其顯形方式。**兩份 tree manifest 各 45,756 行，把 mtime
+欄位遮掉之後一字不差——差異只有 67 個 symlink 的 mtime，且相差 962 秒，正好是 baseline
+與比對兩次解壓的間隔。解壓結果完全正確，是「連結 mtime 被蓋成解壓當下時間」使得任何兩次
+相隔數分鐘的解壓必然不同，而比對把它讀成兩個 codec 不一致。bsdtar 會還原它，swift_tar
+不會——這是 `473a247` 改用 manifest 比對之後才看得見的缺陷，舊的 `diff -rq` 跟隨 symlink，
+永遠不會發現。
+
+本輪結果：**48 次解壓一致性比對全部 `COMPARED_WITH_TGZ_OK`，0 失敗**；全檔無
+`FAILED`／`ERROR`／`Traceback`；54 筆資料，power 欄位 **54/54 皆有讀數**。
+
+## 2. `run_round.command` 的成敗回報一直是壞的
+
+本輪順帶查明了一件事：`BENCH_DONE` 與整輪的 exit code **都不可信**。
+
+```zsh
+157:    sudo ./benchmark2.zsh >> round_status.txt 2>&1   # 真正的工作
+162: rm -f .bench_env                                    # 永遠成功
+163: rc=$?                                               # 抓到的是 rm 的狀態
+164: if [[ $rc -eq 0 ]]; then echo "BENCH_DONE" ...
+172: exit $rc
+```
+
+`rc=$?` 位於 `rm -f` 之後，而 `rm -f` 對不存在的檔案也回 0。因此 `BENCH_DONE` 無條件
+寫出、`BENCH_FAILED` 這一支永遠不可能執行、整輪永遠 exit 0。**前一次 `benchmark2.zsh`
+整段沒跑（power 全空）卻回報成功，成因就在這裡。**
+
+本輪的成功判定因此不採用 `BENCH_DONE`，改依各步驟自己寫出的標記（`TRACER_DONE`、
+`POWER_BENCHMARK_DONE`、`BENCHMARK_RESULT_REBUILD_DONE`、`POWER_SUMMARY_INTEGRATE_DONE`、
+`BEST_POINTS_ANALYSIS_DONE`、`COMPARISON_DONE`、`MD_TRANSLATE_DONE`），該等標記不受此
+缺陷影響。修正見待辦第 1 條。
+
+## 3. 三項口徑變動，各自影響哪些欄位
+
+| 變動 | 影響 | 可否與 R48-Mac 相減 |
+| --- | --- | --- |
+| native zstd 閘門開啟（`fbf3512`）| ZSTD 全部 | **否**——換了受測實作 |
+| `.zst` probe 改 `--cat`（`9cf0899`）| ZSTD 的 `decode_rss_mb` | **否**——換了口徑 |
+| `lz4bench.zsh` 分離（`8b2870b`）| 全部 | 是，本輪即為其驗收 |
+
+**ZSTD 是唯一壓縮比改變的格式**（claw-code 0.7806 → 0.8165，llama.cpp 0.9069 →
+0.9297）。其餘七個格式的壓縮比與 R48-Mac **完全相同**，這證明編碼器本身沒有任何變化，
+也使 ZSTD 的差異可以明確歸因於實作替換而非其他。
+
+## 4. Encode：大致持平，BVX3 的異常已判定為雜訊
+
+以秒數對照（MB/s 受總量影響，秒數較直觀）：
+
+| 格式 | claw-code R48→R49 | llama.cpp R48→R49 |
+| --- | ---: | ---: |
+| TLZ4 | 2.31 → 2.31（+0.0%）| 3.99 → 4.05（+1.5%）|
+| Optimal | 39.10 → 39.23（+0.3%）| 25.30 → 24.90（−1.6%）|
+| Optimal3 | 21.09 → 20.90（−0.9%）| 17.78 → 17.65（−0.7%）|
+| TGZ | 4.36 → 4.37（+0.2%）| 4.13 → 4.45（+7.7%）|
+| Lazy2 | 20.32 → 20.57（+1.2%）| 7.90 → 8.85（+12.0%）|
+| Other3 | 2.21 → 2.31（+4.5%）| 3.40 → 3.61（+6.2%）|
+| Apple | 9.20 → 9.86（+7.2%）| 8.88 → 10.32（+16.2%）|
+| **BVX3** | **2.18 → 2.95（+35.3%）** | **3.50 → 6.35（+81.4%）** |
+| ZSTD | 2.96 → 2.72（−8.1%）| 3.37 → 2.95（−12.5%）| 
+
+**BVX3 經事後複量，判定為該輪的一次性干擾，不是回歸。**以與本輪完全相同的條件
+（swift_tar shim、`-n 40`、同一份 claw-code）重測三次得 2.17／2.25／2.31 秒，貼近
+R48-Mac 的 2.18 秒，比本輪的 2.95 秒快約 23%。逐一排除：
+
+- lzfse 原始碼在 `c18e327..HEAD` 之間 **零改動**；`compile.sh`→`compile.zsh` 僅改名，
+  內容 `diff` 完全相同，`-O` 仍在。
+- 「BVX3 並行度較高故較敏感」不成立：實測 BVX3 9.0×、Other3 8.9×，兩者幾乎相同，
+  且複量時兩者耗時亦相同（皆 2.17 秒）。
+- 複量是在**有背景負載**的情況下進行（loadavg 5.04），仍快於本輪的專用執行。
+
+**結論：R49-Mac 的 BVX3 encode 兩格數字標為不可靠，不予採用。**其餘 encode 各列採用；
+特別是 Optimal（39 秒）在 claw-code 上變動僅 +0.3%，證明機器的運算能力本身未下降。
+
+## 5. Decode：七個可比格式全面下跌 30–78%，成因待判定
+
+| 格式 | claw-code | llama.cpp |
+| --- | ---: | ---: |
+| Other3 | −48.3% | −77.8% |
+| TLZ4 | −42.7% | −69.9% |
+| Optimal3 | −40.5% | −75.6% |
+| Optimal | −34.2% | −65.1% |
+| TGZ | −33.8% | −75.1% |
+| Lazy2 | −31.4% | −76.3% |
+| Apple | −32.0% | −65.5% |
+| BVX3 | −29.7% | −69.6% |
+| （ZSTD −53.0% / −80.3%，換了實作，不可比）| | |
+
+**一個也沒有變快。**已確認的事實：
+
+- **會重現。**以一般使用者身分複量 claw-code TGZ 解壓得 3.09／3.26 秒，正是本輪的
+  3.17 秒；R48-Mac 為 2.10 秒。原始計時亦然：`llama.cpp.tgz` 由約 2.9 秒變為 12.34 秒。
+- **跌幅與檔案數成正比。**claw-code 5,402 檔跌約 34%，llama.cpp 41,576 檔跌約 75%
+  ——指向**每檔成本**，而非每位元組成本。
+- **所有格式皆經 swift_tar shim 解壓**（`… | tar -xf -`），故一起下跌合理。
+- **解壓功率反而上升。**claw-code TGZ 的 `decode_cpu_power_mw` 由 4257.5 升至
+  5043.3 mW（+18.5%），即單位資料量做了更多工，與每檔成本的解釋一致。
+- **不是機器變慢。**Optimal encode 39 秒在兩輪之間僅差 +0.3%。
+
+已排除的成因：
+
+| 假設 | 排除依據 |
+| --- | --- |
+| root 執行觸發 chown | swift_tar 原始碼**無任何 `chown`** |
+| root 執行本身 | 以一般使用者複量得到相同的慢速數字 |
+| 建置最佳化旗標遺失 | `-O` 仍在；`4f496f1` 未動 macOS 的 `compile_tar.zsh` |
+| E-Cluster 參與差異（見 R48-Mac 第 2 節）| 兩輪同為 E-Cluster idle 100%、P-Cluster 約 4000 MHz |
+| manifest 比對被計入計時 | 原始 `Process extract` 計時本身即已變慢 |
+
+**尚未排除的兩項，且兩者皆可能：**
+
+1. **作業系統換版。**R48-Mac 為 `27.0 (26A5406e)`，本輪為 **`27.0 (26A5421a)`**——
+   產品版本相同、build 不同。本檔已有前例：`26A5388g` 的 powermetrics 回報 CPU Power
+   0 mW 而 `26A5406e` 正常，兩者的產品版本同樣都是 27.0。OS 換版會改變檔案系統寫入
+   路徑，與「每檔成本」的形狀相符。
+2. **swift_tar 的 98 筆 commit。**`26a78cc`（R48-Mac 所用）到 `01f724f` 之間共 98 筆，
+   其中 `4856f36`（`-p`／`--same-permissions`）直接改動了解壓的權限處理。
+
+判別方式見待辦第 2 條。
+
+## 6. ZSTD：macOS 首次 native libzstd
+
+本輪是 macOS 上第一次量到 swift_tar 行程內 libzstd 而非外部 `zstd` CLI 的數據——閘門由
+`fbf3512`（2026-08-26）加入，此前 `run_round.command` 從未設定
+`LZFSE_REQUIRE_NATIVE_ZSTD`。
+
+| 資料集 | 壓縮比 | Enc MB/s | Dec MB/s | Enc RSS | Dec RSS |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| claw-code | 0.8165 | 521.20 | 490.86 | 385.2 MB | 655.8 MB |
+| llama.cpp | 0.9297 | 491.99 | 121.75 | 497.8 MB | 740.0 MB |
+
+**這是新基準線，沒有前值可減。**與 R48-Mac 的 ZSTD 列相減沒有意義：那是外部 CLI。
+RSS 由 8–9 MB（外部行程）躍升至 385–740 MB 亦然——外部分支量的是 `zstd.exe` 自己，
+native 分支量的是含 tar 與 in-flight 緩衝的 swift_tar 整體。
+
+## 7. 本輪資料
+
+6 次 `-n` 掃描（claw-code 與 llama.cpp 各 n=40／8／4）、54 筆結果、84 筆功率量測與其
+powermetrics 原始輸出、53 筆 RSS、trace 與 CPU call tree 分析各一輪。
+`lz4bench_log/tree_manifest/`（242 MB、54 份 manifest）不入版：每輪重新產生，且只在該輪
+內有意義；失敗時的 diff 才有保存價值，而那份會寫進 `round_status.txt` 與
+`lz4bench_log/*.txt`。
+
+## 待辦
+
+1. **修 `run_round.command` 的 `rc=$?` 位置**（第 2 節）。把它移到 `rm -f .bench_env`
+   之前。在此之前，任何一輪的 `BENCH_DONE` 與 exit code 都不構成成功的證據，判定必須
+   依各步驟自己的 `*_DONE` 標記。
+2. **判定 decode 下跌的成因**（第 5 節）。在 worktree 建 `26a78cc` 的 swift_tar，於
+   **當前 OS** 上對同一份 claw-code 封存計時：若得到約 2.1 秒，成因在那 98 筆 commit；
+   若同樣約 3.1 秒，成因是 OS 換版，而 R48-Mac 的數字才是需要重新理解的那一組。
+   **在此判定完成前，R49-Mac 的 decode 各列不得作為效能結論引用。**
+3. **BVX3 encode 兩格標為不可靠**（第 4 節），已複量確認不重現。
+4. **`os_version` 應納入輪次可比性的檢查項。**本輪與 R48-Mac 的 build 不同而無人察覺，
+   直到追查 decode 才發現。該欄位早已被記錄，缺的是「換版即標註」這一步。
+
+---
+
 # Pre-R49：ZSTD null 模式的口徑不對等，與 macOS native zstd 閘門缺口（2026-08-26）
 
 > **性質**：基礎設施修正，**不含新的效能數據**，比照 Pre-R47。本輪未執行 benchmark。

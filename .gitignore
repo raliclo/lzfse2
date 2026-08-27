@@ -56,3 +56,10 @@ helper_windows/bench_logs/rss_tmp*
 # 採 env_reset，設定無法以環境變數跨越 sudo 邊界。其中含機器特有路徑且每輪重新產生，
 # 故不得入版。
 .bench_env
+
+# lz4bench 的解壓一致性 manifest：242 MB，每輪重新產生，且只在該輪內有意義
+# （比對的是同一輪的 tgz baseline 與各格式）。失敗時的 diff 才值得保留，
+# 而那份已寫進 round_status.txt 與 lz4bench_log/*.txt。
+# lz4bench's extraction manifests: 242 MB, regenerated each round and meaningful
+# only within it. A failing diff is what matters, and that lands in the logs.
+lz4bench_log/tree_manifest/
