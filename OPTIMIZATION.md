@@ -167,7 +167,7 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
-# R49-Mac：首輪 macOS native zstd，與一項待判定的解壓速度全面下跌（2026-08-27）
+# R49-Mac：首輪 macOS native zstd，與一項已定位並修復的解壓速度全面下跌（2026-08-27）
 
 > **目標**：以 `sudo ./run_round.command -full` 執行完整一輪，驗收三項修復（swift_tar
 > 的 symlink mtime、整輪 root 執行以解決 sudo、`.csv2` 改名），並取得 macOS 上第一份
@@ -294,16 +294,37 @@ R48-Mac 的 2.18 秒，比本輪的 2.95 秒快約 23%。逐一排除：
 | E-Cluster 參與差異（見 R48-Mac 第 2 節）| 兩輪同為 E-Cluster idle 100%、P-Cluster 約 4000 MHz |
 | manifest 比對被計入計時 | 原始 `Process extract` 計時本身即已變慢 |
 
-**尚未排除的兩項，且兩者皆可能：**
+### 成因：`aea0427` 的每成員路徑走訪（已定位並修復）
 
-1. **作業系統換版。**R48-Mac 為 `27.0 (26A5406e)`，本輪為 **`27.0 (26A5421a)`**——
-   產品版本相同、build 不同。本檔已有前例：`26A5388g` 的 powermetrics 回報 CPU Power
-   0 mW 而 `26A5406e` 正常，兩者的產品版本同樣都是 27.0。OS 換版會改變檔案系統寫入
-   路徑，與「每檔成本」的形狀相符。
-2. **swift_tar 的 98 筆 commit。**`26a78cc`（R48-Mac 所用）到 `01f724f` 之間共 98 筆，
-   其中 `4856f36`（`-p`／`--same-permissions`）直接改動了解壓的權限處理。
+**先排除 OS 換版。**在**同一台機器、同一個 OS `26A5421a`、同一份 claw-code 封存**上，
+以 worktree 建出 R48-Mac 所用的 `26a78cc` 與本輪的 `01f724f` 對照：
 
-判別方式見待辦第 2 條。
+| swift_tar | 解壓 claw-code | 對應輪次記錄 |
+| --- | ---: | ---: |
+| `26a78cc` | 2.23／2.11 秒 | R48-Mac 2.10 秒 |
+| `01f724f` | 3.15／3.25 秒 | R49-Mac 3.17 秒 |
+
+兩者精確重現各自輪次的數字，而 OS 在此對照中是**同一個**——故 `26A5406e` →
+`26A5421a` 的換版可以排除。
+
+**再以 `git bisect` 在其間的 98 筆之間定位**，測試為「建置後解壓 claw-code，門檻 2.6
+秒」。good 全落在 1.99–2.02 秒、bad 全落在 3.06–3.09 秒，兩群分得極開，無模糊地帶。
+首個 bad commit 為 **`aea0427`「拒絕穿過植入的 symlink 寫入（盲測 round 42）」**。
+
+該 commit 新增的 `passesThroughSymlink()` 對**每一個成員**重走整條路徑，逐層呼叫
+`attributesOfItem`——即 O(成員數 × 深度) 次 lstat。這解釋了每一項觀察：跌幅與檔案數
+成正比、功率上升而吞吐下降（大量 syscall）、壓縮比與 encode 幾乎不變（只動解壓路徑）、
+所有格式一起掉（全都經 swift_tar 解壓）。
+
+**修復於 swift_tar `cfc71df`**：以 `clearedDirs` 記住已確認不是 symlink 的目錄，使每個
+目錄在一次解壓中只被詢問一次。交錯 4 輪取最小值，修復後對 `26a78cc`：claw-code
++2.5%、llama.cpp +0.6%，皆落在雜訊內（`26a78cc` 自身在 2.00–3.13 與 3.71–7.03 之間
+跳動，故最小值是此處唯一可用的統計量）。
+
+**守門完全保留**：`test_blind_findings` 的四個 symlink 案例仍全數通過。並新增第五個
+案例——既有四個都把 symlink 放在第一個項目，故測不到快取的失效路徑；新案例改為三個項目
+（先寫入該目錄、再以 symlink 覆蓋、最後穿過它寫入），該封存在 `26a78cc` 上實測會讓檔案
+逃到監獄之外。139/0 全過。
 
 ## 6. ZSTD：macOS 首次 native libzstd
 
@@ -333,10 +354,9 @@ powermetrics 原始輸出、53 筆 RSS、trace 與 CPU call tree 分析各一輪
 1. **修 `run_round.command` 的 `rc=$?` 位置**（第 2 節）。把它移到 `rm -f .bench_env`
    之前。在此之前，任何一輪的 `BENCH_DONE` 與 exit code 都不構成成功的證據，判定必須
    依各步驟自己的 `*_DONE` 標記。
-2. **判定 decode 下跌的成因**（第 5 節）。在 worktree 建 `26a78cc` 的 swift_tar，於
-   **當前 OS** 上對同一份 claw-code 封存計時：若得到約 2.1 秒，成因在那 98 筆 commit；
-   若同樣約 3.1 秒，成因是 OS 換版，而 R48-Mac 的數字才是需要重新理解的那一組。
-   **在此判定完成前，R49-Mac 的 decode 各列不得作為效能結論引用。**
+2. ✅ **已完成：decode 下跌的成因**（第 5 節）。定位為 `aea0427`，修復於 `cfc71df`。
+   過程記於 `r49_decode_bisect.csv2`。**R49-Mac 的 decode 各列仍不得作為 codec 效能
+   結論引用**——它們量到的是含該回歸的 binary。下一輪才會產生修復後的 decode 基準。
 3. **BVX3 encode 兩格標為不可靠**（第 4 節），已複量確認不重現。
 4. **`os_version` 應納入輪次可比性的檢查項。**本輪與 R48-Mac 的 build 不同而無人察覺，
    直到追查 decode 才發現。該欄位早已被記錄，缺的是「換版即標註」這一步。

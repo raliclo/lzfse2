@@ -1,0 +1,11 @@
+commit,date,subject,decode_s_1,decode_s_2,verdict,note
+提交,日期,主旨,解壓秒數1,解壓秒數2,判定,備註
+26a78cc,2026-08-15,test_interframe.zsh 移除未使用的 swift_tar_DOE 相依,2.23,2.11,good,"R48-Mac 所用；claw-code 5,402 檔，同機同 OS 26A5421a"
+01f724f,2026-08-27,解壓還原符號連結自身的 mtime,3.15,3.25,bad,R49-Mac 所用；較 26a78cc 慢約 48%
+aea0427,2026-08-18,拒絕穿過植入的 symlink 寫入（盲測 round 42）,3.06,,bad,二分找到的首個 bad commit；passesThroughSymlink() 每成員每層一次 lstat
+bd74102,2026-08-18,解出端路徑穿越：反斜線與磁碟機代號形式（盲測 round 41）,2.00,,good,aea0427 的前一筆
+c697330,2026-08-17,支援 POSIX 的 -- 選項結束標記（盲測 round 38）,2.02,,good,二分中繼點
+9f837c7,2026-08-17,行尾統一為 LF，但含非 ASCII 的 .bat 例外,1.99,,good,二分中繼點
+0872131,2026-08-17,記載可重現輸出，並以測試釘住,2.02,,good,二分中繼點
+90bb14b,2026-08-19,flow.md：載明 Linux VM 刻意不作為互通參照平台,3.09,,bad,二分中繼點
+cfc71df,2026-08-28,解壓的 symlink 守門改為每目錄問一次,2.05,2.14,fixed,修復；交錯 4 輪取最小值，較 26a78cc +2.5%

@@ -167,7 +167,7 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
-# R49-Mac: The first round of macOS native zstd, and a decompression speed to be determined has dropped across the board (2026-08-27)
+# R49-Mac: The first round of macOS native zstd, and a decompression speed that has been located and repaired has dropped across the board (2026-08-27)
 
 > **Goal**: Run a complete round with `sudo ./run_round.command -full` and accept three repairs (swift_tar
 > symlink mtime, the whole round of root execution to solve sudo, `.csv2` name change), and get the first one on macOS
@@ -294,16 +294,37 @@ Excluded causes:
 | E-Cluster participation difference (see R48-Mac Section 2) | Both rounds of E-Cluster idle 100%, P-Cluster about 4000 MHz |
 | manifest comparison is counted in timing | The original `Process extract` timing itself has slowed down |
 
-**Two items that have not been excluded, and both are possible:**
+### Cause: Each member's path visit of `aea0427` (located and repaired)
 
-1. **Change the version of the operating system. **R48-Mac is `27.0 (26A5406e)`, and this round is ** `27.0 (26A5421a)` **——
-The product version is the same but the build is different. This file has a precedent: `26A5388g`'s powermetrics return CPU Power
-0 mW and `26A5406e` is normal, and both product versions are also 27.0. OS replacement will change the file system writing.
-The path is consistent with the shape of "cost per gear".
-2. **swift_tar's 98 commits. ** A total of 98 strokes between `26a78cc` (used by R48-Mac) and `01f724f`,
-Among them, `4856f36` ( `-p` / `--same-permissions`) directly changes the permission processing of decompression.
+**Exclude the OS version replacement first. ** On ** the same machine, the same OS `26A5421a`, the same claw-code seal**,
+Compare the `26a78cc` used in R48-Mac with worktree and the `01f724f` in this round:
 
-For the discrimination method, see Article 2 of Pending.
+| swift_tar | Unzip claw-code | Corresponding round record |
+| --- | ---: | ---: |
+| `26a78cc` | 2.23/2.11 seconds | R48-Mac 2.10 seconds |
+| `01f724f` | 3.15/3.25 seconds | R49-Mac 3.17 seconds |
+
+The two accurately reproduce the numbers of their respective rounds, and the OS is **the same** in this comparison - so `26A5406e` →
+The replacement version of `26A5421a` can be excluded.
+
+**Then use `git bisect` to locate between the 98 strokes in it**, and the test is "decompression claw-code after construction, threshold 2.6
+Seconds". Good all fall at 1.99–2.02 seconds, bad all fall at 3.06–3.09 seconds, the two groups are extremely divided and there is no blur zone.
+The first bad commit is ** `aea0427` "refuse to write through the implanted symlink (blind test round 42)"**.
+
+The `passesThroughSymlink()` added by the commit re-goes the whole path to **each member** and calls it layer by layer.
+`attributesOfItem` - that is, O (number of members × depth) lstat. This explains each observation: the decline and the number of documents
+It is proportional, the power increases and the throughput decreases (a large number of syscalls), the compression ratio and encode are almost unchanged (only the decompression path),
+All formats are dropped together (all of them are decompressed by swift_tar).
+
+**Fixed in swift_tar `cfc71df` **: Remember the directory that has been confirmed to be not symlink with `clearedDirs`, so that each
+The directory is only asked once in a decompression. Staggered 4 rounds to get the minimum value, after repair to `26a78cc`: claw-code
++2.5%, llama.cpp +0.6%, all fall into the noise ( `26a78cc` itself is between 2.00–3.13 and 3.71–7.03
+Jump, so the minimum value is the only statistic available here).
+
+**The goalkeeper is completely retained**: The four symlink cases of `test_blind_findings` are still approved. And add the fifth one
+Case - There are four cases that put symlink in the first item, so the failure path of the cache cannot be measured; the new case is changed to three items.
+(Write to the directory first, then overwrite it with symlink, and finally write through it), the actual measurement on `26a78cc` will make the file
+Escape from the prison. 139/0 All passed.
 
 ## six ZSTD: macOS first native libzstd
 
@@ -333,10 +354,9 @@ It is meaningful; the diff in the case of failure has preservation value, and th
 1. **Repair the `rc=$?` position of `run_round.command` ** (Section 2). Move it to `rm -f .bench_env`
 Before. Before that, any round of `BENCH_DONE` and exit code do not constitute evidence of success, and the judgment must be
 According to your own `*_DONE` mark in each step.
-2. **Determining the cause of the decline of decode** (Secte 5). Build `26a78cc`'s swift_tar in worktree, in
-**Current OS** is timed for the same claw-code: if you get about 2.1 seconds, the reason is in the 98 commit;
-If it is also about 3.1 seconds, it is caused by the OS version change, and the number of R48-Mac is the group that needs to be re-understood.
-**Before this judgment is completed, the decode columns of R49-Mac shall not be referenced as performance conclusions. **
+2. ✅ **Completed: The cause of decode decline** (Section 5). Located as `aea0427`, repaired in `cfc71df`.
+The process is recorded in `r49_decode_bisect.csv2`. **The decode columns of R49-Mac are still not allowed to be used as codec performance.
+Conclusion Quote ** - What they measure is the binary that contains the return. The repaired decode benchmark will be generated in the next round.
 3. **BVX3 encode two grids are marked as unreliable** (Section 4), and it has been confirmed that it does not reappear.
 4. ** `os_version` should be included in the inspection items of round comparability. **This round is different from the build of R48-Mac and no one notices it.
 I didn't find it until I traced the decode. This field has long been recorded, and what is missing is the step of "re-version is annotation".
