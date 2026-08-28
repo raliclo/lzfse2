@@ -75,3 +75,71 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+## 不得抑制編譯器診斷 / Never suppress a compiler diagnostic
+
+**警告與錯誤要用「修好成因」解決，不是用標註讓它閉嘴。**
+
+禁止用來讓診斷消失的手段，包括但不限於：
+
+```swift
+nonisolated(unsafe) var x = 0        // 不要：把並行檢查關掉
+@unchecked Sendable                  // 不要
+// swiftlint:disable / swift-format-ignore
+```
+
+```sh
+2>/dev/null            # 不要用來藏建置訊息
+-w  -Wno-...           # 不要
+|| true                # 不要用來蓋掉非零退出（測試中刻意容忍者除外，且須註明理由）
+```
+
+**理由是這棵樹已經付出過的代價。** 被藏起來的診斷不會消失，它只是改在執行期出現，而
+且那時已經沒有指向成因的線索。2026-08-28 的 `aea0427` 是同一類：一個正確的安全修正
+帶進 O(成員數 × 深度) 的 lstat，沒有任何警告會提到它，於是它一路活到量測輪次才以
+「解壓慢 302%」的形式現身，花了一次 9 小時 46 分的輪次加一次 98 筆 commit 的 bisect
+才定位。編譯器願意講的話，要讓它講完。
+
+**正確做法**：改結構讓診斷自然消失。全域可變狀態就把它變成不可變、或收進傳遞下去的
+值；並行捕獲就讓被捕獲的東西真的是 Sendable。若判斷某個診斷確實不適用，那是**與使用者
+討論後的決定**，不是自行標註掉。
+
+**Warnings and errors are resolved by fixing the cause, never by annotating them
+into silence.** A suppressed diagnostic does not go away; it moves to run time,
+where the thread back to its cause is gone. `aea0427` was the same shape: a
+correct security fix carrying an O(members x depth) cost that no warning
+mentioned, so it survived until a measurement round showed up as a 302% decode
+regression and took a 9h46m round plus a 98-commit bisect to locate. Change the
+structure so the diagnostic stops applying; deciding a diagnostic does not apply
+is a conversation with the user, not a unilateral annotation.
+
+## 不要用 Python 做編輯或腳本 / Do not use Python for edits or scripting
+
+**改檔案用 Edit／Write 工具；要腳本就用 zsh。** 不要以 `python3 - <<'PY'` 這類 heredoc
+代替編輯器。
+
+理由不只是偏好。以 Python 做字串替換時，被替換的目標是一段**看不見的**字面值——它必須
+與檔案逐字相符，而任何不符只會得到 `AssertionError` 或更糟的「靜默不替換」。2026-08-28
+的 `-h/--dereference` 就是這樣壞掉的：新的一行被插進一個跨行運算式的中間，於是
+`|| args.contains("-p")` 這個續行接到了另一個變數上。**它能編譯、能通過型別檢查、以 0
+結束**，而 `-p` 同時失去自己的效果並取得一個無關的效果。Edit 工具會呈現前後文，那類
+插入不會發生在看不見的地方。
+
+Use the Edit/Write tools for files and zsh for scripts; do not substitute a
+`python3 - <<'PY'` heredoc for an editor. The reason is not taste: a Python string
+replacement targets an invisible literal that must match the file exactly, and a
+mismatch yields either an assertion or a silent no-op. On 2026-08-28 a new line was
+inserted into the middle of a continued expression that way, re-attaching its
+continuation to a different variable. It compiled, type-checked and exited zero.
+
+**例外**：全域 CLAUDE.md 已載明，`csv2` 不可用時 Python 的 `csv` 模組是可接受的替代品
+——那是「用真正的 CSV 解析器而非逗號切割」，與此處無關。
+
+## 測試中的表格資料用 csv2 / Use csv2 for tabular data in tests
+
+測試若要產出或讀取表格（結果矩陣、逐案例的量測、對照表），存成 `.csv2`（兩列標頭：
+英文一列、繁體中文一列）並以 `csv2` 讀寫，不要自行切逗號。全域 CLAUDE.md 的理由在此
+同樣成立，而測試更容易踩到：一個把欄位切錯的斷言會**通過**，因為它比對的是錯位之後的
+值。`csv2 -get r:c` 取單格，`csv2 -r` 逐筆讀，`csv2 -md` 出表格給文件用。
+
+If a test produces or reads a table, store it as `.csv2` and go through `csv2`. An
+assertion that split the fields wrongly passes, because it compares the shifted value.
