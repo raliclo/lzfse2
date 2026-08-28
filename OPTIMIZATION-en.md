@@ -167,6 +167,163 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R50-Mac: Return repair acceptance, head-on comparison with native/external zstd (2026-08-28)
+
+> **Goal**: Rerun with `sudo ./run_round.command -full`, accept whether swift_tar `cfc71df` is repaired
+> R49-Mac recorded decompression return, and get the first clean benchmark after repair.
+>
+> ** There is only one conclusion: the return has indeed been repaired. ** In addition, all the differences between R50 and R48 have been verified.
+> All of them are measured noise - including those that seem to be "faster". See Section 2 for details.
+
+Run 2026-08-28 13:05:45 → 22:48:02, a total of **9 hours and 42 minutes**. Machine `Mac16,10`,
+`os_version` `27.0 (26A5421a)`, swift_tar `7e64057`.
+
+Judgment ( `helper/status_monitor.zsh --verdict`): Failure signal **0**, decompression consistency comparison
+**48 OK / 0 FAILED**, the eight necessary steps are all marked. **Exit code is not used** - See Section 4 for the reason.
+
+## 1. The return of `aea0427` has been repaired
+
+Decompression time (seconds, n=40):
+
+| Data Set | Format | R48 | R49 (including return) | **R50** |
+| --- | --- | ---: | ---: | ---: |
+| llama.cpp | Apple | 4.35 | 12.60 | **3.17** |
+| llama.cpp | Optimal | 4.21 | 12.06 | **3.03** |
+| llama.cpp | Other3 | 2.77 | 12.49 | **3.44** |
+| llama.cpp | Optimal3 | 2.92 | 11.98 | **2.95** |
+| llama.cpp | Lazy2 | 2.86 | 12.05 | **2.92** |
+| llama.cpp | BVX3 | 3.71 | 12.20 | **3.06** |
+| llama.cpp | TGZ | 3.07 | 12.34 | **3.34** |
+| llama.cpp | TLZ4 | 3.44 | 11.44 | **2.72** |
+| llama.cpp | ZSTD | 2.35 | 11.93 | **3.15** |
+
+**The 12-second level is all returned to the 3-second level, and the nine formats are no exception. ** `claw-code` Same: R49's 2.5–3.3 seconds back
+1.4–2.4 seconds.
+
+This consistency is exactly the difference between this section and section 2: return is the difference of **quantitative order** and the same direction, and the noise has positive and negative,
+It's even the opposite on the two data sets.
+
+## two The rest of the differences are all noises, including those that seem to be getting faster.
+
+The decode difference between R50 and R48 is positive and negative, ranging from −28% to +36%. **Three independent pieces of evidence show that they are not true. **
+
+**Contradictory direction. ** The same format and the same version have opposite conclusions on two data sets:
+
+| Format | claw-code | llama.cpp |
+| --- | ---: | ---: |
+| TLZ4 | +26.1% (slow) | −20.9% (fast) |
+
+Systematic changes will not be like this.
+
+**E-Cluster can't explain. ** Section 2 of R48-Mac has explained the difference between wheels with E-Cluster participation. After this round of verification
+The association is not valid:
+
+| Format | R48 E-Cluster | R50 E-Cluster | ΔE | decode Δ |
+| --- | ---: | ---: | ---: | ---: |
+| optimal3 | 75.82% | 92.47% | +16.7 | +1.4% |
+| other3 | 77.32% | 86.05% | +8.7 | **+22.4%** |
+
+E-Cluster's other3, which rises less, is much slower. If the association is established, the direction should be opposite.
+
+** Directly overturn both sides. ** Take the minimum value with the same seal and 6 rounds of staggered:
+
+| Format | R48 | R50 | Multiple | Reading |
+| --- | ---: | ---: | ---: | --- |
+| Apple | 1.78 | 1.59 | **1.51** | R50's "fast 10.7%" is not valid |
+| Other3 | 1.34 | 1.64 | **1.32** | R50's "slow 22.4%" is not valid, and the amount returns to R48 |
+
+**Therefore, the decode columns of R50 can only be used to confirm that the return has been repaired, and cannot be used to claim that any format has become faster or slower. **
+
+Before this round, four similar incidents have been overturned (BVX3 encode +81%, claw decode +21%, `--exclude`
++9.5%, encryption creation +13.6%). The single measurement of this machine can be more than 2 times the difference, ** the minimum value of staggered multiple rounds is
+The only reliable practice**; when the number of times is insufficient, the out-of-group value will dominate the conclusion.
+
+## 3. native to external zstd
+
+R49-Mac was the first time that macOS was measured to native libzstd, but there was no positive comparison with external at that time. In this section, the same
+`claw-code` (1,351 MB, 5,402 gears), the same level 9, 6 rounds of staggered minimum value for direct comparison.
+
+| | external ( `zstd` CLI) | native (swift_tar built-in) | |
+| --- | ---: | ---: | --- |
+| encode | 5.71 seconds (237 MB/s) | **2.65 seconds (510 MB/s)** | native **2.2 times faster** |
+| decode | **1.45 seconds (932 MB/s)** | 1.88 seconds (719 MB/s) | native slow 30% |
+| Storage size | **365.8 MB** | 382.6 MB | native larger 4.6% |
+
+### Where is the slowness: two separable causes
+
+Unzip the amount of "decompression" and "file":
+
+| | external | native | |
+| --- | ---: | ---: | --- |
+| Pure decompression (no parsing tar, no writing) | 0.91 | 1.15 | +26.2% |
+| Complete solution | 1.16 | 1.72 | +48.3% |
+| Increment of writing files | **0.25** | **0.57** | |
+
+**One, divided into blocks. ** `TAR_CHUNK_SIZE = 1 << 22` (4 MiB), each chunk is pressed into an independent zstd frame:
+
+```
+external    1 個 frame     單一連續串流
+native    336 個 frame     1351 MB ÷ 4 MiB = 338，對得上
+```
+
+336 frames each start from zero, and the repetition across chunks cannot be caught - which also explains the +26% pure decompression cost.
+Loss of compression ratio with +4.6%.
+
+**This is a design trade-off rather than a defect**: Block division is the premise that `ParallelChunkSink` can divide the work to multi-core, and
+Encode is 2.2 times faster than it.
+
+**Second, the pipeline is parallel. ** External's `zstd -d -c | tar -xf -` is two trips working at the same time - zstd
+While decompressing, tar is already writing; native is a single itinerary, and two things are on the same timeline. Increment of writing files
+0.25 to 0.57 seconds is for this. `FileWriterPool` is parallel to "write files to each other", not "decompress to the files".
+
+### The difference in the compression ratio is not a return.
+
+| | R48 (external) | R49 (native)| R50 (native) |
+|---|---:|---:|---:|---:|
+| claw-code | 0.7806 | 0.8165 | **0.8165** |
+| llama.cpp | 0.9069 | 0.9297 | **0.9297** |
+
+R49 is exactly the same as R50, but R48 is different - this proves that the difference comes from the actual replacement (block vs continuous streaming) rather than any
+Regressive, and the output of native is certain.
+
+## four. Determine not to use exit code, and two defects of status_monitor.zsh
+
+The judgment of this round is based on `helper/status_monitor.zsh --verdict`, and the reason is recorded in Section 2 of R49-Mac:
+`rc=$?` OF `run_round.command` IS AFTER `rm -f .bench_env`, AND `rm -f` ALWAYS 0, SO
+`BENCH_DONE` write unconditionally, `BENCH_FAILED` never runs, and the whole round is forever exit 0. **The defect has not been repaired yet. **
+
+The strett itself exposed two defects in the first actual combat, both of which have been corrected:
+
+** It is judged that the clean round is reported as a failure. ** `grep -c` prints `0` when zero hit, but the exit code is 1, originally written
+`|| print 0` so it was reprinted once, and the variable became `"0\n0"`, and the subsequent arithmetic failed with bad math expression.
+It is determined that it is "unfinished". **This is exactly the mistake that the book should be prevented, but the direction is the opposite** - not to say failure as
+Success, but say success as failure. Both of them make the judgment meaningless.
+
+** The filter eats the completion notification of six data sets. ** The original `DONE [0-9]` requires `DONE` to connect the time stamp, but
+`LZ4BENCH_DONE claw-code-n40 13:29:16` is followed by the name. As a result, I didn't receive any progress for 9 hours.
+And it looks like "everything is normal and quiet" - exactly the kind of silence to be avoided at the beginning of the script. Change to
+`_DONE( |$)`.
+
+## five. Data of this round
+
+6 `-n` scans (claw-code and llama.cpp n=40/8/4 each), 54 results, power field 54/54
+There are readings, 48 decompression consistency comparisons all passed, trace and CPU call tree analysis rounds.
+
+## To be done
+
+1. **Repair the `rc=$?` position of `run_round.command` ** (R49-Mac pending Article 1, still not repaired). Put it
+Move to before `rm -f .bench_env`. Before that, any round of `BENCH_DONE` and exit code are not
+It constitutes evidence of success.
+2. **Let the decompression overlap with the file** (Section 3). At present, the decompression thread only writes one after solving a chunk, and external
+The two-stroke pipeline relies on this to gain an advantage of 0.25 to 0.57 seconds. The direction is to let the decompression thread give chunk to
+`FileWriterPool`, instead of writing by yourself. This is the clearest improvement point found in this round.
+3. **The choice of measuring chunk size** (Section 3). 8 or 16 MiB will reduce the loss of frame number and compression ratio, but
+Reduce the parallelism of the compression end. This is a measurable choice, and it should not be decided by guessing. **Cannot be carried out in the same round as item 2**,
+Otherwise, there is no way to attribute it.
+4. **The decode columns of R50 shall not be used for performance conclusions between formats or between wheels** (Section 2). They only prove that the return has been repaired.
+
+---
+
 # R49-Mac: The first round of macOS native zstd, and a decompression speed that has been located and repaired has dropped across the board (2026-08-27)
 
 > **Goal**: Run a complete round with `sudo ./run_round.command -full` and accept three repairs (swift_tar

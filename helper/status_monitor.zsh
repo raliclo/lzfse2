@@ -49,9 +49,15 @@ FAILURE+='|POWER_SUMMARY_INTEGRATE_FAILED|COMPARISON_FAILED|MD_TRANSLATE_FAILED'
 FAILURE+='|SWIFT_TAR_[A-Z_]*FAILED|BENCH_FAILED|Traceback|password is required'
 FAILURE+='|Benchmark aborted|Win_result_invalid|\[FAIL\]'
 
-# 進度訊號。`DONE [0-9]` 涵蓋所有以時間戳結尾的 *_DONE，含各資料集的 LZ4BENCH_DONE。
-# Progress. `DONE [0-9]` covers every *_DONE that ends in a timestamp.
-PROGRESS='DONE [0-9]'
+# 進度訊號。兩種形狀都要涵蓋，因為 *_DONE 的後面不一定是時間戳：
+#     TRACER_DONE 22:25:55                  → DONE 後接時間
+#     LZ4BENCH_DONE claw-code-n40 13:29:16  → DONE 後接資料集名稱
+# 第一版只寫了 `DONE [0-9]`，於是六個資料集的完成通知在一次 9 小時的執行中全部被吃掉，
+# 而守候看起來像是「一切正常地安靜」——那正是本檔開頭所說、要避免的那種沉默。
+# Two shapes, because what follows *_DONE is not always a timestamp. The first version
+# matched only the timestamp form and swallowed every dataset completion across a nine-hour
+# run, leaving a silence that reads exactly like health.
+PROGRESS='_DONE( |$)'
 
 PATTERN="${FAILURE}|${PROGRESS}"
 
@@ -70,9 +76,16 @@ REQUIRED=(
 
 verdict() {
     local fails ok_cmp bad_cmp missing=()
-    fails=$(grep -cE "$FAILURE" "$STATUS" 2>/dev/null || print 0)
-    ok_cmp=$(grep -c 'COMPARED_WITH_TGZ_OK' "$STATUS" 2>/dev/null || print 0)
-    bad_cmp=$(grep -c 'COMPARED_WITH_TGZ_FAILED' "$STATUS" 2>/dev/null || print 0)
+    # `grep -c` 在零命中時已經印出 0，而退出碼是 1。先前寫成 `|| print 0` 的後果是
+    # 「0」被印兩次，變數成為 "0\n0"，其後的算術以 bad math expression 失敗，判定於是
+    # 落到「未完成」那一支——**一輪乾淨的執行被回報成失敗**。這正是本檔要防的那類錯誤，
+    # 只是方向相反：不是把失敗說成成功，而是把成功說成失敗。兩者都讓判定失去意義。
+    # `grep -c` prints 0 on no match and still exits 1, so `|| print 0` printed it twice
+    # and the arithmetic below failed, sending a clean round to the "failed" branch. The
+    # same class of defect this file exists to catch, only inverted.
+    fails=$(grep -cE "$FAILURE" "$STATUS")
+    ok_cmp=$(grep -c 'COMPARED_WITH_TGZ_OK' "$STATUS")
+    bad_cmp=$(grep -c 'COMPARED_WITH_TGZ_FAILED' "$STATUS")
     for m in $REQUIRED; do
         grep -q "$m" "$STATUS" 2>/dev/null || missing+=($m)
     done
