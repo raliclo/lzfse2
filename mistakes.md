@@ -8,16 +8,16 @@
 任何東西會回報這件漂移。加入一條時請一併寫出**當初是什麼症狀**，因為下一個人是先看到症狀
 才找到這裡的。
 
-**每一條都記錄重複次數。** 重複四次的錯誤與只發生一次的錯誤，需要的不是同一種防範：前者
+**每一條都記錄重複次數。** 重複六次的錯誤與只發生一次的錯誤，需要的不是同一種防範：前者
 說明「知道」不足以避免它，得靠工具或流程擋下。
 
 This file records only mistakes that actually happened in this tree, and every one shares a
 property: none of them made any tool report an error. Each produced a result that looked
-entirely reasonable. Every entry carries a repeat count, because a mistake made four times
+entirely reasonable. Every entry carries a repeat count, because a mistake made six times
 needs a different defence from one made once -- knowing about it evidently is not enough.
 
 **本檔是這棵樹的紀錄；可攜的那一份是 skill `mistakes_prevention`**
-（`~/.claude/skills/mistakes_prevention/`）。它把本檔的五條整理成三個關口——判定成敗、
+（`~/.claude/skills/mistakes_prevention/`）。它把本檔的六條整理成三個關口——判定成敗、
 下效能結論、寫過濾器——並附上 `run_checked.zsh` 與 `counter.zsh`。在別的樹上工作時用那一份；
 **次數與條目本文仍以本檔及 `mistakes_counter.csv2` 為準**，skill 不重複記錄次數。
 
@@ -83,7 +83,7 @@ done
 
 | # | 分布 | 為何是這個矯正 |
 | ---: | --- | --- |
-| 1 | 4 次 / 3 天 | 知道之後仍然再犯，且每次換一種偽裝。**必須是強制檢查**：`run_checked.zsh` 讓摘要樣式成為附加、失敗掃描成為強制，`--want` 永不取代掃描 |
+| 1 | 6 次 / 3 天 | 知道之後仍然再犯，且每次換一種偽裝。**必須是強制檢查**：`run_checked.zsh` 讓摘要樣式成為附加、失敗掃描成為強制，`--want` 永不取代掃描 |
 | 2 | 6 次 / 1 天 | 同一個下午沒有意識到。**只需把正確做法固化**：`zstd_decode_gap.zsh` 把交錯、取最小值、RAM disk、user/sys 拆解全部內建 |
 
 `corrective` must not be empty once `total` exceeds five: at that point neither knowing nor
@@ -100,16 +100,16 @@ needed the right method made reusable.
 知道了仍然犯。這種靠**工具**擋得住：把正確的量測方式寫成腳本（`zstd_decode_gap.zsh`），
 下次就不必重新想起交錯與取最小值。
 
-**第 1 條：4 次分布在 3 天。** 那才是嚴重的——**知道之後仍然再犯**。2026-08-27 踩過並寫進
+**第 1 條：6 次分布在 3 天。** 那才是嚴重的——**知道之後仍然再犯**。2026-08-27 踩過並寫進
 CLAUDE.md，08-28 與 08-29 又各犯一次，而且每次換一個形式（`2>/dev/null`、
 `grep … | tail -1`、`grep -cE ':(error|warning):'`、`grep -c … || print 0`）。規則寫在檔案
 裡不足以擋下它，因為每次的偽裝都不一樣。
 
 **跨日重複的只有第 1 條**（`days_seen > 1`）。若要投入心力做工具防範，它是唯一有依據的
-候選——其餘四條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
+候選——其餘五條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
 
 Total alone conflates two different situations. Six occurrences in one afternoon (entry 2)
-means it was not noticed at the time, and a script fixes that. Four occurrences across three
+means it was not noticed at the time, and a script fixes that. Six occurrences across three
 days (entry 1) means it recurred *after* being written into CLAUDE.md, each time in a
 different disguise -- a rule in a file is not enough to stop that. Entry 1 is the only one
 with `days_seen > 1`, and so the only one with evidence that tooling is warranted.
@@ -143,7 +143,7 @@ helper/run_checked.zsh --quiet -- ./compile_tar.zsh
 
 它的核心設計就是針對這條的共同結構：**摘要樣式是附加的，失敗掃描是強制的。** `--want`
 指定你想看的行，但不會取代掃描；兩者並存，掃描永遠先跑。指令以 0 結束而輸出含失敗訊號時
-——也就是本條四次中的三次——它會明講：
+——也就是本條六次中的四次——它會明講：
 
 ```
 run_checked: FAILED / 失敗
