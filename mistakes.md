@@ -34,14 +34,41 @@ The counts live in `mistakes_counter.csv2`, not in this prose. It is read and wr
 through `csv2` for the reason the global CLAUDE.md gives: the table is updated cell by cell,
 and splitting on commas is exactly the operation that goes wrong in silence there.
 
-| # | 標題 | 總次數 | 單日最多 | 發生天數 | 首次 | 最近 |
-| ---: | --- | ---: | ---: | ---: | --- | --- |
-| 1 | 自己的過濾器把失敗藏起來 | **4** | 2 | **3** | 2026-08-27 | 2026-08-29 |
-| 2 | 未交錯、次數不足就相信效能差異 | **6** | **6** | 1 | 2026-08-28 | 2026-08-28 |
-| 3 | zsh MULTIOS 在管線中洩漏 stdout | 1 | 1 | 1 | 2026-08-29 | 2026-08-29 |
-| 4 | `${array[(r)pat]}` 在 `set -u` 下無命中即中止 | 2 | 2 | 1 | 2026-08-29 | 2026-08-29 |
-| 5 | 以 Python heredoc 代替編輯器 | 1 | 1 | 1 | 2026-08-28 | 2026-08-28 |
-| | **合計** | **14** | | | | |
+| # | 標題 | 總次數 | 單日最多 | 發生天數 | 矯正措施 |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 1 | 自己的過濾器把失敗藏起來 | **4** | 2 | **3** | `helper/run_checked.zsh` |
+| 2 | 未交錯、次數不足就相信效能差異 | **6** | **6** | 1 | `verifications/zstd_decode_gap.zsh` |
+| 3 | zsh MULTIOS 在管線中洩漏 stdout | 1 | 1 | 1 | — |
+| 4 | `${array[(r)pat]}` 在 `set -u` 下無命中即中止 | 2 | 2 | 1 | — |
+| 5 | 以 Python heredoc 代替編輯器 | 1 | 1 | 1 | — |
+| | **合計** | **14** | | | |
+
+### `corrective` 欄的規則
+
+**總次數超過 5 次時，`corrective` 不得為空。** 到那個數字，「知道」與「寫成規則」都已被
+證明不足——必須有一個**工具或流程**擋在前面，而不是再寫一次提醒。
+
+規則可機器檢查，不必靠人記得：
+
+```sh
+csv2 -r -i mistakes_counter.csv2 | awk -F, '{print $1, $3}' | while read -r id total; do
+  c=$(csv2 -get $id:9 -i mistakes_counter.csv2)
+  (( total > 5 )) && [[ -z "$c" ]] && print "✗ #$id total=$total 但 corrective 為空"
+done
+```
+
+目前兩條已填，且**兩條的矯正方式不同**——因為第 1 條與第 2 條的分布不同（見下）：
+
+| # | 分布 | 為何是這個矯正 |
+| ---: | --- | --- |
+| 1 | 4 次 / 3 天 | 知道之後仍然再犯，且每次換一種偽裝。**必須是強制檢查**：`run_checked.zsh` 讓摘要樣式成為附加、失敗掃描成為強制，`--want` 永不取代掃描 |
+| 2 | 6 次 / 1 天 | 同一個下午沒有意識到。**只需把正確做法固化**：`zstd_decode_gap.zsh` 把交錯、取最小值、RAM disk、user/sys 拆解全部內建 |
+
+`corrective` must not be empty once `total` exceeds five: at that point neither knowing nor
+writing a rule has worked, and something must stand in the way. The two filled entries take
+different forms because their distributions differ -- one recurred across days in new
+disguises and needs a mandatory check, the other happened in a single afternoon and only
+needed the right method made reusable.
 
 ### 為什麼「單日最多」與「發生天數」要分開記
 
@@ -85,9 +112,33 @@ with `days_seen > 1`, and so the only one with evidence that tooling is warrante
 
 **第 4 條的方向是相反的**（把成功說成失敗），但成因相同，且同樣讓判定失去意義。
 
-**現在怎麼防**：
-- 過濾建置輸出時，一併涵蓋 `denied`、`No such file`、`command not found` 等 shell 層級的失敗，
-  不要只涵蓋編譯器診斷的樣式。
+**現在怎麼防**：用 [`helper/run_checked.zsh`](./helper/run_checked.zsh) 執行建置與測試。
+
+```sh
+helper/run_checked.zsh --want '通過|PASS:' -- swift_tar/test/test_exclude.zsh
+helper/run_checked.zsh --quiet -- ./compile_tar.zsh
+```
+
+它的核心設計就是針對這條的共同結構：**摘要樣式是附加的，失敗掃描是強制的。** `--want`
+指定你想看的行，但不會取代掃描；兩者並存，掃描永遠先跑。指令以 0 結束而輸出含失敗訊號時
+——也就是本條四次中的三次——它會明講：
+
+```
+run_checked: FAILED / 失敗
+  exit    : 0
+  failures: 1 行符合 shell 層級的失敗樣式
+  注意：指令以 0 結束，但輸出中有失敗訊號——正是 mistakes.md 第 1 條的形狀。
+```
+
+**寫這支腳本時又犯了第五次。** 第一版的失敗樣式有 `FAILED` 與 `[FAIL]`，卻漏掉
+`失敗 / FAIL: 2 check(s)`——那是本樹測試腳本的標準失敗行。**同一個錯誤的第五種偽裝，出現
+在為了防它而寫的東西裡。** 修補時另有一個陷阱：計數必須是「非零」而非「存在」，否則摘要行
+`PASS: 139  FAIL: 0` 會讓每一次成功都被判成失敗——那是本條第 4 例的反向形式。
+
+驗證：五種歷史偽裝逐一重現，全部攔下（rc≠0）；`PASS: 139  FAIL: 0` 與 `通過 / PASS: exclude`
+不誤判（rc=0）；真實的 `test_exclude.zsh` 與 `compile_tar.zsh` 皆正確通過。
+
+仍然適用的手動規則（`run_checked.zsh` 涵蓋不到的地方）：
 - 讀測試結果時看**最後一行**與退出碼，不要 `grep … | tail -1`——那會取到較早的成功行。
 - `grep -c` 已經會印 `0`，不要再加 `|| print 0`。
 - 診斷訊息**永遠不要**用 `2>/dev/null` 丟掉。CLAUDE.md 已將此列為規則。
