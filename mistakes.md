@@ -25,8 +25,8 @@ needs a different defence from one made once -- knowing about it evidently is no
 操作。
 
 ```sh
-csv2 -r -t -md --pretty -i mistakes_counter.csv2      # 出表
-csv2 -get 2:3 -i mistakes_counter.csv2                # 讀第 2 條的次數
+csv2 -r -t -md --pretty -i mistakes_counter.csv2        # 出表
+csv2 -get 2:3 -i mistakes_counter.csv2                  # 讀第 2 條的總次數
 csv2 -update 2:3 7 -i mistakes_counter.csv2 --in-place  # 第 2 條再犯一次
 ```
 
@@ -34,20 +34,36 @@ The counts live in `mistakes_counter.csv2`, not in this prose. It is read and wr
 through `csv2` for the reason the global CLAUDE.md gives: the table is updated cell by cell,
 and splitting on commas is exactly the operation that goes wrong in silence there.
 
-| # | 標題 | 次數 | 首次 | 最近 |
-| ---: | --- | ---: | --- | --- |
-| 1 | 自己的過濾器把失敗藏起來 | **4** | 2026-08-27 | 2026-08-29 |
-| 2 | 未交錯、次數不足就相信效能差異 | **6** | 2026-08-28 | 2026-08-28 |
-| 3 | zsh MULTIOS 在管線中洩漏 stdout | 1 | 2026-08-29 | 2026-08-29 |
-| 4 | `${array[(r)pat]}` 在 `set -u` 下無命中即中止 | 2 | 2026-08-29 | 2026-08-29 |
-| 5 | 以 Python heredoc 代替編輯器 | 1 | 2026-08-28 | 2026-08-28 |
-| | **合計** | **14** | | |
+| # | 標題 | 總次數 | 單日最多 | 發生天數 | 首次 | 最近 |
+| ---: | --- | ---: | ---: | ---: | --- | --- |
+| 1 | 自己的過濾器把失敗藏起來 | **4** | 2 | **3** | 2026-08-27 | 2026-08-29 |
+| 2 | 未交錯、次數不足就相信效能差異 | **6** | **6** | 1 | 2026-08-28 | 2026-08-28 |
+| 3 | zsh MULTIOS 在管線中洩漏 stdout | 1 | 1 | 1 | 2026-08-29 | 2026-08-29 |
+| 4 | `${array[(r)pat]}` 在 `set -u` 下無命中即中止 | 2 | 2 | 1 | 2026-08-29 | 2026-08-29 |
+| 5 | 以 Python heredoc 代替編輯器 | 1 | 1 | 1 | 2026-08-28 | 2026-08-28 |
+| | **合計** | **14** | | | | |
 
-第 1 與第 2 條佔了 14 次中的 10 次，且兩者是同一件事的兩面：**一個看起來合理的結果，沒有
-任何東西回報它是錯的。** 這也是本檔的收錄條件。
+### 為什麼「單日最多」與「發生天數」要分開記
 
-Entries 1 and 2 account for 10 of the 14 and are two faces of one thing: a plausible result
-that nothing reports as wrong. That is also this file's admission criterion.
+總次數把兩種完全不同的情況混為一談，而它們需要的防範不同：
+
+**第 2 條：6 次全在同一天，只跨 1 天。** 那是「同一個下午反覆踩」——當下沒有意識到，而不是
+知道了仍然犯。這種靠**工具**擋得住：把正確的量測方式寫成腳本（`zstd_decode_gap.zsh`），
+下次就不必重新想起交錯與取最小值。
+
+**第 1 條：4 次分布在 3 天。** 那才是嚴重的——**知道之後仍然再犯**。2026-08-27 踩過並寫進
+CLAUDE.md，08-28 與 08-29 又各犯一次，而且每次換一個形式（`2>/dev/null`、
+`grep … | tail -1`、`grep -cE ':(error|warning):'`、`grep -c … || print 0`）。規則寫在檔案
+裡不足以擋下它，因為每次的偽裝都不一樣。
+
+**跨日重複的只有第 1 條**（`days_seen > 1`）。若要投入心力做工具防範，它是唯一有依據的
+候選——其餘四條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
+
+Total alone conflates two different situations. Six occurrences in one afternoon (entry 2)
+means it was not noticed at the time, and a script fixes that. Four occurrences across three
+days (entry 1) means it recurred *after* being written into CLAUDE.md, each time in a
+different disguise -- a rule in a file is not enough to stop that. Entry 1 is the only one
+with `days_seen > 1`, and so the only one with evidence that tooling is warranted.
 
 ---
 
