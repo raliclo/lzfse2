@@ -272,9 +272,83 @@ Loss of compression ratio with +4.6%.
 **This is a design trade-off rather than a defect**: Block division is the premise that `ParallelChunkSink` can divide the work to multi-core, and
 Encode is 2.2 times faster than it.
 
-**Second, the pipeline is parallel. ** External's `zstd -d -c | tar -xf -` is two trips working at the same time - zstd
-While decompressing, tar is already writing; native is a single itinerary, and two things are on the same timeline. Increment of writing files
-0.25 to 0.57 seconds is for this. `FileWriterPool` is parallel to "write files to each other", not "decompress to the files".
+**Second, it was previously written that "the pipeline is parallel" - that conclusion has been overturned and described as follows. **
+
+The original inference is that external's `zstd -d -c | tar -xf -` works two strokes at the same time, and native is a single trip.
+It is on the same timeline, so the gap comes from parallelism. **It is only written by `real`. **
+
+After adding `user` and `sys`, the inference is not valid:
+
+| | real | user | sys | CPU/wall |
+| --- | ---: | ---: | ---: | ---: |
+| native solution | 1.61 | 0.97 | 1.73 | 1.68 |
+| external solution | 2.27 | 1.10 | 2.14 | 1.43 |
+
+** `user` is almost the same** (0.97 to 1.10) - the calculation volume on both sides is the same, and the block does not make libzstd work more. And
+CPU/wall is native **higher** (1.68 to 1.43), which is the opposite of "native is less parallel".
+
+Moreover, this table itself has also turned upside down: ** native solution on RAM disk is faster ** (1.61 to 2.27). Previously
+The faster measurement to external (1.45 to 1.88) is on the internal disk - so the gap belongs to the storage layer, not to codec.
+
+### The whereath of sys time (the only clue at present)
+
+Count with `time -l` (the same claw-code, solved to RAM disk):
+
+| | sys seconds | page faults | vol ctx-sw | invol ctx-sw |
+| --- | ---: | ---: | ---: | ---: |
+| native solution | 1.71 | **128,042** | 90,600 | 10,524 |
+| external solution | 2.13 | 1,990 | 119,727 | 9,666 |
+
+**Page fault is 64 times worse. ** That points to the price of `FileWriterPool` gear-by-gear buffer 4 MiB ( `smallFileMax`).
+It should be noted that external is two strokes and `time -l` only covers the outer layer `sh`, so its count is low - the comparison here is the shape,
+It is not an absolute value.
+
+**This is still not a conclusion, but the starting point of the next step. ** The conclusion of the first two versions of this section was each overturned by the next group of measurements once, and the causes of the two times
+Same: A mechanism is proposed when the number is insufficient. Don't repeat the same thing for the third time, and fill in the numbers first.
+
+The measurement tool has been solidified as [ `swift_tar/verifications/zstd_decode_gap.zsh`](swift_tar/verifications/zstd_decode_gap.zsh),
+Each of the five models corresponds to one of the evidence that has overturned the conclusion: `pipeline` (real/user/sys disassembly), `threads` ( `-n` scanning),
+`syscall` (page fault and context switch), `chunk` (number of frames), `storage` (RAM disk to actual disk).
+
+### `-n` has no adjustable space for zstd decompression (excluded)
+
+Since the block is for parallelism, should `-n` (in-flight chunk number) be adjusted separately for zstd decompression? **No need--
+It's the same no matter how you set it. **
+
+Solve the same `claw-code` seal on RAM disk (3 GB HFS ram://, eliminate disk saturation), 5 rounds staggered:
+
+| `-n` | Each time (seconds) | Minimum | vs `-n 1` |
+| ---: | --- | ---: | ---: |
+| 1 | 1.92 1.70 1.70 1.67 1.64 | 1.64 | — |
+| 2 | 1.71 1.70 1.79 1.68 1.66 | 1.66 | +1.3% |
+| 3 | 1.64 1.74 1.78 1.65 1.72 | 1.64 | +0.2% |
+| 4 | 1.61 1.65 1.69 1.68 1.64 | **1.61** | −1.6% |
+| 8 | 1.66 1.73 1.70 1.69 1.72 | 1.66 | +1.7% |
+| 40 | 1.74 1.71 1.66 1.67 1.71 | 1.66 | +1.8% |
+
+All fell at 1.61–1.66 seconds. -1.6% of `n4` is the same as +1.8% of `n40`, in the opposite direction, which is noisy.
+Both ends instead of "4-core best". Pure decompression ( `--cat`, no file writing at all) is clearer: the six `-n` values are all
+1.14–1.15 seconds, the range is ±0.8%.
+
+The reason is clear: `-n` controls the number of in-flight chunks of `ParallelChunkSink`, which is the mechanism of **compression end**.
+The 336 frames at the decompression end must be restored into a continuous tar stream in order. The order is hard constrained and there is no parallel space.
+
+**This group of measurements is also a lesson in itself. ** The same scan is done on the internal disk first, and " `-n 1` 1.78 seconds, the rest
+3.25–5.33 seconds", looks like `-n 1`'s big victory. The staggered re-examination exposed it:
+
+```
+-n 1    1.74  3.08  5.45  5.99  5.79  5.58    ← 單調變慢
+-n 4    1.69  5.78  6.20  5.57  4.64  4.50
+-n 40   2.29  5.24  4.37  5.63  4.91  4.68
+```
+
+The first time of each group is fast, and then all of them deteriorate - what determines the number is "ranked in the sequence", because repeated `rm -rf`
+Then write 1.3 GB to fill the write path of the SSD. **The minimum value is invalid here**: It picked the time at the early stage of the sequence.
+After changing to RAM disk, the value stabilized one by one (1.61–1.92).
+
+Therefore, this section excludes the second hypothesis (the first is the E-Cluster in Section 2), ** the to-do item 2 becomes the only remaining
+Clear direction**: 1.64 seconds on RAM disk and 1.72–1.88 seconds on the internal disk, the gap is the file; and external
+The advantage of (file increment 0.25 to 0.57 seconds) is also the same.
 
 ### The difference in the compression ratio is not a return.
 
@@ -314,9 +388,20 @@ There are readings, 48 decompression consistency comparisons all passed, trace a
 1. **Repair the `rc=$?` position of `run_round.command` ** (R49-Mac pending Article 1, still not repaired). Put it
 Move to before `rm -f .bench_env`. Before that, any round of `BENCH_DONE` and exit code are not
 It constitutes evidence of success.
-2. **Let the decompression overlap with the file** (Section 3). At present, the decompression thread only writes one after solving a chunk, and external
-The two-stroke pipeline relies on this to gain an advantage of 0.25 to 0.57 seconds. The direction is to let the decompression thread give chunk to
-`FileWriterPool`, instead of writing by yourself. This is the clearest improvement point found in this round.
+2. **First measure the whereabout of `sys` time, and then propose any mechanism** (Section 3). The only clue at present is page fault.
+64 times difference (128,042 to 1,990), pointing to `FileWriterPool` gear-by-gear buffer 4 MiB ( `smallFileMax`).
+The next step is to disassemble the count to the member level - for example, rebuild with a different `smallFileMax` and compare the page fault with
+Sys time, instead of directly rewriting the path.
+
+**The conclusion of the first two versions of this section was overturned by proposing a mechanism when the number was insufficient**: First, "decompression and filing do not overlap"
+( `user` is the same, CPU/wall is rather than native, overturned), and then "external wins by pipeline parallel"
+(Native on RAM disk is faster and overturned). Three competitive assumptions have been excluded: E-Cluster participation (Section 2,
+The correlation direction is opposite), the setting of `-n` (Section 3, all six values are within ±1.8%), parallelism (this section, CPU/wall
+Opposite direction).
+
+`swift_tar/verifications/zstd_decode_gap.zsh` is used for measurement, and RAM disk is the target.
+——Repeatedly writing 1.3 GB on the internal disk will make the subsequent measurement monotonous deterioration, so the minimum value is picked at the beginning of the sequence instead of
+The real best value. The `--mode storage` of the script will run both at the same time, so that the influence of the storage layer can be manifested.
 3. **The choice of measuring chunk size** (Section 3). 8 or 16 MiB will reduce the loss of frame number and compression ratio, but
 Reduce the parallelism of the compression end. This is a measurable choice, and it should not be decided by guessing. **Cannot be carried out in the same round as item 2**,
 Otherwise, there is no way to attribute it.
