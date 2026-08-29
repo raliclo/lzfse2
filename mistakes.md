@@ -16,6 +16,14 @@ property: none of them made any tool report an error. Each produced a result tha
 entirely reasonable. Every entry carries a repeat count, because a mistake made four times
 needs a different defence from one made once -- knowing about it evidently is not enough.
 
+**本檔是這棵樹的紀錄；可攜的那一份是 skill `mistakes_prevention`**
+（`~/.claude/skills/mistakes_prevention/`）。它把本檔的五條整理成三個關口——判定成敗、
+下效能結論、寫過濾器——並附上 `run_checked.zsh` 與 `counter.zsh`。在別的樹上工作時用那一份；
+**次數與條目本文仍以本檔及 `mistakes_counter.csv2` 為準**，skill 不重複記錄次數。
+
+This file is this tree's log. The portable form is the `mistakes_prevention` skill, which
+carries the rules and the tools; the counts stay here.
+
 ---
 
 ## 計數表 / The counter
@@ -51,9 +59,18 @@ and splitting on commas is exactly the operation that goes wrong in silence ther
 規則可機器檢查，不必靠人記得：
 
 ```sh
-csv2 -r -i mistakes_counter.csv2 | awk -F, '{print $1, $3}' | while read -r id total; do
-  c=$(csv2 -get $id:9 -i mistakes_counter.csv2)
-  (( total > 5 )) && [[ -z "$c" ]] && print "✗ #$id total=$total 但 corrective 為空"
+~/.claude/skills/mistakes_prevention/scripts/counter.zsh -i mistakes_counter.csv2 check
+```
+
+它逐格 `csv2 -get`，**不切逗號**。`corrective`、`shape`、`guard` 三欄都含引號內的逗號，
+`awk -F,` 會靜默切錯並讓其右每一欄左移一格——本檔的主題正是這種不報錯的失敗，不該由本檔的
+檢查腳本示範一次。
+
+```zsh
+for r in {1..$(csv2 -r -i mistakes_counter.csv2 | wc -l)}; do
+  total=$(csv2 -get $r:3 -i mistakes_counter.csv2)
+  corr=$(csv2 -get $r:9 -i mistakes_counter.csv2)
+  (( total > 5 )) && [[ -z "$corr" ]] && print "✗ #$r total=$total 但 corrective 為空"
 done
 ```
 
