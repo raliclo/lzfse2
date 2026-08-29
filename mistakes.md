@@ -44,12 +44,13 @@ and splitting on commas is exactly the operation that goes wrong in silence ther
 
 | # | 標題 | 總次數 | 單日最多 | 發生天數 | 矯正措施 |
 | ---: | --- | ---: | ---: | ---: | --- |
-| 1 | 自己的過濾器把失敗藏起來 | **4** | 2 | **3** | `helper/run_checked.zsh` |
+| 1 | 自己的過濾器把失敗藏起來 | **6** | 4 | **3** | `helper/run_checked.zsh` |
 | 2 | 未交錯、次數不足就相信效能差異 | **6** | **6** | 1 | `verifications/zstd_decode_gap.zsh` |
 | 3 | zsh MULTIOS 在管線中洩漏 stdout | 1 | 1 | 1 | — |
 | 4 | `${array[(r)pat]}` 在 `set -u` 下無命中即中止 | 2 | 2 | 1 | — |
 | 5 | 以 Python heredoc 代替編輯器 | 1 | 1 | 1 | — |
-| | **合計** | **14** | | | |
+| 6 | `{1..$(…)}` 遇帶空白的輸出靜默不展開 | 1 | 1 | 1 | — |
+| | **合計** | **17** | | | |
 
 ### `corrective` 欄的規則
 
@@ -67,7 +68,11 @@ and splitting on commas is exactly the operation that goes wrong in silence ther
 檢查腳本示範一次。
 
 ```zsh
-for r in {1..$(csv2 -r -i mistakes_counter.csv2 | wc -l)}; do
+# `wc -l` 的輸出帶前導空白，而 `{1..   5}` 不是合法的範圍——zsh 會原樣留下它，再依 IFS
+# 切成 `{1..` 與 `5}` 兩個詞。迴圈照跑、不報錯，只是一格都沒讀到。`tr -d ' '` 是必要的。
+# `wc -l` pads with spaces and `{1..   5}` is not a valid range, so zsh leaves it literal
+# and splits it in two. The loop runs, reports nothing, and reads no cells.
+for r in {1..$(csv2 -r -i mistakes_counter.csv2 | wc -l | tr -d ' ')}; do
   total=$(csv2 -get $r:3 -i mistakes_counter.csv2)
   corr=$(csv2 -get $r:9 -i mistakes_counter.csv2)
   (( total > 5 )) && [[ -z "$corr" ]] && print "✗ #$r total=$total 但 corrective 為空"
@@ -111,11 +116,11 @@ with `days_seen > 1`, and so the only one with evidence that tooling is warrante
 
 ---
 
-## 1. 自己的過濾器把失敗藏起來 — **已發生 4 次（2026-08-27 至 08-29）**
+## 1. 自己的過濾器把失敗藏起來 — **已發生 6 次（2026-08-27 至 08-29）**
 
 **症狀**：指令「成功」了，但實際上什麼都沒做；或測試「通過」了，而摘要行下面就是失敗。
 
-**四次的實際形式**：
+**六次的實際形式**（第 5、6 次在下方單獨說明，都發生在為了防這條而做的事情裡）：
 
 | # | 寫法 | 藏起了什麼 |
 | --- | --- | --- |
@@ -147,13 +152,36 @@ run_checked: FAILED / 失敗
   注意：指令以 0 結束，但輸出中有失敗訊號——正是 mistakes.md 第 1 條的形狀。
 ```
 
-**寫這支腳本時又犯了第五次。** 第一版的失敗樣式有 `FAILED` 與 `[FAIL]`，卻漏掉
+### 第 5 次與第 6 次：都發生在為了防這條而做的事情裡
+
+**第 5 次——寫這支腳本時。** 第一版的失敗樣式有 `FAILED` 與 `[FAIL]`，卻漏掉
 `失敗 / FAIL: 2 check(s)`——那是本樹測試腳本的標準失敗行。**同一個錯誤的第五種偽裝，出現
 在為了防它而寫的東西裡。** 修補時另有一個陷阱：計數必須是「非零」而非「存在」，否則摘要行
 `PASS: 139  FAIL: 0` 會讓每一次成功都被判成失敗——那是本條第 4 例的反向形式。
 
 驗證：五種歷史偽裝逐一重現，全部攔下（rc≠0）；`PASS: 139  FAIL: 0` 與 `通過 / PASS: exclude`
 不誤判（rc=0）；真實的 `test_exclude.zsh` 與 `compile_tar.zsh` 皆正確通過。
+
+**第 6 次——驗證本檔的檢查片段時，而且手上就有工具卻沒用。** 上一節那段 `{1..$(…)}` 的
+迴圈（見第 6 條）因 `wc -l` 的前導空白而一格都沒讀到，`csv2` 把四行錯誤印在 stderr 上。我
+沒有用 `run_checked.zsh`，而是自己下了一行摘要：
+
+```
+inline loop rc=1 (no ✗ lines above = 通過)
+```
+
+`rc=1` 來自迴圈末尾那個為假的 `(( total > 5 ))`，與檢查結果無關；「沒有 ✗」是因為迴圈根本
+沒跑，不是因為通過。**錯誤訊息就在同一畫面上，而我的摘要說它通過**，並據此提交。事後補測：
+把壞掉的版本交給 `run_checked.zsh`，rc=1，立刻攔下。
+
+**這一次的教訓不是「再多一種樣式」，而是工具存在不等於用了它。** 第 1、3 次是樣式太窄，
+第 6 次是根本沒走那個關口——三個關口要在**下判斷之前**進入，不是回頭補。
+
+The sixth happened while verifying this file's own check, with the tool sitting right there
+unused. The loop read no cells and csv2 printed four errors to stderr; I wrote my own summary
+line saying it passed and committed on it. Handing the broken version to `run_checked.zsh`
+afterwards catches it immediately. The lesson is not another pattern -- it is that having the
+tool is not the same as going through it.
 
 仍然適用的手動規則（`run_checked.zsh` 涵蓋不到的地方）：
 - 讀測試結果時看**最後一行**與退出碼，不要 `grep … | tail -1`——那會取到較早的成功行。
@@ -275,3 +303,39 @@ tarRestorePermissions = !args.contains("--no-same-permissions")
 **現在怎麼防**：改檔用 Edit／Write 工具，要腳本就用 zsh。CLAUDE.md 已將此列為規則。Python
 的字串替換瞄準的是一段**看不見的**字面值；Edit 工具會呈現前後文，那類插入不會發生在看不見
 的地方。
+
+---
+
+## 6. `{1..$(…)}` 遇到帶空白的輸出會靜默不展開 — **已發生 1 次**
+
+**症狀**：一個 `for` 迴圈跑完、退出 0、**一行都沒印**，而它應該印五行。看起來像「沒有東西
+符合條件」，實際上是「一格都沒讀」。
+
+**實際狀況**：
+
+```zsh
+for r in {1..$(csv2 -r -i f.csv2 | wc -l)}; do …   # wc -l 印出 "       5"
+```
+
+zsh 的花括號展開在命令替換**之後**，所以它拿到的是 `{1..       5}`——那不是合法的範圍，於是
+**原樣留下**，再依 IFS 切成 `{1..` 與 `5}` 兩個詞。迴圈確實跑了兩輪，`csv2 -get {1..:3` 與
+`csv2 -get 5}:3` 都被拒絕，錯誤進 stderr，而迴圈本身的退出碼與該檔內容無關。
+
+**沒有任何一步失敗**：`for` 沒錯、展開沒錯（`{1..   5}` 本來就該原樣留下）、`csv2` 正確地
+大聲拒絕了畸形的位址。只有結果是錯的。
+
+**現在怎麼防**：
+
+```zsh
+for r in {1..$(csv2 -r -i f.csv2 | wc -l | tr -d ' ')}; do …
+```
+
+- 命令替換餵給 `{1..N}` 時**一律 `tr -d ' '`**——`wc`、`grep -c` 在多數平台上都會補空白。
+- **迴圈至少要印一行**（哪怕是計數），這樣「零行輸出」就是可見的失敗而不是安靜的成功。
+- 這種形狀交給 `run_checked.zsh` 會被抓到（stderr 的 `expected r:c` 命中 `error|Error:`），
+  但前提是真的走了那個關口——第 1 條第 6 次就是沒走。
+
+zsh expands braces after command substitution, so `wc -l`'s padding makes `{1..   5}` an
+invalid range: it is left literal and split into two words. Nothing fails; only the result is
+wrong. Strip the whitespace, and make the loop print at least one line so zero output is a
+visible failure.
