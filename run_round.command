@@ -155,12 +155,30 @@ if [[ "$USE_SWIFT_TAR" == "1" ]]; then
         print -r -- "export PATH=${(q)PATH}"
     } > .bench_env
     sudo ./benchmark2.zsh >> round_status.txt 2>&1
+    rc=$?
 else
     rm -f .bench_env
     sudo ./benchmark2.zsh >> round_status.txt 2>&1
+    rc=$?
 fi
+# `rc=$?` 必須緊接在 benchmark2.zsh 之後，且**兩支都要**——它原本位在下面的
+# `rm -f .bench_env` 之後，抓到的因此是 rm 的退出碼。`rm -f` 對不存在的檔案也回 0，
+# 於是 BENCH_DONE 無條件寫出、BENCH_FAILED 那一支永遠不可能執行、整輪永遠 exit 0。
+#
+# 這不是理論上的：2026-08-27 有一輪的 benchmark2.zsh 因 sudo 密碼過期而完全沒跑
+# （power 結果全空），而該輪回報成功。R49-Mac 與 R50-Mac 的待辦都列了這一條，兩輪
+# 都在「無法由退出碼判定成敗」的前提下進行——判定改依各步驟自己寫出的 *_DONE 標記
+# （helper/status_monitor.zsh --verdict），因為那些不受本缺陷影響。
+#
+# 兩支分支各放一次而不是合併呼叫：合併需要改動上方那段有詳細理由的 .bench_env 邏輯，
+# 而這裡要修的只是「在哪一行取 $?」。
+#
+# `rc=$?` must follow benchmark2.zsh immediately, in BOTH branches. It used to sit after
+# `rm -f .bench_env`, which returns 0 even for an absent file, so BENCH_DONE was
+# unconditional, BENCH_FAILED was unreachable, and the round always exited zero. On
+# 2026-08-27 a round whose benchmark2.zsh never ran at all -- the sudo timestamp had
+# expired, and the power results were empty -- reported success this way.
 rm -f .bench_env
-rc=$?
 if [[ $rc -eq 0 ]]; then
     echo "BENCH_DONE $(date +%H:%M:%S)" >> round_status.txt
 else

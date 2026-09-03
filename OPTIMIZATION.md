@@ -385,9 +385,21 @@ R49 與 R50 完全相同，R48 不同——這證實差異來自實作替換（�
 
 ## 待辦
 
-1. **修 `run_round.command` 的 `rc=$?` 位置**（承 R49-Mac 待辦第 1 條，仍未修）。把它
-   移到 `rm -f .bench_env` 之前。在此之前，任何一輪的 `BENCH_DONE` 與 exit code 都不
-   構成成功的證據。
+1. ✅ **已完成（2026-09-04）：`run_round.command` 的 `rc=$?` 位置**（承 R49-Mac 待辦第 1
+   條，兩輪未修）。`rc=$?` 改為緊接在 `sudo ./benchmark2.zsh` 之後，且**兩支分支各一次**；
+   `rm -f .bench_env` 移到其後。
+
+   本條原本寫的是「移到 `rm -f .bench_env` 之前」——那樣做（放在 `fi` 之後）也正確，因為
+   `fi` 之後的 `$?` 就是被採用的那一支最後一個指令的狀態。改採「兩支各取一次」是因為**這個
+   缺陷當初正是由一行插進指令與取值之間而產生的**，而分支內部日後仍可能被插入清理行；顯式
+   取值使那件事不再有機會發生。
+
+   驗證：以 benchmark2 必定失敗（模擬 sudo 密碼過期）的替身跑兩種形狀——
+   舊形狀 `exit=0`、寫出 `BENCH_DONE`；新形狀 `exit=7`、寫出 `BENCH_FAILED 7`。
+   實檔 `zsh -n` 通過，2 處呼叫各有緊接的 `rc=$?`，`rm -f .bench_env` 之後為 0 處。
+
+   **R49-Mac 與 R50-Mac 兩輪仍是在本缺陷之下進行的**，其 `BENCH_DONE` 與 exit code 依舊
+   不構成證據；那兩輪的判定依各步驟自己的 `*_DONE` 標記，此處不追溯改寫。
 2. **先量出 `sys` 時間的去向，再提出任何機制**（第 3 節）。目前唯一的線索是 page fault
    差 64 倍（128,042 對 1,990），指向 `FileWriterPool` 逐檔緩衝 4 MiB（`smallFileMax`）。
    下一步是把該計數拆到成員層級——例如以不同的 `smallFileMax` 重建並比對 page fault 與
@@ -593,9 +605,9 @@ powermetrics 原始輸出、53 筆 RSS、trace 與 CPU call tree 分析各一輪
 
 ## 待辦
 
-1. **修 `run_round.command` 的 `rc=$?` 位置**（第 2 節）。把它移到 `rm -f .bench_env`
-   之前。在此之前，任何一輪的 `BENCH_DONE` 與 exit code 都不構成成功的證據，判定必須
-   依各步驟自己的 `*_DONE` 標記。
+1. ✅ **已完成（2026-09-04）：`run_round.command` 的 `rc=$?` 位置**（第 2 節）。詳見
+   R50-Mac 待辦第 1 條。**本輪（R49-Mac）仍在此缺陷之下進行**，其 `BENCH_DONE` 與 exit
+   code 不構成成功的證據，判定依各步驟自己的 `*_DONE` 標記。
 2. ✅ **已完成：decode 下跌的成因**（第 5 節）。定位為 `aea0427`，修復於 `cfc71df`。
    過程記於 `r49_decode_bisect.csv2`。**R49-Mac 的 decode 各列仍不得作為 codec 效能
    結論引用**——它們量到的是含該回歸的 binary。下一輪才會產生修復後的 decode 基準。
