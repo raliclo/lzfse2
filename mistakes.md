@@ -17,7 +17,7 @@ entirely reasonable. Every entry carries a repeat count, because a mistake made 
 needs a different defence from one made once -- knowing about it evidently is not enough.
 
 **本檔是這棵樹的紀錄；可攜的那一份是 skill `mistakes_prevention`**
-（`~/.claude/skills/mistakes_prevention/`）。它把本檔的七條整理成三個關口——判定成敗、
+（`~/.claude/skills/mistakes_prevention/`）。它把本檔的八條整理成四個關口——判定成敗、
 下效能結論、寫過濾器——並附上 `run_checked.zsh` 與 `counter.zsh`。在別的樹上工作時用那一份；
 **次數與條目本文仍以本檔及 `mistakes_counter.csv2` 為準**，skill 不重複記錄次數。
 
@@ -51,7 +51,8 @@ and splitting on commas is exactly the operation that goes wrong in silence ther
 | 5 | 以 Python heredoc 代替編輯器 | 1 | 1 | 1 | — |
 | 6 | `{1..$(…)}` 遇帶空白的輸出靜默不展開 | 1 | 1 | 1 | — |
 | 7 | 驗證的範圍不含會失敗的平台 | 1 | 1 | 1 | — |
-| | **合計** | **18** | | | |
+| 8 | zsh 綁定參數：命名為 `path` 等於覆寫 `PATH` | 1 | 1 | 1 | — |
+| | **合計** | **19** | | | |
 
 ### `corrective` 欄的規則
 
@@ -107,7 +108,7 @@ CLAUDE.md，08-28 與 08-29 又各犯一次，而且每次換一個形式（`2>/
 裡不足以擋下它，因為每次的偽裝都不一樣。
 
 **跨日重複的只有第 1 條**（`days_seen > 1`）。若要投入心力做工具防範，它是唯一有依據的
-候選——其餘六條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
+候選——其餘七條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
 
 Total alone conflates two different situations. Six occurrences in one afternoon (entry 2)
 means it was not noticed at the time, and a script fixes that. Six occurrences across three
@@ -391,3 +392,67 @@ on macOS. Same structure as entry 1, different mechanism: no pattern covers a ma
 was never asked. My guess at the cause was wrong too -- `import Synchronization` is available
 on Windows. Only the ordering was right: ask whether it still builds before adding the flag.
 Asking beat analysing, because the question went to whoever had the machine.
+
+---
+
+## 8. zsh 的綁定參數：把變數命名為 `path` 等於覆寫 `PATH` — **已發生 1 次（2026-09-04）**
+
+**症狀**：一支量測腳本跑完、退出 0、印出格式完整的結果表，**而表中每一格都是 0**。讀起來
+像「這台機器沒有 page fault」，實際上是「每一個外部指令都不存在」。
+
+**實際狀況**：語料迴圈裡有一行旗標賦值：
+
+```zsh
+path=$(( mib <= 4 ? 1 : 0 ))     # 想記的是「這個語料走不走緩衝路徑」
+```
+
+zsh 把小寫的 `path` 陣列與 `PATH` **綁定**，於是這一行把 `PATH` 換成了 `1`：
+
+```
+$ zsh -fc 'path=1; print -r -- "[$PATH]"; ls /'
+[1]
+zsh:1: command not found: ls
+```
+
+其後的 `grep`、`awk`、`head`、`rm`、`mkdir` 全部消失。**迴圈本身沒有失敗**——它照跑完所有
+輪次，把每次取到的空值當成 0 累加，最後印出一張欄位齊全的表，退出碼 0。
+
+**綁定的不只 `path`。** zsh 5.9 在 `zsh -f`（不載入任何設定）之下共有九對，用
+`typeset -T` 可以列出：
+
+```
+PATH/path            CDPATH/cdpath        FPATH/fpath
+MANPATH/manpath      MAILPATH/mailpath    MODULE_PATH/module_path
+FIGNORE/fignore      PSVAR/psvar          ZSH_EVAL_CONTEXT/zsh_eval_context
+```
+
+`fignore` 與 `psvar` 尤其危險——它們不長得像環境變數，卻同樣會被綁定。
+
+**與第 1、3 條的關係**：`command not found` 其實有印在 stderr 上，所以嚴格說「有工具報錯」。
+但**腳本自己的摘要表蓋過了它**：一張欄位齊全、退出碼 0 的表，讀起來比幾行雜訊有份量。這與
+第 3 條「計時函式回傳空值時要大聲失敗，不要讓它靜默變成 0」是同一件事，而我在寫那支腳本時
+沒有實作那條規則。
+
+**現在怎麼防**：
+
+- 變數名避開那九個綁定名。不確定就 `typeset -T` 看一眼。
+- **量測函式取到空值或 0，一律中止並印出原始輸出**，不要讓它變成表格裡的一格。
+  `page_fault_attribution.zsh` 現在有這道防護，就是這次補上的：
+
+  ```zsh
+  if [[ -z ${faults:-} || ${faults:-0} -eq 0 || -z ${real:-} ]]; then
+      print -ru2 -- "量測失敗 / measurement failed for '$n'"
+      sed 's/^/    /' "$ERR" >&2
+      exit 1
+  fi
+  ```
+- 一張「每一格都是同一個值」的結果表，先當成量測壞了，不要當成發現。
+
+zsh ties nine lowercase array parameters to their uppercase environment counterparts, `path`
+to `PATH` among them, so using one as an ordinary variable replaces the environment variable.
+Every external command afterwards is not found, while the loop runs to completion and prints
+a full table of zeros with exit status 0. `command not found` did reach stderr -- but the
+script's own summary table outweighed it, which is entry 3's lesson (a measurement returning
+nothing must fail loudly rather than becoming a silent 0) unimplemented in the script that
+needed it. `fignore` and `psvar` are the dangerous ones: they do not look like environment
+variables. Run `typeset -T` when unsure.
