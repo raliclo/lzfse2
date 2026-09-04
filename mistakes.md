@@ -8,20 +8,22 @@
 任何東西會回報這件漂移。加入一條時請一併寫出**當初是什麼症狀**，因為下一個人是先看到症狀
 才找到這裡的。
 
-**每一條都記錄重複次數。** 重複六次的錯誤與只發生一次的錯誤，需要的不是同一種防範：前者
+**每一條都記錄重複次數。** 重複七次的錯誤與只發生一次的錯誤，需要的不是同一種防範：前者
 說明「知道」不足以避免它，得靠工具或流程擋下。
 
 This file records only mistakes that actually happened in this tree, and every one shares a
 property: none of them made any tool report an error. Each produced a result that looked
-entirely reasonable. Every entry carries a repeat count, because a mistake made six times
+entirely reasonable. Every entry carries a repeat count, because a mistake made seven times
 needs a different defence from one made once -- knowing about it evidently is not enough.
 
 **本檔是這棵樹的紀錄；可攜的那一份是 skill `mistakes_prevention`**
-（`~/.claude/skills/mistakes_prevention/`）。它把本檔的第 1–8 條整理成四個關口——判定成敗、
-下效能結論、寫過濾器——並附上 `run_checked.zsh` 與 `counter.zsh`。**第 9 條尚未回填至 skill**：
-它是可攜的（任何樹都適用），且不屬於現有任一關口——它發生在讀第一個檔案之前。
-在別的樹上工作時用那一份；
-**次數與條目本文仍以本檔及 `mistakes_counter.csv2` 為準**，skill 不重複記錄次數。
+（`~/.claude/skills/mistakes_prevention/`）。它把本檔的十條整理成**五個關口**——判定成敗、
+下效能結論、寫過濾器、說「通過了」的範圍、盤點現況——並附上 `run_checked.zsh` 與
+`counter.zsh`。在別的樹上工作時用那一份；**次數與條目本文仍以本檔及
+`mistakes_counter.csv2` 為準**，skill 不重複記錄次數。
+
+第 9 條自成關口 5（它發生在讀第一個檔案之前）；第 10 條放在關口 1，因為它是同一個判斷的
+反面——不是失敗被藏起來，是檢查本身不可能失敗。
 
 This file is this tree's log. The portable form is the `mistakes_prevention` skill, which
 carries the rules and the tools; the counts stay here.
@@ -46,7 +48,7 @@ and splitting on commas is exactly the operation that goes wrong in silence ther
 
 | # | 標題 | 總次數 | 單日最多 | 發生天數 | 矯正措施 |
 | ---: | --- | ---: | ---: | ---: | --- |
-| 1 | 自己的過濾器把失敗藏起來 | **6** | 4 | **3** | `helper/run_checked.zsh` |
+| 1 | 自己的過濾器把失敗藏起來 | **7** | 4 | **4** | `helper/run_checked.zsh` |
 | 2 | 未交錯、次數不足就相信效能差異 | **6** | **6** | 1 | `verifications/zstd_decode_gap.zsh` |
 | 3 | zsh MULTIOS 在管線中洩漏 stdout | 1 | 1 | 1 | — |
 | 4 | `${array[(r)pat]}` 在 `set -u` 下無命中即中止 | 2 | 2 | 1 | — |
@@ -55,7 +57,8 @@ and splitting on commas is exactly the operation that goes wrong in silence ther
 | 7 | 驗證的範圍不含會失敗的平台 | 1 | 1 | 1 | — |
 | 8 | zsh 綁定參數：命名為 `path` 等於覆寫 `PATH` | 1 | 1 | 1 | — |
 | 9 | 未 fetch 就回報專案狀態 | 1 | 1 | 1 | — |
-| | **合計** | **20** | | | |
+| 10 | 守門把檢查變成不可能失敗 | 1 | 1 | 1 | — |
+| | **合計** | **22** | | | |
 
 ### `corrective` 欄的規則
 
@@ -88,7 +91,7 @@ done
 
 | # | 分布 | 為何是這個矯正 |
 | ---: | --- | --- |
-| 1 | 6 次 / 3 天 | 知道之後仍然再犯，且每次換一種偽裝。**必須是強制檢查**：`run_checked.zsh` 讓摘要樣式成為附加、失敗掃描成為強制，`--want` 永不取代掃描 |
+| 1 | 7 次 / 4 天 | 知道之後仍然再犯，且每次換一種偽裝。**必須是強制檢查**：`run_checked.zsh` 讓摘要樣式成為附加、失敗掃描成為強制，`--want` 永不取代掃描 |
 | 2 | 6 次 / 1 天 | 同一個下午沒有意識到。**只需把正確做法固化**：`zstd_decode_gap.zsh` 把交錯、取最小值、RAM disk、user/sys 拆解全部內建 |
 
 `corrective` must not be empty once `total` exceeds five: at that point neither knowing nor
@@ -105,27 +108,27 @@ needed the right method made reusable.
 知道了仍然犯。這種靠**工具**擋得住：把正確的量測方式寫成腳本（`zstd_decode_gap.zsh`），
 下次就不必重新想起交錯與取最小值。
 
-**第 1 條：6 次分布在 3 天。** 那才是嚴重的——**知道之後仍然再犯**。2026-08-27 踩過並寫進
+**第 1 條：7 次分布在 4 天。** 那才是嚴重的——**知道之後仍然再犯**。2026-08-27 踩過並寫進
 CLAUDE.md，08-28 與 08-29 又各犯一次，而且每次換一個形式（`2>/dev/null`、
 `grep … | tail -1`、`grep -cE ':(error|warning):'`、`grep -c … || print 0`）。規則寫在檔案
 裡不足以擋下它，因為每次的偽裝都不一樣。
 
 **跨日重複的只有第 1 條**（`days_seen > 1`）。若要投入心力做工具防範，它是唯一有依據的
-候選——其餘七條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
+候選——其餘九條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
 
 Total alone conflates two different situations. Six occurrences in one afternoon (entry 2)
-means it was not noticed at the time, and a script fixes that. Six occurrences across three
+means it was not noticed at the time, and a script fixes that. Seven occurrences across four
 days (entry 1) means it recurred *after* being written into CLAUDE.md, each time in a
 different disguise -- a rule in a file is not enough to stop that. Entry 1 is the only one
 with `days_seen > 1`, and so the only one with evidence that tooling is warranted.
 
 ---
 
-## 1. 自己的過濾器把失敗藏起來 — **已發生 6 次（2026-08-27 至 08-29）**
+## 1. 自己的過濾器把失敗藏起來 — **已發生 7 次（2026-08-27 至 09-05）**
 
 **症狀**：指令「成功」了，但實際上什麼都沒做；或測試「通過」了，而摘要行下面就是失敗。
 
-**六次的實際形式**（第 5、6 次在下方單獨說明，都發生在為了防這條而做的事情裡）：
+**七次的實際形式**（第 5、6、7 次在下方單獨說明，都發生在為了防這條而做的事情裡）：
 
 | # | 寫法 | 藏起了什麼 |
 | --- | --- | --- |
@@ -148,7 +151,7 @@ helper/run_checked.zsh --quiet -- ./compile_tar.zsh
 
 它的核心設計就是針對這條的共同結構：**摘要樣式是附加的，失敗掃描是強制的。** `--want`
 指定你想看的行，但不會取代掃描；兩者並存，掃描永遠先跑。指令以 0 結束而輸出含失敗訊號時
-——也就是本條六次中的四次——它會明講：
+——也就是本條七次中的四次——它會明講：
 
 ```
 run_checked: FAILED / 失敗
@@ -157,7 +160,7 @@ run_checked: FAILED / 失敗
   注意：指令以 0 結束，但輸出中有失敗訊號——正是 mistakes.md 第 1 條的形狀。
 ```
 
-### 第 5 次與第 6 次：都發生在為了防這條而做的事情裡
+### 第 5、6、7 次：都發生在為了防這條而做的事情裡
 
 **第 5 次——寫這支腳本時。** 第一版的失敗樣式有 `FAILED` 與 `[FAIL]`，卻漏掉
 `失敗 / FAIL: 2 check(s)`——那是本樹測試腳本的標準失敗行。**同一個錯誤的第五種偽裝，出現
@@ -180,7 +183,7 @@ inline loop rc=1 (no ✗ lines above = 通過)
 把壞掉的版本交給 `run_checked.zsh`，rc=1，立刻攔下。
 
 **這一次的教訓不是「再多一種樣式」，而是工具存在不等於用了它。** 第 1、3 次是樣式太窄，
-第 6 次是根本沒走那個關口——三個關口要在**下判斷之前**進入，不是回頭補。
+第 6 次是根本沒走那個關口——四個關口要在**下判斷之前**進入，不是回頭補。
 
 The sixth happened while verifying this file's own check, with the tool sitting right there
 unused. The loop read no cells and csv2 printed four errors to stderr; I wrote my own summary
@@ -188,7 +191,26 @@ line saying it passed and committed on it. Handing the broken version to `run_ch
 afterwards catches it immediately. The lesson is not another pattern -- it is that having the
 tool is not the same as going through it.
 
+**第 7 次——2026-09-05，驗證第 10 條的修正時，`$?` 取在管線之後。**
+
+```zsh
+verifications/record_release.zsh --verify 2>&1 | tail -3; print "  rc=$?  （期望非 0）"
+```
+
+印出的是 `rc=0`，而那是 `tail` 的退出碼，不是被測腳本的。**當時失敗訊息就印在上面三行**
+（那段文字只在偵測到失效時才會出現），所以證據與結論同時在畫面上、彼此矛盾，而我先寫下了
+結論。不經管線重測即為 `rc=1`。
+
+與第 2 例（`grep … | tail -1`）同一根成因：**管線改變了 `$?` 指涉的對象**。第 2 例取到的是
+較早的一行，這一次取到的是較晚的一個退出碼。
+
+**這是本條第一次跨到第四天**（08-27、08-28、08-29、09-05），`days_seen` 由 3 增為 4。
+`run_checked.zsh` 涵蓋不到它——那支腳本管的是「跑一個指令並掃描它的輸出」，而這裡是我在
+互動中臨時下的一行量測。**手邊有規則、也有工具，而這一行兩者都沒用上。**
+
 仍然適用的手動規則（`run_checked.zsh` 涵蓋不到的地方）：
+- **`$?` 之前不要有管線。** 要取被測指令的退出碼就別讓它進管線：先 `cmd >out 2>&1`，
+  再 `rc=$?`，然後才讀 `out`。
 - 讀測試結果時看**最後一行**與退出碼，不要 `grep … | tail -1`——那會取到較早的成功行。
 - `grep -c` 已經會印 `0`，不要再加 `|| print 0`。
 - 診斷訊息**永遠不要**用 `2>/dev/null` 丟掉。CLAUDE.md 已將此列為規則。
@@ -504,3 +526,60 @@ A report can be wrong while every command in it is true. `git status` compares a
 local `origin/*` ref, which is only as fresh as the last fetch, so `0 0` means "matches my
 last snapshot of the remote" and looks identical to being current. Fetch first, before any
 judgement about what is left to do.
+
+---
+
+## 10. 守門把檢查變成不可能失敗 — **已發生 1 次（2026-09-05）**
+
+**症狀**：一道剛加的檢查印出整齊的逐列結果、以 0 結束，**而它已經不可能失敗**——包括對一個
+刻意放進去的假 hash。
+
+**實際狀況**：`record_release.zsh --verify` 用來檢查 `release_matrix.csv2` 每一列的
+`git_commit` 是否還取得到。加進去之後發現一個誠實的值會被誤報：guest 內建置時沒有 `.git`，
+該欄是 `(not-a-checkout)`，而它會被判成「此 clone 中不存在」。
+
+**誤報是真的要修的**——一道對正確做法亮紅燈的檢查，很快會被當成雜訊而略過，那時它對真正的
+失效也一起失效。於是我加了守門，只對「長得像 commit」的值要求可達：
+
+```zsh
+if [[ $commit != [0-9a-f]##(#c7,40) ]]; then   # ← 壞的
+```
+
+`(#c7,40)` 需要 **EXTENDED_GLOB**，而該檔沒有 `setopt`；且 `(#c…)` 不可與 `##` 併用。兩者
+之下整個樣式被當成**字面**比對，於是**每一個值都不相符**——每一列都走了「這是標記，略過」
+那一支：
+
+```
+– 第 1 列 (mac) ef97509           非 commit 的明確標記，不適用
+– 第 2 列 (mac) 76fa9b4           非 commit 的明確標記，不適用
+– 第 7 列 (linux) deadbee         非 commit 的明確標記，不適用   ← 刻意放的假 hash
+rc=0
+```
+
+**檢查通過了每一件事，包括它唯一存在的理由。**
+
+**為什麼這一條比誤報嚴重**：誤報看得見——有人會抱怨、會去修。**一道從不失敗的檢查與沒有
+檢查在畫面上完全一樣，而且多給你一個 ✓。** 我為了消除一個看得見的問題，造出一個看不見的。
+
+**我當場沒有察覺，是因為預期中的那幾列確實出現在輸出裡**——只是標籤從 `✓` 變成 `–`。輸出
+有五行、格式整齊、rc=0，而錯的只是每一行的分類。
+
+**這與第 1 條的關係**：第 1 條是過濾器的樣式太窄而讓失敗消失；這一條是**判別式太寬而讓失敗
+不可能發生**。同一個家族的反面，且同樣不會有任何工具報錯。
+
+**現在怎麼防**：
+
+- **守門的判別式要有對照組，而且至少一個必須落在每一邊。** 加上守門之後，除了「該略過的
+  真的被略過」，還要證明「該檢查的真的被檢查」——放一個必定失敗的值進去，看它是否失敗。
+  我第一次驗證只確認了前者。
+- zsh 的 `(#c…)`、`(#i)`、`(#a…)` 全部需要 `setopt extended_glob`。腳本裡要用就在該處
+  `setopt local_options extended_glob`，不要假設呼叫端設了。
+- **加檢查與放寬檢查是兩件事，後者要獨立驗證。** 放寬的那一次，被放寬掉的範圍沒有人在看。
+
+A guard added so the check would not cry wolf turned it into a check that could not fail.
+`(#c7,40)` needs EXTENDED_GLOB, which the file does not set, and must not be combined with
+`##`; taken literally, nothing matched, every row took the skip branch, and a deliberately
+fake hash passed. Crying wolf is visible and gets fixed; a check that never fails looks
+exactly like no check and adds a tick. Whenever a guard is added, put a value on each side of
+it and prove both branches -- verifying only that the right things are skipped leaves the
+whole point of the check unexercised.
