@@ -17,8 +17,10 @@ entirely reasonable. Every entry carries a repeat count, because a mistake made 
 needs a different defence from one made once -- knowing about it evidently is not enough.
 
 **本檔是這棵樹的紀錄；可攜的那一份是 skill `mistakes_prevention`**
-（`~/.claude/skills/mistakes_prevention/`）。它把本檔的八條整理成四個關口——判定成敗、
-下效能結論、寫過濾器——並附上 `run_checked.zsh` 與 `counter.zsh`。在別的樹上工作時用那一份；
+（`~/.claude/skills/mistakes_prevention/`）。它把本檔的第 1–8 條整理成四個關口——判定成敗、
+下效能結論、寫過濾器——並附上 `run_checked.zsh` 與 `counter.zsh`。**第 9 條尚未回填至 skill**：
+它是可攜的（任何樹都適用），且不屬於現有任一關口——它發生在讀第一個檔案之前。
+在別的樹上工作時用那一份；
 **次數與條目本文仍以本檔及 `mistakes_counter.csv2` 為準**，skill 不重複記錄次數。
 
 This file is this tree's log. The portable form is the `mistakes_prevention` skill, which
@@ -52,7 +54,8 @@ and splitting on commas is exactly the operation that goes wrong in silence ther
 | 6 | `{1..$(…)}` 遇帶空白的輸出靜默不展開 | 1 | 1 | 1 | — |
 | 7 | 驗證的範圍不含會失敗的平台 | 1 | 1 | 1 | — |
 | 8 | zsh 綁定參數：命名為 `path` 等於覆寫 `PATH` | 1 | 1 | 1 | — |
-| | **合計** | **19** | | | |
+| 9 | 未 fetch 就回報專案狀態 | 1 | 1 | 1 | — |
+| | **合計** | **20** | | | |
 
 ### `corrective` 欄的規則
 
@@ -456,3 +459,48 @@ script's own summary table outweighed it, which is entry 3's lesson (a measureme
 nothing must fail loudly rather than becoming a silent 0) unimplemented in the script that
 needed it. `fignore` and `psvar` are the dangerous ones: they do not look like environment
 variables. Run `typeset -T` when unsure.
+
+---
+
+## 9. 未 fetch 就回報專案狀態，`git status` 的「同步」是對過期快照而言 — **已發生 1 次（2026-09-04）**
+
+> 本條原寫成「第 7 條」，與上游同日寫入的第 7 條撞號而內容不同——兩個工作階段各自記了一條，
+> 而兩者都成立。編號改為 9，本文維持原作者的寫法。
+> Written as "entry 7" and collided with a different entry 7 added upstream the same day: two
+> sessions each recorded one, and both stand. Renumbered to 9; the text is its author's.
+
+**症狀**：一份看起來很紮實的待辦盤點，逐項附了驗證，而其中最大的一項是**已經做完的**。使用者
+必須自己說「先 pull 再改」才擋下來。
+
+**實際狀況**：被問「專案還有什麼待辦」，我讀了四個 todo 檔（2446 行）並逐項查證，結論之一是
+「`lz4bench.zsh` 不存在，待辦 1.1 確實未做」。pull 之後：該檔存在、38 KB、762 行，`zshrc.zsh`
+少了 721 行——**那一項在遠端早已完成**。同一次 pull 帶進 195 個檔案、158k 行，包含這份
+`mistakes.md` 自己。
+
+**沒有任何一步失敗，而且兩句話都是真的**：
+
+```
+ls lz4bench.zsh          → No such file or directory     ← 當下為真
+git status               → ## main...origin/main  0 0    ← 當下為真
+```
+
+問題在第二句的意思。`git status` 比對的是**本地的 `origin/main` ref**，而那個 ref 只在上次
+`fetch` 時更新過。沒有 fetch 的情況下，`0 0` 的意思是「與我上次看到的遠端快照一致」——它與
+「與遠端一致」在畫面上**完全一樣**，而此處的快照已過期九天。
+
+這條與第 1 條同形但更難察覺：第 1 條是過濾器讓失敗消失，這條是**沒有失敗可言**。查證做了、
+每一步都對，錯的是查證的對象。加再多失敗樣式也擋不住，因為要擋的東西不在輸出裡。
+
+**現在怎麼防**：
+
+- **回報專案狀態或盤點待辦之前，先 `git fetch --all`**，子模組亦然。若接下來要依這份判斷決定
+  做什麼，`git status` 的分支比對在 fetch 之前不具意義。
+- **`0 0` 不等於「與遠端一致」**，除非同一次動作裡剛 fetch 過。要講「與遠端同步」，就把 fetch
+  放進同一條指令，讓那句話有依據。
+- 這與第 1 條第 6 次一樣是**沒進關口**，不是關口太窄：關口的定義是「在下判斷之前」，而
+  「盤點現況」正是一次判斷。
+
+A report can be wrong while every command in it is true. `git status` compares against the
+local `origin/*` ref, which is only as fresh as the last fetch, so `0 0` means "matches my
+last snapshot of the remote" and looks identical to being current. Fetch first, before any
+judgement about what is left to do.
