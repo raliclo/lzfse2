@@ -3262,7 +3262,7 @@ public enum LZFSEv1 {
                 pos += size
                 cumRaw += raw
                 if cumRaw > chunkRaw {
-                    if debug { fputs("[DBG] overshoot cumRaw=\(cumRaw) chunkRaw=\(chunkRaw) nBlks=\(blks.count) lastBlkRaw=\(raw)\n", stderr) }
+                    if debug { eprint("[DBG] overshoot cumRaw=\(cumRaw) chunkRaw=\(chunkRaw) nBlks=\(blks.count) lastBlkRaw=\(raw)") }
                     return .misaligned
                 }
                 if cumRaw == chunkRaw { return .group(comp: comp, blks: blks, raw: cumRaw) }
@@ -3290,7 +3290,7 @@ public enum LZFSEv1 {
             }
             if !ok && debug {
                 let b = failIdx >= 0 ? blks[failIdx] : (blks.last ?? Blk(off: 0, magic: 0, raw: 0))
-                fputs("[DBG] decodeGroup failed blkIdx=\(failIdx) magic=0x\(String(b.magic, radix:16)) blkRaw=\(b.raw) cursor=\(failCursor)/\(raw) nBlks=\(blks.count)\n", stderr)
+                eprint("[DBG] decodeGroup failed blkIdx=\(failIdx) magic=0x\(String(b.magic, radix:16)) blkRaw=\(b.raw) cursor=\(failCursor)/\(raw) nBlks=\(blks.count)")
             }
             return ok ? out : nil
         }
@@ -3302,7 +3302,7 @@ public enum LZFSEv1 {
                 case .group(let comp, let blks, let raw):
                     batch.append((comp: comp, blks: blks, raw: raw))
                 case .misaligned:
-                    if debug { fputs("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+                    if debug { eprint("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)") }
                     return wroteAny ? .error : .fallback
                 case .eof:
                     break innerLoop
@@ -3320,7 +3320,7 @@ public enum LZFSEv1 {
                 lock.unlock()
             }
             if failed {
-                if debug { fputs("[DBG] batch decode failed wroteAny=\(wroteAny) batchSize=\(batch.count)\n", stderr) }
+                if debug { eprint("[DBG] batch decode failed wroteAny=\(wroteAny) batchSize=\(batch.count)") }
                 return wroteAny ? .error : .fallback
             }
             for o in outs {
