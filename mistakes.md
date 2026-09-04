@@ -17,7 +17,7 @@ entirely reasonable. Every entry carries a repeat count, because a mistake made 
 needs a different defence from one made once -- knowing about it evidently is not enough.
 
 **本檔是這棵樹的紀錄；可攜的那一份是 skill `mistakes_prevention`**
-（`~/.claude/skills/mistakes_prevention/`）。它把本檔的六條整理成三個關口——判定成敗、
+（`~/.claude/skills/mistakes_prevention/`）。它把本檔的七條整理成三個關口——判定成敗、
 下效能結論、寫過濾器——並附上 `run_checked.zsh` 與 `counter.zsh`。在別的樹上工作時用那一份；
 **次數與條目本文仍以本檔及 `mistakes_counter.csv2` 為準**，skill 不重複記錄次數。
 
@@ -50,7 +50,8 @@ and splitting on commas is exactly the operation that goes wrong in silence ther
 | 4 | `${array[(r)pat]}` 在 `set -u` 下無命中即中止 | 2 | 2 | 1 | — |
 | 5 | 以 Python heredoc 代替編輯器 | 1 | 1 | 1 | — |
 | 6 | `{1..$(…)}` 遇帶空白的輸出靜默不展開 | 1 | 1 | 1 | — |
-| | **合計** | **17** | | | |
+| 7 | 驗證的範圍不含會失敗的平台 | 1 | 1 | 1 | — |
+| | **合計** | **18** | | | |
 
 ### `corrective` 欄的規則
 
@@ -106,7 +107,7 @@ CLAUDE.md，08-28 與 08-29 又各犯一次，而且每次換一個形式（`2>/
 裡不足以擋下它，因為每次的偽裝都不一樣。
 
 **跨日重複的只有第 1 條**（`days_seen > 1`）。若要投入心力做工具防範，它是唯一有依據的
-候選——其餘五條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
+候選——其餘六條目前都只有「同日多次」的紀錄，尚不足以說明規則無效。
 
 Total alone conflates two different situations. Six occurrences in one afternoon (entry 2)
 means it was not noticed at the time, and a script fixes that. Six occurrences across three
@@ -339,3 +340,54 @@ zsh expands braces after command substitution, so `wc -l`'s padding makes `{1.. 
 invalid range: it is left literal and split into two words. Nothing fails; only the result is
 wrong. Strip the whitespace, and make the loop print at least one line so zero output is a
 visible failure.
+
+---
+
+## 7. 驗證的範圍不含會失敗的那個平台 — **已發生 1 次（2026-08-28 至 09-04，七天未被發現）**
+
+**症狀**：三個平台的節點全綠、測試全過、審查通過，而第四個平台**連二進位都產不出來**——
+且沒有任何東西會說出這件事。
+
+**實際狀況**：`2c88ada`（2026-08-28）加入 `--exclude`，用 `fnmatch` 做樣式比對。`fnmatch`
+屬於 POSIX，**Windows 沒有**。同一份程式碼還有第二個只在 Windows 成立的錯誤：`backend` 在
+`#if os(Windows)` 之下宣告一次，數行後又無條件宣告一次，其他平台只看得到後者。
+
+```
+swift_tar.swift:2504  invalid redeclaration of 'backend'
+swift_tar.swift:2834  cannot find 'fnmatch' in scope
+```
+
+**該功能一落地就讓 Windows 無法建置，而這件事過了七天才被人問出來。**
+
+**當時的驗證並不草率**，這正是這一條的重點。行為逐項對齊 bsdtar 而非憑假設、涵蓋 GNU tar
+並記載兩者分歧、依使用者要求加了平台偵測測試。**每一項都做在 macOS 上。** 驗證的範圍裡沒有
+Windows，而範圍之外看起來與通過完全相同。
+
+**與第 1 條的關係**：同構，機制不同。第 1 條是過濾器的樣式太窄，非預期的訊息消失；這一條是
+**根本沒有在那個平台叫起編譯器**。前者可以靠加樣式修，後者不行——沒有任何樣式涵蓋得到一台
+沒有被執行的機器。
+
+**我對成因的假設也錯了，一併記下。** 被問到「Windows 為何可能建不起來」時，我指認
+`import Synchronization` 無條件出現在 `swift_tar.swift:48` 與 `crypto.swift:28`，推論該工具鏈
+可能沒有那個模組。**那個模組在 Windows 上有，不是問題。** 對的只有一件事：先問「現在還建得
+起來嗎」，而不是先把 `-swift-version 6` 加上去。**順序對，理由錯**——而順序對就足以問出真相，
+因為那個問題是交給有那台機器的人去回答的，不是我在這裡推理出來的。
+
+**現在怎麼防**：
+
+- 加入平台相依的 API 之前，先問它在**四個平台上是否都存在**（macOS / Linux / WSL / Windows）。
+  `fnmatch`、`lutimes`、`utimensat`、`AT_SYMLINK_NOFOLLOW` 都屬於這一類。
+- 「在我的平台上通過」要寫成「在我的平台上通過」，不要寫成「通過」。
+- **問，不要推理。** 別的平台上有 session 在跑；一次詢問比任何靜態分析都準——本條的成因就是
+  這樣問出來的，而我的靜態分析指錯了地方。
+- `verifications/release_matrix.csv2` 的 win 與 linux 兩列一旦補齊，「這個平台上次成功建置
+  是什麼時候」才第一次有答案。目前只有 mac 兩列，所以這個問題現在仍然答不出來。
+
+Three platforms green, tests passing, review clean -- and the fourth could not produce a
+binary at all, for seven days, with nothing to say so. `--exclude` used `fnmatch`, which is
+POSIX and absent on Windows. The verification was not careless: behaviour was aligned to
+bsdtar by measurement, GNU tar was covered, a platform-detection test was added. All of it
+on macOS. Same structure as entry 1, different mechanism: no pattern covers a machine that
+was never asked. My guess at the cause was wrong too -- `import Synchronization` is available
+on Windows. Only the ordering was right: ask whether it still builds before adding the flag.
+Asking beat analysing, because the question went to whoever had the machine.
