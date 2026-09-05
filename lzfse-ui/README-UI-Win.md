@@ -164,16 +164,27 @@ Extract and run `LZFSE_UI_Win.exe` inside the folder.
 
 ---
 
-## Current Windows status / Windows current progress
+## Windows-specific behaviour / Windows 專屬行為
 
-As of the 2026-07-07 Windows UI / benchmark status:
+這一節記錄的是 Windows 版**目前的行為**，不是某一輪的進度。原本的寫法是
+「As of the 2026-07-07 status」加上一串「now exposes」「currently pins」——那是對某個
+讀者看不見的舊狀態所做的差異描述，時間一過就無法判讀。輪次記帳已移出，見本節末。
 
-- `build-win.zsh` builds the SwiftCrossUI app, then runs `helper_windows/compile.bat` to build a fresh companion CLI.
-- `build-win.zsh` currently pins the SwiftCrossUI dependency to the `develop` branch of `https://github.com/raliclo/swift-cross-ui.git` instead of the previous `0.7.0` up-to-next-minor requirement.
-- `build-win.zsh` also embeds the Windows app icon into `LZFSE_UI_Win.exe`: it uses the same `AppIcon.png` source image as the macOS app, generates `.win-build/AppIcon.ico`, compiles `.win-build/AppIcon.res` with `llvm-rc.exe`, and links that resource into the exe. File Explorer and the Windows taskbar should therefore show the LZFSE UI icon. If Windows still shows an old/default icon, use a fresh extraction folder or restart Explorer to clear the icon cache.
-- The Windows UI now exposes `Optimal3 Parsing / 標準格式最優解析` under Other3 encode mode. The equivalent command becomes `-algo other3 -optimal3`; output remains standard Apple-compatible LZFSE.
-- The file section is more compact: `Reset / 重置` and `Compress / Decompress` now sit on the right side of the `Files / 檔案` header instead of taking a separate bottom row.
-- The final `LZFSE_UI_Win.zip` is written to `lzfse-ui/release/` and contains:
+This section records how the Windows build **currently behaves**. It used to be framed
+as a dated status list full of "now exposes" and "currently pins" — diffs against a state
+no reader can see. The round bookkeeping has been moved out; see the end of this section.
+
+- `build-win.zsh` 建置 SwiftCrossUI app，接著執行 `helper_windows/compile.bat` 產生
+  隨附的 CLI。/ Builds the SwiftCrossUI app, then builds the companion CLI.
+- SwiftCrossUI 相依項釘在 `https://github.com/raliclo/swift-cross-ui.git` 的 `develop`
+  分支。/ The SwiftCrossUI dependency is pinned to the `develop` branch.
+- Windows app icon 由與 macOS 版相同的 `AppIcon.png` 產生：先做出
+  `.win-build/AppIcon.ico`，以 `llvm-rc.exe` 編成 `.win-build/AppIcon.res`，再連結進
+  exe。若檔案總管仍顯示舊圖示，換一個全新的解壓資料夾或重啟 Explorer 以清除圖示快取。
+- Other3 編碼模式下提供 `Optimal3 Parsing / 標準格式最優解析`，等效命令為
+  `-algo other3 -optimal3`，輸出仍是標準 Apple-compatible LZFSE。
+- `Reset / 重置` 與 `Compress / Decompress` 位於 `Files / 檔案` 標題列右側。
+- 最終的 `LZFSE_UI_Win.zip` 寫入 `lzfse-ui/release/`，內容為：
 
   ```text
   LZFSE_UI_Win/
@@ -189,12 +200,21 @@ As of the 2026-07-07 Windows UI / benchmark status:
 - The command is executed with the working directory set to the folder containing `LZFSE_UI_Win.exe`, so `.\lzfse.exe` resolves to the packaged CLI in the same folder.
 - This avoids Windows PowerShell corrupting binary tar streams when piping `-so` directly.
 - Before extraction, the UI lists the tar entries. If they start with `../`, the UI automatically adds `--strip-components 1` during extraction. This handles archives such as `../claw-code/...` that Windows bsdtar otherwise rejects with `Path contains '..'`.
-- Windows benchmark infrastructure is active for both `claw-code` and `llama.cpp` datasets:
-  - `helper_windows/run_round.bat` runs encode-to-nul, encode-to-file, decode-to-nul, decode-to-file, RSS probes, summary generation, and macOS-vs-Windows comparison.
-  - CSV outputs live under `helper_windows/bench_results_csv/`: `encode_summary.csv`, `decode_summary.csv`, `rss_summary.csv`, `BenchMarkResult-Win.csv`, and one combined `comparison.csv` with `dataset` as the first column.
-  - Result logs live under `helper_windows/bench_logs/`.
-  - R42-Win completed on 2026-07-05: `lzfse.exe -test` passed, `comparison.csv` now includes `LZFSE (Optimal3)` for both datasets, and all Windows decode verify results are `PASS`.
-  - R42-Win details and the `Optimal3` vs `Optimal` compression-ratio explanation are recorded in `OPTIMIZATION.md`.
+**量測結果不記在這裡。** `OPTIMIZATION.md` 是每一輪的記錄所在，本檔只說明產出物在哪：
+`helper_windows/run_round.bat` 由 `helper_windows/` 執行，CSV 落在
+`helper_windows/bench_results_csv/`（`encode_summary.csv`、`decode_summary.csv`、
+`rss_summary.csv` 為單標頭 `.csv`；`BenchMarkResult-Win.csv2` 與 `comparison.csv2` 為
+雙標頭 `.csv2`，須以 `csv2` 讀寫），log 落在 `helper_windows/bench_logs/`，進度寫入
+`helper_windows/windows_round_status.txt`。
+
+先前此處列有 R42-Win 的完成日期與逐項結果，那與 `OPTIMIZATION.md` 重複——而該段自己
+就寫著「R42-Win details ... are recorded in OPTIMIZATION.md」。兩份記錄同一件事必然漂移，
+且此處那一份沒有跟上：五個 CSV 中有兩個早已改名為 `.csv2`。
+
+Measurements are not recorded here; `OPTIMIZATION.md` is where each round lives. This
+file only says where the artifacts land. The previous version duplicated R42-Win's
+results while itself pointing at `OPTIMIZATION.md` for them, and had already drifted —
+two of the five CSVs became `.csv2` and this list still called them `.csv`.
 
 Equivalent decode command pattern:
 
@@ -208,7 +228,17 @@ Manual command for archives whose entries start with `../`:
 cmd /d /c ".\lzfse.exe -decode -i ""C:/path/input.lzfse"" -n 8 -so | tar -xf - --strip-components 1 -C ""C:/path/output-folder"""
 ```
 
-Windows helper maintenance notes:
+兩則關於 `helper_windows/` 的約定，記在此處是因為 Windows 的東西都聚在這一頁，但它們
+管的是**那個目錄**，不是本子專案：
 
-- `helper_windows/run_round.bat` no longer pipes Python summary output through PowerShell `Tee-Object`; it writes through temporary log files and raw `type >> windows_round_status.txt` to avoid mixed-encoding status logs.
-- Project-owned `.bat` files are normalized to CRLF.
+- `run_round.bat` 不經 PowerShell `Tee-Object` 輸出摘要，改以暫存 log 加
+  `type >> windows_round_status.txt` 寫入，避免混合編碼的狀態檔。（已查證：該檔目前
+  `Tee-Object` 出現 0 次。）
+- 專案自有的 `.bat` 一律為 CRLF。**理由不是 cmd.exe 要求 CRLF——純 LF 的批次檔可以正常
+  執行**；真正會壞的是**同一個檔案內混用**兩種行尾，那會讓 cmd.exe 誤判 `if (...)` 區塊。
+  維持整檔一致才是重點。（已查證：八個 `.bat` 的 CR 數與行數相等，即每行皆為 CRLF。）
+
+Two conventions that govern `helper_windows/`, not this subproject; they live here only
+because the Windows material is collected on this page. The CRLF rule is about internal
+consistency, not a cmd.exe requirement — a pure-LF batch file runs fine, whereas mixing
+both endings inside one file makes cmd.exe misparse an enclosing `if (...)` block.
