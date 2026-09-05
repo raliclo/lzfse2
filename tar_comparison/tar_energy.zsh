@@ -7,10 +7,19 @@
 #                 TGZ encode/decode 的 CPU 能耗（需 sudo）。
 #
 # Usage / 用法：sudo -v && tar_comparison/tar_energy.zsh [corpus]
+#              tar_comparison/tar_energy.zsh --help
 # =====================================================================
 set -u
+
+script_path="${0:A}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '3,10p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
+
 zmodload zsh/datetime
-cd "${0:A:h}/.." || exit 1          # repo root / 專案根目錄
+cd "${script_path:h}/.." || exit 1  # repo root / 專案根目錄
 CORPUS="${1:-claw-code}"
 SWIFT_TAR_BIN="${SWIFT_TAR_BIN:-/opt/homebrew/bin/swift_tar}"
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT

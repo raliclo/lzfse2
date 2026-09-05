@@ -1,4 +1,32 @@
 #!/bin/zsh
+# benchmark.zsh -- round step 1: the lz4bench sweeps over both corpora.
+# benchmark.zsh -- 一輪的第 1 步：對兩份語料執行 lz4bench 掃描。
+#
+#   ./benchmark.zsh                              # -n 40, 8, 4 over claw-code then llama.cpp
+#   LZFSE_MEMPROBE=0 ./benchmark.zsh             # skip the peak-RSS probes / 略過 peak-RSS 量測
+#   LZFSE_N_SWEEP_OVERRIDE="8 4" ./benchmark.zsh # sweep a different -n list / 改用其他 -n 清單
+#   ./benchmark.zsh --help
+#
+# Runs for roughly 38 minutes, then `sudo ./benchmark2.zsh` continues the round.
+# 約需 38 分鐘，其後以 `sudo ./benchmark2.zsh` 接續整輪。
+#
+# The 60-second sleeps between sweeps are not padding: they let the machine settle
+# so one sweep's thermal state does not bias the next sweep's timings.
+# 掃描之間的 60 秒 sleep 並非湊數：那是讓機器回穩，避免前一次掃描的熱度污染下一次的
+# 計時結果。
+#
+# Time Profiler traces are skipped unless LZFSE_POWER_TEST=1 (which
+# run_round.command -power-test exports), because they cost a lot of wall time.
+# With them off, the later analysis steps reuse the previous round's trace/ output.
+# 除非 LZFSE_POWER_TEST=1（由 run_round.command -power-test 匯出），否則跳過 Time
+# Profiler trace，因其耗時可觀；未啟用時，後續分析步驟會沿用上一輪 trace/ 的結果。
+script_path="${0:A}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '2,22p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
+
 setopt NULL_GLOB
 
 

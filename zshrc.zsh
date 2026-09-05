@@ -1,5 +1,51 @@
 #!/bin/zsh
+# zshrc.zsh -- the shared shell profile: environment, prompt, aliases, utilities.
+# zshrc.zsh -- 共用的 shell profile：環境變數、提示字元、別名與工具函式。
+#
+# 本檔是函式庫，應以 source 載入而非直接執行。
+# This file is a library: source it, do not run it.
+#
+#   source ./zshrc.zsh                            # as benchmark.zsh does / benchmark.zsh 的作法
+#   source ./zshrc.zsh && source ./lz4bench.zsh   # 順序有意義 / the order matters
+#   ./zshrc.zsh --help                            # this text / 本說明
+#
+# 與 ~/proj/fastZsh 共用，故僅保留通用設定；lzfse2 專屬的量測程式碼已於 2026-08-26
+# 移入 lz4bench.zsh。lz4bench() 呼叫本檔的 nanoTimeElapsed()，是兩檔間唯一的相依。
+# Shared with ~/proj/fastZsh, so it keeps only general-purpose settings; lzfse2's
+# measurement code moved out to lz4bench.zsh. lz4bench() calls nanoTimeElapsed()
+# from here, which is the only dependency between the two files.
+#
+# 提供的函式 / Functions provided:
+#   nanoTimeElapsed <cmd...>   time a command via $EPOCHREALTIME / 以 $EPOCHREALTIME 計時
+#   setcc [gcc|clang|mpi]      switch compiler toolchain / 切換編譯器工具鏈
+#   cheditor [editor]          set $EDITOR, default subl / 設定 $EDITOR，預設 subl
+#   cd [dir]                   records $prevfolder, then ls / 記錄 $prevfolder 後 ls
+#   trash <path...>            move to ~/.Trash instead of rm / 移入 ~/.Trash 而非 rm
+#   makeram [gb]               mount a RAM disk, default 2 GB / 掛載 RAM disk，預設 2 GB
+#   zshCompletions             generate completion scripts / 產生補全腳本
+#   ffilter                    escape spaces/quotes on stdin / 逸出 stdin 的空白與引號
+#   claudeCodeEnv, gemma4      point Claude Code at a local llama-server / 指向本機 llama-server
+#   START_UP@BEGIN, @END       profile lifecycle hooks / profile 生命週期掛鉤
+#
+# 直接執行不只是沒有意義：檔案結尾會呼叫 START_UP@END 並 `source ~/.hf_token`
+# （該檔未入版控），故 --help 分支必須置於一切之前。
+# Running it is not merely pointless: the tail calls START_UP@END and sources
+# ~/.hf_token (which is not in version control), so --help has to precede it all.
 ## Study REF-> https://explainshell.com/
+
+script_path="${0:A}"
+
+# Guard on $ZSH_EVAL_CONTEXT (`toplevel` when run, gains `:file` when sourced).
+# Comparing $0 with ${(%):-%x} does not work: zsh's `source` sets $0 to the
+# sourced file, so the two match either way. Without the guard, `exit 0` would
+# kill the shell of any caller that sources this file while its own $1 is --help.
+# 以 $ZSH_EVAL_CONTEXT 判斷（直接執行為 `toplevel`，被 source 時帶有 `:file`）。比較
+# $0 與 ${(%):-%x} 無效：zsh 的 `source` 會把 $0 設為被載入的檔案，兩者恆相等。若無
+# 此保護，當呼叫者自身的 $1 為 --help 並 source 本檔時，`exit 0` 會終止其 shell。
+if [[ "${ZSH_EVAL_CONTEXT:-}" == toplevel && ( "${1:-}" == "--help" || "${1:-}" == "-h" ) ]]; then
+    sed -n '2,33p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
 
 # ==============================================================================
 # 🌍 GLOBAL ENVIRONMENTAL VARIABLES / 全域環境變數設定

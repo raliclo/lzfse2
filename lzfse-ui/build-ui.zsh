@@ -1,10 +1,30 @@
 #!/usr/bin/env zsh
-
-# Build script for LZFSE_UI
-# Run from: lzfse-ui/   (this directory)
-# Requires: ../lzfse-cli.swift  (project root)
-
+# build-ui.zsh -- build the LZFSE_UI.app bundle for macOS (arm64, SwiftUI).
+# build-ui.zsh -- 建置 macOS 版的 LZFSE_UI.app（arm64、SwiftUI）。
+#
+#   ./build-ui.zsh          # run from lzfse-ui/ / 於 lzfse-ui/ 目錄執行
+#   ./build-ui.zsh --help
+#
+# Requires ../lzfse-cli.swift from the project root. Its trailing runCLI() call is
+# stripped with grep -v before compiling, because a top-level statement is not
+# valid in a multi-file @main build; build-win.zsh does the same thing for the
+# same reason.
+# 需要專案根目錄的 ../lzfse-cli.swift。編譯前會以 grep -v 移除其結尾的 runCLI() 呼叫，
+# 因為多檔 @main 建置不允許頂層敘述；build-win.zsh 基於相同理由也做同樣處理。
+#
+# AppIcon.icns is generated from the checked-in AppIcon.png when that file exists:
+# sips renders the seven sizes and a short inline python packs them into an .icns.
+# Without the PNG the build still completes and macOS supplies the default icon.
+# 若已入版的 AppIcon.png 存在，則據以產生 AppIcon.icns：由 sips 產出七種尺寸，再以一段
+# 內嵌 python 打包為 .icns。若無該檔，建置仍會完成，並改用 macOS 的預設圖示。
 set -e
+
+script_path="${0:A}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '2,19p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"

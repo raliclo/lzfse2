@@ -6,9 +6,18 @@
 #             牆鐘時間與 peak RSS（免 sudo）。
 #
 # Usage / 用法：tar_comparison/tar_ab.zsh [corpus]   (預設 claw-code)
+#              tar_comparison/tar_ab.zsh --help
 # =====================================================================
 set -u
-cd "${0:A:h}/.." || exit 1          # repo root / 專案根目錄
+
+script_path="${0:A}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '3,9p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
+
+cd "${script_path:h}/.." || exit 1  # repo root / 專案根目錄
 CORPUS="${1:-claw-code}"
 SWIFT_TAR_BIN="${SWIFT_TAR_BIN:-/opt/homebrew/bin/swift_tar}"
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT

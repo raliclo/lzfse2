@@ -1,8 +1,24 @@
 #!/usr/bin/env zsh
+# build-mac.zsh -- compile md-translate.swift into the md-translate binary.
+# build-mac.zsh -- 將 md-translate.swift 編譯為 md-translate 執行檔。
+#
+#   helper/md-translate/build-mac.zsh                # default output ./bin/md-translate
+#   helper/md-translate/build-mac.zsh /path/to/out   # 指定輸出路徑
+#   helper/md-translate/build-mac.zsh --help
+#
+# macOS only: md-translate.swift does `import Translation`, which needs macOS 15+
+# and the Xcode SDK, so it cannot be built on Windows. md-translate-mac.zsh calls
+# this script and passes the output path explicitly.
+# 僅限 macOS：md-translate.swift 使用 `import Translation`，需要 macOS 15+ 與 Xcode
+# SDK，故無法在 Windows 上建置。md-translate-mac.zsh 會呼叫本腳本並明確傳入輸出路徑。
 set -euo pipefail
 
-# Build the Apple Translation implementation on macOS.
-# 在 macOS 建置 Apple Translation 實作。
+script_path="${0:A}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '2,13p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
 
 # Not ${0:A:h}: the installed zsh does not treat a Windows drive path as
 # absolute, so with $0 = C:/... it prepends the cwd and yields a directory that

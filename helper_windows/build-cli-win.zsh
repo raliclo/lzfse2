@@ -14,6 +14,7 @@
 #
 # 從 helper_windows/ 目錄執行 / Run from the helper_windows/ directory:
 #     ./build-cli-win.zsh
+#     ./build-cli-win.zsh --help
 #
 # 需求 / Requirements:
 #   - Git for Windows（提供 Git Bash、cygpath、grep）/ provides Git Bash, cygpath, grep
@@ -22,6 +23,13 @@
 #     C:\Windows\System32\tar.exe (the bsdtar shipped with Windows), for zip packaging
 
 set -e
+
+script_path="${0:A}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '3,23p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

@@ -1,4 +1,29 @@
 #!/bin/zsh
+# benchmark2.zsh -- round step 2: power benchmark, trace analysis, reports.
+# benchmark2.zsh -- 一輪的第 2 步：功耗量測、trace 分析與報表產出。
+#
+#   sudo ./benchmark2.zsh     # run after ./benchmark.zsh / 於 ./benchmark.zsh 之後執行
+#   ./benchmark2.zsh --help
+#
+# Needs sudo because powermetrics does. Steps are numbered 7 to 15, continuing
+# from benchmark.zsh rather than restarting, so one round's round_status.txt
+# reads as a single sequence. Every step appends its own status line there and
+# aborts the round on a non-zero exit.
+# 需要 sudo，因為 powermetrics 需要。步驟編號自 7 至 15，延續 benchmark.zsh 而非
+# 重新起算，使一輪的 round_status.txt 讀起來是單一序列。每個步驟都會在該檔附加狀態
+# 行，任一步非零離開即中止整輪。
+#
+# --help answers before the lzfse rebuild below, which is the whole point: that
+# rebuild is a two-binary swiftc run, and it used to start even for `--help`.
+# --help 在下方重建 lzfse 之前就回應，這正是重點：該重建會執行兩次 swiftc 建置，
+# 過去連 `--help` 也照跑不誤。
+script_path="${0:A}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '2,19p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
+
 setopt NULL_GLOB
 
 

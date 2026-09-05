@@ -20,7 +20,42 @@
 # benchmarkTgzTar(), benchmarkZstdDecode() and memProbe(), and carries a `probe`
 # mode that exists only for measurement. fastZsh's zshrc has its own earlier
 # extract() without those gates, so moving this one costs it nothing.
+#
+# 本檔是函式庫，應以 source 載入而非直接執行；直接執行只會定義函式，隨即隨 shell 離開。
+# This file is a library: source it, do not run it. Running it merely defines the
+# functions into a shell that then exits.
+#
+#   source ./zshrc.zsh && source ./lz4bench.zsh   # the supported use / 正式用法
+#   ./lz4bench.zsh --help                         # this text / 本說明
+#
+# 提供的函式 / Functions provided:
+#   lz4bench <dataset>                      full per-format sweep / 整套各格式掃描
+#   extract <archive> [probe]               extension-driven extraction / 依副檔名解壓
+#   diskcheck                               20 GB free-space gate / 20 GB 空間門檻
+#   memProbe, archiveMemProbe               peak-RSS probes / peak-RSS 量測
+#   benchmarkTgzTar, benchmarkZstdDecode    decode timers / 解壓計時
+#   getar, getzstd, tlz4, lzfseX            per-format encoders / 各格式壓縮
+#   benchManifest*, benchCompareTreeManifest  round-trip integrity / 往返完整性驗證
 # ==============================================================================
+
+script_path="${0:A}"
+
+# The guard tests $ZSH_EVAL_CONTEXT rather than comparing $0 with ${(%):-%x}:
+# measured on the installed zsh, `source` sets $0 to the sourced file, so those
+# two are identical whether this file is run or sourced and the comparison never
+# fires. ZSH_EVAL_CONTEXT is `toplevel` when run and gains `:file` when sourced.
+# The guard is not decoration -- `source` with no arguments inherits the caller's
+# positional parameters, so any caller invoked with --help hands "--help" to this
+# file as $1, and an unguarded `exit 0` would terminate that caller's shell.
+# 此保護判斷 $ZSH_EVAL_CONTEXT，而非比較 $0 與 ${(%):-%x}：實測安裝版 zsh，`source`
+# 會將 $0 設為被載入的檔案，故無論直接執行或被 source，兩者皆相同，該比較永不成立。
+# ZSH_EVAL_CONTEXT 於直接執行時為 `toplevel`，被 source 時則帶有 `:file`。
+# 此保護並非裝飾——不帶參數的 `source` 會沿用呼叫者的位置參數，故任何以 --help 啟動的
+# 呼叫者都會把 "--help" 當作 $1 傳入本檔，未加保護的 `exit 0` 將終止該呼叫者的 shell。
+if [[ "${ZSH_EVAL_CONTEXT:-}" == toplevel && ( "${1:-}" == "--help" || "${1:-}" == "-h" ) ]]; then
+    sed -n '3,38p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
 
 # ------------------------------------------------------------------------------
 # FUNCTION: extract()

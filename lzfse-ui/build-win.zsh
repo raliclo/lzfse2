@@ -6,6 +6,7 @@
 # 從 lzfse-ui/ 目錄執行 / Run from the lzfse-ui/ directory:
 #     ./build-win.zsh            # release 建置 / release build
 #     ./build-win.zsh -c debug   # 傳遞額外參數給 swift build / extra args passed to swift build
+#     ./build-win.zsh --help     # 本說明；不會轉交給 swift build / this text, not forwarded
 #
 # 需求 / Requirements:
 #   - Swift for Windows 工具鏈（已驗證 6.3.2，x86_64-windows-msvc）
@@ -23,6 +24,18 @@
 # runCLI() call from lzfse-cli.swift with grep -v before compiling it into the target.
 
 set -e
+
+script_path="${0:A}"
+
+# Ahead of everything, and ahead of the "$@" pass-through to `swift build` in
+# particular: without this branch `--help` was forwarded to SwiftPM, which
+# scaffolds the package and starts a build before printing anything.
+# 置於一切之前，尤其是置於把 "$@" 轉交給 `swift build` 之前：若無此分支，`--help`
+# 會被轉交給 SwiftPM，後者會先建立套件骨架並開始建置，之後才輸出任何內容。
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '3,24p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"

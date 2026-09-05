@@ -38,6 +38,7 @@
 #   ./claude_test_sample_script.zsh              # foreground, recommended / 前景，建議
 #   ./claude_test_sample_script.zsh --detach     # survives closing the terminal / 可關閉終端
 #   ./claude_test_sample_script.zsh --check      # run the checks only / 僅執行檢查
+#   ./claude_test_sample_script.zsh --help       # this text / 本說明
 #
 # Foreground is the default on purpose. If the keep-alive ever fails, a
 # foreground round stops at a visible password prompt you can answer; a detached
@@ -49,7 +50,14 @@
 # =====================================================================
 set -uo pipefail
 
-HERE="${0:A:h}"
+script_path="${0:A}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '3,49p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
+
+HERE="${script_path:h}"
 cd "$HERE" || exit 1
 
 MODE="foreground"
@@ -57,7 +65,7 @@ case "${1:-}" in
     --detach) MODE="detach" ;;
     --check)  MODE="check"  ;;
     "")       ;;
-    *) print -ru2 -- "unknown option: $1 (use --detach or --check)"; exit 2 ;;
+    *) print -ru2 -- "unknown option: $1 (use --detach, --check or --help)"; exit 2 ;;
 esac
 
 ok=0
