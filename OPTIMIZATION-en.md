@@ -353,7 +353,7 @@ The advantage of (file increment 0.25 to 0.57 seconds) is also the same.
 ### The difference in the compression ratio is not a return.
 
 | | R48 (external) | R49 (native)| R50 (native) |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | claw-code | 0.7806 | 0.8165 | **0.8165** |
 | llama.cpp | 0.9069 | 0.9297 | **0.9297** |
 
@@ -513,7 +513,7 @@ In particular, Optimal (39 seconds) changes only +0.3% on claw-code, which prove
 | Lazy2 | −31.4% | −76.3% |
 | Apple | −32.0% | −65.5% |
 | BVX3 | −29.7% | −69.6% |
-| (ZSTD −53.0% / −80.3%, changed to practice, incomparable) | |
+| (ZSTD −53.0% / −80.3%, changed to practice, incomparable) | | |
 
 **None of them have become faster. **Confirmed facts:
 
@@ -949,7 +949,7 @@ Correctness: 8 formats × 2 data sets × 2 output modes, **32/32 `[PASS]`, 0 `[F
 Pre-R47 changed the non-write branch of `decode-win.bat` from `tar xzf ... > nul` (pseudo null-mode that actually still falls) to `--to-stdout -xzf ... > nul` (real to-stdout decode). This round of data confirms that the amendment is effective:
 
 | Data set | Dec file | Dec null (modified) | Difference |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | claw-code | 86.19 MB/s (16.28s) | 109.6 MB/s (12.80s) | null fast **27.2%** |
 | llama.cpp | 18.28 MB/s (66.27s) | 36.53 MB/s (33.18s) | null fast **99.8%** |
 
@@ -1181,7 +1181,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 | claw-code | Dec MB/s | 65.37 | 121.40 | **+85.7%** |
 | claw-code | Enc RSS | 6.6 MB | 6.4 MB | −3.0% (noisse) |
 | claw-code | Dec RSS | 6.1 MB | 5.9 MB | −3.3% (noiss) |
-| llama.cpp | Enc MB/s | 66.90 | 92.26 | **+37.9%**
+| llama.cpp | Enc MB/s | 66.90 | 92.26 | **+37.9%** |
 | llama.cpp | Dec MB/s | 23.01 | 24.13 | +4.9% (nogge level) |
 | llama.cpp | Enc RSS | 6.5 MB | 6.6 MB | +1.5% (nossip) |
 | llama.cpp | Dec RSS | 6.9 MB | 7.0 MB | +1.4% (nottle) |
@@ -1367,7 +1367,7 @@ Energy Ratio with TGZ=1 paradigm (claw-code, n=40):
 In the same machine, the same corpus, back-to-back measure the TGZ encode/decode of `/usr/bin/tar` (system, single thread gzip) and `/opt/homebrew/bin/swift_tar` (parallel chunk gzip + memory correction). Time and RSS use `/usr/bin/time -l`, energy use `powermetrics` ( `energy_J = duration_s × avg_CPU_mW / 1000`). Single measurement, unofficial pipeline:
 
 | Dimension | system `tar` | `swift_tar` | swift_tar relative |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | Encode Time | 29.5s | **4.42s** | **6.7× Fast** |
 | Decode Time | 3.35s | **2.94s** | 1.14× Fast |
 | Encode RSS | 4.2 MB | 209.8 MB | More than 50× |
@@ -1432,7 +1432,7 @@ In the same machine, the same corpus, back-to-back measure the TGZ encode/decode
 ### claw-code (n=40)
 
 | Format | R44 Enc MB/s | R45 Enc MB/s | Change |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 |TGZ|300.90|309.38|+3%|
 | Other3 | 548.77 | 443.55 | −19% |
 | Optimal3 | 63.19 | 68.07 | +8% |
@@ -1446,7 +1446,7 @@ In the same machine, the same corpus, back-to-back measure the TGZ encode/decode
 ### llama.cpp (n=40)
 
 | Format | R44 Enc MB/s | R45 Enc MB/s | Change |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 231.34 | 282.52 | +22% |
 | Other3 | 247.13 | 370.17 | +50% |
 | Optimal3 | 85.88 | 87.95 | +2% |
@@ -1512,7 +1512,7 @@ In the same machine, the same corpus, back-to-back measure the TGZ encode/decode
 #### claw-code (n=40)
 
 | Format | R44 Enc J | R45 Enc J | Change |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 125.01 | 104.38 | −17% |
 | Other3 | 58.17 | 45.89 | −21% |
 | Optimal3 | 578.92 | 497.21 | −14% |
@@ -1526,7 +1526,7 @@ In the same machine, the same corpus, back-to-back measure the TGZ encode/decode
 #### llama.cpp (n=40)
 
 | Format | R44 Enc J | R45 Enc J | Change |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 109.72 | 114.70 | +5% |
 | Other3 | 44.26 | 40.70 | −8% |
 | Optimal3 | 397.58 | 345.75 | −13% |
@@ -1544,7 +1544,7 @@ In the same machine, the same corpus, back-to-back measure the TGZ encode/decode
 ### claw-code (n=40)
 
 | Format | R44 Dec J | R45 Dec J | Change |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 25.94 | 29.25 | +13% |
 | Other3 | 5.56 | 8.56 | +54% |
 | Optimal3 | 5.65 | 6.64 | +18% |
@@ -1558,7 +1558,7 @@ In the same machine, the same corpus, back-to-back measure the TGZ encode/decode
 ### llama.cpp (n=40)
 
 | Format | R44 Dec J | R45 Dec J | Change |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 18.48 | 27.12 | +47% |
 | Other3 | 3.83 | 4.56 | +19% |
 | Optimal3 | 3.80 | 4.21 | +11% |
@@ -1649,7 +1649,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 | claw-code | ZSTD | 133.86 | 451.88 | 0.296 | 55.18 | 499.60 | 0.110 |
 | llama.cpp | TGZ | 66.90 | 231.34 | 0.289 | 23.01 | 131.56 | 0.175 |
 | llama.cpp | Other3 | 83.64 | 247.13 | 0.338 | 44.14 | 131.90 | 0.335 |
-| llama.cpp | **Optimal3** | **54.18** | **85.88** | **0.631** | **28.57** | **135.20** | **0.211**
+| llama.cpp | **Optimal3** | **54.18** | **85.88** | **0.631** | **28.57** | **135.20** | **0.211** |
 | llama.cpp | BVX3 | 84.12 | 404.84 | 0.208 | 34.28 | 123.53 | 0.278 |
 | llama.cpp | Lazy2 | 80.30 | 176.09 | 0.456 | 37.74 | 126.91 | 0.297 |
 | llama.cpp | Optimal | 41.20 | 58.51 | 0.704 | 36.28 | 127.18 | 0.285 |
@@ -1699,7 +1699,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 | claw-code | ZSTD | 0.7805 | 451.88 | 499.60 |
 | llama.cpp | TGZ | 1.0000 | 231.34 | 131.56 |
 | llama.cpp | Other3 | 0.9965 | 247.13 | 131.90 |
-| llama.cpp | **Optimal3** | **0.9737** | **85.88** | **135.20**
+| llama.cpp | **Optimal3** | **0.9737** | **85.88** | **135.20** |
 | llama.cpp | Lazy2 | 0.9576 | 176.09 | 126.91 |
 | llama.cpp | Optimal | 0.9408 | 58.51 | 127.18 |
 | llama.cpp | BVX3 | 0.9810 | 404.84 | 123.53 |
@@ -1716,7 +1716,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 ### claw-code (n=40)
 
 | Format | R43 Enc MB/s | R44 Enc MB/s | Change |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 310.83 | 300.90 | −3% |
 | Other3 | 550.38 | 548.77 | −0% |
 | Optimal3 | 64.48 | 63.19 | −2% |
@@ -1730,7 +1730,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 ### llama.cpp (n=40)
 
 | Format | R43 Enc MB/s | R44 Enc MB/s | Change |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 243.69 | 231.34 | −5% |
 | Other3 | 247.42 | 247.13 | −0% |
 | Optimal3 | 88.62 | 85.88 | −3% |
@@ -2025,7 +2025,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 | Data Set | Best Compression Ratio | Best Enc MB/s | Best Dec MB/s | Lowest Enc RSS | Highest Enc RSS | Lowest Enc J | Highest Enc J |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | claw-code | 0.9344 ( `n4`) | 64.48 ( `n40`) | 565.15 ( `n8`) | 212.0 MB ( `n4`) | 553.4 MB ( `n40`) | 513.65 ( `n40`) | 722.83 ( `n4`) |
-| llama.cpp | 0.9737 ( `n4`) | 88.62 ( `n40`) | 128.70 ( `n40`) | 220.1 MB ( `n4`) | 554.1 MB ( `n40`) | 347.82 ( `n40`) | 501.50 ( `n4`)
+| llama.cpp | 0.9737 ( `n4`) | 88.62 ( `n40`) | 128.70 ( `n40`) | 220.1 MB ( `n4`) | 554.1 MB ( `n40`) | 347.82 ( `n40`) | 501.50 ( `n4`) |
 
 ---
 
@@ -2120,7 +2120,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | claw-code | TGZ | 87.71 | 310.83 | 0.282 | 36.73 | 396.15 | 0.093 |
 | claw-code | Other3 | 242.74 | 550.38 | 0.441 | 66.98 | 599.68 | 0.112 |
-| claw-code | **Optimal3** | **29.69** | **64.48** | **0.460** | **67.15** | **553.04** | **0.121**
+| claw-code | **Optimal3** | **29.69** | **64.48** | **0.460** | **67.15** | **553.04** | **0.121** |
 | claw-code | BVX3 | 183.05 | 540.22 | 0.339 | 68.06 | 500.02 | 0.136 |
 | claw-code | Lazy2 | 29.86 | 70.27 | 0.425 | 69.26 | 481.84 | 0.144 |
 | claw-code | Optimal | 13.65 | 35.55 | 0.384 | 68.38 | 394.46 | 0.173 |
@@ -2128,7 +2128,7 @@ Correctness: 16 groups (8 formats × 2 data sets) `win_decode_verify` All `PASS`
 | claw-code | ZSTD | 91.17 | 429.27 | 0.212 | 61.00 | 559.66 | 0.109 |
 | llama.cpp | TGZ | 54.09 | 243.69 | 0.222 | 8.18 | 138.41 | 0.059 |
 | llama.cpp | Other3 | 59.47 | 247.42 | 0.240 | 10.65 | 140.43 | 0.076 |
-| llama.cpp | **Optimal3** | **34.17** | **88.62** | **0.386** | **10.03** | **128.70** | **0.078**
+| llama.cpp | **Optimal3** | **34.17** | **88.62** | **0.386** | **10.03** | **128.70** | **0.078** |
 | llama.cpp | BVX3 | 60.21 | 405.01 | 0.149 | 10.54 | 135.99 | 0.078 |
 | llama.cpp | Lazy2 | 53.70 | 190.31 | 0.282 | 10.37 | 133.80 | 0.077 |
 | llama.cpp | Optimal | 26.83 | 62.11 | 0.432 | 10.41 | 130.52 | 0.080 |
@@ -2440,7 +2440,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 | Other3 | 266.1 MB | 63.4 | 299.5 MB | 80.9 |
 | BVX3 | 272.9 MB | 65.0 | 324.5 MB | 87.7 |
 | ZSTD | 387.8 MB | 92.3 | 9.2 MB | 2.5 |
-| Lazy2 | 499.5MB | 118.9 | 320.2MB | 86.5
+| Lazy2 | 499.5MB | 118.9 | 320.2MB | 86.5 |
 | Optimal | 572.5 MB | 136.3 | 308.2 MB | 83.2 |
 
 ## three. CPU Energy (Mac only, claw-code n=40)
@@ -2767,7 +2767,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 ### claw-code (n=40)
 
 | Format | null MB/s | file MB/s | null/file |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 24.30 | 23.82 | 1.02 |
 | Other3 | 247.04 | 253.04 | 0.976 |
 | BVX3 | 222.15 | 246.37 | 0.902 |
@@ -2779,7 +2779,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 ### llama.cpp (n=40)
 
 | Format | null MB/s | file MB/s | null/file |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 27.59 | 25.70 | 1.074 |
 | Other3 | 143.82 | 132.53 | 1.085 |
 | BVX3 | 141.16 | 129.91 | 1.086 |
@@ -2799,7 +2799,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 ### claw-code (n=40)
 
 | Format | null MB/s | file MB/s | null/file |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 113.9 | 153.6 | 0.74 ⚠️ |
 | Other3 | 772.4 | 159.0 | 4.86 |
 | BVX3 | 749.0 | 139.9 | 5.35 |
@@ -2811,7 +2811,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 ### llama.cpp (n=40)
 
 | Format | null MB/s | file MB/s | null/file |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 22.9 | 27.5 | 0.83 ⚠️ |
 | Other3 | 838.6 | 41.5 | 20.2 |
 | BVX3 | 873.0 | 36.1 | 24.2 |
@@ -2829,7 +2829,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 ### claw-code (n=40)
 
 | Format | Win compression ratio/TGZ | Mac compression ratio/TGZ | Difference |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 1.0000 | 1.0000 | 0.0000 |
 | Other3 | 0.9818 | 0.9865 | -0.0047 |
 | BVX3 | 0.9254 | 0.9492 | -0.0238 |
@@ -2841,7 +2841,7 @@ See `lzfse-ui/README-UI-Win.md` for details.
 ### llama.cpp (n=40)
 
 | Format | Win compression ratio/TGZ | Mac compression ratio/TGZ | Difference |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | TGZ | 1.0000 | 1.0000 | 0.0000 |
 | Other3 | 0.9970 | 0.9957 | +0.0013 |
 | BVX3 | 0.9810 | 0.9787 | +0.0023 |
@@ -3036,7 +3036,7 @@ Mac is significantly faster than Win (0.38–0.72×) in all formats. ZSTD Win/Ma
 ### claw-code
 
 | Format | Best Compression Ratio | Enc MB/s Best/Worst | Dec MB/s Best/Worst | Enc RSS Lowest/Highest | Dec RSS Low/Highest | Enc Energy Ratio Range | Dec Energy Ratio Range |
-| --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
 | TGZ | 1.0000 | 49 / 48 | 380 / 362 | 4.2 / 4.3 MB | 3.7 / 3.7 MB | 1.000 | 1.000 |
 | Other3 | 0.9865 | 408 / 347 | 415 / 396 | 139 / 252 MB | 70 / 301 MB | 0.169–0.308 | 0.258–0.666 |
 | BVX3 | 0.9492 | 422 / 339 | 356 / 292 | 129 / 252 MB | 71 / 324 MB | 0.193–0.304 | 0.452–1.007 |
@@ -3049,7 +3049,7 @@ Mac is significantly faster than Win (0.38–0.72×) in all formats. ZSTD Win/Ma
 ### llama.cpp
 
 | Format | Best Compression Ratio | Enc MB/s Best/Worst | Dec MB/s Best/Worst | Enc RSS Lowest/Highest | Dec RSS Low/Highest | Enc Energy Ratio Range | Dec Energy Ratio Range |
-| --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
 | TGZ | 1.0000 | 42 / 41 | 86 / 84 | 4.3 / 4.4 MB | 3.8 / 3.8 MB | 1.000 | 1.000 |
 | Other3 | 0.9958 | 97 / 87 | 81 / 73 | 135 / 362 MB | 67 / 349 MB | 0.177–0.256 | 0.223–0.703 |
 | BVX3 | 0.9787 | 93 / 89 | 81 / 77 | 142 / 356 MB | 67 / 351 MB | 0.195–0.227 | 0.259–1.023 |
@@ -3353,7 +3353,7 @@ Only the average of TGZ decode (1.35s, 3 samples) is relatively stable. Although
 ## n40 Optimal Result Comparison (R35 committed vs this retest)
 
 | Indicator | R35 committed | This retest (R35 code) | Gap |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | claw-code encode MB/s | 34.70 | 36.21 | +4.4% |
 | llama.cpp encode MB/s | 49.89 | 50.42 | +1.1% |
 | claw-code encode power mW | 13,279 | 13,290 | +0.1% |
@@ -3373,7 +3373,7 @@ Only the average of TGZ decode (1.35s, 3 samples) is relatively stable. Although
 ### Phenomenon I: TGZ
 
 | run | claw-code TGZ n4 | n8 | n40 |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | R35 | 8.828 J | 8.828 J | 8.828 J |
 | R36 | 28.553 J | 28.553 J | 28.553 J |
 |R37|10.605J|10.605J|10.605J|
@@ -3858,9 +3858,9 @@ This round of benchmark data (BenchMarkResult.csv) is **containing #1 and #2 at 
 
 ---
 
-# Twenty-ninth round: R2612 + R28 combined DOE results + the first power/energy measurement (2026-06-16)
+# Twenty-ninth round: R26①② + R28 combined DOE results + the first power/energy measurement (2026-06-16)
 
-> This round combines three sets of **output-identical** changes on the basis of R27 (tag-packing): R28 ( `encodeBlockV3` LMD `withUnsafeBufferPointer`), R261 ( `localHead` of `lzParseOptimal`, per-call configuration), R262 (3-rep expansion). And the CPU/GPU/DRAM power and energy consumption of `powerResults/` are included for the first time. Only move `lzfse-cli.swift` and `OPTIMIZATION.md`.
+> This round combines three sets of **output-identical** changes on the basis of R27 (tag-packing): R28 ( `encodeBlockV3` LMD `withUnsafeBufferPointer`), R26① ( `localHead` of `lzParseOptimal`, per-call configuration), R26② (3-rep expansion). And the CPU/GPU/DRAM power and energy consumption of `powerResults/` are included for the first time. Only move `lzfse-cli.swift` and `OPTIMIZATION.md`.
 
 ## DOE result (claw-code / llama.cpp, n40, raw bytes/ns)
 
@@ -3873,7 +3873,7 @@ This round of benchmark data (BenchMarkResult.csv) is **containing #1 and #2 at 
 
 - **Compression ratio format byte level unchanged** (0.8590 / 0.9515 / 0.9016 / 0.9872 ...) → All three groups of changes are confirmed to be output-identical and there is no return.
 - **R28 (BVX3) is the biggest winner of this round**: claw +6.0%, llama +12.6%, confirming that LMD's bounds-check is valid for encode-bound bvx3/other3.
-- **R2612 (Optimal) is only slightly +0.7–1.7%**, **does not reach the ≥10% target**: because they save DP *peripheral* overhead (prescreen's `localHead` configuration, rep transform loop), and the top symbol is still the **DP core closure** of `lzParseOptimal` - to be faster, you must move the DP itself or do segment-level gating.
+- **R26①② (Optimal) is only slightly +0.7–1.7%**, **does not reach the ≥10% target**: because they save DP *peripheral* overhead (prescreen's `localHead` configuration, rep transform loop), and the top symbol is still the **DP core closure** of `lzParseOptimal` - to be faster, you must move the DP itself or do segment-level gating.
 - `*` Lazy2 There is no new change in this round (R6 is within the R27 benchmark), and the increase in the value belongs to the whole machine/scheduling noise, not attributed to this round.
 
 ## powerResult segment summary (first included)
@@ -4254,7 +4254,7 @@ The speed comparison is based on the `compression MB/s` / `decompression MB/s` o
 | Other3 | 0.9872 ( `n4`) | 563.51 ( `n8`) | 390.43 ( `n4`) | 693.08 ( `n40`) | 664.02 ( `n4`) | 1455.2 MB ( `n4`) | 1639.5 MB ( `n40`) | 952.0 MB ( `n4`) | 1092.6 MB ( `n40`) |
 | BVX3 | 0.9515 ( `n4`) | 494.50 ( `n40`) | 373.42 ( `n4`) | 501.38 ( `n8`) | 390.61 ( `n40`) | 1471.9 MB ( `n4`) | 1681.9 MB ( `n40`) | 918.2 MB ( `n4`) | 1060.4 MB ( `n40`) |
 | Lazy2 | 0.9016 ( `n4`) | 54.87 ( `n40`) | 34.47 ( `n4`) | 760.31 ( `n40`) | 615.98 ( `n4`) | 1507.0 MB ( `n4`) | 1820.8 MB ( `n40`) | 871.1 MB ( `n4`) | 1013.4 MB ( `n40`) |
-| Optimal | 0.8590 ( `n4`) | 29.16 ( `n40`) | 19.33 ( `n4`) | 718.84 ( `n40`) | 552.67 ( `n4`) | 154.2 MB ( `n4`) | 1905.7 MB ( `n40`) | 831.6 MB ( `n4`) | 973.4 MB ( `n40`) |
+| Optimal | 0.8590 ( `n4`) | 29.16 ( `n40`) | 19.33 ( `n4`) | 718.84 ( `n40`) | 552.67 ( `n4`) | 1544.2 MB ( `n4`) | 1905.7 MB ( `n40`) | 831.6 MB ( `n4`) | 973.4 MB ( `n40`) |
 | Apple | 0.9877 ( `log n4`) | 156.12 ( `log n4`) | 154.30 ( `log n40`) | 689.32 ( `log n8`) | 569.11 ( `log n40`) | 1356.4 MB ( `log n4`) | 1356.5 MB ( `log n40`) | 473.1 MB ( `log n4`) | 473.2 MB ( `log n40`) |
 | TLZ4 | 1.1796 ( `log n4`) | 634.00 ( `log n40`) | 617.19 ( `log n8`) | 993.71 ( `log n40`) | 567.08 ( `log n8`) | 79.9 MB ( `log n8`) | 86.2 MB ( `log n40`) | 33.8 MB ( `log n4`) | 33.8 MB ( `log n4`) |
 | ZSTD | 0.8255 ( `log n4`) | 440.86 ( `log n40`) | 425.33 ( `log n4`) | 894.60 ( `log n4`) | 654.16 ( `log n8`) | 397.0 MB ( `log n4`) | 402.1 MB ( `log n8`) | 9.2 MB ( `log n4`) | 9.2 MB ( `log n4`) |
@@ -4266,7 +4266,7 @@ The speed comparison is based on the `compression MB/s` / `decompression MB/s` o
 | TGZ | 1.0000 ( `log n4`) | 65.08 ( `log n8`) | 62.20 ( `log n40`) | 289.62 ( `log n40`) | 272.24 ( `log n4`) | 4.1 MB ( `log n4`) | 4.1 MB ( `log n4`) | 3.8 MB ( `log n4`) | 3.8 MB ( `log n4`) |
 | Other3 | 0.9978 ( `n4`) | 403.98 ( `n8`) | 302.33 ( `n40`) | 283.06 ( `n40`) | 256.74 ( `n4`) | 1234.9 MB ( `n40`) | 1350.7 MB ( `n8`) | 1182.5 MB ( `n4`) | 1323.2 MB ( `n40`) |
 | BVX3 | 0.9815 ( `n4`) | 393.29 ( `n8`) | 295.32 ( `n40`) | 262.31 ( `n4`) | 255.12 ( `n40`) | 1297.1 MB ( `n4`) | 1379.5 MB ( `n40`) | 1163.7 MB ( `n4`) | 1305.5 MB ( `n40`) |
-| Lazy2 | 0.9587 ( `n4`) | 163.91 ( `n40`) | 114.41 ( `n4`) | 301.60 ( `n4`) | 287.77 ( `n8`) | 1339.4 MB ( `n4`) | 156.2 MB ( `n40`) | 1137.0 MB ( `n4`) | 1279.2 MB ( `n40`) |
+| Lazy2 | 0.9587 ( `n4`) | 163.91 ( `n40`) | 114.41 ( `n4`) | 301.60 ( `n4`) | 287.77 ( `n8`) | 1339.4 MB ( `n4`) | 1566.2 MB ( `n40`) | 1137.0 MB ( `n4`) | 1279.2 MB ( `n40`) |
 | Optimal | 0.9415 ( `n4`) | 56.66 ( `n40`) | 36.64 ( `n4`) | 278.34 ( `n8`) | 254.70 ( `n4`) | 1376.4 MB ( `n4`) | 1720.9 MB ( `n40`) | 1117.1 MB ( `n4`) | 1259.5 MB ( `n40`) |
 | Apple | 1.0008 ( `log n4`) | 166.86 ( `log n8`) | 144.59 ( `log n40`) | 274.45 ( `log n8`) | 237.36 ( `log n40`) | 1193.9 MB ( `log n4`) | 1193.9 MB ( `log n4`) | 590.3 MB ( `log n4`) | 590.4 MB ( `log n40`) |
 | TLZ4 | 1.0549 ( `log n4`) | 364.93 ( `log n4`) | 225.96 ( `log n40`) | 309.15 ( `log n40`) | 270.96 ( `log n4`) | 81.9 MB ( `log n8`) | 90.4 MB ( `log n4`) | 33.8 MB ( `log n4`) | 33.8 MB ( `log n4`) |
@@ -5208,7 +5208,7 @@ No algorithm code change. R12 because the disk is only 10–12 GB distortion and
 | Other3 | 503.52 | **490.25** | −2.6% | 256.81 | **161.77** | −37.0% |
 | BVX3 | 481.99 | **443.04** | −8.1% | 232.81 | **165.18** | −29.0% |
 | Apple | 617.76 | **395.09** | −36.0% | 209.68 | **183.56** | −12.5% |
-| TGZ | 533.61 | **419.14** | −21.5.5% | 259.96 | **182.99** | −29.6% |
+| TGZ | 533.61 | **419.14** | −21.5% | 259.96 | **182.99** | −29.6% |
 | TLZ4 | 266.01 | **695.20** | +161% | 244.49 | **204.89** | −16.2% |
 | ZSTD | 355.65 | **362.38** | +1.9% | 231.66 | **135.37** | −41.5% |
 
@@ -5288,7 +5288,7 @@ Only 10 GB of claw-code is available, and the disk I/O is very competitive durin
 | --- | ---: | ---: | --- | ---: | ---: | --- |
 | TGZ | 47.81 | **38.89** | −18.6% 🔴 | 55.81 | **54.13** | −3.0% |
 | Other3 | 407.40 | **238.98** | −41.3% 🔴 | 240.11 | **217.73** | −9.3% |
-| **Lazy2** | **49.21** | **37.15** | **−24.5% 🔴** | **129.16** | **125.90** | **−2.5%**
+| **Lazy2** | **49.21** | **37.15** | **−24.5% 🔴** | **129.16** | **125.90** | **−2.5%** |
 | **Optimal** | **23.99** | **17.46** | **−27.2% 🔴** | **40.85** | **39.48** | **−3.4%** |
 | BVX3 | 413.47 | **410.78** | −0.7% | 229.06 | **221.63** | −3.2% |
 | Apple | 136.61 | **138.16** | +1.1% | 127.65 | **120.43** | −5.7% |
@@ -5976,7 +5976,7 @@ Chain-table pre-built (one-time table, multi-segment sharing).
 The last round of benchmark (BenchMarkResult.csv) shows the gap with zstd -9:
 
 | Data set | bvx3 -lazy2 | zstd -9 | gap |
-|---|---:|---:|---:|---:|
+|---|---:|---:|---:|
 | claw-code | 419M | 368M | ~13.9% |
 | llama.cpp | 572M | 537M | ~6.5% |
 
