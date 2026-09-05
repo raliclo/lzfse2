@@ -10,13 +10,13 @@ This package contains everything you need to create a modern macOS graphical use
    - Complete LZFSE compression/decompression engine
    - Support for multiple algorithms (apple, other3, bvx3)
    - Parallel processing with configurable concurrency
-   - ~3,695 lines of compression logic
+   - ~4,246 lines of compression logic
 
 2. **lzfse-ui.swift** (NEW)
    - Complete SwiftUI macOS application
    - Modern, user-friendly interface
    - Bilingual support (English/Chinese)
-   - ~550 lines of UI code
+   - ~999 lines of UI code
 
 3. **AppIcon.png / AppIcon.icns**
    - Checked-in app icon source image and macOS bundle icon
@@ -340,7 +340,7 @@ Search for:
 In `lzfse-ui.swift`, search for:
 
 ```swift
-.frame(minWidth: 800, minHeight: 650)
+.frame(minWidth: 800, minHeight: 900)
 // Change to your preferred size
 ```
 

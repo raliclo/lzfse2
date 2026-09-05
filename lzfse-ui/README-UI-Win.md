@@ -82,12 +82,14 @@ with the Swift toolchain installed they're already on PATH. **The zip does not b
 
 ## 從 zip 執行 / Run from the zip
 
-`build-win.zsh` 會在 `lzfse-ui/` 產出 `LZFSE_UI_Win.zip`，內含：
-`build-win.zsh` produces `LZFSE_UI_Win.zip` in `lzfse-ui/`, containing:
+`build-win.zsh` 會在 `lzfse-ui/release/` 產出 `LZFSE_UI_Win.zip`，內含：
+`build-win.zsh` produces `LZFSE_UI_Win.zip` in `lzfse-ui/release/`, containing:
 
 ```
 LZFSE_UI_Win/
 ├─ LZFSE_UI_Win.exe                                          # 主程式 / the app
+├─ lzfse.exe                                                 # 隨附 CLI / companion CLI
+├─ AppIcon.ico                                               # 圖示 / icon
 ├─ SwiftJava.dll                                             # Swift 相依 / dependency
 └─ swift-winui_CWinAppSDK.resources/
    └─ Microsoft.WindowsAppRuntime.Bootstrap.dll             # bootstrapper（由相對路徑載入）
@@ -111,23 +113,38 @@ Extract and run `LZFSE_UI_Win.exe` inside the folder.
 ```
 
 **建置需求 / Build requirements**：
-- **Git for Windows（提供 Git Bash）** / **Git for Windows (provides Git Bash)**
-  `build-win.zsh` 是 bash 腳本，須在 **Git Bash** 中執行。Git for Windows 已內建本腳本所需的
-  `bash`、`grep`、`sed`、`tar`（bsdtar）等工具，**無需另外安裝**（路徑轉換用 `sed`，不依賴 `cygpath`）。
+- **zsh（必要，需另外安裝）** / **zsh (required, separate install)**
+  `build-win.zsh` 的 shebang 是 `#!/usr/bin/env zsh`，是 zsh 腳本而非 bash 腳本。
+  **Git Bash 不附帶 zsh**，所以只裝 Git for Windows 是不夠的；請另外安裝 Windows 版 zsh
+  （例如 `scoop install zsh`），或在已有 zsh 的環境中執行。
+  `build-win.zsh` has a `#!/usr/bin/env zsh` shebang — it is a zsh script, not a bash script.
+  **Git Bash does not ship zsh**, so Git for Windows alone is not enough; install a Windows
+  zsh (e.g. `scoop install zsh`) or run it from an environment that already has one.
+- **Git for Windows** — 仍需要，用來提供 `grep`、`sed` 等 POSIX 工具（路徑轉換用 `sed`，不依賴 `cygpath`）。
   下載 / Download: <https://gitforwindows.org>
-  `build-win.zsh` is a bash script and must run in **Git Bash**. Git for Windows bundles the
-  `bash`, `grep`, `sed` and `tar` (bsdtar) the script needs — **no separate install required**
-  (path conversion uses `sed`, not `cygpath`).
+  Still needed, for the POSIX tools (`grep`, `sed`, …) the script uses; path conversion uses
+  `sed`, not `cygpath`.
 - Swift for Windows 工具鏈（已驗證 6.3.2，x86_64-windows-msvc）/ toolchain (verified 6.3.2)
+  ——同時提供圖示資源所需的 `llvm-rc.exe` / also supplies the `llvm-rc.exe` used for the icon resource
 - Visual Studio Build Tools（C++ 工作負載）+ Windows 10/11 SDK
-- PowerShell（Windows 內建，用於 `Compress-Archive` 打包）/ PowerShell (built into Windows, used for `Compress-Archive`)
-- 首次建置由 SwiftPM 自動拉取 `moreSwift/swift-cross-ui` v0.7.0 及其相依（需網路）
-  the first build fetches `moreSwift/swift-cross-ui` v0.7.0 and dependencies (needs network)
+- Windows 內建的 bsdtar（`C:\Windows\System32\tar.exe`）用於打包 zip。腳本寫死這個路徑，
+  刻意避開 PATH 上的 `tar`：Git Bash 的那個是 GNU tar，完全無法寫 ZIP。**不再使用 PowerShell 的
+  `Compress-Archive`。**
+  The bsdtar bundled with Windows (`C:\Windows\System32\tar.exe`) does the zipping. The script
+  hard-codes that path to avoid PATH's `tar`, which under Git Bash is GNU tar and cannot write
+  ZIP at all. PowerShell's `Compress-Archive` is **no longer used**.
+- PowerShell（Windows 內建）僅用於執行 `make-icon.ps1` 產生 `.ico`
+  PowerShell (built into Windows) is used only to run `make-icon.ps1`, which produces the `.ico`
+- 首次建置由 SwiftPM 自動拉取 `https://github.com/raliclo/swift-cross-ui.git` 的 `develop` 分支及其相依（需網路）
+  the first build fetches the `develop` branch of `https://github.com/raliclo/swift-cross-ui.git`
+  and its dependencies (needs network)
 
 建置流程 / The script will：
 1. 以 `grep -v '^runCLI()$'` 將 `../lzfse-cli.swift` 當函式庫編入 / strip `runCLI()` and import the codec as a library
 2. `swift build -c release`（log 寫入 `.win-build/build.log`）
-3. 打包 exe + 必要執行檔成 `LZFSE_UI_Win.zip` 複製到 `lzfse-ui/` / package into the zip in `lzfse-ui/`
+3. 以 `helper_windows/compile.bat` 建置隨附的 `lzfse.exe` CLI / build the companion `lzfse.exe` CLI via `helper_windows/compile.bat`
+4. 以 Windows 內建 bsdtar 打包 exe + 必要執行檔成 `lzfse-ui/release/LZFSE_UI_Win.zip`
+   package everything into `lzfse-ui/release/LZFSE_UI_Win.zip` with the Windows bsdtar
 
 ---
 
@@ -156,12 +173,13 @@ As of the 2026-07-07 Windows UI / benchmark status:
 - `build-win.zsh` also embeds the Windows app icon into `LZFSE_UI_Win.exe`: it uses the same `AppIcon.png` source image as the macOS app, generates `.win-build/AppIcon.ico`, compiles `.win-build/AppIcon.res` with `llvm-rc.exe`, and links that resource into the exe. File Explorer and the Windows taskbar should therefore show the LZFSE UI icon. If Windows still shows an old/default icon, use a fresh extraction folder or restart Explorer to clear the icon cache.
 - The Windows UI now exposes `Optimal3 Parsing / 標準格式最優解析` under Other3 encode mode. The equivalent command becomes `-algo other3 -optimal3`; output remains standard Apple-compatible LZFSE.
 - The file section is more compact: `Reset / 重置` and `Compress / Decompress` now sit on the right side of the `Files / 檔案` header instead of taking a separate bottom row.
-- The final `LZFSE_UI_Win.zip` contains:
+- The final `LZFSE_UI_Win.zip` is written to `lzfse-ui/release/` and contains:
 
   ```text
   LZFSE_UI_Win/
   |-- LZFSE_UI_Win.exe
   |-- lzfse.exe
+  |-- AppIcon.ico
   |-- SwiftJava.dll
   `-- swift-winui_CWinAppSDK.resources/
       `-- Microsoft.WindowsAppRuntime.Bootstrap.dll

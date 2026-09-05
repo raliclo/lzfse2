@@ -18,8 +18,10 @@ You need exactly **2 files**:
 
 1. In Xcode's left sidebar, find your project folder
 2. Drag `lzfse-cli.swift` into it → Check "Copy items if needed" → **Add**
-3. Drag `lzfse-ui.swift` into it → **Add**
-4. Delete the default `ContentView.swift` that Xcode created (optional but clean)
+3. In the copy, delete the file's last line — the bare `runCLI()` call. It is a
+   top-level statement and will clash with the UI's `@main` if left in.
+4. Drag `lzfse-ui.swift` into it → **Add**
+5. Delete the default `ContentView.swift` that Xcode created (optional but clean)
 
 ## Step 4: Build & Run (30 seconds)
 
@@ -71,10 +73,15 @@ You now have a working LZFSE compression app.
 
 If you prefer terminal:
 
+`lzfse-cli.swift` ends with a bare `runCLI()` call, which is a top-level
+statement and clashes with the UI's `@main`. Strip it into a temporary copy
+first — this is exactly what `build-ui.zsh` does:
+
 ```bash
 cd /path/to/your/files
-swiftc -O lzfse-cli.swift lzfse-ui.swift -o LZFSE-UI \
-    -framework SwiftUI -framework UniformTypeIdentifiers
+grep -v '^runCLI()$' lzfse-cli.swift > /tmp/lzfse-cli-lib.swift
+swiftc -O /tmp/lzfse-cli-lib.swift lzfse-ui.swift -o LZFSE-UI \
+    -framework SwiftUI
 ./LZFSE-UI
 ```
 

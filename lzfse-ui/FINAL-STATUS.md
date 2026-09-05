@@ -32,18 +32,28 @@ The CLI code had executable statements at the module's top level, which conflict
      // Compression/decompression
      // Cleanup
    }                         // ← Closes here
-7. Comment explaining library usage
-8. End of file
+7. runCLI()                  // ← last line: the standalone CLI entry point
 ```
+
+The `runCLI()` call on the last line stays in the checked-in file, so
+`lzfse-cli.swift` still builds and runs as a CLI by itself. For the UI build it
+is the one line that must go, and both build scripts remove it:
+
+- `build-ui.zsh:62` — `grep -v "^runCLI()$" "${PROJECT_ROOT}/lzfse-cli.swift" > "$TEMP_CLI"`
+- `build-win.zsh:98` — `grep -v '^runCLI()$' "${PROJECT_ROOT}/lzfse-cli.swift" > "${TARGET_DIR}/lzfse-cli.swift"`
+
+Copying a raw `swiftc` line out of this document and pointing it at
+`lzfse-cli.swift` directly will therefore bring the `@main` /
+top-level-statement conflict straight back.
 
 ## File Status
 
 ### lzfse-cli.swift ✅
-- ✅ No top-level statements
-- ✅ All CLI code wrapped in `runCLI()`
+- ✅ All CLI *logic* wrapped in `runCLI()`
 - ✅ Properly closed function
-- ✅ Can be used as a library
-- ✅ **READY TO BUILD**
+- ⚠️ One top-level statement remains — the bare `runCLI()` call on the last line
+- ✅ Can be used as a library **after** that line is stripped (the build scripts do it)
+- ✅ **READY TO BUILD** (via `build-ui.zsh` / `build-win.zsh`)
 
 ### lzfse-ui.swift ✅  
 - ✅ Has `@main` entry point
@@ -66,12 +76,20 @@ The CLI code had executable statements at the module's top level, which conflict
 
 ### Method 2: Command Line
 
+Strip the trailing `runCLI()` call into a temporary copy first — `swiftc` will
+reject the file as-is when it is compiled next to the UI's `@main`:
+
 ```bash
-swiftc -O lzfse-cli.swift lzfse-ui.swift -o LZFSE-UI \
-    -framework SwiftUI -framework UniformTypeIdentifiers
+grep -v '^runCLI()$' ../lzfse-cli.swift > /tmp/lzfse-cli-lib.swift
+
+swiftc -O /tmp/lzfse-cli-lib.swift lzfse-ui.swift -o LZFSE-UI \
+    -framework SwiftUI
 
 ./LZFSE-UI
 ```
+
+`-framework UniformTypeIdentifiers` is **not** required — `lzfse-ui.swift`
+imports only `SwiftUI` and `Compression`.
 
 ## Verification Checklist
 
@@ -105,17 +123,17 @@ A complete macOS app with:
 
 ## No More Errors!
 
-The errors you saw are **gone**:
+The errors you saw are **gone** when you build through the build scripts:
 
 | Error | Status |
 |-------|--------|
 | statements are not allowed at the top level | ✅ FIXED |
-| expressions are not allowed at the top level | ✅ FIXED |
+| expressions are not allowed at the top level | ✅ FIXED — provided the trailing `runCLI()` call is stripped |
 | global 'let' declaration requires an initializer | ✅ FIXED |
 
 ## If You See ANY Errors Now
 
-If you encounter errors during build, they will be **different** errors (not the ones we fixed). Possible new errors:
+If you encounter errors during build, they are most likely **different** errors. The one exception is `expressions are not allowed at the top level`, which means the trailing `runCLI()` call reached the compiler. Possible errors:
 
 1. **"Cannot find LZFSEv1"**
    - Fix: Check lzfse-cli.swift is in target membership
@@ -124,9 +142,11 @@ If you encounter errors during build, they will be **different** errors (not the
    - Fix: Set deployment target to macOS 13.0
 
 3. **Missing framework**
-   - Fix: Add SwiftUI and UniformTypeIdentifiers frameworks
+   - Fix: Add the SwiftUI framework (UniformTypeIdentifiers is not used)
 
-But the **top-level statements error is GONE** ✅
+4. **"expressions are not allowed at the top level"**
+   - Fix: the trailing `runCLI()` call was not stripped — build through
+     `build-ui.zsh` / `build-win.zsh`, or remove that line from your copy
 
 ## Ready to Go!
 

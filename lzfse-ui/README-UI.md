@@ -1,7 +1,9 @@
 # LZFSE UI
 
 A macOS SwiftUI app providing a graphical interface for the LZFSE compression engine.  
-Mirrors the behaviour of `lzfseX` and `extract()` from `zshrc.zsh`.
+Mirrors the behaviour of `lzfseX` and `extract()` from `lz4bench.zsh` (both
+functions used to live in `zshrc.zsh` and were moved to the project-root
+`lz4bench.zsh`).
 
 ---
 
@@ -31,9 +33,11 @@ open "LZFSE_UI.app"
 
 `build-ui.zsh` also generates the macOS app icon from `AppIcon.png`, writes `AppIcon.icns`, copies it into the bundle resources, and sets `CFBundleIconFile` to `AppIcon`.
 
-Or manually:
+Or manually (strip the trailing `runCLI()` call from `lzfse-cli.swift` first —
+it is a top-level statement and clashes with the UI's `@main`):
 ```bash
-swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
+grep -v '^runCLI()$' ../lzfse-cli.swift > /tmp/lzfse-cli-lib.swift
+swiftc -O /tmp/lzfse-cli-lib.swift lzfse-ui.swift \
     -framework SwiftUI -target arm64-apple-macos13.0
 ```
 

@@ -29,7 +29,7 @@ open "LZFSE_UI.app"
 The script:
 - Resolves `SCRIPT_DIR` and `PROJECT_ROOT` automatically (works from any working directory)
 - Generates `AppIcon.icns` from `AppIcon.png` and copies it into `Contents/Resources`
-- Compiles `../lzfse-cli.swift` + `lzfse-ui.swift` together
+- Strips the trailing top-level `runCLI()` call from `../lzfse-cli.swift` into a temp copy, then compiles that copy + `lzfse-ui.swift` together
 - Creates a complete `.app` bundle with `Info.plist`, `PkgInfo`, and `CFBundleIconFile=AppIcon`
 - Uses a local `.swift-module-cache/` so Swift does not try to write module cache files under the user home directory
 - Outputs `lzfse-ui/LZFSE_UI.app`
@@ -40,8 +40,10 @@ The script:
 
 ```bash
 cd lzfse-ui
+# ../lzfse-cli.swift ends with a top-level runCLI() call; strip it as build-ui.zsh does
+grep -v '^runCLI()$' ../lzfse-cli.swift > /tmp/lzfse-cli-lib.swift
 swiftc -O \
-    ../lzfse-cli.swift \
+    /tmp/lzfse-cli-lib.swift \
     lzfse-ui.swift \
     -o "LZFSE_UI.app/Contents/MacOS/LZFSE UI" \
     -framework SwiftUI \
@@ -61,10 +63,11 @@ For a fully equivalent manual bundle, also copy `AppIcon.icns` into `LZFSE_UI.ap
    - `lzfse-ui/lzfse-ui.swift`
    - `lzfse-cli.swift` (from project root)
    - `lzfse-ui/AppIcon.png` or `lzfse-ui/AppIcon.icns` as an app resource
-3. **Delete** the default `ContentView.swift` Xcode generates
-4. Set **Deployment Target → macOS 13.0**
-5. Set the target icon in the asset catalog, or keep `CFBundleIconFile=AppIcon` when using `AppIcon.icns`
-6. Press **⌘R**
+3. **Delete** the last line of the added `lzfse-cli.swift` — the bare `runCLI()` call. Xcode compiles the file as-is, so leaving it in reproduces the `@main` conflict
+4. **Delete** the default `ContentView.swift` Xcode generates
+5. Set **Deployment Target → macOS 13.0**
+6. Set the target icon in the asset catalog, or keep `CFBundleIconFile=AppIcon` when using `AppIcon.icns`
+7. Press **⌘R**
 
 See `XCODE-SETUP.md` for full details.
 
@@ -72,15 +75,26 @@ See `XCODE-SETUP.md` for full details.
 
 ## How `lzfse-cli.swift` Works as a Library
 
-The CLI's main entry point is wrapped in `runCLI()` (not called automatically):
+The CLI's main entry point is wrapped in `runCLI()`, and the file's last line
+calls it, so `lzfse-cli.swift` is still a runnable CLI on its own:
 
 ```swift
 func runCLI() {
     let args = CommandLine.arguments
     // ... argument parsing, encode/decode, file handles ...
 }
-// Not called — SwiftUI app's @main is the entry point instead
+
+runCLI()   // ← last line; stripped at build time for the UI
 ```
+
+That call is a top-level statement and cannot coexist with the SwiftUI app's
+`@main`, so both build scripts remove exactly that one line before compiling:
+
+- `build-ui.zsh:62` — `grep -v "^runCLI()$" "${PROJECT_ROOT}/lzfse-cli.swift" > "$TEMP_CLI"`
+- `build-win.zsh:98` — `grep -v '^runCLI()$' "${PROJECT_ROOT}/lzfse-cli.swift" > "${TARGET_DIR}/lzfse-cli.swift"`
+
+The pattern is anchored, so the invocation must stay on its own line as exactly
+`runCLI()` — indenting it or appending a comment would leave it in the UI build.
 
 Shared symbols used by the UI:
 

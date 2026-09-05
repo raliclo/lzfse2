@@ -39,7 +39,7 @@
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-Minimum window size: **800 × 650 pt**
+Minimum window size: **800 × 900 pt** (`.frame(minWidth: 800, minHeight: 900)`)
 
 ---
 
@@ -183,7 +183,8 @@ Labels and button text update contextually:
 
 ## Decompression Logic (extract() convention)
 
-All decompression follows `extract()` in `zshrc.zsh`:
+All decompression follows `extract()` in the project-root `lz4bench.zsh`
+(it lived in `zshrc.zsh` before being moved there):
 
 ```
 *.lzfse.bvx3.optimal  →  lzfse | tar -xf - -C <dir>
@@ -201,7 +202,7 @@ Detection is automatic from the file suffix (`isLzfseXArchive()`). No manual tog
 
 ## Folder Compression (lzfseX convention)
 
-Mirrors `lzfseX` in `zshrc.zsh`:
+Mirrors `lzfseX` in the project-root `lz4bench.zsh`:
 
 ```bash
 tar -cf - -C <parent> <folder> | lzfse -encode -si -o <output>
@@ -364,7 +365,7 @@ swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
 
 | Property | Value |
 |----------|-------|
-| Minimum size | 800 × 650 pt |
+| Minimum size | 800 × 900 pt |
 | Resizable | Yes |
 | Full screen | Supported |
 | Appearance | Auto light / dark mode |
@@ -379,6 +380,6 @@ swiftc -O ../lzfse-cli.swift lzfse-ui.swift \
 |-----------|---------------|
 | **Clarity** | Bilingual labels, contextual help text, visual hierarchy |
 | **Feedback** | Status panel always visible; progress spinner during processing |
-| **Convention** | Matches `lzfseX` / `extract()` from `zshrc.zsh` exactly |
+| **Convention** | Matches `lzfseX` / `extract()` from `lz4bench.zsh` exactly |
 | **Safety** | Action button disabled until both paths set; Reset always available |
 | **Efficiency** | Auto-suggest paths; equivalent command updates live with algorithm and BVX3 flags |

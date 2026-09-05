@@ -32,6 +32,10 @@ This guide walks you through creating a complete Xcode project for LZFSE UI.
 3. Navigate to your files and select:
    - `lzfse-cli.swift`
    - Click **Add**
+4. Delete the last line of the added copy — the bare `runCLI()` call. It is the
+   CLI's entry point and a top-level statement, so leaving it in collides with
+   the SwiftUI app's `@main`. (`build-ui.zsh` / `build-win.zsh` strip this line
+   automatically; Xcode does not.)
 
 ### Step 3: Replace Default Code
 
