@@ -469,6 +469,29 @@ R49 與 R50 完全相同，R48 不同——這證實差異來自實作替換（�
 3. **量測 chunk 大小的取捨**（第 3 節）。8 或 16 MiB 會減少 frame 數與壓縮比損失，但
    降低壓縮端的平行度。這是可量測的取捨，不該憑猜測決定。**與第 2 項不可同輪進行**，
    否則無從歸因。
+
+   **範圍已釐清（2026-09-25）：這一項需要重建，不是掃旗標。**
+
+   `TAR_CHUNK_SIZE = 1 << 22`（**4 MiB**，`swift_tar.swift:289`）。`ParallelChunkSink` 的
+   建構子確實收 `chunkSize: Int = TAR_CHUNK_SIZE`，但**兩個呼叫端（`:6049`、`:6258`）都沒有
+   傳值**，三支編譯腳本也都沒有覆寫該常數——所以目前沒有任何路徑能在不改程式的情況下換掉它。
+
+   因此只有兩條路：
+
+   - **改常數、重建三次**（4／8／16 MiB），再交錯量測。不動任何介面，量到的正是本項要問的
+     東西。**建議這條。**
+   - 加一個旗標接到那兩個呼叫端（約 5 行）。那是**新增一個對使用者可見的旗標來暴露內部調校
+     常數**，屬於設計決定而非量測，需要先談。
+
+   `zstd_decode_gap.zsh --mode chunk` **不是這一項**：該模式的註解已明講 chunk 大小是編譯期
+   常數、旗標無從調整，故它改以 `--zstd-level` 量「frame 數固定而壓縮量改變」的成本。那是另
+   一個問題，兩者不可互相引用。
+
+   Scope settled 2026-09-25: this needs rebuilds, not a flag sweep. The constant is 4 MiB and
+   neither call site passes the parameter, so nothing reaches it without a code change. Prefer
+   changing the constant and building three times; adding a user-visible flag for an internal
+   tuning constant is a design decision, not a measurement. `--mode chunk` is a different
+   question -- frame count at fixed chunk size -- and the two must not be cited for each other.
 4. **R50 的 decode 各列不得用於格式間或輪間的效能結論**（第 2 節）。它們只證明回歸已修。
 
 ---
