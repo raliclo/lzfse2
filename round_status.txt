@@ -1,1097 +1,1122 @@
-MODE swift_tar=1 power_test=1 13:05:06
-RUNNING_SWIFT_TAR_COMPILE 13:05:06
-[INFO] swift_tar version: 20260816-014809 / swift_tar 版本：20260816-014809
--- Configuring done (0.1s)
+MODE swift_tar=1 power_test=1 15:26:42
+RUNNING_SWIFT_TAR_COMPILE 15:26:42
+  + libarchive/0001-no-apple-nfd-normalisation.patch — 已套用 / applied
+
+已套用 1  原本就在 0  需要人看 0 / applied 1, already 0, needs a human 0
+-- Configuring done (0.2s)
 -- Generating done (0.1s)
 -- Build files have been written to: /Users/raliclo/proj/lzfse2/swift_tar/build/libarchive-macos
+[  1%] Building C object libarchive/CMakeFiles/archive_static.dir/archive_string.c.o
+[  2%] Linking C static library libarchive.a
 [100%] Built target archive_static
 [OK] Built bundled libarchive ZIP backend / 已建置內附 libarchive ZIP 後端
 [OK] Updated version-mac.txt / 已更新 version-mac.txt
+-- Configuring done (0.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: /Users/raliclo/proj/lzfse2/swift_tar/build/xz-macos
+[100%] Built target liblzma
+-- Creating build script for LZ4 version: 1.10.0
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/raliclo/proj/lzfse2/swift_tar/build/lz4-macos
+[100%] Built target lz4_static
+-- ZSTD VERSION: 1.5.7
+-- CMAKE_INSTALL_PREFIX: /usr/local
+-- CMAKE_INSTALL_LIBDIR: lib
+-- ZSTD_LEGACY_SUPPORT not defined!
+-- ZSTD_MULTITHREAD_SUPPORT is disabled
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/raliclo/proj/lzfse2/swift_tar/build/zstd-macos
+[100%] Built target libzstd_static
+[OK] Built static liblzma, liblz4 and libzstd / 已建置靜態 liblzma、liblz4 與 libzstd
+[OK] Updated version-mac.txt / 已更新 version-mac.txt
+[INFO] swift_tar version: 20260920-170352 / swift_tar 版本：20260920-170352
 Built ./release/swift_tar / 已建置 ./release/swift_tar
 Recorded linked libraries in version-mac.txt / 已將連結的函式庫記入 version-mac.txt
 Installed to /opt/homebrew/bin/swift_tar / 已安裝至 /opt/homebrew/bin/swift_tar
-SWIFT_TAR_COMPILE_OK /opt/homebrew/bin/swift_tar 13:05:29
-RUNNING_SWIFT_TAR_TEST 13:05:29
-SWIFT_TAR_TEST_OK 13:05:31
-RUNNING_SWIFT_TAR_CRYPTO_SELFTEST 13:05:31
-SWIFT_TAR_CRYPTO_SELFTEST_OK 13:05:38
-RUNNING_SWIFT_TAR_PARALLEL_EXTRACT 13:05:38
-SWIFT_TAR_PARALLEL_EXTRACT_OK 13:05:45
-USING_SWIFT_TAR /opt/homebrew/bin/swift_tar NATIVE_ZLIB=required NATIVE_ZSTD=required swift_tar 20260816-014809 13:05:45
-PATH=/tmp/lzfse2-swift-tar-shim:/Users/raliclo/.local/bin:/opt/homebrew/opt/llvm/bin:/Users/raliclo/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/opt/X11/bin:/Library/Apple/usr/bin:/Applications/VMware Fusion.app/Contents/Public:/Users/raliclo/.cargo/bin
-RUNNING compile 13:06:03
-TEST_OK 13:06:14
-RUNNING benchmark 13:06:14
+SWIFT_TAR_COMPILE_OK /opt/homebrew/bin/swift_tar 15:27:05
+RUNNING_SWIFT_TAR_TEST 15:27:05
+SWIFT_TAR_TEST_OK 15:27:07
+RUNNING_SWIFT_TAR_CRYPTO_SELFTEST 15:27:07
+SWIFT_TAR_CRYPTO_SELFTEST_OK 15:27:14
+RUNNING_SWIFT_TAR_PARALLEL_EXTRACT 15:27:14
+SWIFT_TAR_PARALLEL_EXTRACT_OK 15:27:21
+USING_SWIFT_TAR /opt/homebrew/bin/swift_tar NATIVE_ZLIB=required NATIVE_ZSTD=required swift_tar 20260920-170352 15:27:21
+PATH=/tmp/lzfse2-swift-tar-shim:/Users/raliclo/.local/bin:/opt/homebrew/opt/llvm/bin:/Users/raliclo/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/opt/X11/bin:/Library/Apple/usr/bin:/Applications/VMware Fusion.app/Contents/Public:/Users/raliclo/.cargo/bin:/Users/raliclo/.claude/plugins/cache/claude-plugins-official/swift-lsp/1.0.0/bin:/Users/raliclo/.claude/plugins/cache/claude-plugins-official/clangd-lsp/1.0.0/bin:/Users/raliclo/.claude/plugins/synced/208a237c-96d0-4d97-9506-76a76f698919_5ce823e9-2796-4aec-93e8-beb116fe0862/cowork-plugin-management/bin:/Users/raliclo/.claude/plugins/synced/208a237c-96d0-4d97-9506-76a76f698919_5ce823e9-2796-4aec-93e8-beb116fe0862/engineering/bin:/Users/raliclo/.claude/plugins/synced/208a237c-96d0-4d97-9506-76a76f698919_5ce823e9-2796-4aec-93e8-beb116fe0862/productivity/bin
+RUNNING compile 15:27:44
+TEST_OK 15:27:54
+RUNNING benchmark 15:27:54
 [36m[Info] Configuring compiler environment... / 正在配置編譯器環境...(B[m
 [33m-> Switching to Clang/LLVM Environment / 已切換至 Clang/LLVM 編譯環境(B[m
 [32m[Success] setcc completed. CURRENT SETCC=clang, PACORES=20(B[m
 [Info] Running Benchmark WITH probe mode (LZFSE_MEMPROBE=1). Peak-RSS probes run after compression/decompression benchmark and will be recorded in the result txt.
 [Info] Running claw-code benchmark with -n 40; output=lz4bench_log/lz4bench-claw-code-n40.txt
-RUNNING_LZ4BENCH claw-code-n40 13:07:14
+RUNNING_LZ4BENCH claw-code-n40 15:28:55
 [Info] 磁碟可用空間充足：24GB / Sufficient disk space: 24GB
-RUNNING_LZ4BENCH claw-code-n40 13:07:14
-ENCODED claw-code-n40 tgz 13:07:20
-ENCODED claw-code-n40 other3 13:07:22
-ENCODED claw-code-n40 optimal3 13:07:43
-ENCODED claw-code-n40 lazy2 13:08:04
-ENCODED claw-code-n40 optimal 13:08:44
-ENCODED claw-code-n40 bvx3 13:08:46
-ENCODED claw-code-n40 apple 13:08:56
-ENCODED claw-code-n40 tar.lz4 13:08:58
-ENCODED claw-code-n40 zstd 13:09:01
-DECODED claw-code-n40 tgz 13:09:03
-COMPARE_BASE claw-code-n40 tgz 13:11:06
-DECODED claw-code-n40 other3 13:11:08
-COMPARED_WITH_TGZ_OK claw-code-n40 other3 13:13:11
-DECODED claw-code-n40 optimal3 13:13:13
-COMPARED_WITH_TGZ_OK claw-code-n40 optimal3 13:15:13
-DECODED claw-code-n40 lazy2 13:15:15
-COMPARED_WITH_TGZ_OK claw-code-n40 lazy2 13:17:18
-DECODED claw-code-n40 optimal 13:17:20
-COMPARED_WITH_TGZ_OK claw-code-n40 optimal 13:19:19
-DECODED claw-code-n40 bvx3 13:19:21
-COMPARED_WITH_TGZ_OK claw-code-n40 bvx3 13:21:20
-DECODED claw-code-n40 apple 13:21:22
-COMPARED_WITH_TGZ_OK claw-code-n40 apple 13:23:21
-DECODED claw-code-n40 tar.lz4 13:23:22
-COMPARED_WITH_TGZ_OK claw-code-n40 tar.lz4 13:25:23
-DECODED claw-code-n40 zstd 13:25:26
-COMPARED_WITH_TGZ_OK claw-code-n40 zstd 13:27:25
-RUNNING_MEMPROBE claw-code-n40 tgz 13:27:26
-MEMPROBE_DONE claw-code-n40 tgz 13:27:32
-RUNNING_MEMPROBE claw-code-n40 zstd 13:27:32
-MEMPROBE_DONE claw-code-n40 zstd 13:27:37
-RUNNING_MEMPROBE claw-code-n40 tar.lz4 13:27:37
-MEMPROBE_DONE claw-code-n40 tar.lz4 13:27:40
-RUNNING_MEMPROBE claw-code-n40 other3 13:27:40
-MEMPROBE_DONE claw-code-n40 other3 13:27:42
-RUNNING_MEMPROBE claw-code-n40 optimal3 13:27:42
-MEMPROBE_DONE claw-code-n40 optimal3 13:28:04
-RUNNING_MEMPROBE claw-code-n40 apple 13:28:04
-MEMPROBE_DONE claw-code-n40 apple 13:28:13
-RUNNING_MEMPROBE claw-code-n40 bvx3 13:28:13
-MEMPROBE_DONE claw-code-n40 bvx3 13:28:16
-RUNNING_MEMPROBE claw-code-n40 lazy2 13:28:16
-MEMPROBE_DONE claw-code-n40 lazy2 13:28:37
-RUNNING_MEMPROBE claw-code-n40 optimal 13:28:37
-MEMPROBE_DONE claw-code-n40 optimal 13:29:16
-LZ4BENCH_DONE claw-code-n40 13:29:16
-LZ4BENCH_OK claw-code-n40 13:29:16
+RUNNING_LZ4BENCH claw-code-n40 15:28:55
+ENCODED claw-code-n40 tgz 15:29:00
+ENCODED claw-code-n40 other3 15:29:02
+ENCODED claw-code-n40 optimal3 15:29:23
+ENCODED claw-code-n40 lazy2 15:29:43
+ENCODED claw-code-n40 optimal 15:30:21
+ENCODED claw-code-n40 bvx3 15:30:23
+ENCODED claw-code-n40 apple 15:30:32
+ENCODED claw-code-n40 tar.lz4 15:30:35
+ENCODED claw-code-n40 zstd 15:30:37
+DECODED claw-code-n40 tgz 15:30:40
+COMPARE_BASE claw-code-n40 tgz 15:32:53
+DECODED claw-code-n40 other3 15:32:55
+COMPARED_WITH_TGZ_OK claw-code-n40 other3 15:35:07
+DECODED claw-code-n40 optimal3 15:35:09
+COMPARED_WITH_TGZ_OK claw-code-n40 optimal3 15:37:21
+DECODED claw-code-n40 lazy2 15:37:22
+COMPARED_WITH_TGZ_OK claw-code-n40 lazy2 15:39:35
+DECODED claw-code-n40 optimal 15:39:36
+COMPARED_WITH_TGZ_OK claw-code-n40 optimal 15:41:49
+DECODED claw-code-n40 bvx3 15:41:51
+COMPARED_WITH_TGZ_OK claw-code-n40 bvx3 15:44:03
+DECODED claw-code-n40 apple 15:44:05
+COMPARED_WITH_TGZ_OK claw-code-n40 apple 15:46:18
+DECODED claw-code-n40 tar.lz4 15:46:19
+COMPARED_WITH_TGZ_OK claw-code-n40 tar.lz4 15:48:33
+DECODED claw-code-n40 zstd 15:48:35
+COMPARED_WITH_TGZ_OK claw-code-n40 zstd 15:50:48
+RUNNING_MEMPROBE claw-code-n40 tgz 15:50:48
+MEMPROBE_DONE claw-code-n40 tgz 15:50:55
+RUNNING_MEMPROBE claw-code-n40 zstd 15:50:55
+MEMPROBE_DONE claw-code-n40 zstd 15:50:59
+RUNNING_MEMPROBE claw-code-n40 tar.lz4 15:50:59
+MEMPROBE_DONE claw-code-n40 tar.lz4 15:51:02
+RUNNING_MEMPROBE claw-code-n40 other3 15:51:02
+MEMPROBE_DONE claw-code-n40 other3 15:51:04
+RUNNING_MEMPROBE claw-code-n40 optimal3 15:51:04
+MEMPROBE_DONE claw-code-n40 optimal3 15:51:26
+RUNNING_MEMPROBE claw-code-n40 apple 15:51:26
+MEMPROBE_DONE claw-code-n40 apple 15:51:35
+RUNNING_MEMPROBE claw-code-n40 bvx3 15:51:35
+MEMPROBE_DONE claw-code-n40 bvx3 15:51:38
+RUNNING_MEMPROBE claw-code-n40 lazy2 15:51:38
+MEMPROBE_DONE claw-code-n40 lazy2 15:51:58
+RUNNING_MEMPROBE claw-code-n40 optimal 15:51:58
+MEMPROBE_DONE claw-code-n40 optimal 15:52:37
+LZ4BENCH_DONE claw-code-n40 15:52:37
+LZ4BENCH_OK claw-code-n40 15:52:37
 [Info] Completed claw-code benchmark with -n 40; output=lz4bench_log/lz4bench-claw-code-n40.txt ,Sleeping 60s before next sweep.
 [Info] Running claw-code benchmark with -n 8; output=lz4bench_log/lz4bench-claw-code-n8.txt
-RUNNING_LZ4BENCH claw-code-n8 13:30:16
+RUNNING_LZ4BENCH claw-code-n8 15:53:37
 [Info] 磁碟可用空間充足：24GB / Sufficient disk space: 24GB
-RUNNING_LZ4BENCH claw-code-n8 13:30:16
-ENCODED claw-code-n8 tgz 13:30:21
-ENCODED claw-code-n8 other3 13:30:24
-ENCODED claw-code-n8 optimal3 13:30:47
-ENCODED claw-code-n8 lazy2 13:31:09
-ENCODED claw-code-n8 optimal 13:31:52
-ENCODED claw-code-n8 bvx3 13:31:54
-ENCODED claw-code-n8 apple 13:32:03
-ENCODED claw-code-n8 tar.lz4 13:32:06
-ENCODED claw-code-n8 zstd 13:32:08
-DECODED claw-code-n8 tgz 13:32:11
-COMPARE_BASE claw-code-n8 tgz 13:34:13
-DECODED claw-code-n8 other3 13:34:14
-COMPARED_WITH_TGZ_OK claw-code-n8 other3 13:36:17
-DECODED claw-code-n8 optimal3 13:36:19
-COMPARED_WITH_TGZ_OK claw-code-n8 optimal3 13:38:27
-DECODED claw-code-n8 lazy2 13:38:29
-COMPARED_WITH_TGZ_OK claw-code-n8 lazy2 13:40:37
-DECODED claw-code-n8 optimal 13:40:39
-COMPARED_WITH_TGZ_OK claw-code-n8 optimal 13:42:48
-DECODED claw-code-n8 bvx3 13:42:50
-COMPARED_WITH_TGZ_OK claw-code-n8 bvx3 13:44:57
-DECODED claw-code-n8 apple 13:45:00
-COMPARED_WITH_TGZ_OK claw-code-n8 apple 13:47:07
-DECODED claw-code-n8 tar.lz4 13:47:08
-COMPARED_WITH_TGZ_OK claw-code-n8 tar.lz4 13:49:17
-DECODED claw-code-n8 zstd 13:49:19
-COMPARED_WITH_TGZ_OK claw-code-n8 zstd 13:51:26
-RUNNING_MEMPROBE claw-code-n8 tgz 13:51:27
-MEMPROBE_DONE claw-code-n8 tgz 13:51:33
-RUNNING_MEMPROBE claw-code-n8 zstd 13:51:33
-MEMPROBE_DONE claw-code-n8 zstd 13:51:38
-RUNNING_MEMPROBE claw-code-n8 tar.lz4 13:51:38
-MEMPROBE_DONE claw-code-n8 tar.lz4 13:51:41
-RUNNING_MEMPROBE claw-code-n8 other3 13:51:41
-MEMPROBE_DONE claw-code-n8 other3 13:51:44
-RUNNING_MEMPROBE claw-code-n8 optimal3 13:51:44
-MEMPROBE_DONE claw-code-n8 optimal3 13:52:08
-RUNNING_MEMPROBE claw-code-n8 apple 13:52:08
-MEMPROBE_DONE claw-code-n8 apple 13:52:18
-RUNNING_MEMPROBE claw-code-n8 bvx3 13:52:18
-MEMPROBE_DONE claw-code-n8 bvx3 13:52:22
-RUNNING_MEMPROBE claw-code-n8 lazy2 13:52:22
-MEMPROBE_DONE claw-code-n8 lazy2 13:52:47
-RUNNING_MEMPROBE claw-code-n8 optimal 13:52:47
-MEMPROBE_DONE claw-code-n8 optimal 13:53:33
-LZ4BENCH_DONE claw-code-n8 13:53:33
-LZ4BENCH_OK claw-code-n8 13:53:33
+RUNNING_LZ4BENCH claw-code-n8 15:53:37
+ENCODED claw-code-n8 tgz 15:53:42
+ENCODED claw-code-n8 other3 15:53:44
+ENCODED claw-code-n8 optimal3 15:54:07
+ENCODED claw-code-n8 lazy2 15:54:30
+ENCODED claw-code-n8 optimal 15:55:13
+ENCODED claw-code-n8 bvx3 15:55:15
+ENCODED claw-code-n8 apple 15:55:24
+ENCODED claw-code-n8 tar.lz4 15:55:27
+ENCODED claw-code-n8 zstd 15:55:29
+DECODED claw-code-n8 tgz 15:55:32
+COMPARE_BASE claw-code-n8 tgz 15:57:48
+DECODED claw-code-n8 other3 15:57:50
+COMPARED_WITH_TGZ_OK claw-code-n8 other3 16:00:05
+DECODED claw-code-n8 optimal3 16:00:07
+COMPARED_WITH_TGZ_OK claw-code-n8 optimal3 16:02:21
+DECODED claw-code-n8 lazy2 16:02:23
+COMPARED_WITH_TGZ_OK claw-code-n8 lazy2 16:04:38
+DECODED claw-code-n8 optimal 16:04:40
+COMPARED_WITH_TGZ_OK claw-code-n8 optimal 16:06:54
+DECODED claw-code-n8 bvx3 16:06:56
+COMPARED_WITH_TGZ_OK claw-code-n8 bvx3 16:09:10
+DECODED claw-code-n8 apple 16:09:12
+COMPARED_WITH_TGZ_OK claw-code-n8 apple 16:11:26
+DECODED claw-code-n8 tar.lz4 16:11:27
+COMPARED_WITH_TGZ_OK claw-code-n8 tar.lz4 16:13:41
+DECODED claw-code-n8 zstd 16:13:43
+COMPARED_WITH_TGZ_OK claw-code-n8 zstd 16:15:57
+RUNNING_MEMPROBE claw-code-n8 tgz 16:15:58
+MEMPROBE_DONE claw-code-n8 tgz 16:16:04
+RUNNING_MEMPROBE claw-code-n8 zstd 16:16:04
+MEMPROBE_DONE claw-code-n8 zstd 16:16:08
+RUNNING_MEMPROBE claw-code-n8 tar.lz4 16:16:08
+MEMPROBE_DONE claw-code-n8 tar.lz4 16:16:11
+RUNNING_MEMPROBE claw-code-n8 other3 16:16:11
+MEMPROBE_DONE claw-code-n8 other3 16:16:14
+RUNNING_MEMPROBE claw-code-n8 optimal3 16:16:14
+MEMPROBE_DONE claw-code-n8 optimal3 16:16:38
+RUNNING_MEMPROBE claw-code-n8 apple 16:16:38
+MEMPROBE_DONE claw-code-n8 apple 16:16:48
+RUNNING_MEMPROBE claw-code-n8 bvx3 16:16:48
+MEMPROBE_DONE claw-code-n8 bvx3 16:16:51
+RUNNING_MEMPROBE claw-code-n8 lazy2 16:16:51
+MEMPROBE_DONE claw-code-n8 lazy2 16:17:14
+RUNNING_MEMPROBE claw-code-n8 optimal 16:17:14
+MEMPROBE_DONE claw-code-n8 optimal 16:17:57
+LZ4BENCH_DONE claw-code-n8 16:17:57
+LZ4BENCH_OK claw-code-n8 16:17:57
 [Info] Completed claw-code benchmark with -n 8; output=lz4bench_log/lz4bench-claw-code-n8.txt ,Sleeping 60s before next sweep.
 [Info] Running claw-code benchmark with -n 4; output=lz4bench_log/lz4bench-claw-code-n4.txt
-RUNNING_LZ4BENCH claw-code-n4 13:54:33
+RUNNING_LZ4BENCH claw-code-n4 16:18:57
 [Info] 磁碟可用空間充足：24GB / Sufficient disk space: 24GB
-RUNNING_LZ4BENCH claw-code-n4 13:54:33
-ENCODED claw-code-n4 tgz 13:54:40
-ENCODED claw-code-n4 other3 13:54:43
-ENCODED claw-code-n4 optimal3 13:55:17
-ENCODED claw-code-n4 lazy2 13:55:47
-ENCODED claw-code-n4 optimal 13:56:46
-ENCODED claw-code-n4 bvx3 13:56:50
-ENCODED claw-code-n4 apple 13:57:00
-ENCODED claw-code-n4 tar.lz4 13:57:02
-ENCODED claw-code-n4 zstd 13:57:05
-DECODED claw-code-n4 tgz 13:57:08
-COMPARE_BASE claw-code-n4 tgz 13:59:13
-DECODED claw-code-n4 other3 13:59:15
-COMPARED_WITH_TGZ_OK claw-code-n4 other3 14:01:17
-DECODED claw-code-n4 optimal3 14:01:19
-COMPARED_WITH_TGZ_OK claw-code-n4 optimal3 14:03:23
-DECODED claw-code-n4 lazy2 14:03:25
-COMPARED_WITH_TGZ_OK claw-code-n4 lazy2 14:05:28
-DECODED claw-code-n4 optimal 14:05:30
-COMPARED_WITH_TGZ_OK claw-code-n4 optimal 14:07:33
-DECODED claw-code-n4 bvx3 14:07:35
-COMPARED_WITH_TGZ_OK claw-code-n4 bvx3 14:09:37
-DECODED claw-code-n4 apple 14:09:39
-COMPARED_WITH_TGZ_OK claw-code-n4 apple 14:11:40
-DECODED claw-code-n4 tar.lz4 14:11:41
-COMPARED_WITH_TGZ_OK claw-code-n4 tar.lz4 14:13:43
-DECODED claw-code-n4 zstd 14:13:45
-COMPARED_WITH_TGZ_OK claw-code-n4 zstd 14:15:45
-RUNNING_MEMPROBE claw-code-n4 tgz 14:15:46
-MEMPROBE_DONE claw-code-n4 tgz 14:15:52
-RUNNING_MEMPROBE claw-code-n4 zstd 14:15:52
-MEMPROBE_DONE claw-code-n4 zstd 14:15:57
-RUNNING_MEMPROBE claw-code-n4 tar.lz4 14:15:57
-MEMPROBE_DONE claw-code-n4 tar.lz4 14:16:00
-RUNNING_MEMPROBE claw-code-n4 other3 14:16:00
-MEMPROBE_DONE claw-code-n4 other3 14:16:04
-RUNNING_MEMPROBE claw-code-n4 optimal3 14:16:04
-MEMPROBE_DONE claw-code-n4 optimal3 14:16:37
-RUNNING_MEMPROBE claw-code-n4 apple 14:16:37
-MEMPROBE_DONE claw-code-n4 apple 14:16:47
-RUNNING_MEMPROBE claw-code-n4 bvx3 14:16:47
-MEMPROBE_DONE claw-code-n4 bvx3 14:16:51
-RUNNING_MEMPROBE claw-code-n4 lazy2 14:16:51
-MEMPROBE_DONE claw-code-n4 lazy2 14:17:18
-RUNNING_MEMPROBE claw-code-n4 optimal 14:17:18
-MEMPROBE_DONE claw-code-n4 optimal 14:18:12
-LZ4BENCH_DONE claw-code-n4 14:18:12
-LZ4BENCH_OK claw-code-n4 14:18:13
+RUNNING_LZ4BENCH claw-code-n4 16:18:57
+ENCODED claw-code-n4 tgz 16:19:02
+ENCODED claw-code-n4 other3 16:19:05
+ENCODED claw-code-n4 optimal3 16:19:38
+ENCODED claw-code-n4 lazy2 16:20:05
+ENCODED claw-code-n4 optimal 16:21:00
+ENCODED claw-code-n4 bvx3 16:21:03
+ENCODED claw-code-n4 apple 16:21:12
+ENCODED claw-code-n4 tar.lz4 16:21:15
+ENCODED claw-code-n4 zstd 16:21:17
+DECODED claw-code-n4 tgz 16:21:20
+COMPARE_BASE claw-code-n4 tgz 16:23:37
+DECODED claw-code-n4 other3 16:23:38
+COMPARED_WITH_TGZ_OK claw-code-n4 other3 16:25:53
+DECODED claw-code-n4 optimal3 16:25:55
+COMPARED_WITH_TGZ_OK claw-code-n4 optimal3 16:28:09
+DECODED claw-code-n4 lazy2 16:28:11
+COMPARED_WITH_TGZ_OK claw-code-n4 lazy2 16:30:25
+DECODED claw-code-n4 optimal 16:30:27
+COMPARED_WITH_TGZ_OK claw-code-n4 optimal 16:32:43
+DECODED claw-code-n4 bvx3 16:32:45
+COMPARED_WITH_TGZ_OK claw-code-n4 bvx3 16:35:00
+DECODED claw-code-n4 apple 16:35:01
+COMPARED_WITH_TGZ_OK claw-code-n4 apple 16:37:15
+DECODED claw-code-n4 tar.lz4 16:37:17
+COMPARED_WITH_TGZ_OK claw-code-n4 tar.lz4 16:39:31
+DECODED claw-code-n4 zstd 16:39:33
+COMPARED_WITH_TGZ_OK claw-code-n4 zstd 16:41:47
+RUNNING_MEMPROBE claw-code-n4 tgz 16:41:48
+MEMPROBE_DONE claw-code-n4 tgz 16:41:54
+RUNNING_MEMPROBE claw-code-n4 zstd 16:41:54
+MEMPROBE_DONE claw-code-n4 zstd 16:41:58
+RUNNING_MEMPROBE claw-code-n4 tar.lz4 16:41:58
+MEMPROBE_DONE claw-code-n4 tar.lz4 16:42:01
+RUNNING_MEMPROBE claw-code-n4 other3 16:42:01
+MEMPROBE_DONE claw-code-n4 other3 16:42:05
+RUNNING_MEMPROBE claw-code-n4 optimal3 16:42:05
+MEMPROBE_DONE claw-code-n4 optimal3 16:42:38
+RUNNING_MEMPROBE claw-code-n4 apple 16:42:38
+MEMPROBE_DONE claw-code-n4 apple 16:42:48
+RUNNING_MEMPROBE claw-code-n4 bvx3 16:42:48
+MEMPROBE_DONE claw-code-n4 bvx3 16:42:52
+RUNNING_MEMPROBE claw-code-n4 lazy2 16:42:52
+MEMPROBE_DONE claw-code-n4 lazy2 16:43:21
+RUNNING_MEMPROBE claw-code-n4 optimal 16:43:21
+MEMPROBE_DONE claw-code-n4 optimal 16:44:16
+LZ4BENCH_DONE claw-code-n4 16:44:16
+LZ4BENCH_OK claw-code-n4 16:44:16
 [Info] Completed claw-code benchmark with -n 4; output=lz4bench_log/lz4bench-claw-code-n4.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 40; output=lz4bench_log/lz4bench-llama.cpp-n40.txt
-RUNNING_LZ4BENCH llama.cpp-n40 14:20:13
+RUNNING_LZ4BENCH llama.cpp-n40 16:46:16
 [Info] 磁碟可用空間充足：24GB / Sufficient disk space: 24GB
-RUNNING_LZ4BENCH llama.cpp-n40 14:20:13
-ENCODED llama.cpp-n40 tgz 14:20:23
-ENCODED llama.cpp-n40 other3 14:20:27
-ENCODED llama.cpp-n40 optimal3 14:20:44
-ENCODED llama.cpp-n40 lazy2 14:20:53
-ENCODED llama.cpp-n40 optimal 14:21:19
-ENCODED llama.cpp-n40 bvx3 14:21:22
-ENCODED llama.cpp-n40 apple 14:21:32
-ENCODED llama.cpp-n40 tar.lz4 14:21:36
-ENCODED llama.cpp-n40 zstd 14:21:39
-DECODED llama.cpp-n40 tgz 14:21:42
-COMPARE_BASE llama.cpp-n40 tgz 14:37:05
-DECODED llama.cpp-n40 other3 14:37:08
-COMPARED_WITH_TGZ_OK llama.cpp-n40 other3 14:52:29
-DECODED llama.cpp-n40 optimal3 14:52:34
-COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal3 15:08:01
-DECODED llama.cpp-n40 lazy2 15:08:06
-COMPARED_WITH_TGZ_OK llama.cpp-n40 lazy2 15:23:47
-DECODED llama.cpp-n40 optimal 15:23:53
-COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal 15:39:40
-DECODED llama.cpp-n40 bvx3 15:39:46
-COMPARED_WITH_TGZ_OK llama.cpp-n40 bvx3 15:55:32
-DECODED llama.cpp-n40 apple 15:55:38
-COMPARED_WITH_TGZ_OK llama.cpp-n40 apple 16:11:25
-DECODED llama.cpp-n40 tar.lz4 16:11:31
-COMPARED_WITH_TGZ_OK llama.cpp-n40 tar.lz4 16:27:19
-DECODED llama.cpp-n40 zstd 16:27:25
-COMPARED_WITH_TGZ_OK llama.cpp-n40 zstd 16:43:22
-RUNNING_MEMPROBE llama.cpp-n40 tgz 16:43:27
-MEMPROBE_DONE llama.cpp-n40 tgz 16:43:36
-RUNNING_MEMPROBE llama.cpp-n40 zstd 16:43:36
-MEMPROBE_DONE llama.cpp-n40 zstd 16:43:41
-RUNNING_MEMPROBE llama.cpp-n40 tar.lz4 16:43:41
-MEMPROBE_DONE llama.cpp-n40 tar.lz4 16:43:45
-RUNNING_MEMPROBE llama.cpp-n40 other3 16:43:45
-MEMPROBE_DONE llama.cpp-n40 other3 16:43:49
-RUNNING_MEMPROBE llama.cpp-n40 optimal3 16:43:49
-MEMPROBE_DONE llama.cpp-n40 optimal3 16:44:07
-RUNNING_MEMPROBE llama.cpp-n40 apple 16:44:07
-MEMPROBE_DONE llama.cpp-n40 apple 16:44:20
-RUNNING_MEMPROBE llama.cpp-n40 bvx3 16:44:20
-MEMPROBE_DONE llama.cpp-n40 bvx3 16:44:28
-RUNNING_MEMPROBE llama.cpp-n40 lazy2 16:44:28
-MEMPROBE_DONE llama.cpp-n40 lazy2 16:44:37
-RUNNING_MEMPROBE llama.cpp-n40 optimal 16:44:37
-MEMPROBE_DONE llama.cpp-n40 optimal 16:45:04
-LZ4BENCH_DONE llama.cpp-n40 16:45:04
-LZ4BENCH_OK llama.cpp-n40 16:45:04
+RUNNING_LZ4BENCH llama.cpp-n40 16:46:16
+ENCODED llama.cpp-n40 tgz 16:46:27
+ENCODED llama.cpp-n40 other3 16:46:31
+ENCODED llama.cpp-n40 optimal3 16:46:49
+ENCODED llama.cpp-n40 lazy2 16:46:58
+ENCODED llama.cpp-n40 optimal 16:47:23
+ENCODED llama.cpp-n40 bvx3 16:47:27
+ENCODED llama.cpp-n40 apple 16:47:36
+ENCODED llama.cpp-n40 tar.lz4 16:47:40
+ENCODED llama.cpp-n40 zstd 16:47:44
+DECODED llama.cpp-n40 tgz 16:47:47
+COMPARE_BASE llama.cpp-n40 tgz 17:04:40
+DECODED llama.cpp-n40 other3 17:04:43
+COMPARED_WITH_TGZ_OK llama.cpp-n40 other3 17:21:42
+DECODED llama.cpp-n40 optimal3 17:21:48
+COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal3 17:38:56
+DECODED llama.cpp-n40 lazy2 17:39:01
+COMPARED_WITH_TGZ_OK llama.cpp-n40 lazy2 17:56:18
+DECODED llama.cpp-n40 optimal 17:56:23
+COMPARED_WITH_TGZ_OK llama.cpp-n40 optimal 18:13:53
+DECODED llama.cpp-n40 bvx3 18:13:58
+COMPARED_WITH_TGZ_OK llama.cpp-n40 bvx3 18:31:34
+DECODED llama.cpp-n40 apple 18:31:40
+COMPARED_WITH_TGZ_OK llama.cpp-n40 apple 18:49:31
+DECODED llama.cpp-n40 tar.lz4 18:49:36
+COMPARED_WITH_TGZ_OK llama.cpp-n40 tar.lz4 19:07:39
+DECODED llama.cpp-n40 zstd 19:07:45
+COMPARED_WITH_TGZ_OK llama.cpp-n40 zstd 19:26:01
+RUNNING_MEMPROBE llama.cpp-n40 tgz 19:26:07
+MEMPROBE_DONE llama.cpp-n40 tgz 19:26:16
+RUNNING_MEMPROBE llama.cpp-n40 zstd 19:26:16
+MEMPROBE_DONE llama.cpp-n40 zstd 19:26:21
+RUNNING_MEMPROBE llama.cpp-n40 tar.lz4 19:26:21
+MEMPROBE_DONE llama.cpp-n40 tar.lz4 19:26:26
+RUNNING_MEMPROBE llama.cpp-n40 other3 19:26:26
+MEMPROBE_DONE llama.cpp-n40 other3 19:26:30
+RUNNING_MEMPROBE llama.cpp-n40 optimal3 19:26:30
+MEMPROBE_DONE llama.cpp-n40 optimal3 19:26:48
+RUNNING_MEMPROBE llama.cpp-n40 apple 19:26:48
+MEMPROBE_DONE llama.cpp-n40 apple 19:26:58
+RUNNING_MEMPROBE llama.cpp-n40 bvx3 19:26:58
+MEMPROBE_DONE llama.cpp-n40 bvx3 19:27:02
+RUNNING_MEMPROBE llama.cpp-n40 lazy2 19:27:02
+MEMPROBE_DONE llama.cpp-n40 lazy2 19:27:10
+RUNNING_MEMPROBE llama.cpp-n40 optimal 19:27:10
+MEMPROBE_DONE llama.cpp-n40 optimal 19:27:35
+LZ4BENCH_DONE llama.cpp-n40 19:27:35
+LZ4BENCH_OK llama.cpp-n40 19:27:36
 [Info] Completed llama.cpp benchmark with -n 40; output=lz4bench_log/lz4bench-llama.cpp-n40.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 8; output=lz4bench_log/lz4bench-llama.cpp-n8.txt
-RUNNING_LZ4BENCH llama.cpp-n8 16:46:04
-[Info] 磁碟可用空間充足：22GB / Sufficient disk space: 22GB
-RUNNING_LZ4BENCH llama.cpp-n8 16:46:04
-ENCODED llama.cpp-n8 tgz 16:46:18
-ENCODED llama.cpp-n8 other3 16:46:22
-ENCODED llama.cpp-n8 optimal3 16:46:43
-ENCODED llama.cpp-n8 lazy2 16:46:53
-ENCODED llama.cpp-n8 optimal 16:47:23
-ENCODED llama.cpp-n8 bvx3 16:47:29
-ENCODED llama.cpp-n8 apple 16:47:41
-ENCODED llama.cpp-n8 tar.lz4 16:47:45
-ENCODED llama.cpp-n8 zstd 16:47:49
-DECODED llama.cpp-n8 tgz 16:47:53
-COMPARE_BASE llama.cpp-n8 tgz 17:03:48
-DECODED llama.cpp-n8 other3 17:03:51
-COMPARED_WITH_TGZ_OK llama.cpp-n8 other3 17:19:50
-DECODED llama.cpp-n8 optimal3 17:19:55
-COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal3 17:35:57
-DECODED llama.cpp-n8 lazy2 17:36:02
-COMPARED_WITH_TGZ_OK llama.cpp-n8 lazy2 17:52:10
-DECODED llama.cpp-n8 optimal 17:52:15
-COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal 18:08:30
-DECODED llama.cpp-n8 bvx3 18:08:36
-COMPARED_WITH_TGZ_OK llama.cpp-n8 bvx3 18:24:57
-DECODED llama.cpp-n8 apple 18:25:02
-COMPARED_WITH_TGZ_OK llama.cpp-n8 apple 18:41:25
-DECODED llama.cpp-n8 tar.lz4 18:41:30
-COMPARED_WITH_TGZ_OK llama.cpp-n8 tar.lz4 18:57:12
-DECODED llama.cpp-n8 zstd 18:57:17
-COMPARED_WITH_TGZ_OK llama.cpp-n8 zstd 19:12:35
-RUNNING_MEMPROBE llama.cpp-n8 tgz 19:12:40
-MEMPROBE_DONE llama.cpp-n8 tgz 19:12:49
-RUNNING_MEMPROBE llama.cpp-n8 zstd 19:12:49
-MEMPROBE_DONE llama.cpp-n8 zstd 19:12:56
-RUNNING_MEMPROBE llama.cpp-n8 tar.lz4 19:12:56
-MEMPROBE_DONE llama.cpp-n8 tar.lz4 19:13:00
-RUNNING_MEMPROBE llama.cpp-n8 other3 19:13:00
-MEMPROBE_DONE llama.cpp-n8 other3 19:13:05
-RUNNING_MEMPROBE llama.cpp-n8 optimal3 19:13:05
-MEMPROBE_DONE llama.cpp-n8 optimal3 19:13:25
-RUNNING_MEMPROBE llama.cpp-n8 apple 19:13:25
-MEMPROBE_DONE llama.cpp-n8 apple 19:13:37
-RUNNING_MEMPROBE llama.cpp-n8 bvx3 19:13:37
-MEMPROBE_DONE llama.cpp-n8 bvx3 19:13:41
-RUNNING_MEMPROBE llama.cpp-n8 lazy2 19:13:41
-MEMPROBE_DONE llama.cpp-n8 lazy2 19:13:51
-RUNNING_MEMPROBE llama.cpp-n8 optimal 19:13:51
-MEMPROBE_DONE llama.cpp-n8 optimal 19:14:19
-LZ4BENCH_DONE llama.cpp-n8 19:14:19
-LZ4BENCH_OK llama.cpp-n8 19:14:20
+RUNNING_LZ4BENCH llama.cpp-n8 19:28:36
+[Info] 磁碟可用空間充足：21GB / Sufficient disk space: 21GB
+RUNNING_LZ4BENCH llama.cpp-n8 19:28:36
+ENCODED llama.cpp-n8 tgz 19:28:42
+ENCODED llama.cpp-n8 other3 19:28:46
+ENCODED llama.cpp-n8 optimal3 19:29:06
+ENCODED llama.cpp-n8 lazy2 19:29:15
+ENCODED llama.cpp-n8 optimal 19:29:43
+ENCODED llama.cpp-n8 bvx3 19:29:47
+ENCODED llama.cpp-n8 apple 19:29:56
+ENCODED llama.cpp-n8 tar.lz4 19:30:00
+ENCODED llama.cpp-n8 zstd 19:30:04
+DECODED llama.cpp-n8 tgz 19:30:07
+COMPARE_BASE llama.cpp-n8 tgz 19:48:42
+DECODED llama.cpp-n8 other3 19:48:45
+COMPARED_WITH_TGZ_OK llama.cpp-n8 other3 20:07:33
+DECODED llama.cpp-n8 optimal3 20:07:38
+COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal3 20:26:35
+DECODED llama.cpp-n8 lazy2 20:26:40
+COMPARED_WITH_TGZ_OK llama.cpp-n8 lazy2 20:45:55
+DECODED llama.cpp-n8 optimal 20:46:00
+COMPARED_WITH_TGZ_OK llama.cpp-n8 optimal 21:06:14
+DECODED llama.cpp-n8 bvx3 21:06:20
+COMPARED_WITH_TGZ_OK llama.cpp-n8 bvx3 21:26:21
+DECODED llama.cpp-n8 apple 21:26:27
+COMPARED_WITH_TGZ_OK llama.cpp-n8 apple 21:46:35
+DECODED llama.cpp-n8 tar.lz4 21:46:40
+COMPARED_WITH_TGZ_OK llama.cpp-n8 tar.lz4 22:07:06
+DECODED llama.cpp-n8 zstd 22:07:12
+COMPARED_WITH_TGZ_OK llama.cpp-n8 zstd 22:27:56
+RUNNING_MEMPROBE llama.cpp-n8 tgz 22:28:02
+MEMPROBE_DONE llama.cpp-n8 tgz 22:28:11
+RUNNING_MEMPROBE llama.cpp-n8 zstd 22:28:11
+MEMPROBE_DONE llama.cpp-n8 zstd 22:28:16
+RUNNING_MEMPROBE llama.cpp-n8 tar.lz4 22:28:16
+MEMPROBE_DONE llama.cpp-n8 tar.lz4 22:28:21
+RUNNING_MEMPROBE llama.cpp-n8 other3 22:28:21
+MEMPROBE_DONE llama.cpp-n8 other3 22:28:25
+RUNNING_MEMPROBE llama.cpp-n8 optimal3 22:28:25
+MEMPROBE_DONE llama.cpp-n8 optimal3 22:28:45
+RUNNING_MEMPROBE llama.cpp-n8 apple 22:28:45
+MEMPROBE_DONE llama.cpp-n8 apple 22:28:56
+RUNNING_MEMPROBE llama.cpp-n8 bvx3 22:28:56
+MEMPROBE_DONE llama.cpp-n8 bvx3 22:29:00
+RUNNING_MEMPROBE llama.cpp-n8 lazy2 22:29:00
+MEMPROBE_DONE llama.cpp-n8 lazy2 22:29:09
+RUNNING_MEMPROBE llama.cpp-n8 optimal 22:29:09
+MEMPROBE_DONE llama.cpp-n8 optimal 22:29:38
+LZ4BENCH_DONE llama.cpp-n8 22:29:38
+LZ4BENCH_OK llama.cpp-n8 22:29:38
 [Info] Completed llama.cpp benchmark with -n 8; output=lz4bench_log/lz4bench-llama.cpp-n8.txt ,Sleeping 60s before next sweep.
 [Info] Running llama.cpp benchmark with -n 4; output=lz4bench_log/lz4bench-llama.cpp-n4.txt
-RUNNING_LZ4BENCH llama.cpp-n4 19:15:20
-[Info] 磁碟可用空間充足：22GB / Sufficient disk space: 22GB
-RUNNING_LZ4BENCH llama.cpp-n4 19:15:20
-ENCODED llama.cpp-n4 tgz 19:15:26
-ENCODED llama.cpp-n4 other3 19:15:30
-ENCODED llama.cpp-n4 optimal3 19:15:58
-ENCODED llama.cpp-n4 lazy2 19:16:10
-ENCODED llama.cpp-n4 optimal 19:16:49
-ENCODED llama.cpp-n4 bvx3 19:16:56
-ENCODED llama.cpp-n4 apple 19:17:07
-ENCODED llama.cpp-n4 tar.lz4 19:17:11
-ENCODED llama.cpp-n4 zstd 19:17:14
-DECODED llama.cpp-n4 tgz 19:17:18
-COMPARE_BASE llama.cpp-n4 tgz 19:32:35
-DECODED llama.cpp-n4 other3 19:32:38
-COMPARED_WITH_TGZ_OK llama.cpp-n4 other3 19:48:03
-DECODED llama.cpp-n4 optimal3 19:48:08
-COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal3 20:03:34
-DECODED llama.cpp-n4 lazy2 20:03:39
-COMPARED_WITH_TGZ_OK llama.cpp-n4 lazy2 20:19:09
-DECODED llama.cpp-n4 optimal 20:19:15
-COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal 20:34:48
-DECODED llama.cpp-n4 bvx3 20:34:54
-COMPARED_WITH_TGZ_OK llama.cpp-n4 bvx3 20:50:31
-DECODED llama.cpp-n4 apple 20:50:37
-COMPARED_WITH_TGZ_OK llama.cpp-n4 apple 21:06:42
-DECODED llama.cpp-n4 tar.lz4 21:06:47
-COMPARED_WITH_TGZ_OK llama.cpp-n4 tar.lz4 21:22:34
-DECODED llama.cpp-n4 zstd 21:22:40
-COMPARED_WITH_TGZ_OK llama.cpp-n4 zstd 21:38:29
-RUNNING_MEMPROBE llama.cpp-n4 tgz 21:38:34
-MEMPROBE_DONE llama.cpp-n4 tgz 21:38:43
-RUNNING_MEMPROBE llama.cpp-n4 zstd 21:38:43
-MEMPROBE_DONE llama.cpp-n4 zstd 21:38:48
-RUNNING_MEMPROBE llama.cpp-n4 tar.lz4 21:38:48
-MEMPROBE_DONE llama.cpp-n4 tar.lz4 21:38:53
-RUNNING_MEMPROBE llama.cpp-n4 other3 21:38:53
-MEMPROBE_DONE llama.cpp-n4 other3 21:38:58
-RUNNING_MEMPROBE llama.cpp-n4 optimal3 21:38:58
-MEMPROBE_DONE llama.cpp-n4 optimal3 21:39:27
-RUNNING_MEMPROBE llama.cpp-n4 apple 21:39:27
-MEMPROBE_DONE llama.cpp-n4 apple 21:39:40
-RUNNING_MEMPROBE llama.cpp-n4 bvx3 21:39:40
-MEMPROBE_DONE llama.cpp-n4 bvx3 21:39:45
-RUNNING_MEMPROBE llama.cpp-n4 lazy2 21:39:45
-MEMPROBE_DONE llama.cpp-n4 lazy2 21:39:57
-RUNNING_MEMPROBE llama.cpp-n4 optimal 21:39:57
-MEMPROBE_DONE llama.cpp-n4 optimal 21:40:37
-LZ4BENCH_DONE llama.cpp-n4 21:40:37
-LZ4BENCH_OK llama.cpp-n4 21:40:37
+RUNNING_LZ4BENCH llama.cpp-n4 22:30:38
+[Info] 磁碟可用空間充足：20GB / Sufficient disk space: 20GB
+RUNNING_LZ4BENCH llama.cpp-n4 22:30:38
+ENCODED llama.cpp-n4 tgz 22:30:45
+ENCODED llama.cpp-n4 other3 22:30:49
+ENCODED llama.cpp-n4 optimal3 22:31:18
+ENCODED llama.cpp-n4 lazy2 22:31:28
+ENCODED llama.cpp-n4 optimal 22:32:06
+ENCODED llama.cpp-n4 bvx3 22:32:11
+ENCODED llama.cpp-n4 apple 22:32:20
+ENCODED llama.cpp-n4 tar.lz4 22:32:24
+ENCODED llama.cpp-n4 zstd 22:32:28
+DECODED llama.cpp-n4 tgz 22:32:31
+COMPARE_BASE llama.cpp-n4 tgz 22:53:30
+DECODED llama.cpp-n4 other3 22:53:33
+COMPARED_WITH_TGZ_OK llama.cpp-n4 other3 23:14:42
+DECODED llama.cpp-n4 optimal3 23:14:47
+COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal3 23:36:14
+DECODED llama.cpp-n4 lazy2 23:36:19
+COMPARED_WITH_TGZ_OK llama.cpp-n4 lazy2 23:53:40
+DECODED llama.cpp-n4 optimal 23:53:46
+COMPARED_WITH_TGZ_OK llama.cpp-n4 optimal 00:10:58
+DECODED llama.cpp-n4 bvx3 00:11:04
+COMPARED_WITH_TGZ_OK llama.cpp-n4 bvx3 00:28:16
+DECODED llama.cpp-n4 apple 00:28:22
+COMPARED_WITH_TGZ_OK llama.cpp-n4 apple 00:45:44
+DECODED llama.cpp-n4 tar.lz4 00:45:49
+COMPARED_WITH_TGZ_OK llama.cpp-n4 tar.lz4 01:03:13
+DECODED llama.cpp-n4 zstd 01:03:18
+COMPARED_WITH_TGZ_OK llama.cpp-n4 zstd 01:20:53
+RUNNING_MEMPROBE llama.cpp-n4 tgz 01:20:58
+MEMPROBE_DONE llama.cpp-n4 tgz 01:21:07
+RUNNING_MEMPROBE llama.cpp-n4 zstd 01:21:07
+MEMPROBE_DONE llama.cpp-n4 zstd 01:21:12
+RUNNING_MEMPROBE llama.cpp-n4 tar.lz4 01:21:12
+MEMPROBE_DONE llama.cpp-n4 tar.lz4 01:21:16
+RUNNING_MEMPROBE llama.cpp-n4 other3 01:21:16
+MEMPROBE_DONE llama.cpp-n4 other3 01:21:21
+RUNNING_MEMPROBE llama.cpp-n4 optimal3 01:21:21
+MEMPROBE_DONE llama.cpp-n4 optimal3 01:21:50
+RUNNING_MEMPROBE llama.cpp-n4 apple 01:21:50
+MEMPROBE_DONE llama.cpp-n4 apple 01:22:01
+RUNNING_MEMPROBE llama.cpp-n4 bvx3 01:22:01
+MEMPROBE_DONE llama.cpp-n4 bvx3 01:22:08
+RUNNING_MEMPROBE llama.cpp-n4 lazy2 01:22:08
+MEMPROBE_DONE llama.cpp-n4 lazy2 01:22:19
+RUNNING_MEMPROBE llama.cpp-n4 optimal 01:22:19
+MEMPROBE_DONE llama.cpp-n4 optimal 01:22:57
+LZ4BENCH_DONE llama.cpp-n4 01:22:57
+LZ4BENCH_OK llama.cpp-n4 01:22:57
 [Info] Completed llama.cpp benchmark with -n 4; output=lz4bench_log/lz4bench-llama.cpp-n4.txt ,Sleeping 60s before next sweep.
-RUNNING_TRACER 21:41:37
-CLEAN_OLD_TRACES 21:41:37
-RUNNING_TRACE claw-code tgz 21:41:53
-TRACE_OUTPUT_CLEANED claw-code tgz 21:42:39
-TRACE_DONE claw-code tgz 21:42:39
-RUNNING_TRACE claw-code zstd 21:42:39
-TRACE_OUTPUT_CLEANED claw-code zstd 21:42:49
-TRACE_DONE claw-code zstd 21:42:49
-RUNNING_TRACE claw-code tar.lz4 21:42:49
-TRACE_OUTPUT_CLEANED claw-code tar.lz4 21:42:57
-TRACE_DONE claw-code tar.lz4 21:42:57
-RUNNING_TRACE claw-code other3 -n 4 21:42:57
-TRACE_OUTPUT_CLEANED claw-code other3-n4 21:44:06
-TRACE_DONE claw-code other3 -n 4 (rc 54, verified) 21:44:08
-RUNNING_TRACE claw-code optimal3 -n 4 21:44:08
-TRACE_OUTPUT_CLEANED claw-code optimal3-n4 21:45:17
-TRACE_DONE claw-code optimal3 -n 4 (rc 54, verified) 21:45:20
-RUNNING_TRACE claw-code apple -n 4 21:45:20
-TRACE_OUTPUT_CLEANED claw-code apple-n4 21:46:26
-TRACE_DONE claw-code apple -n 4 (rc 54, verified) 21:46:29
-RUNNING_TRACE claw-code bvx3 -n 4 21:46:29
-TRACE_OUTPUT_CLEANED claw-code bvx3-n4 21:47:36
-TRACE_DONE claw-code bvx3 -n 4 (rc 54, verified) 21:47:38
-RUNNING_TRACE claw-code lazy2 -n 4 21:47:38
-TRACE_OUTPUT_CLEANED claw-code lazy2-n4 21:48:45
-TRACE_DONE claw-code lazy2 -n 4 (rc 54, verified) 21:48:48
-RUNNING_TRACE claw-code optimal -n 4 21:48:48
-TRACE_OUTPUT_CLEANED claw-code optimal-n4 21:49:56
-TRACE_DONE claw-code optimal -n 4 (rc 54, verified) 21:49:59
-RUNNING_TRACE claw-code other3 -n 8 21:49:59
-TRACE_OUTPUT_CLEANED claw-code other3-n8 21:51:05
-TRACE_DONE claw-code other3 -n 8 (rc 54, verified) 21:51:08
-RUNNING_TRACE claw-code optimal3 -n 8 21:51:08
-TRACE_OUTPUT_CLEANED claw-code optimal3-n8 21:52:14
-TRACE_DONE claw-code optimal3 -n 8 (rc 54, verified) 21:52:17
-RUNNING_TRACE claw-code apple -n 8 21:52:17
-TRACE_OUTPUT_CLEANED claw-code apple-n8 21:53:23
-TRACE_DONE claw-code apple -n 8 (rc 54, verified) 21:53:26
-RUNNING_TRACE claw-code bvx3 -n 8 21:53:26
-TRACE_OUTPUT_CLEANED claw-code bvx3-n8 21:54:35
-TRACE_DONE claw-code bvx3 -n 8 (rc 54, verified) 21:54:37
-RUNNING_TRACE claw-code lazy2 -n 8 21:54:37
-TRACE_OUTPUT_CLEANED claw-code lazy2-n8 21:55:46
-TRACE_DONE claw-code lazy2 -n 8 (rc 54, verified) 21:55:49
-RUNNING_TRACE claw-code optimal -n 8 21:55:49
-TRACE_OUTPUT_CLEANED claw-code optimal-n8 21:56:57
-TRACE_DONE claw-code optimal -n 8 (rc 54, verified) 21:57:00
-RUNNING_TRACE claw-code other3 -n 40 21:57:00
-TRACE_OUTPUT_CLEANED claw-code other3-n40 21:58:09
-TRACE_DONE claw-code other3 -n 40 (rc 54, verified) 21:58:11
-RUNNING_TRACE claw-code optimal3 -n 40 21:58:11
-TRACE_OUTPUT_CLEANED claw-code optimal3-n40 21:59:20
-TRACE_DONE claw-code optimal3 -n 40 (rc 54, verified) 21:59:22
-RUNNING_TRACE claw-code apple -n 40 21:59:22
-TRACE_OUTPUT_CLEANED claw-code apple-n40 22:00:31
-TRACE_DONE claw-code apple -n 40 (rc 54, verified) 22:00:34
-RUNNING_TRACE claw-code bvx3 -n 40 22:00:34
-TRACE_OUTPUT_CLEANED claw-code bvx3-n40 22:01:40
-TRACE_DONE claw-code bvx3 -n 40 (rc 54, verified) 22:01:43
-RUNNING_TRACE claw-code lazy2 -n 40 22:01:43
-TRACE_OUTPUT_CLEANED claw-code lazy2-n40 22:02:49
-TRACE_DONE claw-code lazy2 -n 40 (rc 54, verified) 22:02:52
-RUNNING_TRACE claw-code optimal -n 40 22:02:52
-TRACE_OUTPUT_CLEANED claw-code optimal-n40 22:04:00
-TRACE_DONE claw-code optimal -n 40 (rc 54, verified) 22:04:04
-RUNNING_TRACE llama.cpp tgz 22:04:12
-TRACE_OUTPUT_CLEANED llama.cpp tgz 22:04:56
-TRACE_DONE llama.cpp tgz 22:04:56
-RUNNING_TRACE llama.cpp zstd 22:04:56
-TRACE_OUTPUT_CLEANED llama.cpp zstd 22:05:04
-TRACE_DONE llama.cpp zstd 22:05:04
-RUNNING_TRACE llama.cpp tar.lz4 22:05:04
-TRACE_OUTPUT_CLEANED llama.cpp tar.lz4 22:05:12
-TRACE_DONE llama.cpp tar.lz4 22:05:12
-RUNNING_TRACE llama.cpp other3 -n 4 22:05:12
-TRACE_OUTPUT_CLEANED llama.cpp other3-n4 22:06:19
-TRACE_DONE llama.cpp other3 -n 4 (rc 54, verified) 22:06:21
-RUNNING_TRACE llama.cpp optimal3 -n 4 22:06:21
-TRACE_OUTPUT_CLEANED llama.cpp optimal3-n4 22:07:27
-TRACE_DONE llama.cpp optimal3 -n 4 (rc 54, verified) 22:07:30
-RUNNING_TRACE llama.cpp apple -n 4 22:07:30
-TRACE_OUTPUT_CLEANED llama.cpp apple-n4 22:08:36
-TRACE_DONE llama.cpp apple -n 4 (rc 54, verified) 22:08:39
-RUNNING_TRACE llama.cpp bvx3 -n 4 22:08:39
-TRACE_OUTPUT_CLEANED llama.cpp bvx3-n4 22:09:46
-TRACE_DONE llama.cpp bvx3 -n 4 (rc 54, verified) 22:09:48
-RUNNING_TRACE llama.cpp lazy2 -n 4 22:09:48
-TRACE_OUTPUT_CLEANED llama.cpp lazy2-n4 22:10:55
-TRACE_DONE llama.cpp lazy2 -n 4 (rc 54, verified) 22:10:57
-RUNNING_TRACE llama.cpp optimal -n 4 22:10:57
-TRACE_OUTPUT_CLEANED llama.cpp optimal-n4 22:12:04
-TRACE_DONE llama.cpp optimal -n 4 (rc 54, verified) 22:12:06
-RUNNING_TRACE llama.cpp other3 -n 8 22:12:06
-TRACE_OUTPUT_CLEANED llama.cpp other3-n8 22:13:13
-TRACE_DONE llama.cpp other3 -n 8 (rc 54, verified) 22:13:15
-RUNNING_TRACE llama.cpp optimal3 -n 8 22:13:15
-TRACE_OUTPUT_CLEANED llama.cpp optimal3-n8 22:14:22
-TRACE_DONE llama.cpp optimal3 -n 8 (rc 54, verified) 22:14:24
-RUNNING_TRACE llama.cpp apple -n 8 22:14:24
-TRACE_OUTPUT_CLEANED llama.cpp apple-n8 22:15:31
-TRACE_DONE llama.cpp apple -n 8 (rc 54, verified) 22:15:33
-RUNNING_TRACE llama.cpp bvx3 -n 8 22:15:33
-TRACE_OUTPUT_CLEANED llama.cpp bvx3-n8 22:16:40
-TRACE_DONE llama.cpp bvx3 -n 8 (rc 54, verified) 22:16:42
-RUNNING_TRACE llama.cpp lazy2 -n 8 22:16:42
-TRACE_OUTPUT_CLEANED llama.cpp lazy2-n8 22:17:49
-TRACE_DONE llama.cpp lazy2 -n 8 (rc 54, verified) 22:17:51
-RUNNING_TRACE llama.cpp optimal -n 8 22:17:51
-TRACE_OUTPUT_CLEANED llama.cpp optimal-n8 22:18:57
-TRACE_DONE llama.cpp optimal -n 8 (rc 54, verified) 22:19:00
-RUNNING_TRACE llama.cpp other3 -n 40 22:19:00
-TRACE_OUTPUT_CLEANED llama.cpp other3-n40 22:20:06
-TRACE_DONE llama.cpp other3 -n 40 (rc 54, verified) 22:20:09
-RUNNING_TRACE llama.cpp optimal3 -n 40 22:20:09
-TRACE_OUTPUT_CLEANED llama.cpp optimal3-n40 22:21:15
-TRACE_DONE llama.cpp optimal3 -n 40 (rc 54, verified) 22:21:18
-RUNNING_TRACE llama.cpp apple -n 40 22:21:18
-TRACE_OUTPUT_CLEANED llama.cpp apple-n40 22:22:24
-TRACE_DONE llama.cpp apple -n 40 (rc 54, verified) 22:22:27
-RUNNING_TRACE llama.cpp bvx3 -n 40 22:22:27
-TRACE_OUTPUT_CLEANED llama.cpp bvx3-n40 22:23:33
-TRACE_DONE llama.cpp bvx3 -n 40 (rc 54, verified) 22:23:36
-RUNNING_TRACE llama.cpp lazy2 -n 40 22:23:36
-TRACE_OUTPUT_CLEANED llama.cpp lazy2-n40 22:24:42
-TRACE_DONE llama.cpp lazy2 -n 40 (rc 54, verified) 22:24:44
-RUNNING_TRACE llama.cpp optimal -n 40 22:24:44
-TRACE_OUTPUT_CLEANED llama.cpp optimal-n40 22:25:53
-TRACE_DONE llama.cpp optimal -n 40 (rc 54, verified) 22:25:55
-TRACE_PACKAGE_COUNT_TRACER_END 42 22:25:55
-TRACER_TRACE_DONE 22:25:55
-TRACER_DONE 22:25:55
+RUNNING_TRACER 01:23:57
+CLEAN_OLD_TRACES 01:23:57
+RUNNING_TRACE claw-code tgz 01:24:10
+TRACE_OUTPUT_CLEANED claw-code tgz 01:24:57
+TRACE_DONE claw-code tgz 01:24:57
+RUNNING_TRACE claw-code zstd 01:24:57
+TRACE_OUTPUT_CLEANED claw-code zstd 01:25:05
+TRACE_DONE claw-code zstd 01:25:05
+RUNNING_TRACE claw-code tar.lz4 01:25:05
+TRACE_OUTPUT_CLEANED claw-code tar.lz4 01:25:11
+TRACE_DONE claw-code tar.lz4 01:25:11
+RUNNING_TRACE claw-code other3 -n 4 01:25:11
+TRACE_OUTPUT_CLEANED claw-code other3-n4 01:26:18
+TRACE_DONE claw-code other3 -n 4 (rc 54, verified) 01:26:19
+RUNNING_TRACE claw-code optimal3 -n 4 01:26:19
+TRACE_OUTPUT_CLEANED claw-code optimal3-n4 01:27:26
+TRACE_DONE claw-code optimal3 -n 4 (rc 54, verified) 01:27:28
+RUNNING_TRACE claw-code apple -n 4 01:27:28
+TRACE_OUTPUT_CLEANED claw-code apple-n4 01:28:37
+TRACE_DONE claw-code apple -n 4 (rc 54, verified) 01:28:38
+RUNNING_TRACE claw-code bvx3 -n 4 01:28:38
+TRACE_OUTPUT_CLEANED claw-code bvx3-n4 01:29:45
+TRACE_DONE claw-code bvx3 -n 4 (rc 54, verified) 01:29:47
+RUNNING_TRACE claw-code lazy2 -n 4 01:29:47
+TRACE_OUTPUT_CLEANED claw-code lazy2-n4 01:30:53
+TRACE_DONE claw-code lazy2 -n 4 (rc 54, verified) 01:30:55
+RUNNING_TRACE claw-code optimal -n 4 01:30:55
+TRACE_OUTPUT_CLEANED claw-code optimal-n4 01:32:02
+TRACE_DONE claw-code optimal -n 4 (rc 54, verified) 01:32:04
+RUNNING_TRACE claw-code other3 -n 8 01:32:04
+TRACE_OUTPUT_CLEANED claw-code other3-n8 01:33:10
+TRACE_DONE claw-code other3 -n 8 (rc 54, verified) 01:33:12
+RUNNING_TRACE claw-code optimal3 -n 8 01:33:12
+TRACE_OUTPUT_CLEANED claw-code optimal3-n8 01:34:19
+TRACE_DONE claw-code optimal3 -n 8 (rc 54, verified) 01:34:21
+RUNNING_TRACE claw-code apple -n 8 01:34:21
+TRACE_OUTPUT_CLEANED claw-code apple-n8 01:35:27
+TRACE_DONE claw-code apple -n 8 (rc 54, verified) 01:35:29
+RUNNING_TRACE claw-code bvx3 -n 8 01:35:29
+TRACE_OUTPUT_CLEANED claw-code bvx3-n8 01:36:36
+TRACE_DONE claw-code bvx3 -n 8 (rc 54, verified) 01:36:37
+RUNNING_TRACE claw-code lazy2 -n 8 01:36:37
+TRACE_OUTPUT_CLEANED claw-code lazy2-n8 01:37:44
+TRACE_DONE claw-code lazy2 -n 8 (rc 54, verified) 01:37:46
+RUNNING_TRACE claw-code optimal -n 8 01:37:46
+TRACE_OUTPUT_CLEANED claw-code optimal-n8 01:38:52
+TRACE_DONE claw-code optimal -n 8 (rc 54, verified) 01:38:54
+RUNNING_TRACE claw-code other3 -n 40 01:38:54
+TRACE_OUTPUT_CLEANED claw-code other3-n40 01:40:01
+TRACE_DONE claw-code other3 -n 40 (rc 54, verified) 01:40:03
+RUNNING_TRACE claw-code optimal3 -n 40 01:40:03
+TRACE_OUTPUT_CLEANED claw-code optimal3-n40 01:41:10
+TRACE_DONE claw-code optimal3 -n 40 (rc 54, verified) 01:41:12
+RUNNING_TRACE claw-code apple -n 40 01:41:12
+TRACE_OUTPUT_CLEANED claw-code apple-n40 01:42:18
+TRACE_DONE claw-code apple -n 40 (rc 54, verified) 01:42:20
+RUNNING_TRACE claw-code bvx3 -n 40 01:42:21
+TRACE_OUTPUT_CLEANED claw-code bvx3-n40 01:43:27
+TRACE_DONE claw-code bvx3 -n 40 (rc 54, verified) 01:43:29
+RUNNING_TRACE claw-code lazy2 -n 40 01:43:29
+TRACE_OUTPUT_CLEANED claw-code lazy2-n40 01:44:36
+TRACE_DONE claw-code lazy2 -n 40 (rc 54, verified) 01:44:38
+RUNNING_TRACE claw-code optimal -n 40 01:44:38
+TRACE_OUTPUT_CLEANED claw-code optimal-n40 01:45:45
+TRACE_DONE claw-code optimal -n 40 (rc 54, verified) 01:45:47
+RUNNING_TRACE llama.cpp tgz 01:45:55
+TRACE_OUTPUT_CLEANED llama.cpp tgz 01:46:37
+TRACE_DONE llama.cpp tgz 01:46:37
+RUNNING_TRACE llama.cpp zstd 01:46:37
+TRACE_OUTPUT_CLEANED llama.cpp zstd 01:46:43
+TRACE_DONE llama.cpp zstd 01:46:43
+RUNNING_TRACE llama.cpp tar.lz4 01:46:43
+TRACE_OUTPUT_CLEANED llama.cpp tar.lz4 01:46:49
+TRACE_DONE llama.cpp tar.lz4 01:46:49
+RUNNING_TRACE llama.cpp other3 -n 4 01:46:49
+TRACE_OUTPUT_CLEANED llama.cpp other3-n4 01:47:56
+TRACE_DONE llama.cpp other3 -n 4 (rc 54, verified) 01:47:58
+RUNNING_TRACE llama.cpp optimal3 -n 4 01:47:58
+TRACE_OUTPUT_CLEANED llama.cpp optimal3-n4 01:49:04
+TRACE_DONE llama.cpp optimal3 -n 4 (rc 54, verified) 01:49:06
+RUNNING_TRACE llama.cpp apple -n 4 01:49:06
+TRACE_OUTPUT_CLEANED llama.cpp apple-n4 01:50:13
+TRACE_DONE llama.cpp apple -n 4 (rc 54, verified) 01:50:15
+RUNNING_TRACE llama.cpp bvx3 -n 4 01:50:15
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n4 01:51:21
+TRACE_DONE llama.cpp bvx3 -n 4 (rc 54, verified) 01:51:23
+RUNNING_TRACE llama.cpp lazy2 -n 4 01:51:23
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n4 01:52:29
+TRACE_DONE llama.cpp lazy2 -n 4 (rc 54, verified) 01:52:31
+RUNNING_TRACE llama.cpp optimal -n 4 01:52:31
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n4 01:53:38
+TRACE_DONE llama.cpp optimal -n 4 (rc 54, verified) 01:53:40
+RUNNING_TRACE llama.cpp other3 -n 8 01:53:40
+TRACE_OUTPUT_CLEANED llama.cpp other3-n8 01:54:46
+TRACE_DONE llama.cpp other3 -n 8 (rc 54, verified) 01:54:48
+RUNNING_TRACE llama.cpp optimal3 -n 8 01:54:48
+TRACE_OUTPUT_CLEANED llama.cpp optimal3-n8 01:55:55
+TRACE_DONE llama.cpp optimal3 -n 8 (rc 54, verified) 01:55:57
+RUNNING_TRACE llama.cpp apple -n 8 01:55:57
+TRACE_OUTPUT_CLEANED llama.cpp apple-n8 01:57:03
+TRACE_DONE llama.cpp apple -n 8 (rc 54, verified) 01:57:05
+RUNNING_TRACE llama.cpp bvx3 -n 8 01:57:05
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n8 01:58:10
+TRACE_DONE llama.cpp bvx3 -n 8 (rc 54, verified) 01:58:11
+RUNNING_TRACE llama.cpp lazy2 -n 8 01:58:11
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n8 01:59:16
+TRACE_DONE llama.cpp lazy2 -n 8 (rc 54, verified) 01:59:18
+RUNNING_TRACE llama.cpp optimal -n 8 01:59:18
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n8 02:00:24
+TRACE_DONE llama.cpp optimal -n 8 (rc 54, verified) 02:00:26
+RUNNING_TRACE llama.cpp other3 -n 40 02:00:26
+TRACE_OUTPUT_CLEANED llama.cpp other3-n40 02:01:33
+TRACE_DONE llama.cpp other3 -n 40 (rc 54, verified) 02:01:34
+RUNNING_TRACE llama.cpp optimal3 -n 40 02:01:34
+TRACE_OUTPUT_CLEANED llama.cpp optimal3-n40 02:02:41
+TRACE_DONE llama.cpp optimal3 -n 40 (rc 54, verified) 02:02:43
+RUNNING_TRACE llama.cpp apple -n 40 02:02:43
+TRACE_OUTPUT_CLEANED llama.cpp apple-n40 02:03:50
+TRACE_DONE llama.cpp apple -n 40 (rc 54, verified) 02:03:52
+RUNNING_TRACE llama.cpp bvx3 -n 40 02:03:52
+TRACE_OUTPUT_CLEANED llama.cpp bvx3-n40 02:04:58
+TRACE_DONE llama.cpp bvx3 -n 40 (rc 54, verified) 02:05:00
+RUNNING_TRACE llama.cpp lazy2 -n 40 02:05:00
+TRACE_OUTPUT_CLEANED llama.cpp lazy2-n40 02:06:07
+TRACE_DONE llama.cpp lazy2 -n 40 (rc 54, verified) 02:06:08
+RUNNING_TRACE llama.cpp optimal -n 40 02:06:08
+TRACE_OUTPUT_CLEANED llama.cpp optimal-n40 02:07:17
+TRACE_DONE llama.cpp optimal -n 40 (rc 54, verified) 02:07:19
+TRACE_PACKAGE_COUNT_TRACER_END 42 02:07:19
+TRACER_TRACE_DONE 02:07:19
+TRACER_DONE 02:07:19
 Step1. Done. Please run sudo ./benchmark2.zsh to continue the benchmark process.
 [36m[Info] Configuring compiler environment... / 正在配置編譯器環境...(B[m
 [33m-> Switching to Clang/LLVM Environment / 已切換至 Clang/LLVM 編譯環境(B[m
 [32m[Success] setcc completed. CURRENT SETCC=clang, PACORES=20(B[m
-RUNNING_POWER_BENCHMARK 22:26:11
-RUNNING_POWER claw-code-tgz-encode 22:26:14
-POWER_DONE claw-code-tgz-encode 22:26:20
-RUNNING_POWER claw-code-tgz-decode 22:26:20
+RUNNING_POWER_BENCHMARK 02:07:32
+RUNNING_POWER claw-code-tgz-encode 02:07:35
+POWER_DONE claw-code-tgz-encode 02:07:40
+RUNNING_POWER claw-code-tgz-decode 02:07:40
 Note: codec flags only affect -c; reading auto-detects. / 提示：引擎旗標僅影響 -c，讀取自動偵測。
-POWER_DONE claw-code-tgz-decode 22:26:22
-RUNNING_POWER claw-code-zstd-encode 22:26:22
-POWER_DONE claw-code-zstd-encode 22:26:27
-RUNNING_POWER claw-code-zstd-decode 22:26:27
-POWER_DONE claw-code-zstd-decode 22:26:29
-RUNNING_POWER claw-code-tar.lz4-encode 22:26:29
-POWER_DONE claw-code-tar.lz4-encode 22:26:32
-RUNNING_POWER claw-code-tar.lz4-decode 22:26:32
-POWER_DONE claw-code-tar.lz4-decode 22:26:34
-RUNNING_POWER claw-code-other3-n40-encode 22:26:34
-POWER_DONE claw-code-other3-n40-encode 22:26:37
-RUNNING_POWER claw-code-other3-n40-decode 22:26:37
-POWER_DONE claw-code-other3-n40-decode 22:26:39
-RUNNING_POWER claw-code-optimal3-n40-encode 22:26:39
-POWER_DONE claw-code-optimal3-n40-encode 22:27:01
-RUNNING_POWER claw-code-optimal3-n40-decode 22:27:01
-POWER_DONE claw-code-optimal3-n40-decode 22:27:03
-RUNNING_POWER claw-code-apple-n40-encode 22:27:03
-POWER_DONE claw-code-apple-n40-encode 22:27:13
-RUNNING_POWER claw-code-apple-n40-decode 22:27:13
-POWER_DONE claw-code-apple-n40-decode 22:27:17
-RUNNING_POWER claw-code-bvx3-n40-encode 22:27:17
-POWER_DONE claw-code-bvx3-n40-encode 22:27:20
-RUNNING_POWER claw-code-bvx3-n40-decode 22:27:20
-POWER_DONE claw-code-bvx3-n40-decode 22:27:23
-RUNNING_POWER claw-code-lazy2-n40-encode 22:27:23
-POWER_DONE claw-code-lazy2-n40-encode 22:27:44
-RUNNING_POWER claw-code-lazy2-n40-decode 22:27:44
-POWER_DONE claw-code-lazy2-n40-decode 22:27:47
-RUNNING_POWER claw-code-optimal-n40-encode 22:27:47
-POWER_DONE claw-code-optimal-n40-encode 22:28:26
-RUNNING_POWER claw-code-optimal-n40-decode 22:28:26
-POWER_DONE claw-code-optimal-n40-decode 22:28:29
-RUNNING_POWER claw-code-other3-n8-encode 22:28:29
-POWER_DONE claw-code-other3-n8-encode 22:28:32
-RUNNING_POWER claw-code-other3-n8-decode 22:28:32
-POWER_DONE claw-code-other3-n8-decode 22:28:35
-RUNNING_POWER claw-code-optimal3-n8-encode 22:28:35
-POWER_DONE claw-code-optimal3-n8-encode 22:28:59
-RUNNING_POWER claw-code-optimal3-n8-decode 22:28:59
-POWER_DONE claw-code-optimal3-n8-decode 22:29:01
-RUNNING_POWER claw-code-apple-n8-encode 22:29:01
-POWER_DONE claw-code-apple-n8-encode 22:29:11
-RUNNING_POWER claw-code-apple-n8-decode 22:29:11
-POWER_DONE claw-code-apple-n8-decode 22:29:15
-RUNNING_POWER claw-code-bvx3-n8-encode 22:29:15
-POWER_DONE claw-code-bvx3-n8-encode 22:29:19
-RUNNING_POWER claw-code-bvx3-n8-decode 22:29:19
-POWER_DONE claw-code-bvx3-n8-decode 22:29:22
-RUNNING_POWER claw-code-lazy2-n8-encode 22:29:22
-POWER_DONE claw-code-lazy2-n8-encode 22:29:44
-RUNNING_POWER claw-code-lazy2-n8-decode 22:29:44
-POWER_DONE claw-code-lazy2-n8-decode 22:29:47
-RUNNING_POWER claw-code-optimal-n8-encode 22:29:47
-POWER_DONE claw-code-optimal-n8-encode 22:30:30
-RUNNING_POWER claw-code-optimal-n8-decode 22:30:30
-POWER_DONE claw-code-optimal-n8-decode 22:30:33
-RUNNING_POWER claw-code-other3-n4-encode 22:30:33
-POWER_DONE claw-code-other3-n4-encode 22:30:38
-RUNNING_POWER claw-code-other3-n4-decode 22:30:38
-POWER_DONE claw-code-other3-n4-decode 22:30:41
-RUNNING_POWER claw-code-optimal3-n4-encode 22:30:41
-POWER_DONE claw-code-optimal3-n4-encode 22:31:14
-RUNNING_POWER claw-code-optimal3-n4-decode 22:31:14
-POWER_DONE claw-code-optimal3-n4-decode 22:31:17
-RUNNING_POWER claw-code-apple-n4-encode 22:31:17
-POWER_DONE claw-code-apple-n4-encode 22:31:27
-RUNNING_POWER claw-code-apple-n4-decode 22:31:27
-POWER_DONE claw-code-apple-n4-decode 22:31:31
-RUNNING_POWER claw-code-bvx3-n4-encode 22:31:31
-POWER_DONE claw-code-bvx3-n4-encode 22:31:36
-RUNNING_POWER claw-code-bvx3-n4-decode 22:31:36
-POWER_DONE claw-code-bvx3-n4-decode 22:31:39
-RUNNING_POWER claw-code-lazy2-n4-encode 22:31:39
-POWER_DONE claw-code-lazy2-n4-encode 22:32:05
-RUNNING_POWER claw-code-lazy2-n4-decode 22:32:05
-POWER_DONE claw-code-lazy2-n4-decode 22:32:09
-RUNNING_POWER claw-code-optimal-n4-encode 22:32:09
-POWER_DONE claw-code-optimal-n4-encode 22:33:03
-RUNNING_POWER claw-code-optimal-n4-decode 22:33:03
-POWER_DONE claw-code-optimal-n4-decode 22:33:07
-RUNNING_POWER llama.cpp-tgz-encode 22:33:15
-POWER_DONE llama.cpp-tgz-encode 22:33:20
-RUNNING_POWER llama.cpp-tgz-decode 22:33:20
+POWER_DONE claw-code-tgz-decode 02:07:43
+RUNNING_POWER claw-code-zstd-encode 02:07:43
+POWER_DONE claw-code-zstd-encode 02:07:47
+RUNNING_POWER claw-code-zstd-decode 02:07:47
+POWER_DONE claw-code-zstd-decode 02:07:49
+RUNNING_POWER claw-code-tar.lz4-encode 02:07:49
+POWER_DONE claw-code-tar.lz4-encode 02:07:52
+RUNNING_POWER claw-code-tar.lz4-decode 02:07:52
+POWER_DONE claw-code-tar.lz4-decode 02:07:54
+RUNNING_POWER claw-code-other3-n40-encode 02:07:54
+POWER_DONE claw-code-other3-n40-encode 02:07:57
+RUNNING_POWER claw-code-other3-n40-decode 02:07:57
+POWER_DONE claw-code-other3-n40-decode 02:07:59
+RUNNING_POWER claw-code-optimal3-n40-encode 02:07:59
+POWER_DONE claw-code-optimal3-n40-encode 02:08:21
+RUNNING_POWER claw-code-optimal3-n40-decode 02:08:21
+POWER_DONE claw-code-optimal3-n40-decode 02:08:23
+RUNNING_POWER claw-code-apple-n40-encode 02:08:23
+POWER_DONE claw-code-apple-n40-encode 02:08:33
+RUNNING_POWER claw-code-apple-n40-decode 02:08:33
+POWER_DONE claw-code-apple-n40-decode 02:08:37
+RUNNING_POWER claw-code-bvx3-n40-encode 02:08:37
+POWER_DONE claw-code-bvx3-n40-encode 02:08:40
+RUNNING_POWER claw-code-bvx3-n40-decode 02:08:40
+POWER_DONE claw-code-bvx3-n40-decode 02:08:42
+RUNNING_POWER claw-code-lazy2-n40-encode 02:08:42
+POWER_DONE claw-code-lazy2-n40-encode 02:09:03
+RUNNING_POWER claw-code-lazy2-n40-decode 02:09:03
+POWER_DONE claw-code-lazy2-n40-decode 02:09:06
+RUNNING_POWER claw-code-optimal-n40-encode 02:09:06
+POWER_DONE claw-code-optimal-n40-encode 02:09:44
+RUNNING_POWER claw-code-optimal-n40-decode 02:09:44
+POWER_DONE claw-code-optimal-n40-decode 02:09:47
+RUNNING_POWER claw-code-other3-n8-encode 02:09:47
+POWER_DONE claw-code-other3-n8-encode 02:09:50
+RUNNING_POWER claw-code-other3-n8-decode 02:09:50
+POWER_DONE claw-code-other3-n8-decode 02:09:53
+RUNNING_POWER claw-code-optimal3-n8-encode 02:09:53
+POWER_DONE claw-code-optimal3-n8-encode 02:10:17
+RUNNING_POWER claw-code-optimal3-n8-decode 02:10:17
+POWER_DONE claw-code-optimal3-n8-decode 02:10:19
+RUNNING_POWER claw-code-apple-n8-encode 02:10:19
+POWER_DONE claw-code-apple-n8-encode 02:10:29
+RUNNING_POWER claw-code-apple-n8-decode 02:10:29
+POWER_DONE claw-code-apple-n8-decode 02:10:33
+RUNNING_POWER claw-code-bvx3-n8-encode 02:10:33
+POWER_DONE claw-code-bvx3-n8-encode 02:10:36
+RUNNING_POWER claw-code-bvx3-n8-decode 02:10:36
+POWER_DONE claw-code-bvx3-n8-decode 02:10:39
+RUNNING_POWER claw-code-lazy2-n8-encode 02:10:39
+POWER_DONE claw-code-lazy2-n8-encode 02:11:01
+RUNNING_POWER claw-code-lazy2-n8-decode 02:11:01
+POWER_DONE claw-code-lazy2-n8-decode 02:11:04
+RUNNING_POWER claw-code-optimal-n8-encode 02:11:04
+POWER_DONE claw-code-optimal-n8-encode 02:11:46
+RUNNING_POWER claw-code-optimal-n8-decode 02:11:46
+POWER_DONE claw-code-optimal-n8-decode 02:11:49
+RUNNING_POWER claw-code-other3-n4-encode 02:11:49
+POWER_DONE claw-code-other3-n4-encode 02:11:54
+RUNNING_POWER claw-code-other3-n4-decode 02:11:54
+POWER_DONE claw-code-other3-n4-decode 02:11:57
+RUNNING_POWER claw-code-optimal3-n4-encode 02:11:57
+POWER_DONE claw-code-optimal3-n4-encode 02:12:30
+RUNNING_POWER claw-code-optimal3-n4-decode 02:12:30
+POWER_DONE claw-code-optimal3-n4-decode 02:12:33
+RUNNING_POWER claw-code-apple-n4-encode 02:12:33
+POWER_DONE claw-code-apple-n4-encode 02:12:43
+RUNNING_POWER claw-code-apple-n4-decode 02:12:43
+POWER_DONE claw-code-apple-n4-decode 02:12:47
+RUNNING_POWER claw-code-bvx3-n4-encode 02:12:47
+POWER_DONE claw-code-bvx3-n4-encode 02:12:51
+RUNNING_POWER claw-code-bvx3-n4-decode 02:12:51
+POWER_DONE claw-code-bvx3-n4-decode 02:12:55
+RUNNING_POWER claw-code-lazy2-n4-encode 02:12:55
+POWER_DONE claw-code-lazy2-n4-encode 02:13:20
+RUNNING_POWER claw-code-lazy2-n4-decode 02:13:20
+POWER_DONE claw-code-lazy2-n4-decode 02:13:24
+RUNNING_POWER claw-code-optimal-n4-encode 02:13:24
+POWER_DONE claw-code-optimal-n4-encode 02:14:17
+RUNNING_POWER claw-code-optimal-n4-decode 02:14:17
+POWER_DONE claw-code-optimal-n4-decode 02:14:21
+RUNNING_POWER llama.cpp-tgz-encode 02:14:29
+POWER_DONE llama.cpp-tgz-encode 02:14:34
+RUNNING_POWER llama.cpp-tgz-decode 02:14:34
 Note: codec flags only affect -c; reading auto-detects. / 提示：引擎旗標僅影響 -c，讀取自動偵測。
-POWER_DONE llama.cpp-tgz-decode 22:33:23
-RUNNING_POWER llama.cpp-zstd-encode 22:33:23
-POWER_DONE llama.cpp-zstd-encode 22:33:26
-RUNNING_POWER llama.cpp-zstd-decode 22:33:26
-POWER_DONE llama.cpp-zstd-decode 22:33:28
-RUNNING_POWER llama.cpp-tar.lz4-encode 22:33:28
-POWER_DONE llama.cpp-tar.lz4-encode 22:33:31
-RUNNING_POWER llama.cpp-tar.lz4-decode 22:33:31
-POWER_DONE llama.cpp-tar.lz4-decode 22:33:33
-RUNNING_POWER llama.cpp-other3-n40-encode 22:33:33
-POWER_DONE llama.cpp-other3-n40-encode 22:33:36
-RUNNING_POWER llama.cpp-other3-n40-decode 22:33:36
-POWER_DONE llama.cpp-other3-n40-decode 22:33:38
-RUNNING_POWER llama.cpp-optimal3-n40-encode 22:33:38
-POWER_DONE llama.cpp-optimal3-n40-encode 22:33:56
-RUNNING_POWER llama.cpp-optimal3-n40-decode 22:33:56
-POWER_DONE llama.cpp-optimal3-n40-decode 22:33:58
-RUNNING_POWER llama.cpp-apple-n40-encode 22:33:58
-POWER_DONE llama.cpp-apple-n40-encode 22:34:07
-RUNNING_POWER llama.cpp-apple-n40-decode 22:34:07
-POWER_DONE llama.cpp-apple-n40-decode 22:34:11
-RUNNING_POWER llama.cpp-bvx3-n40-encode 22:34:11
-POWER_DONE llama.cpp-bvx3-n40-encode 22:34:14
-RUNNING_POWER llama.cpp-bvx3-n40-decode 22:34:14
-POWER_DONE llama.cpp-bvx3-n40-decode 22:34:16
-RUNNING_POWER llama.cpp-lazy2-n40-encode 22:34:16
-POWER_DONE llama.cpp-lazy2-n40-encode 22:34:24
-RUNNING_POWER llama.cpp-lazy2-n40-decode 22:34:24
-POWER_DONE llama.cpp-lazy2-n40-decode 22:34:27
-RUNNING_POWER llama.cpp-optimal-n40-encode 22:34:27
-POWER_DONE llama.cpp-optimal-n40-encode 22:34:52
-RUNNING_POWER llama.cpp-optimal-n40-decode 22:34:52
-POWER_DONE llama.cpp-optimal-n40-decode 22:34:55
-RUNNING_POWER llama.cpp-other3-n8-encode 22:34:55
-POWER_DONE llama.cpp-other3-n8-encode 22:34:58
-RUNNING_POWER llama.cpp-other3-n8-decode 22:34:58
-POWER_DONE llama.cpp-other3-n8-decode 22:35:00
-RUNNING_POWER llama.cpp-optimal3-n8-encode 22:35:00
-POWER_DONE llama.cpp-optimal3-n8-encode 22:35:20
-RUNNING_POWER llama.cpp-optimal3-n8-decode 22:35:20
-POWER_DONE llama.cpp-optimal3-n8-decode 22:35:22
-RUNNING_POWER llama.cpp-apple-n8-encode 22:35:22
-POWER_DONE llama.cpp-apple-n8-encode 22:35:31
-RUNNING_POWER llama.cpp-apple-n8-decode 22:35:31
-POWER_DONE llama.cpp-apple-n8-decode 22:35:35
-RUNNING_POWER llama.cpp-bvx3-n8-encode 22:35:35
-POWER_DONE llama.cpp-bvx3-n8-encode 22:35:38
-RUNNING_POWER llama.cpp-bvx3-n8-decode 22:35:38
-POWER_DONE llama.cpp-bvx3-n8-decode 22:35:41
-RUNNING_POWER llama.cpp-lazy2-n8-encode 22:35:41
-POWER_DONE llama.cpp-lazy2-n8-encode 22:35:50
-RUNNING_POWER llama.cpp-lazy2-n8-decode 22:35:50
-POWER_DONE llama.cpp-lazy2-n8-decode 22:35:52
-RUNNING_POWER llama.cpp-optimal-n8-encode 22:35:52
-POWER_DONE llama.cpp-optimal-n8-encode 22:36:20
-RUNNING_POWER llama.cpp-optimal-n8-decode 22:36:20
-POWER_DONE llama.cpp-optimal-n8-decode 22:36:23
-RUNNING_POWER llama.cpp-other3-n4-encode 22:36:23
-POWER_DONE llama.cpp-other3-n4-encode 22:36:27
-RUNNING_POWER llama.cpp-other3-n4-decode 22:36:27
-POWER_DONE llama.cpp-other3-n4-decode 22:36:30
-RUNNING_POWER llama.cpp-optimal3-n4-encode 22:36:30
-POWER_DONE llama.cpp-optimal3-n4-encode 22:36:58
-RUNNING_POWER llama.cpp-optimal3-n4-decode 22:36:58
-POWER_DONE llama.cpp-optimal3-n4-decode 22:37:00
-RUNNING_POWER llama.cpp-apple-n4-encode 22:37:00
-POWER_DONE llama.cpp-apple-n4-encode 22:37:09
-RUNNING_POWER llama.cpp-apple-n4-decode 22:37:09
-POWER_DONE llama.cpp-apple-n4-decode 22:37:13
-RUNNING_POWER llama.cpp-bvx3-n4-encode 22:37:13
-POWER_DONE llama.cpp-bvx3-n4-encode 22:37:17
-RUNNING_POWER llama.cpp-bvx3-n4-decode 22:37:17
-POWER_DONE llama.cpp-bvx3-n4-decode 22:37:20
-RUNNING_POWER llama.cpp-lazy2-n4-encode 22:37:20
-POWER_DONE llama.cpp-lazy2-n4-encode 22:37:31
-RUNNING_POWER llama.cpp-lazy2-n4-decode 22:37:31
-POWER_DONE llama.cpp-lazy2-n4-decode 22:37:33
-RUNNING_POWER llama.cpp-optimal-n4-encode 22:37:34
-POWER_DONE llama.cpp-optimal-n4-encode 22:38:11
-RUNNING_POWER llama.cpp-optimal-n4-decode 22:38:11
-POWER_DONE llama.cpp-optimal-n4-decode 22:38:14
-POWER_BENCHMARK_DONE 22:38:14
-POWER_BENCHMARK_DONE 22:38:14
-RUNNING_TRACE_ANALYSIS 22:38:14
-TRACE_PACKAGE_COUNT_ANALYSIS_START 42 expected=42 22:38:14
-RUNNING_TRACE_ANALYSIS claw-code-apple-n4.trace 22:38:14
-TRACE_ANALYSIS_OK claw-code-apple-n4.trace 22:38:19
-RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n4.trace time-profile 22:38:19
-TRACE_TABLE_EXPORT_OK claw-code-apple-n4.trace time-profile 22:38:20
-RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n4.trace time-sample 22:38:20
-TRACE_TABLE_EXPORT_OK claw-code-apple-n4.trace time-sample 22:38:22
-RUNNING_TRACE_ANALYSIS claw-code-apple-n40.trace 22:38:22
-TRACE_ANALYSIS_OK claw-code-apple-n40.trace 22:38:24
-RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n40.trace time-profile 22:38:24
-TRACE_TABLE_EXPORT_OK claw-code-apple-n40.trace time-profile 22:38:26
-RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n40.trace time-sample 22:38:26
-TRACE_TABLE_EXPORT_OK claw-code-apple-n40.trace time-sample 22:38:28
-RUNNING_TRACE_ANALYSIS claw-code-apple-n8.trace 22:38:28
-TRACE_ANALYSIS_OK claw-code-apple-n8.trace 22:38:29
-RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n8.trace time-profile 22:38:29
-TRACE_TABLE_EXPORT_OK claw-code-apple-n8.trace time-profile 22:38:31
-RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n8.trace time-sample 22:38:31
-TRACE_TABLE_EXPORT_OK claw-code-apple-n8.trace time-sample 22:38:33
-RUNNING_TRACE_ANALYSIS claw-code-bvx3-n4.trace 22:38:33
-TRACE_ANALYSIS_OK claw-code-bvx3-n4.trace 22:38:35
-RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n4.trace time-profile 22:38:35
-TRACE_TABLE_EXPORT_OK claw-code-bvx3-n4.trace time-profile 22:38:37
-RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n4.trace time-sample 22:38:37
-TRACE_TABLE_EXPORT_OK claw-code-bvx3-n4.trace time-sample 22:38:39
-RUNNING_TRACE_ANALYSIS claw-code-bvx3-n40.trace 22:38:39
-TRACE_ANALYSIS_OK claw-code-bvx3-n40.trace 22:38:40
-RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n40.trace time-profile 22:38:40
-TRACE_TABLE_EXPORT_OK claw-code-bvx3-n40.trace time-profile 22:38:42
-RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n40.trace time-sample 22:38:42
-TRACE_TABLE_EXPORT_OK claw-code-bvx3-n40.trace time-sample 22:38:44
-RUNNING_TRACE_ANALYSIS claw-code-bvx3-n8.trace 22:38:44
-TRACE_ANALYSIS_OK claw-code-bvx3-n8.trace 22:38:46
-RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n8.trace time-profile 22:38:46
-TRACE_TABLE_EXPORT_OK claw-code-bvx3-n8.trace time-profile 22:38:48
-RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n8.trace time-sample 22:38:48
-TRACE_TABLE_EXPORT_OK claw-code-bvx3-n8.trace time-sample 22:38:50
-RUNNING_TRACE_ANALYSIS claw-code-lazy2-n4.trace 22:38:50
-TRACE_ANALYSIS_OK claw-code-lazy2-n4.trace 22:38:52
-RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n4.trace time-profile 22:38:52
-TRACE_TABLE_EXPORT_OK claw-code-lazy2-n4.trace time-profile 22:38:55
-RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n4.trace time-sample 22:38:55
-TRACE_TABLE_EXPORT_OK claw-code-lazy2-n4.trace time-sample 22:39:00
-RUNNING_TRACE_ANALYSIS claw-code-lazy2-n40.trace 22:39:00
-TRACE_ANALYSIS_OK claw-code-lazy2-n40.trace 22:39:01
-RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n40.trace time-profile 22:39:01
-TRACE_TABLE_EXPORT_OK claw-code-lazy2-n40.trace time-profile 22:39:06
-RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n40.trace time-sample 22:39:06
-TRACE_TABLE_EXPORT_OK claw-code-lazy2-n40.trace time-sample 22:39:12
-RUNNING_TRACE_ANALYSIS claw-code-lazy2-n8.trace 22:39:12
-TRACE_ANALYSIS_OK claw-code-lazy2-n8.trace 22:39:13
-RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n8.trace time-profile 22:39:13
-TRACE_TABLE_EXPORT_OK claw-code-lazy2-n8.trace time-profile 22:39:18
-RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n8.trace time-sample 22:39:18
-TRACE_TABLE_EXPORT_OK claw-code-lazy2-n8.trace time-sample 22:39:23
-RUNNING_TRACE_ANALYSIS claw-code-optimal-n4.trace 22:39:23
-TRACE_ANALYSIS_OK claw-code-optimal-n4.trace 22:39:25
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n4.trace time-profile 22:39:25
-TRACE_TABLE_EXPORT_OK claw-code-optimal-n4.trace time-profile 22:39:31
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n4.trace time-sample 22:39:31
-TRACE_TABLE_EXPORT_OK claw-code-optimal-n4.trace time-sample 22:39:38
-RUNNING_TRACE_ANALYSIS claw-code-optimal-n40.trace 22:39:38
-TRACE_ANALYSIS_OK claw-code-optimal-n40.trace 22:39:39
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n40.trace time-profile 22:39:39
-TRACE_TABLE_EXPORT_OK claw-code-optimal-n40.trace time-profile 22:39:48
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n40.trace time-sample 22:39:48
-TRACE_TABLE_EXPORT_OK claw-code-optimal-n40.trace time-sample 22:39:58
-RUNNING_TRACE_ANALYSIS claw-code-optimal-n8.trace 22:39:58
-TRACE_ANALYSIS_OK claw-code-optimal-n8.trace 22:40:00
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n8.trace time-profile 22:40:00
-TRACE_TABLE_EXPORT_OK claw-code-optimal-n8.trace time-profile 22:40:08
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n8.trace time-sample 22:40:08
-TRACE_TABLE_EXPORT_OK claw-code-optimal-n8.trace time-sample 22:40:18
-RUNNING_TRACE_ANALYSIS claw-code-optimal3-n4.trace 22:40:18
-TRACE_ANALYSIS_OK claw-code-optimal3-n4.trace 22:40:20
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n4.trace time-profile 22:40:20
-TRACE_TABLE_EXPORT_OK claw-code-optimal3-n4.trace time-profile 22:40:23
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n4.trace time-sample 22:40:23
-TRACE_TABLE_EXPORT_OK claw-code-optimal3-n4.trace time-sample 22:40:28
-RUNNING_TRACE_ANALYSIS claw-code-optimal3-n40.trace 22:40:28
-TRACE_ANALYSIS_OK claw-code-optimal3-n40.trace 22:40:30
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n40.trace time-profile 22:40:30
-TRACE_TABLE_EXPORT_OK claw-code-optimal3-n40.trace time-profile 22:40:35
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n40.trace time-sample 22:40:35
-TRACE_TABLE_EXPORT_OK claw-code-optimal3-n40.trace time-sample 22:40:41
-RUNNING_TRACE_ANALYSIS claw-code-optimal3-n8.trace 22:40:41
-TRACE_ANALYSIS_OK claw-code-optimal3-n8.trace 22:40:43
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n8.trace time-profile 22:40:43
-TRACE_TABLE_EXPORT_OK claw-code-optimal3-n8.trace time-profile 22:40:47
-RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n8.trace time-sample 22:40:47
-TRACE_TABLE_EXPORT_OK claw-code-optimal3-n8.trace time-sample 22:40:53
-RUNNING_TRACE_ANALYSIS claw-code-other3-n4.trace 22:40:53
-TRACE_ANALYSIS_OK claw-code-other3-n4.trace 22:40:55
-RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n4.trace time-profile 22:40:55
-TRACE_TABLE_EXPORT_OK claw-code-other3-n4.trace time-profile 22:40:57
-RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n4.trace time-sample 22:40:57
-TRACE_TABLE_EXPORT_OK claw-code-other3-n4.trace time-sample 22:40:59
-RUNNING_TRACE_ANALYSIS claw-code-other3-n40.trace 22:40:59
-TRACE_ANALYSIS_OK claw-code-other3-n40.trace 22:41:00
-RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n40.trace time-profile 22:41:00
-TRACE_TABLE_EXPORT_OK claw-code-other3-n40.trace time-profile 22:41:02
-RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n40.trace time-sample 22:41:02
-TRACE_TABLE_EXPORT_OK claw-code-other3-n40.trace time-sample 22:41:04
-RUNNING_TRACE_ANALYSIS claw-code-other3-n8.trace 22:41:04
-TRACE_ANALYSIS_OK claw-code-other3-n8.trace 22:41:06
-RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n8.trace time-profile 22:41:06
-TRACE_TABLE_EXPORT_OK claw-code-other3-n8.trace time-profile 22:41:08
-RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n8.trace time-sample 22:41:08
-TRACE_TABLE_EXPORT_OK claw-code-other3-n8.trace time-sample 22:41:10
-RUNNING_TRACE_ANALYSIS claw-code-tar.lz4.trace 22:41:10
-TRACE_ANALYSIS_OK claw-code-tar.lz4.trace 22:41:12
-RUNNING_TRACE_TABLE_EXPORT claw-code-tar.lz4.trace time-profile 22:41:12
-TRACE_TABLE_EXPORT_OK claw-code-tar.lz4.trace time-profile 22:41:14
-RUNNING_TRACE_TABLE_EXPORT claw-code-tar.lz4.trace time-sample 22:41:14
-TRACE_TABLE_EXPORT_OK claw-code-tar.lz4.trace time-sample 22:41:16
-RUNNING_TRACE_ANALYSIS claw-code-tgz.trace 22:41:16
-TRACE_ANALYSIS_OK claw-code-tgz.trace 22:41:18
-RUNNING_TRACE_TABLE_EXPORT claw-code-tgz.trace time-profile 22:41:18
-TRACE_TABLE_EXPORT_OK claw-code-tgz.trace time-profile 22:41:20
-RUNNING_TRACE_TABLE_EXPORT claw-code-tgz.trace time-sample 22:41:20
-TRACE_TABLE_EXPORT_OK claw-code-tgz.trace time-sample 22:41:22
-RUNNING_TRACE_ANALYSIS claw-code-zstd.trace 22:41:22
-TRACE_ANALYSIS_OK claw-code-zstd.trace 22:41:24
-RUNNING_TRACE_TABLE_EXPORT claw-code-zstd.trace time-profile 22:41:24
-TRACE_TABLE_EXPORT_OK claw-code-zstd.trace time-profile 22:41:26
-RUNNING_TRACE_TABLE_EXPORT claw-code-zstd.trace time-sample 22:41:26
-TRACE_TABLE_EXPORT_OK claw-code-zstd.trace time-sample 22:41:28
-RUNNING_TRACE_ANALYSIS llama.cpp-apple-n4.trace 22:41:28
-TRACE_ANALYSIS_OK llama.cpp-apple-n4.trace 22:41:30
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n4.trace time-profile 22:41:30
-TRACE_TABLE_EXPORT_OK llama.cpp-apple-n4.trace time-profile 22:41:32
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n4.trace time-sample 22:41:32
-TRACE_TABLE_EXPORT_OK llama.cpp-apple-n4.trace time-sample 22:41:34
-RUNNING_TRACE_ANALYSIS llama.cpp-apple-n40.trace 22:41:34
-TRACE_ANALYSIS_OK llama.cpp-apple-n40.trace 22:41:35
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n40.trace time-profile 22:41:35
-TRACE_TABLE_EXPORT_OK llama.cpp-apple-n40.trace time-profile 22:41:37
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n40.trace time-sample 22:41:37
-TRACE_TABLE_EXPORT_OK llama.cpp-apple-n40.trace time-sample 22:41:39
-RUNNING_TRACE_ANALYSIS llama.cpp-apple-n8.trace 22:41:39
-TRACE_ANALYSIS_OK llama.cpp-apple-n8.trace 22:41:41
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n8.trace time-profile 22:41:41
-TRACE_TABLE_EXPORT_OK llama.cpp-apple-n8.trace time-profile 22:41:42
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n8.trace time-sample 22:41:42
-TRACE_TABLE_EXPORT_OK llama.cpp-apple-n8.trace time-sample 22:41:44
-RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n4.trace 22:41:44
-TRACE_ANALYSIS_OK llama.cpp-bvx3-n4.trace 22:41:46
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n4.trace time-profile 22:41:46
-TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n4.trace time-profile 22:41:48
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n4.trace time-sample 22:41:48
-TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n4.trace time-sample 22:41:50
-RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n40.trace 22:41:50
-TRACE_ANALYSIS_OK llama.cpp-bvx3-n40.trace 22:41:52
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n40.trace time-profile 22:41:52
-TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n40.trace time-profile 22:41:54
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n40.trace time-sample 22:41:54
-TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n40.trace time-sample 22:41:56
-RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n8.trace 22:41:56
-TRACE_ANALYSIS_OK llama.cpp-bvx3-n8.trace 22:41:57
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n8.trace time-profile 22:41:57
-TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n8.trace time-profile 22:41:59
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n8.trace time-sample 22:41:59
-TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n8.trace time-sample 22:42:01
-RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n4.trace 22:42:01
-TRACE_ANALYSIS_OK llama.cpp-lazy2-n4.trace 22:42:03
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n4.trace time-profile 22:42:03
-TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n4.trace time-profile 22:42:05
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n4.trace time-sample 22:42:05
-TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n4.trace time-sample 22:42:08
-RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n40.trace 22:42:08
-TRACE_ANALYSIS_OK llama.cpp-lazy2-n40.trace 22:42:10
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n40.trace time-profile 22:42:10
-TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n40.trace time-profile 22:42:12
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n40.trace time-sample 22:42:12
-TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n40.trace time-sample 22:42:16
-RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n8.trace 22:42:16
-TRACE_ANALYSIS_OK llama.cpp-lazy2-n8.trace 22:42:17
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n8.trace time-profile 22:42:17
-TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n8.trace time-profile 22:42:20
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n8.trace time-sample 22:42:20
-TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n8.trace time-sample 22:42:23
-RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n4.trace 22:42:23
-TRACE_ANALYSIS_OK llama.cpp-optimal-n4.trace 22:42:25
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n4.trace time-profile 22:42:25
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n4.trace time-profile 22:42:29
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n4.trace time-sample 22:42:29
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n4.trace time-sample 22:42:34
-RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n40.trace 22:42:34
-TRACE_ANALYSIS_OK llama.cpp-optimal-n40.trace 22:42:36
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n40.trace time-profile 22:42:36
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n40.trace time-profile 22:42:42
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n40.trace time-sample 22:42:42
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n40.trace time-sample 22:42:49
-RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n8.trace 22:42:49
-TRACE_ANALYSIS_OK llama.cpp-optimal-n8.trace 22:42:51
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n8.trace time-profile 22:42:51
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n8.trace time-profile 22:42:57
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n8.trace time-sample 22:42:57
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n8.trace time-sample 22:43:04
-RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n4.trace 22:43:04
-TRACE_ANALYSIS_OK llama.cpp-optimal3-n4.trace 22:43:05
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n4.trace time-profile 22:43:05
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n4.trace time-profile 22:43:09
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n4.trace time-sample 22:43:09
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n4.trace time-sample 22:43:13
-RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n40.trace 22:43:13
-TRACE_ANALYSIS_OK llama.cpp-optimal3-n40.trace 22:43:15
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n40.trace time-profile 22:43:15
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n40.trace time-profile 22:43:19
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n40.trace time-sample 22:43:19
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n40.trace time-sample 22:43:24
-RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n8.trace 22:43:24
-TRACE_ANALYSIS_OK llama.cpp-optimal3-n8.trace 22:43:26
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n8.trace time-profile 22:43:26
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n8.trace time-profile 22:43:30
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n8.trace time-sample 22:43:30
-TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n8.trace time-sample 22:43:35
-RUNNING_TRACE_ANALYSIS llama.cpp-other3-n4.trace 22:43:35
-TRACE_ANALYSIS_OK llama.cpp-other3-n4.trace 22:43:37
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n4.trace time-profile 22:43:37
-TRACE_TABLE_EXPORT_OK llama.cpp-other3-n4.trace time-profile 22:43:39
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n4.trace time-sample 22:43:39
-TRACE_TABLE_EXPORT_OK llama.cpp-other3-n4.trace time-sample 22:43:41
-RUNNING_TRACE_ANALYSIS llama.cpp-other3-n40.trace 22:43:41
-TRACE_ANALYSIS_OK llama.cpp-other3-n40.trace 22:43:43
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n40.trace time-profile 22:43:43
-TRACE_TABLE_EXPORT_OK llama.cpp-other3-n40.trace time-profile 22:43:45
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n40.trace time-sample 22:43:45
-TRACE_TABLE_EXPORT_OK llama.cpp-other3-n40.trace time-sample 22:43:47
-RUNNING_TRACE_ANALYSIS llama.cpp-other3-n8.trace 22:43:47
-TRACE_ANALYSIS_OK llama.cpp-other3-n8.trace 22:43:48
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n8.trace time-profile 22:43:48
-TRACE_TABLE_EXPORT_OK llama.cpp-other3-n8.trace time-profile 22:43:50
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n8.trace time-sample 22:43:50
-TRACE_TABLE_EXPORT_OK llama.cpp-other3-n8.trace time-sample 22:43:52
-RUNNING_TRACE_ANALYSIS llama.cpp-tar.lz4.trace 22:43:52
-TRACE_ANALYSIS_OK llama.cpp-tar.lz4.trace 22:43:54
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-tar.lz4.trace time-profile 22:43:54
-TRACE_TABLE_EXPORT_OK llama.cpp-tar.lz4.trace time-profile 22:43:56
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-tar.lz4.trace time-sample 22:43:56
-TRACE_TABLE_EXPORT_OK llama.cpp-tar.lz4.trace time-sample 22:43:58
-RUNNING_TRACE_ANALYSIS llama.cpp-tgz.trace 22:43:58
-TRACE_ANALYSIS_OK llama.cpp-tgz.trace 22:44:00
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-tgz.trace time-profile 22:44:00
-TRACE_TABLE_EXPORT_OK llama.cpp-tgz.trace time-profile 22:44:02
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-tgz.trace time-sample 22:44:02
-TRACE_TABLE_EXPORT_OK llama.cpp-tgz.trace time-sample 22:44:05
-RUNNING_TRACE_ANALYSIS llama.cpp-zstd.trace 22:44:05
-TRACE_ANALYSIS_OK llama.cpp-zstd.trace 22:44:06
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-zstd.trace time-profile 22:44:06
-TRACE_TABLE_EXPORT_OK llama.cpp-zstd.trace time-profile 22:44:08
-RUNNING_TRACE_TABLE_EXPORT llama.cpp-zstd.trace time-sample 22:44:08
-TRACE_TABLE_EXPORT_OK llama.cpp-zstd.trace time-sample 22:44:10
-TRACE_ANALYSIS_DONE 22:44:10
-TRACE_ANALYSIS_DONE 22:44:10
-RUNNING_CPU_CALL_TREE_ANALYSIS 22:44:10
-CPU_CALL_TREE_TRACE_COUNT_START 42 expected=42 22:44:10
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n4.time-profile.xml 22:44:10
-CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n4.time-profile.xml 22:44:10
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n40.time-profile.xml 22:44:10
-CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n40.time-profile.xml 22:44:10
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n8.time-profile.xml 22:44:10
-CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n8.time-profile.xml 22:44:11
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n4.time-profile.xml 22:44:11
-CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n4.time-profile.xml 22:44:11
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n40.time-profile.xml 22:44:11
-CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n40.time-profile.xml 22:44:11
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n8.time-profile.xml 22:44:11
-CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n8.time-profile.xml 22:44:11
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n4.time-profile.xml 22:44:11
-CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n4.time-profile.xml 22:44:11
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n40.time-profile.xml 22:44:11
-CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n40.time-profile.xml 22:44:11
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n8.time-profile.xml 22:44:11
-CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n8.time-profile.xml 22:44:11
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n4.time-profile.xml 22:44:11
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n4.time-profile.xml 22:44:11
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n40.time-profile.xml 22:44:11
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n40.time-profile.xml 22:44:12
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n8.time-profile.xml 22:44:12
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n8.time-profile.xml 22:44:12
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n4.time-profile.xml 22:44:12
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n4.time-profile.xml 22:44:12
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n40.time-profile.xml 22:44:12
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n40.time-profile.xml 22:44:12
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n8.time-profile.xml 22:44:12
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n8.time-profile.xml 22:44:12
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n4.time-profile.xml 22:44:12
-CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n4.time-profile.xml 22:44:12
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n40.time-profile.xml 22:44:12
-CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n40.time-profile.xml 22:44:12
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n8.time-profile.xml 22:44:12
-CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n8.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-tar.lz4.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK claw-code-tar.lz4.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-tgz.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK claw-code-tgz.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-zstd.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK claw-code-zstd.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n4.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n4.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n40.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n40.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n8.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n8.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n4.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n4.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n40.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n40.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n8.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n8.time-profile.xml 22:44:13
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n4.time-profile.xml 22:44:13
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n4.time-profile.xml 22:44:14
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n40.time-profile.xml 22:44:14
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n40.time-profile.xml 22:44:14
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n8.time-profile.xml 22:44:14
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n8.time-profile.xml 22:44:14
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n4.time-profile.xml 22:44:14
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n4.time-profile.xml 22:44:14
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n40.time-profile.xml 22:44:14
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n40.time-profile.xml 22:44:14
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n8.time-profile.xml 22:44:14
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n8.time-profile.xml 22:44:14
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n4.time-profile.xml 22:44:14
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n4.time-profile.xml 22:44:14
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n40.time-profile.xml 22:44:14
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n40.time-profile.xml 22:44:14
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n8.time-profile.xml 22:44:14
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n8.time-profile.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n4.time-profile.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n4.time-profile.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n40.time-profile.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n40.time-profile.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n8.time-profile.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n8.time-profile.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-tar.lz4.time-profile.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-tar.lz4.time-profile.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-tgz.time-profile.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-tgz.time-profile.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-zstd.time-profile.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-zstd.time-profile.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n4.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n4.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n40.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n40.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n8.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n8.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n4.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n4.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n40.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n40.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n8.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n8.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n4.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n4.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n40.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n40.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n8.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n8.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n4.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n4.time-sample.xml 22:44:15
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n40.time-sample.xml 22:44:15
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n40.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n40.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-tar.lz4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-tar.lz4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-tgz.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-tgz.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-zstd.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK claw-code-zstd.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n40.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n40.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n40.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n40.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n40.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n40.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n40.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n8.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n8.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-tar.lz4.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-tar.lz4.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-tgz.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-tgz.time-sample.xml 22:44:16
-RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-zstd.time-sample.xml 22:44:16
-CPU_CALL_TREE_ANALYSIS_OK llama.cpp-zstd.time-sample.xml 22:44:16
-CPU_CALL_TREE_TRACE_COUNT_BEFORE_CLEANUP 42 22:44:17
-CPU_CALL_TREE_TRACE_CLEANED before=42 after=0 22:44:18
-CPU_CALL_TREE_ANALYSIS_DONE 22:44:18
-CPU_CALL_TREE_ANALYSIS_DONE 22:44:18
-RUNNING_GIT_GC 22:44:18
-GIT_GC_DONE 22:44:36
-RUNNING_BENCHMARK_RESULT_REBUILD 22:44:36
+POWER_DONE llama.cpp-tgz-decode 02:14:36
+RUNNING_POWER llama.cpp-zstd-encode 02:14:36
+POWER_DONE llama.cpp-zstd-encode 02:14:40
+RUNNING_POWER llama.cpp-zstd-decode 02:14:40
+POWER_DONE llama.cpp-zstd-decode 02:14:41
+RUNNING_POWER llama.cpp-tar.lz4-encode 02:14:41
+POWER_DONE llama.cpp-tar.lz4-encode 02:14:45
+RUNNING_POWER llama.cpp-tar.lz4-decode 02:14:45
+POWER_DONE llama.cpp-tar.lz4-decode 02:14:46
+RUNNING_POWER llama.cpp-other3-n40-encode 02:14:46
+POWER_DONE llama.cpp-other3-n40-encode 02:14:49
+RUNNING_POWER llama.cpp-other3-n40-decode 02:14:49
+POWER_DONE llama.cpp-other3-n40-decode 02:14:51
+RUNNING_POWER llama.cpp-optimal3-n40-encode 02:14:51
+POWER_DONE llama.cpp-optimal3-n40-encode 02:15:09
+RUNNING_POWER llama.cpp-optimal3-n40-decode 02:15:09
+POWER_DONE llama.cpp-optimal3-n40-decode 02:15:11
+RUNNING_POWER llama.cpp-apple-n40-encode 02:15:12
+POWER_DONE llama.cpp-apple-n40-encode 02:15:20
+RUNNING_POWER llama.cpp-apple-n40-decode 02:15:20
+POWER_DONE llama.cpp-apple-n40-decode 02:15:24
+RUNNING_POWER llama.cpp-bvx3-n40-encode 02:15:24
+POWER_DONE llama.cpp-bvx3-n40-encode 02:15:27
+RUNNING_POWER llama.cpp-bvx3-n40-decode 02:15:27
+POWER_DONE llama.cpp-bvx3-n40-decode 02:15:29
+RUNNING_POWER llama.cpp-lazy2-n40-encode 02:15:29
+POWER_DONE llama.cpp-lazy2-n40-encode 02:15:37
+RUNNING_POWER llama.cpp-lazy2-n40-decode 02:15:37
+POWER_DONE llama.cpp-lazy2-n40-decode 02:15:40
+RUNNING_POWER llama.cpp-optimal-n40-encode 02:15:40
+POWER_DONE llama.cpp-optimal-n40-encode 02:16:05
+RUNNING_POWER llama.cpp-optimal-n40-decode 02:16:05
+POWER_DONE llama.cpp-optimal-n40-decode 02:16:07
+RUNNING_POWER llama.cpp-other3-n8-encode 02:16:07
+POWER_DONE llama.cpp-other3-n8-encode 02:16:10
+RUNNING_POWER llama.cpp-other3-n8-decode 02:16:10
+POWER_DONE llama.cpp-other3-n8-decode 02:16:13
+RUNNING_POWER llama.cpp-optimal3-n8-encode 02:16:13
+POWER_DONE llama.cpp-optimal3-n8-encode 02:16:33
+RUNNING_POWER llama.cpp-optimal3-n8-decode 02:16:33
+POWER_DONE llama.cpp-optimal3-n8-decode 02:16:35
+RUNNING_POWER llama.cpp-apple-n8-encode 02:16:35
+POWER_DONE llama.cpp-apple-n8-encode 02:16:44
+RUNNING_POWER llama.cpp-apple-n8-decode 02:16:44
+POWER_DONE llama.cpp-apple-n8-decode 02:16:48
+RUNNING_POWER llama.cpp-bvx3-n8-encode 02:16:48
+POWER_DONE llama.cpp-bvx3-n8-encode 02:16:51
+RUNNING_POWER llama.cpp-bvx3-n8-decode 02:16:51
+POWER_DONE llama.cpp-bvx3-n8-decode 02:16:54
+RUNNING_POWER llama.cpp-lazy2-n8-encode 02:16:54
+POWER_DONE llama.cpp-lazy2-n8-encode 02:17:02
+RUNNING_POWER llama.cpp-lazy2-n8-decode 02:17:02
+POWER_DONE llama.cpp-lazy2-n8-decode 02:17:05
+RUNNING_POWER llama.cpp-optimal-n8-encode 02:17:05
+POWER_DONE llama.cpp-optimal-n8-encode 02:17:32
+RUNNING_POWER llama.cpp-optimal-n8-decode 02:17:32
+POWER_DONE llama.cpp-optimal-n8-decode 02:17:35
+RUNNING_POWER llama.cpp-other3-n4-encode 02:17:35
+POWER_DONE llama.cpp-other3-n4-encode 02:17:39
+RUNNING_POWER llama.cpp-other3-n4-decode 02:17:39
+POWER_DONE llama.cpp-other3-n4-decode 02:17:42
+RUNNING_POWER llama.cpp-optimal3-n4-encode 02:17:42
+POWER_DONE llama.cpp-optimal3-n4-encode 02:18:10
+RUNNING_POWER llama.cpp-optimal3-n4-decode 02:18:10
+POWER_DONE llama.cpp-optimal3-n4-decode 02:18:12
+RUNNING_POWER llama.cpp-apple-n4-encode 02:18:12
+POWER_DONE llama.cpp-apple-n4-encode 02:18:21
+RUNNING_POWER llama.cpp-apple-n4-decode 02:18:21
+POWER_DONE llama.cpp-apple-n4-decode 02:18:25
+RUNNING_POWER llama.cpp-bvx3-n4-encode 02:18:25
+POWER_DONE llama.cpp-bvx3-n4-encode 02:18:29
+RUNNING_POWER llama.cpp-bvx3-n4-decode 02:18:29
+POWER_DONE llama.cpp-bvx3-n4-decode 02:18:32
+RUNNING_POWER llama.cpp-lazy2-n4-encode 02:18:32
+POWER_DONE llama.cpp-lazy2-n4-encode 02:18:42
+RUNNING_POWER llama.cpp-lazy2-n4-decode 02:18:42
+POWER_DONE llama.cpp-lazy2-n4-decode 02:18:45
+RUNNING_POWER llama.cpp-optimal-n4-encode 02:18:45
+POWER_DONE llama.cpp-optimal-n4-encode 02:19:22
+RUNNING_POWER llama.cpp-optimal-n4-decode 02:19:22
+POWER_DONE llama.cpp-optimal-n4-decode 02:19:25
+POWER_BENCHMARK_DONE 02:19:25
+POWER_BENCHMARK_DONE 02:19:25
+RUNNING_TRACE_ANALYSIS 02:19:25
+TRACE_PACKAGE_COUNT_ANALYSIS_START 42 expected=42 02:19:25
+RUNNING_TRACE_ANALYSIS claw-code-apple-n4.trace 02:19:25
+TRACE_ANALYSIS_OK claw-code-apple-n4.trace 02:19:28
+RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n4.trace time-profile 02:19:28
+TRACE_TABLE_EXPORT_OK claw-code-apple-n4.trace time-profile 02:19:29
+RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n4.trace time-sample 02:19:29
+TRACE_TABLE_EXPORT_OK claw-code-apple-n4.trace time-sample 02:19:31
+RUNNING_TRACE_ANALYSIS claw-code-apple-n40.trace 02:19:31
+TRACE_ANALYSIS_OK claw-code-apple-n40.trace 02:19:33
+RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n40.trace time-profile 02:19:33
+TRACE_TABLE_EXPORT_OK claw-code-apple-n40.trace time-profile 02:19:35
+RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n40.trace time-sample 02:19:35
+TRACE_TABLE_EXPORT_OK claw-code-apple-n40.trace time-sample 02:19:37
+RUNNING_TRACE_ANALYSIS claw-code-apple-n8.trace 02:19:37
+TRACE_ANALYSIS_OK claw-code-apple-n8.trace 02:19:38
+RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n8.trace time-profile 02:19:38
+TRACE_TABLE_EXPORT_OK claw-code-apple-n8.trace time-profile 02:19:40
+RUNNING_TRACE_TABLE_EXPORT claw-code-apple-n8.trace time-sample 02:19:40
+TRACE_TABLE_EXPORT_OK claw-code-apple-n8.trace time-sample 02:19:42
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n4.trace 02:19:42
+TRACE_ANALYSIS_OK claw-code-bvx3-n4.trace 02:19:44
+RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n4.trace time-profile 02:19:44
+TRACE_TABLE_EXPORT_OK claw-code-bvx3-n4.trace time-profile 02:19:46
+RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n4.trace time-sample 02:19:46
+TRACE_TABLE_EXPORT_OK claw-code-bvx3-n4.trace time-sample 02:19:48
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n40.trace 02:19:48
+TRACE_ANALYSIS_OK claw-code-bvx3-n40.trace 02:19:49
+RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n40.trace time-profile 02:19:49
+TRACE_TABLE_EXPORT_OK claw-code-bvx3-n40.trace time-profile 02:19:51
+RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n40.trace time-sample 02:19:51
+TRACE_TABLE_EXPORT_OK claw-code-bvx3-n40.trace time-sample 02:19:54
+RUNNING_TRACE_ANALYSIS claw-code-bvx3-n8.trace 02:19:54
+TRACE_ANALYSIS_OK claw-code-bvx3-n8.trace 02:19:55
+RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n8.trace time-profile 02:19:55
+TRACE_TABLE_EXPORT_OK claw-code-bvx3-n8.trace time-profile 02:19:57
+RUNNING_TRACE_TABLE_EXPORT claw-code-bvx3-n8.trace time-sample 02:19:57
+TRACE_TABLE_EXPORT_OK claw-code-bvx3-n8.trace time-sample 02:19:59
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n4.trace 02:19:59
+TRACE_ANALYSIS_OK claw-code-lazy2-n4.trace 02:20:01
+RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n4.trace time-profile 02:20:01
+TRACE_TABLE_EXPORT_OK claw-code-lazy2-n4.trace time-profile 02:20:04
+RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n4.trace time-sample 02:20:04
+TRACE_TABLE_EXPORT_OK claw-code-lazy2-n4.trace time-sample 02:20:09
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n40.trace 02:20:09
+TRACE_ANALYSIS_OK claw-code-lazy2-n40.trace 02:20:10
+RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n40.trace time-profile 02:20:10
+TRACE_TABLE_EXPORT_OK claw-code-lazy2-n40.trace time-profile 02:20:15
+RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n40.trace time-sample 02:20:15
+TRACE_TABLE_EXPORT_OK claw-code-lazy2-n40.trace time-sample 02:20:20
+RUNNING_TRACE_ANALYSIS claw-code-lazy2-n8.trace 02:20:20
+TRACE_ANALYSIS_OK claw-code-lazy2-n8.trace 02:20:22
+RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n8.trace time-profile 02:20:22
+TRACE_TABLE_EXPORT_OK claw-code-lazy2-n8.trace time-profile 02:20:26
+RUNNING_TRACE_TABLE_EXPORT claw-code-lazy2-n8.trace time-sample 02:20:26
+TRACE_TABLE_EXPORT_OK claw-code-lazy2-n8.trace time-sample 02:20:32
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n4.trace 02:20:32
+TRACE_ANALYSIS_OK claw-code-optimal-n4.trace 02:20:34
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n4.trace time-profile 02:20:34
+TRACE_TABLE_EXPORT_OK claw-code-optimal-n4.trace time-profile 02:20:39
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n4.trace time-sample 02:20:39
+TRACE_TABLE_EXPORT_OK claw-code-optimal-n4.trace time-sample 02:20:46
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n40.trace 02:20:46
+TRACE_ANALYSIS_OK claw-code-optimal-n40.trace 02:20:48
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n40.trace time-profile 02:20:48
+TRACE_TABLE_EXPORT_OK claw-code-optimal-n40.trace time-profile 02:20:56
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n40.trace time-sample 02:20:56
+TRACE_TABLE_EXPORT_OK claw-code-optimal-n40.trace time-sample 02:21:06
+RUNNING_TRACE_ANALYSIS claw-code-optimal-n8.trace 02:21:07
+TRACE_ANALYSIS_OK claw-code-optimal-n8.trace 02:21:08
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n8.trace time-profile 02:21:08
+TRACE_TABLE_EXPORT_OK claw-code-optimal-n8.trace time-profile 02:21:16
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal-n8.trace time-sample 02:21:16
+TRACE_TABLE_EXPORT_OK claw-code-optimal-n8.trace time-sample 02:21:26
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n4.trace 02:21:26
+TRACE_ANALYSIS_OK claw-code-optimal3-n4.trace 02:21:28
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n4.trace time-profile 02:21:28
+TRACE_TABLE_EXPORT_OK claw-code-optimal3-n4.trace time-profile 02:21:31
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n4.trace time-sample 02:21:31
+TRACE_TABLE_EXPORT_OK claw-code-optimal3-n4.trace time-sample 02:21:36
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n40.trace 02:21:36
+TRACE_ANALYSIS_OK claw-code-optimal3-n40.trace 02:21:38
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n40.trace time-profile 02:21:38
+TRACE_TABLE_EXPORT_OK claw-code-optimal3-n40.trace time-profile 02:21:42
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n40.trace time-sample 02:21:42
+TRACE_TABLE_EXPORT_OK claw-code-optimal3-n40.trace time-sample 02:21:48
+RUNNING_TRACE_ANALYSIS claw-code-optimal3-n8.trace 02:21:48
+TRACE_ANALYSIS_OK claw-code-optimal3-n8.trace 02:21:50
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n8.trace time-profile 02:21:50
+TRACE_TABLE_EXPORT_OK claw-code-optimal3-n8.trace time-profile 02:21:54
+RUNNING_TRACE_TABLE_EXPORT claw-code-optimal3-n8.trace time-sample 02:21:54
+TRACE_TABLE_EXPORT_OK claw-code-optimal3-n8.trace time-sample 02:22:00
+RUNNING_TRACE_ANALYSIS claw-code-other3-n4.trace 02:22:00
+TRACE_ANALYSIS_OK claw-code-other3-n4.trace 02:22:02
+RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n4.trace time-profile 02:22:02
+TRACE_TABLE_EXPORT_OK claw-code-other3-n4.trace time-profile 02:22:04
+RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n4.trace time-sample 02:22:04
+TRACE_TABLE_EXPORT_OK claw-code-other3-n4.trace time-sample 02:22:06
+RUNNING_TRACE_ANALYSIS claw-code-other3-n40.trace 02:22:06
+TRACE_ANALYSIS_OK claw-code-other3-n40.trace 02:22:08
+RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n40.trace time-profile 02:22:08
+TRACE_TABLE_EXPORT_OK claw-code-other3-n40.trace time-profile 02:22:10
+RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n40.trace time-sample 02:22:10
+TRACE_TABLE_EXPORT_OK claw-code-other3-n40.trace time-sample 02:22:12
+RUNNING_TRACE_ANALYSIS claw-code-other3-n8.trace 02:22:12
+TRACE_ANALYSIS_OK claw-code-other3-n8.trace 02:22:13
+RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n8.trace time-profile 02:22:13
+TRACE_TABLE_EXPORT_OK claw-code-other3-n8.trace time-profile 02:22:15
+RUNNING_TRACE_TABLE_EXPORT claw-code-other3-n8.trace time-sample 02:22:15
+TRACE_TABLE_EXPORT_OK claw-code-other3-n8.trace time-sample 02:22:17
+RUNNING_TRACE_ANALYSIS claw-code-tar.lz4.trace 02:22:17
+TRACE_ANALYSIS_OK claw-code-tar.lz4.trace 02:22:19
+RUNNING_TRACE_TABLE_EXPORT claw-code-tar.lz4.trace time-profile 02:22:19
+TRACE_TABLE_EXPORT_OK claw-code-tar.lz4.trace time-profile 02:22:21
+RUNNING_TRACE_TABLE_EXPORT claw-code-tar.lz4.trace time-sample 02:22:21
+TRACE_TABLE_EXPORT_OK claw-code-tar.lz4.trace time-sample 02:22:23
+RUNNING_TRACE_ANALYSIS claw-code-tgz.trace 02:22:23
+TRACE_ANALYSIS_OK claw-code-tgz.trace 02:22:25
+RUNNING_TRACE_TABLE_EXPORT claw-code-tgz.trace time-profile 02:22:25
+TRACE_TABLE_EXPORT_OK claw-code-tgz.trace time-profile 02:22:27
+RUNNING_TRACE_TABLE_EXPORT claw-code-tgz.trace time-sample 02:22:27
+TRACE_TABLE_EXPORT_OK claw-code-tgz.trace time-sample 02:22:29
+RUNNING_TRACE_ANALYSIS claw-code-zstd.trace 02:22:29
+TRACE_ANALYSIS_OK claw-code-zstd.trace 02:22:31
+RUNNING_TRACE_TABLE_EXPORT claw-code-zstd.trace time-profile 02:22:31
+TRACE_TABLE_EXPORT_OK claw-code-zstd.trace time-profile 02:22:33
+RUNNING_TRACE_TABLE_EXPORT claw-code-zstd.trace time-sample 02:22:33
+TRACE_TABLE_EXPORT_OK claw-code-zstd.trace time-sample 02:22:35
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n4.trace 02:22:36
+TRACE_ANALYSIS_OK llama.cpp-apple-n4.trace 02:22:37
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n4.trace time-profile 02:22:37
+TRACE_TABLE_EXPORT_OK llama.cpp-apple-n4.trace time-profile 02:22:39
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n4.trace time-sample 02:22:39
+TRACE_TABLE_EXPORT_OK llama.cpp-apple-n4.trace time-sample 02:22:41
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n40.trace 02:22:41
+TRACE_ANALYSIS_OK llama.cpp-apple-n40.trace 02:22:42
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n40.trace time-profile 02:22:42
+TRACE_TABLE_EXPORT_OK llama.cpp-apple-n40.trace time-profile 02:22:44
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n40.trace time-sample 02:22:44
+TRACE_TABLE_EXPORT_OK llama.cpp-apple-n40.trace time-sample 02:22:46
+RUNNING_TRACE_ANALYSIS llama.cpp-apple-n8.trace 02:22:46
+TRACE_ANALYSIS_OK llama.cpp-apple-n8.trace 02:22:48
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n8.trace time-profile 02:22:48
+TRACE_TABLE_EXPORT_OK llama.cpp-apple-n8.trace time-profile 02:22:50
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-apple-n8.trace time-sample 02:22:50
+TRACE_TABLE_EXPORT_OK llama.cpp-apple-n8.trace time-sample 02:22:51
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n4.trace 02:22:51
+TRACE_ANALYSIS_OK llama.cpp-bvx3-n4.trace 02:22:53
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n4.trace time-profile 02:22:53
+TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n4.trace time-profile 02:22:55
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n4.trace time-sample 02:22:55
+TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n4.trace time-sample 02:22:57
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n40.trace 02:22:57
+TRACE_ANALYSIS_OK llama.cpp-bvx3-n40.trace 02:22:59
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n40.trace time-profile 02:22:59
+TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n40.trace time-profile 02:23:01
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n40.trace time-sample 02:23:01
+TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n40.trace time-sample 02:23:03
+RUNNING_TRACE_ANALYSIS llama.cpp-bvx3-n8.trace 02:23:03
+TRACE_ANALYSIS_OK llama.cpp-bvx3-n8.trace 02:23:04
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n8.trace time-profile 02:23:04
+TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n8.trace time-profile 02:23:06
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-bvx3-n8.trace time-sample 02:23:06
+TRACE_TABLE_EXPORT_OK llama.cpp-bvx3-n8.trace time-sample 02:23:08
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n4.trace 02:23:09
+TRACE_ANALYSIS_OK llama.cpp-lazy2-n4.trace 02:23:10
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n4.trace time-profile 02:23:10
+TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n4.trace time-profile 02:23:13
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n4.trace time-sample 02:23:13
+TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n4.trace time-sample 02:23:15
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n40.trace 02:23:15
+TRACE_ANALYSIS_OK llama.cpp-lazy2-n40.trace 02:23:17
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n40.trace time-profile 02:23:17
+TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n40.trace time-profile 02:23:20
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n40.trace time-sample 02:23:20
+TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n40.trace time-sample 02:23:23
+RUNNING_TRACE_ANALYSIS llama.cpp-lazy2-n8.trace 02:23:23
+TRACE_ANALYSIS_OK llama.cpp-lazy2-n8.trace 02:23:24
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n8.trace time-profile 02:23:24
+TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n8.trace time-profile 02:23:27
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-lazy2-n8.trace time-sample 02:23:27
+TRACE_TABLE_EXPORT_OK llama.cpp-lazy2-n8.trace time-sample 02:23:30
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n4.trace 02:23:30
+TRACE_ANALYSIS_OK llama.cpp-optimal-n4.trace 02:23:32
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n4.trace time-profile 02:23:32
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n4.trace time-profile 02:23:36
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n4.trace time-sample 02:23:36
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n4.trace time-sample 02:23:42
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n40.trace 02:23:42
+TRACE_ANALYSIS_OK llama.cpp-optimal-n40.trace 02:23:43
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n40.trace time-profile 02:23:43
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n40.trace time-profile 02:23:49
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n40.trace time-sample 02:23:49
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n40.trace time-sample 02:23:56
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal-n8.trace 02:23:57
+TRACE_ANALYSIS_OK llama.cpp-optimal-n8.trace 02:23:58
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n8.trace time-profile 02:23:58
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n8.trace time-profile 02:24:04
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal-n8.trace time-sample 02:24:04
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal-n8.trace time-sample 02:24:11
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n4.trace 02:24:11
+TRACE_ANALYSIS_OK llama.cpp-optimal3-n4.trace 02:24:13
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n4.trace time-profile 02:24:13
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n4.trace time-profile 02:24:16
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n4.trace time-sample 02:24:16
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n4.trace time-sample 02:24:20
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n40.trace 02:24:20
+TRACE_ANALYSIS_OK llama.cpp-optimal3-n40.trace 02:24:22
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n40.trace time-profile 02:24:22
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n40.trace time-profile 02:24:26
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n40.trace time-sample 02:24:26
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n40.trace time-sample 02:24:31
+RUNNING_TRACE_ANALYSIS llama.cpp-optimal3-n8.trace 02:24:31
+TRACE_ANALYSIS_OK llama.cpp-optimal3-n8.trace 02:24:33
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n8.trace time-profile 02:24:33
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n8.trace time-profile 02:24:37
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-optimal3-n8.trace time-sample 02:24:37
+TRACE_TABLE_EXPORT_OK llama.cpp-optimal3-n8.trace time-sample 02:24:42
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n4.trace 02:24:42
+TRACE_ANALYSIS_OK llama.cpp-other3-n4.trace 02:24:44
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n4.trace time-profile 02:24:44
+TRACE_TABLE_EXPORT_OK llama.cpp-other3-n4.trace time-profile 02:24:46
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n4.trace time-sample 02:24:46
+TRACE_TABLE_EXPORT_OK llama.cpp-other3-n4.trace time-sample 02:24:48
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n40.trace 02:24:48
+TRACE_ANALYSIS_OK llama.cpp-other3-n40.trace 02:24:49
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n40.trace time-profile 02:24:49
+TRACE_TABLE_EXPORT_OK llama.cpp-other3-n40.trace time-profile 02:24:51
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n40.trace time-sample 02:24:51
+TRACE_TABLE_EXPORT_OK llama.cpp-other3-n40.trace time-sample 02:24:53
+RUNNING_TRACE_ANALYSIS llama.cpp-other3-n8.trace 02:24:53
+TRACE_ANALYSIS_OK llama.cpp-other3-n8.trace 02:24:55
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n8.trace time-profile 02:24:55
+TRACE_TABLE_EXPORT_OK llama.cpp-other3-n8.trace time-profile 02:24:57
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-other3-n8.trace time-sample 02:24:57
+TRACE_TABLE_EXPORT_OK llama.cpp-other3-n8.trace time-sample 02:24:59
+RUNNING_TRACE_ANALYSIS llama.cpp-tar.lz4.trace 02:24:59
+TRACE_ANALYSIS_OK llama.cpp-tar.lz4.trace 02:25:01
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tar.lz4.trace time-profile 02:25:01
+TRACE_TABLE_EXPORT_OK llama.cpp-tar.lz4.trace time-profile 02:25:03
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tar.lz4.trace time-sample 02:25:03
+TRACE_TABLE_EXPORT_OK llama.cpp-tar.lz4.trace time-sample 02:25:05
+RUNNING_TRACE_ANALYSIS llama.cpp-tgz.trace 02:25:05
+TRACE_ANALYSIS_OK llama.cpp-tgz.trace 02:25:07
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tgz.trace time-profile 02:25:07
+TRACE_TABLE_EXPORT_OK llama.cpp-tgz.trace time-profile 02:25:09
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-tgz.trace time-sample 02:25:09
+TRACE_TABLE_EXPORT_OK llama.cpp-tgz.trace time-sample 02:25:11
+RUNNING_TRACE_ANALYSIS llama.cpp-zstd.trace 02:25:11
+TRACE_ANALYSIS_OK llama.cpp-zstd.trace 02:25:13
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-zstd.trace time-profile 02:25:13
+TRACE_TABLE_EXPORT_OK llama.cpp-zstd.trace time-profile 02:25:15
+RUNNING_TRACE_TABLE_EXPORT llama.cpp-zstd.trace time-sample 02:25:15
+TRACE_TABLE_EXPORT_OK llama.cpp-zstd.trace time-sample 02:25:17
+TRACE_ANALYSIS_DONE 02:25:17
+TRACE_ANALYSIS_DONE 02:25:17
+RUNNING_CPU_CALL_TREE_ANALYSIS 02:25:17
+CPU_CALL_TREE_TRACE_COUNT_START 42 expected=42 02:25:17
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n4.time-profile.xml 02:25:17
+CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n4.time-profile.xml 02:25:17
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n40.time-profile.xml 02:25:17
+CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n40.time-profile.xml 02:25:17
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n8.time-profile.xml 02:25:17
+CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n8.time-profile.xml 02:25:18
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n4.time-profile.xml 02:25:18
+CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n4.time-profile.xml 02:25:18
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n40.time-profile.xml 02:25:18
+CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n40.time-profile.xml 02:25:18
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n8.time-profile.xml 02:25:18
+CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n8.time-profile.xml 02:25:18
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n4.time-profile.xml 02:25:18
+CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n4.time-profile.xml 02:25:18
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n40.time-profile.xml 02:25:18
+CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n40.time-profile.xml 02:25:18
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n8.time-profile.xml 02:25:18
+CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n8.time-profile.xml 02:25:18
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n4.time-profile.xml 02:25:18
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n4.time-profile.xml 02:25:19
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n40.time-profile.xml 02:25:19
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n40.time-profile.xml 02:25:19
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n8.time-profile.xml 02:25:19
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n8.time-profile.xml 02:25:19
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n4.time-profile.xml 02:25:19
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n4.time-profile.xml 02:25:19
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n40.time-profile.xml 02:25:19
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n40.time-profile.xml 02:25:19
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n8.time-profile.xml 02:25:19
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n8.time-profile.xml 02:25:19
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n4.time-profile.xml 02:25:19
+CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n4.time-profile.xml 02:25:20
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n40.time-profile.xml 02:25:20
+CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n40.time-profile.xml 02:25:20
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n8.time-profile.xml 02:25:20
+CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n8.time-profile.xml 02:25:20
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-tar.lz4.time-profile.xml 02:25:20
+CPU_CALL_TREE_ANALYSIS_OK claw-code-tar.lz4.time-profile.xml 02:25:20
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-tgz.time-profile.xml 02:25:20
+CPU_CALL_TREE_ANALYSIS_OK claw-code-tgz.time-profile.xml 02:25:20
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-zstd.time-profile.xml 02:25:20
+CPU_CALL_TREE_ANALYSIS_OK claw-code-zstd.time-profile.xml 02:25:20
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n4.time-profile.xml 02:25:20
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n4.time-profile.xml 02:25:20
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n40.time-profile.xml 02:25:20
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n40.time-profile.xml 02:25:20
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n8.time-profile.xml 02:25:20
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n8.time-profile.xml 02:25:21
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n4.time-profile.xml 02:25:21
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n4.time-profile.xml 02:25:21
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n40.time-profile.xml 02:25:21
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n40.time-profile.xml 02:25:21
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n8.time-profile.xml 02:25:21
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n8.time-profile.xml 02:25:21
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n4.time-profile.xml 02:25:21
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n4.time-profile.xml 02:25:21
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n40.time-profile.xml 02:25:21
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n40.time-profile.xml 02:25:21
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n8.time-profile.xml 02:25:21
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n8.time-profile.xml 02:25:21
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n4.time-profile.xml 02:25:21
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n4.time-profile.xml 02:25:22
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n40.time-profile.xml 02:25:22
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n40.time-profile.xml 02:25:22
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n8.time-profile.xml 02:25:22
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n8.time-profile.xml 02:25:22
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n4.time-profile.xml 02:25:22
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n4.time-profile.xml 02:25:22
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n40.time-profile.xml 02:25:22
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n40.time-profile.xml 02:25:22
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n8.time-profile.xml 02:25:22
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n8.time-profile.xml 02:25:22
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n4.time-profile.xml 02:25:22
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n4.time-profile.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n40.time-profile.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n40.time-profile.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n8.time-profile.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n8.time-profile.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-tar.lz4.time-profile.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-tar.lz4.time-profile.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-tgz.time-profile.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-tgz.time-profile.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-zstd.time-profile.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-zstd.time-profile.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n4.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n4.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n40.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n40.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-apple-n8.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-apple-n8.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n4.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n4.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n40.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n40.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-bvx3-n8.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-bvx3-n8.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n4.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n4.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n40.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n40.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-lazy2-n8.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-lazy2-n8.time-sample.xml 02:25:23
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n4.time-sample.xml 02:25:23
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-optimal3-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-optimal3-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-other3-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-other3-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-tar.lz4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-tar.lz4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-tgz.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-tgz.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS claw-code-zstd.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK claw-code-zstd.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-apple-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-apple-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-bvx3-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-bvx3-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-lazy2-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-lazy2-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-optimal3-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-optimal3-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n4.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n40.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n40.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-other3-n8.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-other3-n8.time-sample.xml 02:25:24
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-tar.lz4.time-sample.xml 02:25:24
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-tar.lz4.time-sample.xml 02:25:25
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-tgz.time-sample.xml 02:25:25
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-tgz.time-sample.xml 02:25:25
+RUNNING_CPU_CALL_TREE_ANALYSIS llama.cpp-zstd.time-sample.xml 02:25:25
+CPU_CALL_TREE_ANALYSIS_OK llama.cpp-zstd.time-sample.xml 02:25:25
+CPU_CALL_TREE_TRACE_COUNT_BEFORE_CLEANUP 42 02:25:25
+CPU_CALL_TREE_TRACE_CLEANED before=42 after=0 02:25:26
+CPU_CALL_TREE_ANALYSIS_DONE 02:25:26
+CPU_CALL_TREE_ANALYSIS_DONE 02:25:26
+RUNNING_GIT_GC 02:25:26
+GIT_GC_DONE 02:25:49
+RUNNING_BENCHMARK_RESULT_REBUILD 02:25:49
 [Info] generated rows: 54
 [Info] wrote BenchMarkResult.csv2
-BENCHMARK_RESULT_REBUILD_DONE 22:44:36
-RUNNING_POWER_SUMMARY_INTEGRATE 22:44:36
+BENCHMARK_RESULT_REBUILD_DONE 02:25:50
+RUNNING_POWER_SUMMARY_INTEGRATE 02:25:50
 [Info] integrated CPU power/energy and TGZ energy ratios into BenchMarkResult.csv2
 [Info] integrated CPU power/energy extrema and TGZ energy ratios into best_points/best_points.csv2
 [Info] wrote best_points/best_points.md
-POWER_SUMMARY_INTEGRATE_DONE 22:44:36
-RUNNING_BEST_POINTS_ANALYSIS 22:44:37
+POWER_SUMMARY_INTEGRATE_DONE 02:25:50
+RUNNING_BEST_POINTS_ANALYSIS 02:25:50
 [Info] wrote best_points/best_points.md
 [Info] wrote best_points/best_points.csv2
-BEST_POINTS_ANALYSIS_DONE 22:44:37
-RUNNING_COMPARISON 22:44:37
+BEST_POINTS_ANALYSIS_DONE 02:25:51
+RUNNING_COMPARISON 02:25:51
 
 ==============================================================================
   macOS vs Windows — dataset=claw-code  mac_n=40  win_n=40(inflight)
@@ -1110,28 +1135,28 @@ RUNNING_COMPARISON 22:44:37
 ------------------------------------------------------------------------------
   Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Bar(Mac)
   ----------------------  ---------  -------  ---------  -------  -------  --------------------
-  TGZ                        323.90   1.0000     175.43   1.0000    0.542  ###########.........
-  LZFSE (Other3)             592.21   1.8284     184.55   1.0520    0.312  ####################
-  LZFSE (Optimal3)            67.01   0.2069      33.22   0.1894    0.496  ##..................
-  LZFSE (BVX3)               495.56   1.5300     200.90   1.1452    0.405  #################...
-  LZFSE (Lazy2)               68.72   0.2122      41.00   0.2337    0.597  ##..................
-  LZFSE (Optimal)             35.74   0.1103      18.11   0.1032    0.507  #...................
-  TLZ4                       566.45   1.7488     187.74   1.0702    0.331  ###################.
-  ZSTD                       512.24   1.5815     100.97   0.5755    0.197  #################...
+  TGZ                        327.62   1.0000     175.43   1.0000    0.535  ##########..........
+  LZFSE (Other3)             647.99   1.9779     184.55   1.0520    0.285  ####################
+  LZFSE (Optimal3)            67.33   0.2055      33.22   0.1894    0.493  ##..................
+  LZFSE (BVX3)               643.27   1.9635     200.90   1.1452    0.312  ####################
+  LZFSE (Lazy2)               70.24   0.2144      41.00   0.2337    0.584  ##..................
+  LZFSE (Optimal)             37.27   0.1138      18.11   0.1032    0.486  #...................
+  TLZ4                       604.25   1.8444     187.74   1.0702    0.311  ###################.
+  ZSTD                       543.01   1.6574     100.97   0.5755    0.186  #################...
 
 ------------------------------------------------------------------------------
   1b. Decode MB/s  解壓速度  (Mac: avg n=40; Windows: single run total)
 ------------------------------------------------------------------------------
   Format                   Mac MB/s  Mac/TGZ   Win MB/s  Win/TGZ  Win/Mac  Verify  Bar(Mac)
   ----------------------  ---------  -------  ---------  -------  -------  ------  --------------------
-  TGZ                        603.85   1.0000      86.19   1.0000    0.143    PASS  ############........
-  LZFSE (Other3)             861.07   1.4260     146.68   1.7018    0.170    PASS  #################...
-  LZFSE (Optimal3)           946.06   1.5667     142.50   1.6533    0.151    PASS  ###################.
-  LZFSE (BVX3)               907.34   1.5026     131.84   1.5297    0.145    PASS  ##################..
-  LZFSE (Lazy2)              922.35   1.5274     141.27   1.6390    0.153    PASS  ##################..
-  LZFSE (Optimal)            860.96   1.4258     145.82   1.6918    0.169    PASS  #################...
-  TLZ4                      1009.73   1.6722     180.27   2.0916    0.179    PASS  ####################
-  ZSTD                       764.89   1.2667     176.57   2.0486    0.231    PASS  ###############.....
+  TGZ                        619.67   1.0000      86.19   1.0000    0.139    PASS  ############........
+  LZFSE (Other3)             887.16   1.4317     146.68   1.7018    0.165    PASS  #################...
+  LZFSE (Optimal3)          1017.39   1.6418     142.50   1.6533    0.140    PASS  ###################.
+  LZFSE (BVX3)               923.67   1.4906     131.84   1.5297    0.143    PASS  ##################..
+  LZFSE (Lazy2)              968.61   1.5631     141.27   1.6390    0.146    PASS  ###################.
+  LZFSE (Optimal)            971.88   1.5684     145.82   1.6918    0.150    PASS  ###################.
+  TLZ4                      1043.75   1.6844     180.27   2.0916    0.173    PASS  ####################
+  ZSTD                       870.89   1.4054     176.57   2.0486    0.203    PASS  #################...
 
 ------------------------------------------------------------------------------
   1c. Compress Size & Ratio  壓縮大小與比率  (ratio = format / TGZ, per platform)
@@ -1152,28 +1177,28 @@ RUNNING_COMPARISON 22:44:37
 ------------------------------------------------------------------------------
   Format                   Mac Enc   Mac/TGZ   Win Enc   Win/TGZ   Mac Dec   Win Dec
   ----------------------  --------  --------  --------  --------  --------  --------
-  TGZ                       162.90    1.0000    144.10    1.0000     41.80     45.20
-  LZFSE (Other3)            353.90    2.1725    138.20    0.9591    315.70    257.40
-  LZFSE (Optimal3)          563.80    3.4610    496.80    3.4476    321.50    255.50
-  LZFSE (BVX3)              373.80    2.2947    146.80    1.0187    316.10    249.20
-  LZFSE (Lazy2)             508.20    3.1197    483.00    3.3518    328.80    247.90
-  LZFSE (Optimal)           589.30    3.6176    511.40    3.5489    334.10    244.80
-  TLZ4                       82.50    0.5064      8.90    0.0618     34.00      8.40
-  ZSTD                      394.80    2.4236      8.90    0.0618   1364.10      8.90
+  TGZ                       172.10    1.0000    144.10    1.0000     41.30     45.20
+  LZFSE (Other3)            351.40    2.0418    138.20    0.9591    315.50    257.40
+  LZFSE (Optimal3)          553.10    3.2138    496.80    3.4476    321.30    255.50
+  LZFSE (BVX3)              352.10    2.0459    146.80    1.0187    315.80    249.20
+  LZFSE (Lazy2)             504.80    2.9332    483.00    3.3518    328.30    247.90
+  LZFSE (Optimal)           573.20    3.3306    511.40    3.5489    333.70    244.80
+  TLZ4                       80.10    0.4654      8.90    0.0618     34.10      8.40
+  ZSTD                      396.90    2.3062      8.90    0.0618   1765.00      8.90
 
 ------------------------------------------------------------------------------
   3. CPU Energy J  能耗  (Mac only — macOS powermetrics required)
 ------------------------------------------------------------------------------
   Format                      Enc J   Enc/TGZ      Dec J   Dec/TGZ
   ----------------------  ---------  --------  ---------  --------
-  TGZ                         70.63    1.0000       7.28    1.0000
-  LZFSE (Other3)              31.24    0.4423       4.78    0.6571
-  LZFSE (Optimal3)           370.58    5.2464       4.11    0.5644
-  LZFSE (BVX3)                29.04    0.4111       5.55    0.7620
-  LZFSE (Lazy2)              118.80    1.6819       4.87    0.6688
-  LZFSE (Optimal)            517.19    7.3220       5.95    0.8181
-  TLZ4                        30.66    0.4340       1.07    0.1473
-  ZSTD                        42.17    0.5971       2.96    0.4073
+  TGZ                         68.39    1.0000       7.04    1.0000
+  LZFSE (Other3)              31.97    0.4674       4.49    0.6383
+  LZFSE (Optimal3)           364.58    5.3307       3.44    0.4883
+  LZFSE (BVX3)                33.16    0.4849       5.60    0.7952
+  LZFSE (Lazy2)              113.15    1.6545       5.58    0.7929
+  LZFSE (Optimal)            497.47    7.2738       6.04    0.8578
+  TLZ4                        30.17    0.4411       1.13    0.1607
+  ZSTD                        35.18    0.5145       2.78    0.3941
 
 ==============================================================================
 
@@ -1186,12 +1211,10 @@ RUNNING_COMPARISON 22:44:37
   LZFSE (Optimal)      Win enc   18.11 MB/s  dec  145.82 MB/s
   TLZ4                 Win enc  187.74 MB/s  dec  180.27 MB/s
   ZSTD                 Win enc  100.97 MB/s  dec  176.57 MB/s
-COMPARISON_DONE 22:44:37
-RUNNING_MD_TRANSLATE 22:44:37
+COMPARISON_DONE 02:25:51
+RUNNING_MD_TRANSLATE 02:25:51
 Built / 建置完成：/Users/raliclo/proj/lzfse2/helper/md-translate/bin/md-translate
-TRANSLATE_DONE 22:48:02
-MD_TRANSLATE_DONE 22:48:02
+TRANSLATE_DONE 02:29:45
+MD_TRANSLATE_DONE 02:29:45
 Done.
-BENCH_DONE 22:48:02
-Built / 建置完成：/Users/raliclo/proj/lzfse2/helper/md-translate/bin/md-translate
-TRANSLATE_DONE 04:36:12
+BENCH_DONE 02:29:45

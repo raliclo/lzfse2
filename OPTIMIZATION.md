@@ -167,6 +167,222 @@ cPrice[i]          → 位置 i 的 DP 最小 bit 總成本
 
 ---
 
+# R51-Mac：macOS 27.2 與靜態相依建置下的重測，數字與 R50 一致（2026-09-26）
+
+> **目標**：以 `sudo ./run_round.command -full` 重測。R50 之後環境與建置有多項變動：
+> macOS 27.0 → 27.2、Xcode 27.0 正式版、swift_tar 改以 submodule 靜態連結
+> liblzma／liblz4／libzstd（`21ecf33`）、xz 5.8.4、libarchive 升 99 筆、`-n 1` 改為
+> 真的只用一個 writer（`0614a89`），以及 `run_round.command` 的 `rc=$?` 修正（`a441b9d`）。
+>
+> **成立的結論：這些變動沒有造成可量測的效能退化。** 解壓中位數 **+4.1%**、壓縮中位數
+> **+1.0%**，54 列全部與 R50 同一量級。超過 ±15% 的差異全為正向，且集中在 R50 自身偏低的
+> 格子，歸為雜訊，不作為「變快」的結論（第 2 節）。
+>
+> **Goal**: re-measure with `-full` after the macOS 27.2 update, the Xcode 27.0 release, static
+> linking of liblzma/liblz4/libzstd, xz 5.8.4 and a libarchive bump. **None of these produced a
+> measurable regression**: decode median +4.1%, encode median +1.0%, all 54 rows within the same
+> range as R50. The few differences beyond ±15% are all positive and sit where R50 itself was low;
+> they are treated as noise, not as a speed-up.
+
+執行 2026-09-26 15:26:42 → 2026-09-27 02:29:45，共 **11 小時 03 分**。機器 `Mac16,10`，
+`os_version` `27.2 (26B5091g)`，swift_tar `f6ba52c`（`20260920-170352`）。
+
+判定（`helper/status_monitor.zsh --verdict`）：失敗訊號 **0**、解壓一致性比對
+**48 OK / 0 FAILED**、必要步驟標記全部到齊（含 `TRACER_DONE` 與 `POWER_BENCHMARK_DONE`）。
+**本輪是 `rc=$?` 修正後的第一輪**：`BENCH_DONE` 首次反映 `benchmark2.zsh` 的真實退出碼，
+且與步驟標記的判定一致。
+
+## 1. 與 R50 一致
+
+MB/s，n=40（原始大小 ÷ 耗時；claw-code 1351 MiB）：
+
+| claw-code | 壓縮 R50 | **R51** | 解壓 R50 | **R51** |
+| --- | ---: | ---: | ---: | ---: |
+| LZFSE (Apple) | 153 | **154** | 892 | **929** |
+| LZFSE (BVX3) | 496 | **643** | 907 | **924** |
+| LZFSE (Lazy2) | 69 | **70** | 922 | **969** |
+| LZFSE (Optimal) | 36 | **37** | 861 | **972** |
+| LZFSE (Optimal3) | 67 | **67** | 946 | **1017** |
+| LZFSE (Other3) | 592 | **648** | 861 | **887** |
+| TGZ | 324 | **328** | 604 | **620** |
+| TLZ4 | 566 | **604** | 1010 | **1044** |
+| ZSTD | 512 | **543** | 765 | **871** |
+
+| llama.cpp | 壓縮 R50 | **R51** | 解壓 R50 | **R51** |
+| --- | ---: | ---: | ---: | ---: |
+| LZFSE (Apple) | 159 | **158** | 458 | **487** |
+| LZFSE (BVX3) | 382 | **394** | 474 | **488** |
+| LZFSE (Lazy2) | 163 | **164** | 497 | **519** |
+| LZFSE (Optimal) | 57 | **57** | 479 | **508** |
+| LZFSE (Optimal3) | 83 | **82** | 492 | **511** |
+| LZFSE (Other3) | 409 | **397** | 422 | **469** |
+| TGZ | 348 | **328** | 435 | **446** |
+| TLZ4 | 351 | **344** | 534 | **557** |
+| ZSTD | 460 | **455** | 462 | **514** |
+
+全 54 列（三個 `-n` × 兩個資料集 × 九種格式）：
+
+| | 中位數 | 最小 | 最大 |
+| --- | ---: | ---: | ---: |
+| 解壓 Δ | **+4.1%** | −7.7% | +24.4% |
+| 壓縮 Δ | **+1.0%** | −5.5% | +75.4% |
+
+`-n 1` 的修正（`0614a89`）**未被本輪量到**：本輪的掃描是 `-n 40 / 8 / 4`，不含 `-n 1`。
+
+## 2. 超過 ±15% 的差異皆為正向，但不是「變快」
+
+| 列 | 壓縮 R50 → R51 | 解壓 R50 → R51 |
+| --- | ---: | ---: |
+| llama.cpp BVX3 n8 | 216 → 378（+75%）| 487 → 463 |
+| llama.cpp TGZ n8 | 193 → 328（+70%）| 377 → 470（+24%）|
+| llama.cpp BVX3 n4 | 210 → 321（+53%）| 459 → 470 |
+| claw-code BVX3 n40 | 496 → 643（+30%）| 907 → 924 |
+| llama.cpp Apple n8／n4 | 124／126 → 159／158（+28%／+25%）| 持平 |
+| llama.cpp Lazy2 n8 | 135 → 166（+23%）| 持平 |
+| claw-code ZSTD n4 | 455 → 540（+19%）| 786 → 876（+11%）|
+| claw-code BVX3 n4 | 355 → 416（+17%）| 持平 |
+
+**這些格子在 R50 裡本身就偏低。** 例如 R50 的 llama.cpp TGZ：`-n 40` 348、`-n 4` 340，
+而 `-n 8` 只有 193；BVX3：`-n 40` 382，`-n 8`／`-n 4` 只有 216／210。R51 在這些格子的
+數字只是回到同輪其他 `-n` 的水準。**這是 R50 單次量測的離群值被修正，不是 R51 變快**；
+兩輪都各只量一次、未交錯，不足以支持任何「變快」的結論（mistakes.md 第 2 條）。
+
+The rows beyond ±15% are all positive and are exactly the cells where R50 itself was an
+outlier -- R50's llama.cpp TGZ n8 was 193 while its n40 and n4 were 348 and 340. R51 simply
+lands where the other `-n` values already were. Single, non-interleaved runs on both sides
+cannot support a speed-up claim.
+
+## 3. llama.cpp 掃描的牆鐘時間變長，但 MB/s 沒有
+
+| 掃描 | R50 | R51 |
+| --- | ---: | ---: |
+| claw-code `-n 40 / 8 / 4` | 22 / 23 / 24 分 | 24 / 24 / 25 分 |
+| llama.cpp `-n 40` | 2h 25m | 2h 41m |
+| llama.cpp `-n 8` | 2h 28m | **3h 01m** |
+| llama.cpp `-n 4` | 2h 25m | **2h 52m** |
+| tracer | 44 分 | 43 分 |
+| 全輪 | 9h 42m | **11h 03m** |
+
+多出的 1 小時 20 分幾乎全在 llama.cpp，而**同一批掃描的 MB/s 並沒有變慢**（第 1 節）。
+llama.cpp 掃描的牆鐘時間主要花在解出後的 manifest 一致性比對（每個格式約 15–19 分，
+claw-code 同一步約 2 分），不在被計時的編解碼視窗內，因此不影響本輪任何 MB/s 數字。
+
+**成因（已量，2026-09-27）：比對的耗時是「檔案數 × 每檔 22.7 ms」，而其中約 16.5 ms 是
+一個在 Rosetta 下執行的 `sha256sum`。** `lz4bench.zsh` 的 `benchManifestLine` 對每個一般檔
+呼叫四個 stat 輔助函式（各自先跑一次 `stat --version` 判斷 GNU／BSD、再跑真正的 `stat`）
+與 `benchSha256`。本機的 `sha256sum` 解析到 `/usr/local/bin/sha256sum`——舊的 Intel
+Homebrew 留下的 **x86_64** coreutils，每次啟動都要經 Rosetta 轉譯；arm64 的 Homebrew 只以
+`gsha256sum` 的名字安裝同一個工具。
+
+| 量測 | 數值 |
+| --- | ---: |
+| 語料項目數 | llama.cpp **45,756**；claw-code 5,849 |
+| 每檔 `benchManifestLine`（2,000 個 llama.cpp 檔，3 輪取最小） | **22.71 ms** |
+| 單次 `sha256sum`，x86_64 `/usr/local/bin`（Rosetta，200 次取最小） | **16.48 ms** |
+| 單次 `gsha256sum`，arm64 `/opt/homebrew/bin`（同上） | 2.65 ms |
+| 單次 `/usr/bin/stat`（同上） | 3.50 ms |
+| 外推一次 llama.cpp 比對 | **≈ 17.3 分**（R50 實測 15 分，R51 19 分） |
+
+三個工具的雜湊值相同。每檔 22.7 ms 中，sha256 一項就占 16.5 ms；八次 stat 相關的程序
+（其中四次只為判斷 GNU／BSD）是其餘的大部分。R50 與 R51 相差 27%，**以現有資料無法再
+區分是 macOS 27.2 還是執行當時的負載造成**；兩輪都只量一次。
+
+Of the 22.7 ms per file, about 16.5 ms is one `sha256sum`: here it resolves to an x86_64
+coreutils left in `/usr/local` by an old Intel Homebrew, which Apple Silicon runs through
+Rosetta (16.48 ms per launch, versus 2.65 ms for the arm64 `gsha256sum`; all three tools
+give the same digest). Most of the rest is eight stat-related spawns, four of them only to
+tell GNU from BSD. The 27% gap between R50 and R51 cannot be attributed further from one
+run each. Fixed in 待辦 5 below.
+
+## 4. 本輪資料
+
+- `BenchMarkResult.csv2`、`README.md` 的結果表、`best_points/`
+- `lz4bench_log/lz4bench-{claw-code,llama.cpp}-n{40,8,4}.txt`
+- `powerResults/`、`memprobeResults/`
+- `trace/`（本輪以 `-full` 執行，trace 與 CPU call tree 分析皆為本輪新產生）
+- `round_status.txt`
+
+## 待辦
+
+1. ✅ **已完成（2026-09-27）：`helper/status_monitor.zsh`。** ① 刪掉「exit code 恆為 0」的
+   過期註記，檔頭改寫為：自 `a441b9d` 起 `BENCH_DONE` 反映真實退出碼，但判定仍以逐步標記
+   為準（被跳過的步驟同樣回 0）。② `TRACER_DONE` 改依第一個 `MODE … power_test=` 行決定是否
+   必要；沒有 `MODE` 行的舊 log 保守地仍要求。③ 判定時印出模式，`swift_tar=0` 或
+   `power_test=0` 時附註數字的可比性。④ 標記改為行首錨定比對（`^名稱( |$)`），不再用子字串。
+   六個對照組全部符合預期：真實 R51 log 判完成；`power_test=1` 缺 `TRACER_DONE` 判未完成；
+   `power_test=0` 缺它判完成並附註；無 `MODE` 行缺它判未完成；`COMPARISON_DONE` 只剩子字串
+   `XCOMPARISON_DONE` 時判缺；`swift_tar=0` 判完成並附註不可比較。
+2. ✅ **已查明：llama.cpp 比對時間的成因**（第 3 節）。主因是 Rosetta 下的 x86_64
+   `sha256sum`（每次 16.5 ms），其次是每檔八次 stat 相關程序；27% 的差距無法以單次資料再細分。
+3. ✅ **已量（2026-09-27）：chunk 大小的取捨。結論：維持 4 MiB。**
+
+   方法：複製 `swift_tar.swift` 到暫存目錄，只把 `TAR_CHUNK_SIZE` 替換為 4／8／16 MiB
+   （逐支確認替換成功），以與 `compile_tar.zsh` 相同的 swiftc 參數與 `build/` 產物建置三支
+   （零診斷），不動工作樹、不覆蓋 `/opt/homebrew/bin/swift_tar`。4 MiB 那支與正式版數值
+   相同但建置方式與另外兩支一致，作為對照；已安裝的正式版另作「建置方式等同」的檢查。
+   claw-code，指令同 benchmark（`czf`、`-c --zstd --zstd-level 9`、`-cf`），解壓用 `--cat`
+   不寫檔，輸出在 RAM disk，**5 輪交錯取最小值**。已做成可重跑的驗證腳本並存下輸出：
+   `swift_tar/verifications/chunk_size_tradeoff.zsh`（`--source f6ba52c`）→
+   `chunk_size_tradeoff.txt`。MB/s：
+
+   | chunk | TGZ 壓縮 | TGZ 解壓 | ZSTD 壓縮 | ZSTD 解壓 | tar（無壓縮）| TGZ 大小 | ZSTD 大小 |
+   | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+   | **4 MiB** | 277 | 799 | 454 | 1157 | 2896 | 468.6M | 382.6M |
+   | 8 MiB | 273 | 799 | 443 | 1115（−3.6%）| 2797 | 468.5M | 372.5M（**−2.6%**）|
+   | 16 MiB | 269 | 814 | 427 | 1098（−5.1%）| 2670 | 468.5M | 367.1M（**−4.0%**）|
+   | 正式版（對照）| 268 | 803 | 435 | 1138 | 2728 | 468.6M | 382.6M |
+
+   - **大小的差異是確定的**：壓縮後大小與負載無關，兩次執行在輸出精度（0.1 MiB）內相同。ZSTD 8 MiB −2.6%、
+     16 MiB −4.0%；**TGZ 不受影響**（gzip 視窗只有 32 KB，chunk 碰不到它）。
+   - **速度的差異在雜訊範圍內**：對照組與 4 MiB 同值，卻自己偏離最多 5.8%；執行期間另一個
+     工作的編譯把 load 推到 18。同一天較早一次未存檔的執行量到 16 MiB 解壓 −10%，存檔的這次
+     是 −5.1%——**沒有重現，不採用**。兩次唯一一致的是方向：chunk 越大，ZSTD 解壓與無壓縮
+     tar 越慢。
+   - **維持 4 MiB 的理由**：放大 chunk 只換到 ≤4% 的 ZSTD 大小，速度沒有變好，而且兩次量到
+     的方向都是變慢。
+
+   Size differences are deterministic and repeat to the printed 0.1 MiB (ZSTD −2.6% at 8 MiB, −4.0% at 16 MiB;
+   TGZ unchanged). Speed differences are within this run's noise -- the control, identical to
+   4 MiB, deviated by up to 5.8% -- and an earlier unsaved run's −10% at 16 MiB was not
+   reproduced (−5.1%). Keep 4 MiB: a larger chunk buys at most 4% of size and no speed.
+4. **可與前後輪比較的輪次一律以 `sudo ./run_round.command -full` 執行。** `-full` 同時開啟
+   swift_tar 後端與 power test／tracer；少了任一項，MB/s 或 trace 資料就不與既有輪次同條件。
+5. ✅ **已完成（2026-09-27）：縮短 manifest 比對。** llama.cpp 三個掃描共 27 次比對、每次
+   約 17 分，**整輪 11 小時中約 7.5 小時花在這裡**。`lz4bench.zsh` 的改法：
+   ① `benchStatDetect` 在迴圈前判斷一次 GNU／BSD，一次 `stat` 取回 mode／mtime／size／
+   identity（每檔 8 次 stat 相關程序 → 1 次）；② `benchShaDetect` 選一次 sha256 工具，
+   **優先 arm64 的 `gsha256sum`**，其次 `sha256sum`，都沒有才用 `benchSha256` 的後備。兩者
+   同為 GNU coreutils，輸出格式與特殊檔名的跳脫規則相同。
+
+   驗證：以舊版（`HEAD` 的 `lz4bench.zsh`）與新版各產生一次 manifest，`cmp` 比對。語料為
+   llama.cpp、claw-code，及一個邊界樹（空檔、含空白與換行的檔名、權限 600、三個硬連結含子
+   目錄內者、有效與懸空的符號連結、FIFO、深層目錄）。**三者逐位元組相同。**
+
+   | 語料（項目數） | 舊版 | 新版 | 倍數 |
+   | --- | ---: | ---: | ---: |
+   | claw-code（5,849） | 282.1 秒 | 38.5 秒 | 7.3× |
+   | llama.cpp（45,756） | 1491.2 秒 | 257.3 秒 | 5.8× |
+
+   各只量一次，且不在同一時段（舊版執行時 load 較高：舊版 llama.cpp 每檔 32.6 ms，高於上表
+   在較閒時量到的 22.7 ms），**倍數只能當量級看**。以新版每檔 5.6 ms 計，一次 llama.cpp 比對
+   約 4.3 分，27 次約省 5.8 小時——**這是估計，要等下一輪的牆鐘時間確認**。比對在計時視窗之外，
+   **不影響任何 MB/s**，但下一輪的全輪時間會與 R51 不可直接比較。
+
+   **另一個需要使用者決定的事**：`/usr/local` 仍有一整套舊 Intel Homebrew（51 個套件、384 個
+   執行檔）。PATH 中凡是只存在於 `/usr/local/bin` 的工具都會經 Rosetta 執行，本項只繞開了
+   其中的 `sha256sum`。
+
+   Done. `lz4bench.zsh` now detects the stat flavour once and fetches all four fields in one
+   `stat`, and picks the sha256 tool once, preferring the arm64 `gsha256sum` (same GNU
+   coreutils, same output and escaping). Old and new manifests are byte-identical on
+   llama.cpp, claw-code and an edge-case tree. Single, non-interleaved runs: claw-code
+   282.1 → 38.5 s (7.3×), llama.cpp 1491.2 → 257.3 s (5.8×); treat the ratios as orders of
+   magnitude. The estimated saving is about 5.8 h per round, to be confirmed by the next
+   round's wall time. MB/s is unaffected. A full Intel Homebrew remains in `/usr/local`;
+   anything resolved only from there still runs under Rosetta -- the user's call.
+
+---
+
 # R50-Mac：回歸修復驗收，與 native／external zstd 的正面對照（2026-08-28）
 
 > **目標**：以 `sudo ./run_round.command -full` 重跑，驗收 swift_tar `cfc71df` 是否修好
@@ -466,7 +682,11 @@ R49 與 R50 完全相同，R48 不同——這證實差異來自實作替換（�
    量測一律使用 `swift_tar/verifications/zstd_decode_gap.zsh`，並以 RAM disk 為解出目標
    ——反覆在內接碟上寫入 1.3 GB 會使後續量測單調劣化，最小值於是挑到序列早期的那次而非
    真正的最佳值。該腳本的 `--mode storage` 會同時跑兩者，好讓儲存層的影響顯形。
-3. **量測 chunk 大小的取捨**（第 3 節）。8 或 16 MiB 會減少 frame 數與壓縮比損失，但
+3. ✅ **已量於 R51-Mac 待辦第 3 項（2026-09-27）：維持 4 MiB。** TGZ 不受 chunk 大小影響；
+   ZSTD 在 8／16 MiB 時小 2.6%／4.0%，速度沒有變好（差異在雜訊範圍內，方向是變慢）。
+   以下為原始待辦與當時釐清的範圍。
+
+   **量測 chunk 大小的取捨**（第 3 節）。8 或 16 MiB 會減少 frame 數與壓縮比損失，但
    降低壓縮端的平行度。這是可量測的取捨，不該憑猜測決定。**與第 2 項不可同輪進行**，
    否則無從歸因。
 
