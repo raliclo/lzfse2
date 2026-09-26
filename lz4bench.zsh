@@ -360,35 +360,48 @@ function benchAlgoName() {
     esac
 }
 
-function benchStatMode() {
+# 判斷 stat 是 GNU 還是 BSD，結果存進 _BENCH_STAT_GNU（1／0）。
+#
+# 先前是 benchStatMode／Mtime／Size／Identity 四個函式在「每個檔案」上各跑一次
+# `stat --version` 來判斷——llama.cpp 有 45,756 個項目，光是這個判斷就是十八萬次程序產生，
+# 而一次 manifest 比對約 17 分鐘，幾乎全是程序產生的成本（OPTIMIZATION.md R51-Mac 第 3 節）。
+#
+# 偵測要在迴圈外、於目前的 shell 做：benchManifestRoot 進入迴圈前呼叫一次。在 $(…) 裡設的
+# 變數傳不回父 shell，在那裡「快取」等於每次重新偵測。
+#
+# Detect GNU vs BSD stat once and keep it in _BENCH_STAT_GNU. The four helpers this replaces
+# each ran `stat --version` for every file -- 180,000 extra process spawns on llama.cpp, in a
+# comparison that was almost entirely spawn cost. It must run in the current shell before the
+# loop: a variable set inside $(…) never reaches the parent.
+function benchStatDetect() {
     if stat --version > /dev/null 2>&1; then
-        stat -c '%a' "$1" 2>/dev/null
+        _BENCH_STAT_GNU=1
     else
-        stat -f '%Lp' "$1" 2>/dev/null
+        _BENCH_STAT_GNU=0
     fi
 }
 
-function benchStatMtime() {
-    if stat --version > /dev/null 2>&1; then
-        stat -c '%Y' "$1" 2>/dev/null
+# 選定 manifest 用的 sha256 工具，存進 _BENCH_SHA_CMD。優先 `gsha256sum`，其次 `sha256sum`，
+# 兩者都沒有才交給 benchSha256 的後備（shasum／openssl）。
+#
+# 為什麼先找 gsha256sum：本機 `sha256sum` 解析到 /usr/local/bin——舊的 Intel Homebrew 裝的
+# **x86_64** coreutils，在 Apple Silicon 上每次都要經 Rosetta 轉譯才能啟動。實測每次啟動
+# 16.48 ms，而 /opt/homebrew/bin 的 arm64 `gsha256sum` 是 2.65 ms（2026-09-27，200 次取最小）。
+# 舊版 manifest 每檔 22.7 ms 中約 16.5 ms 就是這個。arm64 的 Homebrew 只裝加 g 前綴的名字，
+# 所以不加前綴的 sha256sum 會落到 /usr/local。兩者都是 GNU coreutils，輸出格式與特殊檔名的
+# 跳脫規則相同，manifest 內容因此不變。Linux 上沒有 gsha256sum，照舊用原生的 sha256sum。
+#
+# Pick the sha256 tool once. gsha256sum first: here `sha256sum` resolves to an x86_64 Intel-
+# Homebrew coreutils under /usr/local, which Apple Silicon runs through Rosetta at 16.48 ms per
+# launch versus 2.65 ms for the arm64 gsha256sum -- about 16.5 of the old 22.7 ms per file. Both
+# are GNU coreutils with identical output and escaping, so the manifest does not change.
+function benchShaDetect() {
+    if command -v gsha256sum > /dev/null 2>&1; then
+        _BENCH_SHA_CMD=gsha256sum
+    elif command -v sha256sum > /dev/null 2>&1; then
+        _BENCH_SHA_CMD=sha256sum
     else
-        stat -f '%m' "$1" 2>/dev/null
-    fi
-}
-
-function benchStatSize() {
-    if stat --version > /dev/null 2>&1; then
-        stat -c '%s' "$1" 2>/dev/null
-    else
-        stat -f '%z' "$1" 2>/dev/null
-    fi
-}
-
-function benchStatIdentity() {
-    if stat --version > /dev/null 2>&1; then
-        stat -c '%d:%i:%h' "$1" 2>/dev/null
-    else
-        stat -f '%d:%i:%l' "$1" 2>/dev/null
+        _BENCH_SHA_CMD=""
     fi
 }
 
@@ -415,9 +428,23 @@ function benchManifestLine() {
     local entry_path="$root"
     [[ "$rel" != "." ]] && entry_path="$root/$rel"
 
-    local file_mode file_mtime
-    file_mode="$(benchStatMode "$entry_path")"
-    file_mtime="$(benchStatMtime "$entry_path")"
+    # 一次 stat 取回 mode、mtime、size、identity（先前是四次 stat，外加四次 `stat --version`）。
+    # 四個欄位都不含空白，可直接依空白切開；stat 失敗時四個都是空字串，與先前各自失敗時的輸出
+    # 相同。在 benchManifestRoot 之外單獨呼叫時才會在這裡偵測，迴圈內 _BENCH_STAT_GNU 已設好。
+    # One stat for all four fields. None contains whitespace, so splitting on it is safe; on
+    # failure all four are empty, exactly as when each helper failed on its own.
+    [[ -n "${_BENCH_STAT_GNU:-}" ]] || benchStatDetect
+    local st file_mode file_mtime size identity
+    if (( _BENCH_STAT_GNU )); then
+        st="$(stat -c '%a %Y %s %d:%i:%h' "$entry_path" 2>/dev/null)"
+    else
+        st="$(stat -f '%Lp %m %z %d:%i:%l' "$entry_path" 2>/dev/null)"
+    fi
+    local -a stf=(${=st})
+    file_mode="${stf[1]:-}"
+    file_mtime="${stf[2]:-}"
+    size="${stf[3]:-}"
+    identity="${stf[4]:-}"
 
     if [[ -L "$entry_path" ]]; then
         local target
@@ -426,10 +453,19 @@ function benchManifestLine() {
     elif [[ -d "$entry_path" ]]; then
         printf 'D\t%s\tmode=%s\tmtime=%s\n' "$rel" "$file_mode" "$file_mtime"
     elif [[ -f "$entry_path" ]]; then
-        local size sha identity nlink hardlink
-        size="$(benchStatSize "$entry_path")"
-        sha="$(benchSha256 "$entry_path")"
-        identity="$(benchStatIdentity "$entry_path")"
+        local sha nlink hardlink
+        # 工具由 benchShaDetect 選一次（見該處：避開 Rosetta 下的 x86 sha256sum），直接在這裡
+        # 呼叫，少一層函式子 shell；取值方式與 benchSha256 相同（`${digest%% *}`），故輸出逐位元組
+        # 相同。兩個 GNU 工具都沒有時仍交給 benchSha256 的後備。
+        # The tool is chosen once by benchShaDetect (avoids the Rosetta x86 sha256sum) and called
+        # directly; same `${digest%% *}` extraction as benchSha256, so the output is byte-identical.
+        (( ${+_BENCH_SHA_CMD} )) || benchShaDetect
+        if [[ -n "$_BENCH_SHA_CMD" ]]; then
+            sha="$($_BENCH_SHA_CMD "$entry_path")"
+            sha="${sha%% *}"
+        else
+            sha="$(benchSha256 "$entry_path")"
+        fi
         nlink="${identity##*:}"
         hardlink="none"
         if [[ "$nlink" == <-> && "$nlink" -gt 1 ]]; then
@@ -457,6 +493,10 @@ function benchManifestRoot() {
     mkdir -p "${out:h}" > /dev/null 2>&1
     typeset -gA bench_manifest_seen_hardlinks
     bench_manifest_seen_hardlinks=()
+    # 在目前的 shell、進入迴圈前偵測一次 stat 的種類與 sha256 工具（見 benchStatDetect、benchShaDetect）。
+    # Detect the stat flavour and the sha256 tool once, in this shell, before the loop.
+    benchStatDetect
+    benchShaDetect
 
     {
         benchManifestLine "$root" "."
