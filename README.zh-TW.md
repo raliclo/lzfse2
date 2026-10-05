@@ -342,14 +342,17 @@ Windows（`helper_windows/run_round.bat -swift_tar`，2026-08-15 實測，n=40�
 
 最耗時的單一階段是 **llama.cpp 的 decode write**：40,675 個小檔逐一落盤後還要逐檔比對解壓樹，佔整輪約一半時間。它也是最容易讓人誤判為卡住的階段——期間狀態檔會長時間沒有新的 `[INFO] Running` 行。
 
-macOS（`run_round.command -full`）另含 powermetrics 功耗量測與 Time Profiler trace，且 `-n` 掃 40/8/4 三組，因此更久；`claude_test_sample_script.zsh` 的說明以 1–2 小時為準。
+macOS（`run_round.command -full`）另含 powermetrics 功耗量測與 Time Profiler trace，且 `-n` 掃 40/8/4 三組，因此久得多：R50-Mac 實測 9 小時 42 分，R51-Mac 11 小時 03 分。其中約 7.5 小時花在 llama.cpp 解出後的 manifest 逐檔比對（不在計時視窗內，不影響 MB/s）。R51 之後 `lz4bench.zsh` 改用原生 arm64 的 `gsha256sum` 並合併 stat 呼叫，比對約快 5.8 倍，估計每輪可省約 5.8 小時，要等下一輪的實測確認（見 `OPTIMIZATION.md` R51-Mac 待辦 5）。`claude_test_sample_script.zsh` 開頭寫的「1–2 小時」是過期的數字。
 
 The single longest phase is llama.cpp's decode-write, which writes 40,675 small
 files and then compares the extracted tree file by file -- about half the round.
 It is also the phase most easily mistaken for a hang, since no new
 `[INFO] Running` line appears in the status file for a long stretch. The macOS
 round additionally collects powermetrics energy figures and Time Profiler
-traces, and sweeps `-n` over 40/8/4, so it runs longer.
+traces, and sweeps `-n` over 40/8/4, so it runs far longer: 9h42m for R50-Mac
+and 11h03m for R51-Mac, about 7.5 hours of which was the post-extract manifest
+comparison on llama.cpp (outside the timed window). After R51 that comparison
+is about 5.8x faster; the next round's wall time will confirm the saving.
 
 ### 測試機硬體比較
 
@@ -366,37 +369,40 @@ Windows 資訊由 [`helper_windows/system-info-win.bat`](helper_windows/system-i
 | GPU | Apple M4 integrated GPU（核心數未記錄） | AMD Radeon(TM) Graphics（WMI VRAM 512 MB）+ NVIDIA GeForce RTX 4060 Laptop GPU（nvidia-smi: 8188 MiB） |
 | Storage | 256 GB internal storage | Micron `MTFDKBA512QGN-1BN1AABGA` NVMe SSD，476.94 GB，Healthy |
 
-### Mac / Windows 效能對照（n=40，Win 側 R47-Win、Mac 側 R50-Mac）
+### Mac / Windows 效能對照（n=40，Win 側 R47-Win、Mac 側 R51-Mac）
 
-下表每一格都取自 [`comparison.csv2`](helper_windows/bench_results_csv/comparison.csv2)，不是手抄的。標題不再寫死輪次，因為該檔會被每一輪重寫而標題不會——舊標題曾寫「R42」，Mac 側其實已落後八輪。Win 側數字可在 `OPTIMIZATION.md` 的 R47-Win 一節逐格對上。
+下表每一格都取自 [`comparison.csv2`](helper_windows/bench_results_csv/comparison.csv2)，不是手抄的。標題中的輪次須隨該檔更新——舊標題曾寫「R42」，Mac 側其實已落後八輪。Win 側數字可在 `OPTIMIZATION.md` 的 R47-Win 一節逐格對上。
+
+**llama.cpp 的 Mac 欄在 R51 之後才補上最新值。** `benchmark2.zsh` 原本呼叫 `comparison_win.py` 時沒帶 `--dataset`，而該腳本預設只處理 claw-code，所以每輪 Mac 只更新 claw-code 那幾列；llama.cpp 的 Mac 欄自 2026-07-18（`1686d6e`，R46-Win-Retest）起就沒再變過。舊表 llama.cpp 的 Mac 解壓約 115–155 MB/s，R51 實際為 469–511 MB/s。`benchmark2.zsh` 已改為兩個資料集都跑。
 
 重建方式（勿手動編輯下表；`note` 欄含引號內逗號，`awk -F,`／`cut -d,` 會靜默切錯並讓其右每欄左移一格）：
 
 ```zsh
 csv2 -get <記錄>:<欄> -i helper_windows/bench_results_csv/comparison.csv2
-# 記錄 2/3/4/6 = llama.cpp 的 Other3/Optimal3/BVX3/Optimal
-# 記錄 10/11/12/14 = claw-code 的同四項
+# 記錄 2/3/4/6 = claw-code 的 Other3/Optimal3/BVX3/Optimal
+# 記錄 10/11/12/14 = llama.cpp 的同四項
+# 欄 5/6/7 = Win／Mac 壓縮 MB/s 與比值，13/14/15 = 解壓，8/9 = 壓縮比，18 = Verify
 ```
 
 壓縮比以 TGZ 為 1.0000；數值越低代表檔案越小。Decode 為 write-to-file / tar extract 路徑，因此更接近 UI 實際解包體驗。
 
 | 資料集 | 格式 | Win Enc MB/s | Mac Enc MB/s | Win/Mac Enc | Win Dec MB/s | Mac Dec MB/s | Win/Mac Dec | Win 比率 | Mac 比率 | Verify |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| claw-code | Other3 | 184.55 | 592.21 | 0.312 | 146.68 | 861.07 | 0.170 | 0.9812 | 0.9813 | PASS |
-| claw-code | **Optimal3** | **33.22** | **67.01** | **0.496** | **142.50** | **946.06** | **0.151** | **0.9344** | **0.9346** | PASS |
-| claw-code | BVX3 | 200.90 | 495.56 | 0.405 | 131.84 | 907.34 | 0.145 | 0.9243 | 0.9248 | PASS |
-| claw-code | Optimal | 18.11 | 35.74 | 0.507 | 145.82 | 860.96 | 0.169 | 0.8252 | 0.8257 | PASS |
-| llama.cpp | Other3 | 65.90 | 236.74 | 0.278 | 30.34 | 154.66 | 0.196 | 0.9966 | 0.9971 | PASS |
-| llama.cpp | **Optimal3** | **42.42** | **83.19** | **0.510** | **30.02** | **114.88** | **0.261** | **0.9739** | **0.9705** | PASS |
-| llama.cpp | BVX3 | 64.91 | 254.72 | 0.255 | 29.94 | 137.48 | 0.218 | 0.9792 | 0.9796 | PASS |
-| llama.cpp | Optimal | 33.20 | 58.25 | 0.570 | 29.75 | 144.23 | 0.206 | 0.9390 | 0.9347 | PASS |
+| claw-code | Other3 | 184.55 | 647.99 | 0.285 | 146.68 | 887.16 | 0.165 | 0.9812 | 0.9813 | PASS |
+| claw-code | **Optimal3** | **33.22** | **67.33** | **0.493** | **142.50** | **1017.39** | **0.140** | **0.9344** | **0.9346** | PASS |
+| claw-code | BVX3 | 200.90 | 643.27 | 0.312 | 131.84 | 923.67 | 0.143 | 0.9243 | 0.9248 | PASS |
+| claw-code | Optimal | 18.11 | 37.27 | 0.486 | 145.82 | 971.88 | 0.150 | 0.8252 | 0.8257 | PASS |
+| llama.cpp | Other3 | 65.90 | 396.56 | 0.166 | 30.34 | 468.91 | 0.065 | 0.9966 | 0.9971 | PASS |
+| llama.cpp | **Optimal3** | **42.42** | **81.65** | **0.520** | **30.02** | **511.23** | **0.059** | **0.9739** | **0.9705** | PASS |
+| llama.cpp | BVX3 | 64.91 | 393.65 | 0.165 | 29.94 | 487.54 | 0.061 | 0.9792 | 0.9796 | PASS |
+| llama.cpp | Optimal | 33.20 | 56.87 | 0.584 | 29.75 | 507.74 | 0.059 | 0.9390 | 0.9347 | PASS |
 
 重點：
 
 - `other3 -optimal3` 在 Windows 與 macOS 都通過 decode verify，輸出仍是標準 Apple-compatible LZFSE。
 - `claw-code` 上 Optimal3 相對 Other3 壓縮比改善約 4.77%（Windows：0.9812 → 0.9344），但 encode 速度約為 Other3 的 18.0%。
-- `llama.cpp` 上 Optimal3 改善較小，約 2.28%（Windows：0.9966 → 0.9739）。**Windows encode 約為 Mac 的一半（Win/Mac 0.510）**——此處先前寫的是「與 Mac 幾乎相同（1.03×）」，那是抄自更早一輪的數字而未隨 `comparison.csv2` 更新，結論方向與實測相反。
-- Windows decode write-to-file 明顯慢於 macOS（八列落在 0.145–0.261×），主要反映 Windows tar extraction / NTFS file creation 路徑，不代表 LZFSE decode core 單獨差距。
+- `llama.cpp` 上 Optimal3 改善較小，約 2.28%（Windows：0.9966 → 0.9739）。**Windows encode 約為 Mac 的一半（Win/Mac 0.520）**；Other3 與 BVX3 則只有 Mac 的約六分之一（0.166／0.165）。
+- Windows decode write-to-file 明顯慢於 macOS：claw-code 四列落在 0.140–0.165×，llama.cpp 四列只有 0.059–0.065×。llama.cpp 是約四萬個小檔，差距主要反映 Windows tar extraction / NTFS 逐檔建立的成本，不代表 LZFSE decode core 單獨差距。
 - 每列的 `Windows n meaning` 皆為 `inflight=40 (1 run)`——**單次量測**。本樹已有六次「差異在交錯重量後消失」的紀錄（+81%、+21%、+9.5%、+13.6%、−10.7%、+22.4%），故上表適合用於數量級與方向，不適合用於精確的跨平台比值。
 - 若目標是最高壓縮率，`bvx3 -optimal` 仍優於 Optimal3；若目標是 Apple/標準 LZFSE 相容，Optimal3 是目前標準格式內的高壓縮率模式。
 
@@ -419,31 +425,31 @@ csv2 -get <記錄>:<欄> --md-table 2 -i best_points/best_points.md   # llama.cp
 
 | 格式 | 最佳壓縮比 | 最佳壓縮 MB/s | 最佳解壓 MB/s | Encode RSS 範圍 | Decode RSS 範圍 | Encode Energy Ratio 範圍 | Decode Energy Ratio 範圍 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| TGZ | 1.0000 (`log n4`) | 325.34 (`log n8`) | 608.24 (`log n8`) | 162.9 MB (`log n40`)–174.4 MB (`log n4`) | 41.8 MB (`log n8`)–42.1 MB (`log n4`) | 1.0000 (log n4)–1.0000 (log n4) | 1.0000 (log n4)–1.0000 (log n4) |
-| Other3 | 0.9813 (`n4`) | 592.21 (`n40`) | 925.87 (`n8`) | 136.6 MB (`n4`)–353.9 MB (`n40`) | 65.9 MB (`n4`)–315.7 MB (`n40`) | 0.4423 (n40)–0.7260 (n4) | 0.6571 (n40)–1.0619 (n4) |
-| Optimal3 | 0.9346 (`n4`) | 67.01 (`n40`) | 946.06 (`n40`) | 217.7 MB (`n4`)–563.8 MB (`n40`) | 69.7 MB (`n4`)–321.5 MB (`n40`) | 5.2464 (n40)–7.4107 (n4) | 0.5644 (n40)–0.9250 (n4) |
-| BVX3 | 0.9248 (`n4`) | 575.39 (`n8`) | 907.34 (`n40`) | 125.6 MB (`n4`)–373.8 MB (`n40`) | 68.0 MB (`n4`)–316.1 MB (`n40`) | 0.4111 (n40)–0.7230 (n4) | 0.7620 (n40)–1.3296 (n4) |
-| Lazy2 | 0.8690 (`n4`) | 68.72 (`n40`) | 922.35 (`n40`) | 195.1 MB (`n4`)–508.2 MB (`n40`) | 66.5 MB (`n4`)–328.8 MB (`n40`) | 1.6819 (n40)–2.2284 (n4) | 0.6688 (n40)–1.2055 (n4) |
-| Optimal | 0.8257 (`n4`) | 35.74 (`n40`) | 860.96 (`n40`) | 220.3 MB (`n4`)–589.3 MB (`n40`) | 70.3 MB (`n4`)–334.1 MB (`n40`) | 7.3220 (n40)–10.0002 (n4) | 0.8181 (n40)–1.2723 (n4) |
-| Apple | 0.9820 (`log n4`) | 154.08 (`log n8`) | 892.34 (`log n40`) | 1259.3 MB (`log n8`)–1356.5 MB (`log n40`) | 470.2 MB (`log n4`)–470.2 MB (`log n4`) | 0.6661 (log n8)–0.6832 (log n4) | 0.4851 (log n40)–0.5345 (log n8) |
-| TLZ4 | 1.1785 (`log n4`) | 616.63 (`log n8`) | 1274.57 (`log n4`) | 82.4 MB (`log n8`)–83.3 MB (`log n4`) | 34.0 MB (`log n4`)–34.0 MB (`log n4`) | 0.4340 (log n4)–0.4340 (log n4) | 0.1473 (log n4)–0.1473 (log n4) |
-| ZSTD | 0.8165 (`log n4`) | 529.83 (`log n8`) | 789.08 (`log n8`) | 394.8 MB (`log n40`)–397.5 MB (`log n8`) | 1145.1 MB (`log n8`)–1364.1 MB (`log n40`) | 0.5971 (log n4)–0.5971 (log n4) | 0.4073 (log n4)–0.4073 (log n4) |
+| TGZ | 1.0000 (`log n4`) | 328.09 (`log n4`) | 632.52 (`log n8`) | 167.2 MB (`log n4`)–172.1 MB (`log n40`) | 41.3 MB (`log n4`)–41.3 MB (`log n4`) | 1.0000 (log n4)–1.0000 (log n4) | 1.0000 (log n4)–1.0000 (log n4) |
+| Other3 | 0.9813 (`n4`) | 647.99 (`n40`) | 989.17 (`n8`) | 129.8 MB (`n4`)–351.4 MB (`n40`) | 65.6 MB (`n4`)–315.5 MB (`n40`) | 0.4674 (n40)–0.7350 (n4) | 0.6383 (n40)–1.0028 (n4) |
+| Optimal3 | 0.9346 (`n4`) | 67.33 (`n40`) | 1017.39 (`n40`) | 213.0 MB (`n4`)–553.1 MB (`n40`) | 65.6 MB (`n4`)–321.3 MB (`n40`) | 5.3307 (n40)–7.6495 (n4) | 0.4883 (n40)–0.9502 (n4) |
+| BVX3 | 0.9248 (`n4`) | 643.27 (`n40`) | 923.67 (`n40`) | 134.2 MB (`n4`)–352.1 MB (`n40`) | 67.8 MB (`n4`)–315.8 MB (`n40`) | 0.4849 (n40)–0.7350 (n4) | 0.7952 (n40)–1.3827 (n4) |
+| Lazy2 | 0.8690 (`n4`) | 70.24 (`n40`) | 968.61 (`n40`) | 192.5 MB (`n4`)–504.8 MB (`n40`) | 66.0 MB (`n4`)–328.3 MB (`n40`) | 1.6545 (n40)–2.2068 (n4) | 0.7929 (n40)–1.2428 (n4) |
+| Optimal | 0.8257 (`n4`) | 37.27 (`n40`) | 971.88 (`n40`) | 219.5 MB (`n4`)–573.2 MB (`n40`) | 70.0 MB (`n4`)–333.7 MB (`n40`) | 7.2738 (n40)–10.0272 (n4) | 0.8578 (n40)–1.3014 (n4) |
+| Apple | 0.9820 (`log n4`) | 155.25 (`log n4`) | 940.42 (`log n4`) | 1356.3 MB (`log n4`)–1356.3 MB (`log n4`) | 470.0 MB (`log n4`)–470.0 MB (`log n4`) | 0.6404 (log n40)–0.6532 (log n4) | 0.4321 (log n40)–0.4423 (log n8) |
+| TLZ4 | 1.1785 (`log n4`) | 606.52 (`log n8`) | 1326.87 (`log n8`) | 80.1 MB (`log n40`)–86.2 MB (`log n4`) | 34.1 MB (`log n4`)–34.1 MB (`log n4`) | 0.4411 (log n4)–0.4411 (log n4) | 0.1607 (log n4)–0.1607 (log n4) |
+| ZSTD | 0.8165 (`log n4`) | 543.01 (`log n40`) | 876.39 (`log n4`) | 390.3 MB (`log n4`)–396.9 MB (`log n40`) | 1765.0 MB (`log n4`)–1765.0 MB (`log n4`) | 0.5145 (log n4)–0.5145 (log n4) | 0.3941 (log n4)–0.3941 (log n4) |
 
 #### llama.cpp
 
 | 格式 | 最佳壓縮比 | 最佳壓縮 MB/s | 最佳解壓 MB/s | Encode RSS 範圍 | Decode RSS 範圍 | Encode Energy Ratio 範圍 | Decode Energy Ratio 範圍 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| TGZ | 1.0000 (`log n4`) | 347.60 (`log n40`) | 434.81 (`log n40`) | 161.7 MB (`log n40`)–178.2 MB (`log n4`) | 39.3 MB (`log n4`)–42.8 MB (`log n8`) | 1.0000 (log n4)–1.0000 (log n4) | 1.0000 (log n4)–1.0000 (log n4) |
-| Other3 | 0.9971 (`n4`) | 409.11 (`n40`) | 459.39 (`n8`) | 141.6 MB (`n4`)–271.6 MB (`n40`) | 74.9 MB (`n4`)–349.8 MB (`n40`) | 0.4007 (n40)–0.6847 (n4) | 0.5044 (n40)–0.9154 (n4) |
-| Optimal3 | 0.9705 (`n4`) | 83.36 (`n40`) | 499.02 (`n8`) | 204.7 MB (`n4`)–555.9 MB (`n40`) | 67.1 MB (`n4`)–349.5 MB (`n40`) | 4.6920 (n40)–6.7917 (n4) | 0.4054 (n40)–0.6887 (n4) |
-| BVX3 | 0.9796 (`n4`) | 381.76 (`n40`) | 486.53 (`n8`) | 138.0 MB (`n4`)–359.8 MB (`n40`) | 70.5 MB (`n4`)–348.4 MB (`n40`) | 0.4652 (n40)–0.7308 (n4) | 0.6985 (n40)–1.0428 (n4) |
-| Lazy2 | 0.9522 (`n4`) | 163.05 (`n40`) | 497.03 (`n40`) | 361.8 MB (`n4`)–658.2 MB (`n8`) | 65.9 MB (`n4`)–347.8 MB (`n40`) | 0.8832 (n40)–1.1946 (n4) | 0.4206 (n40)–0.7102 (n4) |
-| Optimal | 0.9347 (`n4`) | 57.28 (`n40`) | 483.04 (`n8`) | 213.3 MB (`n4`)–575.0 MB (`n40`) | 70.6 MB (`n4`)–347.6 MB (`n40`) | 5.9326 (n40)–8.3281 (n4) | 0.6891 (n40)–1.0912 (n4) |
-| Apple | 0.9993 (`log n4`) | 159.45 (`log n40`) | 470.51 (`log n8`) | 929.1 MB (`log n4`)–1042.9 MB (`log n8`) | 614.4 MB (`log n4`)–614.5 MB (`log n8`) | 0.6581 (log n40)–0.6633 (log n8) | 0.6325 (log n4)–0.7245 (log n8) |
-| TLZ4 | 1.0592 (`log n4`) | 351.03 (`log n40`) | 573.73 (`log n8`) | 79.2 MB (`log n4`)–84.7 MB (`log n8`) | 34.1 MB (`log n4`)–34.1 MB (`log n4`) | 0.6284 (log n4)–0.6284 (log n4) | 0.1743 (log n4)–0.1743 (log n4) |
-| ZSTD | 0.9297 (`log n4`) | 471.38 (`log n4`) | 505.80 (`log n8`) | 497.6 MB (`log n40`)–499.2 MB (`log n4`) | 629.5 MB (`log n4`)–785.0 MB (`log n40`) | 0.3905 (log n4)–0.3905 (log n4) | 0.2486 (log n4)–0.2486 (log n4) |
+| TGZ | 1.0000 (`log n4`) | 328.41 (`log n8`) | 469.53 (`log n8`) | 167.2 MB (`log n4`)–174.8 MB (`log n40`) | 39.0 MB (`log n4`)–41.7 MB (`log n8`) | 1.0000 (log n4)–1.0000 (log n4) | 1.0000 (log n4)–1.0000 (log n4) |
+| Other3 | 0.9971 (`n4`) | 396.56 (`n40`) | 504.48 (`n8`) | 137.9 MB (`n4`)–335.6 MB (`n40`) | 74.6 MB (`n4`)–349.5 MB (`n40`) | 0.3474 (n40)–0.5729 (n4) | 0.7010 (n40)–1.2902 (n4) |
+| Optimal3 | 0.9705 (`n4`) | 81.65 (`n40`) | 511.23 (`n40`) | 199.4 MB (`n4`)–566.9 MB (`n40`) | 66.7 MB (`n4`)–349.2 MB (`n40`) | 4.1638 (n40)–5.9722 (n4) | 0.7909 (n8)–0.9440 (n4) |
+| BVX3 | 0.9796 (`n4`) | 393.65 (`n40`) | 487.54 (`n40`) | 136.1 MB (`n4`)–347.3 MB (`n40`) | 77.3 MB (`n4`)–348.5 MB (`n40`) | 0.3653 (n40)–0.6115 (n4) | 0.9335 (n40)–1.4488 (n4) |
+| Lazy2 | 0.9522 (`n4`) | 165.92 (`n8`) | 518.63 (`n40`) | 367.6 MB (`n4`)–763.7 MB (`n40`) | 65.7 MB (`n4`)–347.5 MB (`n40`) | 0.7866 (n40)–1.0762 (n4) | 0.8464 (n40)–0.9942 (n4) |
+| Optimal | 0.9347 (`n4`) | 56.87 (`n40`) | 507.74 (`n40`) | 210.1 MB (`n4`)–599.2 MB (`n40`) | 70.1 MB (`n4`)–347.6 MB (`n40`) | 5.1928 (n40)–7.2452 (n4) | 0.8154 (n40)–1.5266 (n4) |
+| Apple | 0.9993 (`log n4`) | 158.74 (`log n8`) | 486.54 (`log n40`) | 1075.8 MB (`log n4`)–1320.4 MB (`log n40`) | 614.3 MB (`log n4`)–614.3 MB (`log n4`) | 0.5516 (log n4)–0.5567 (log n40) | 0.8779 (log n4)–0.8809 (log n40) |
+| TLZ4 | 1.0592 (`log n4`) | 344.13 (`log n40`) | 556.65 (`log n40`) | 80.8 MB (`log n40`)–82.8 MB (`log n8`) | 34.1 MB (`log n4`)–34.1 MB (`log n4`) | 0.5558 (log n4)–0.5558 (log n4) | 0.1885 (log n4)–0.1885 (log n4) |
+| ZSTD | 0.9297 (`log n4`) | 459.56 (`log n8`) | 513.87 (`log n40`) | 510.7 MB (`log n40`)–521.2 MB (`log n8`) | 831.2 MB (`log n8`)–1191.5 MB (`log n40`) | 0.4157 (log n4)–0.4157 (log n4) | 0.3557 (log n4)–0.3557 (log n4) |
 
-目前資料顯示：Optimal 在兩組資料上都取得 BVX3 family 最佳壓縮比（claw-code 0.8257、llama.cpp 0.9347），但其 encode Energy Ratio 遠高於 TGZ（7.32–10.00 與 5.93–8.33），適合離線壓縮而非追求最低單次 encode 成本。**encode Energy Ratio 在所有 n 值均低於 1 的只有 Other3 與 BVX3**——此句原本還包含 Lazy2，但現行數字不支持：Lazy2 在 claw-code 為 1.68–2.23，在 llama.cpp 最高達 1.19。Decode 對 concurrency 較敏感；n40 通常是最低能耗點，而多個格式在 n4 會高於 TGZ。
+目前資料（R51-Mac）顯示：Optimal 在兩組資料上都取得 BVX3 family 最佳壓縮比（claw-code 0.8257、llama.cpp 0.9347），但其 encode Energy Ratio 遠高於 TGZ（7.27–10.03 與 5.19–7.25），適合離線壓縮而非追求最低單次 encode 成本。**encode Energy Ratio 在所有 n 值均低於 1 的只有 Other3 與 BVX3**；Lazy2 在 claw-code 為 1.65–2.21，在 llama.cpp 為 0.79–1.08，n4 時仍高於 TGZ。Decode 對 concurrency 較敏感；n40 通常是最低能耗點（llama.cpp 的 Optimal3 例外，最低點在 n8），而多個格式在 n4 會高於 TGZ。
 
 ### RSS 與 CPU 能耗取捨
 
@@ -453,7 +459,7 @@ csv2 -get <記錄>:<欄> --md-table 2 -i best_points/best_points.md   # llama.cp
 
 先前受控輪次中，Optimal decode 從 n4 提升至 n40 時，RSS 約由 `68.5 / 71.1 MB` 升至 `308.9 / 348.9 MB`，CPU energy 則由 `17.13 / 11.33 J` 降至 `8.39 / 5.86 J`（約 `-51% / -48%`）。CPU 節省量級遠高於不到 1 秒期間約數百分之一焦耳的估算記憶體增量。因此在目前桌面測試與約 300 MB RSS 範圍內，優先降低 CPU 執行時間／總能耗是較佳整體取捨，約 300 MB RSS 可視為有條件接受。
 
-這是依 active-memory 單位功耗建立的模型估算，不是本輪 DRAM 實測；RSS 也不等於所有頁面都持續讀寫。結論只用於能源取捨，不代表可忽略記憶體容量、系統 memory pressure 或多工作負載併行問題。最新 best-points 的 Optimal encode n40 RSS 為 `589.3 MB`（claw-code）與 `575.0 MB`（llama.cpp）——取自 `best_points/best_points.md` 的「最高 Encode RSS」欄——仍明顯超過 300 MB 基準，應繼續調查 DP buffer、chunk in-flight 與暫存陣列生命週期。
+這是依 active-memory 單位功耗建立的模型估算，不是本輪 DRAM 實測；RSS 也不等於所有頁面都持續讀寫。結論只用於能源取捨，不代表可忽略記憶體容量、系統 memory pressure 或多工作負載併行問題。最新 best-points 的 Optimal encode n40 RSS 為 `573.2 MB`（claw-code）與 `599.2 MB`（llama.cpp）——取自 `best_points/best_points.md` 的「最高 Encode RSS」欄——仍明顯超過 300 MB 基準，應繼續調查 DP buffer、chunk in-flight 與暫存陣列生命週期。
 
 ### 適用場景：伺服器端更新包壓縮
 

@@ -177,13 +177,20 @@ fi
 roundStatus "BEST_POINTS_ANALYSIS_DONE"
 
 # Step.14 產生 Win/Mac 比較報告 / Generate Win/Mac comparison report.
+# 兩個資料集都要跑：comparison_win.py 未帶 --dataset 時只處理 claw-code，先前因此每輪只
+# 更新 claw-code 的 Mac 欄，llama.cpp 的 Mac 欄自 2026-07-18（1686d6e，R46-Win-Retest）
+# 起就沒再變過，R51 之後才發現。
+# Run both datasets: without --dataset the script only handles claw-code, which left the
+# llama.cpp Mac columns unchanged since 1686d6e (R46-Win-Retest, 2026-07-18).
 roundStatus "RUNNING_COMPARISON"
-python3 ./helper_windows/comparison_win.py >> "$ROUND_STATUS_FILE" 2>&1
-rc=$?
-if [[ $rc -ne 0 ]]; then
-    roundStatus "COMPARISON_FAILED $rc"
-    exit $rc
-fi
+for dataset in claw-code llama.cpp; do
+    python3 ./helper_windows/comparison_win.py --dataset "$dataset" >> "$ROUND_STATUS_FILE" 2>&1
+    rc=$?
+    if [[ $rc -ne 0 ]]; then
+        roundStatus "COMPARISON_FAILED $dataset $rc"
+        exit $rc
+    fi
+done
 roundStatus "COMPARISON_DONE"
 
 # Step.15 翻譯文件為英文版（繁中 → 英文；輸出檔名加 -en）
