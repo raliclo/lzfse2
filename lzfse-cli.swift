@@ -3156,6 +3156,7 @@ public enum LZFSEv1 {
         let groupRaw = groups.map { g in g.reduce(0) { $0 + $1.rawBytes } }
         let n0 = max(1, inflight)
         nonisolated(unsafe) var gi = 0
+        var written = 0   // 已寫出的位元組數 / bytes already written
         while gi < groups.count {
             let hi = min(gi + n0, groups.count)
             nonisolated(unsafe) var offs = [0]
@@ -3183,14 +3184,25 @@ public enum LZFSEv1 {
             }
 
             if failed {
+                // 某組有跨組參照（外來串流的區塊邊界恰好落在 chunkRaw 的倍數上時會發生），改為循序解
+                // 整份，但只寫出尚未寫出的部分。先前批次已寫出 written 位元組；平行解成功的組不含跨組
+                // 參照，其位元組與循序結果相同，所以已寫出的前段必與循序結果的前段一致。舊版在此把整份
+                // 再寫一次，前面的批次因此重複出現，且以 rc=0 結束。
+                // A group referenced data across its boundary (a foreign stream whose block ends land
+                // on a chunkRaw multiple). Decode the whole stream sequentially but write only what has
+                // not been written: groups that decoded in parallel had no cross-group references, so
+                // the bytes already written equal the sequential prefix. This used to write the whole
+                // stream again, duplicating the earlier batches with rc=0.
                 buf.deallocate()
-                guard let d = decodeStream(Data(src), parallel: false, chunkRaw: chunkRaw) else { return false }
-                return writeDecoded(output, d)
+                guard let d = decodeStream(Data(src), parallel: false, chunkRaw: chunkRaw),
+                      d.count >= written else { return false }
+                return writeDecoded(output, d[(d.startIndex + written)...])
             }
 
             let wrote = writeDecoded(output, Data(bytesNoCopy: buf, count: batchTotal, deallocator: .none))
             buf.deallocate()
             guard wrote else { return false }
+            written += batchTotal
             gi = hi
         }
         return true
@@ -3208,8 +3220,24 @@ public enum LZFSEv1 {
         var pos = 0
         var eof = false
         let N = max(1, inflight)
-        var wroteAny = false
+        var written = 0   // 已寫出的位元組數 / bytes already written
         var streamEnded = false
+
+        // 已寫出部分資料後才失敗：不能回 .fallback（呼叫端的後援會從頭再寫一次），也不該回 .error
+        // （串流可能完全有效，只是區塊邊界恰好落在 chunkRaw 的倍數上而有跨組參照）。改為讀入整檔
+        // 循序解碼，只寫出尚未寫出的部分；已寫出的組不含跨組參照，與循序結果的前段相同。真正損毀
+        // 的串流循序解也會失敗，此時才回 .error。
+        // Failing after some output is out: .fallback would make the caller write it all again,
+        // and .error would reject a stream that may be valid (block ends on a chunkRaw multiple
+        // with a cross-group reference). Decode the whole file sequentially and write only the
+        // unwritten tail; groups already written had no cross-group references. A truly corrupt
+        // stream fails the sequential decode too, and only then is this .error.
+        func finishSequentially() -> StreamDecodeResult {
+            guard let whole = FileManager.default.contents(atPath: path),
+                  let d = decodeStream(whole, parallel: false, chunkRaw: chunkRaw),
+                  d.count >= written else { return .error }
+            return writeDecoded(output, d[(d.startIndex + written)...]) ? .ok : .error
+        }
 
         func ensure(_ need: Int) -> Bool {
             while buf.count - pos < need {
@@ -3319,8 +3347,8 @@ public enum LZFSEv1 {
                 case .group(let comp, let blks, let raw):
                     batch.append((comp: comp, blks: blks, raw: raw))
                 case .misaligned:
-                    if debug { eprint("[DBG] misaligned wroteAny=\(wroteAny) batchSize=\(batch.count)") }
-                    return wroteAny ? .error : .fallback
+                    if debug { eprint("[DBG] misaligned written=\(written) batchSize=\(batch.count)") }
+                    return written > 0 ? finishSequentially() : .fallback
                 case .eof:
                     break innerLoop
                 }
@@ -3337,16 +3365,16 @@ public enum LZFSEv1 {
                 lock.unlock()
             }
             if failed {
-                if debug { eprint("[DBG] batch decode failed wroteAny=\(wroteAny) batchSize=\(batch.count)") }
-                return wroteAny ? .error : .fallback
+                if debug { eprint("[DBG] batch decode failed written=\(written) batchSize=\(batch.count)") }
+                return written > 0 ? finishSequentially() : .fallback
             }
             for o in outs {
-                guard let o = o else { return wroteAny ? .error : .fallback }
+                guard let o = o else { return written > 0 ? finishSequentially() : .fallback }
                 // 寫入失敗一律回 .error，不回 .fallback：後援會重解整檔並再寫一次。
                 // A write failure is always .error, never .fallback, which would decode and write again.
                 if !o.isEmpty { guard writeDecoded(output, Data(o)) else { return .error } }
+                written += o.count
             }
-            wroteAny = true
         }
         return .ok
     }
