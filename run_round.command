@@ -48,7 +48,12 @@ echo "MODE swift_tar=$USE_SWIFT_TAR power_test=$LZFSE_POWER_TEST $(date +%H:%M:%
 # swift_tar compile + test（無條件，與 lzfse 相同）
 # swift_tar compile + test (unconditional, same gate as lzfse)
 echo "RUNNING_SWIFT_TAR_COMPILE $(date +%H:%M:%S)" >> round_status.txt
-./swift_tar/compile_tar.zsh >> round_status.txt 2>&1
+# --install：下方量測用的是 /opt/homebrew/bin/swift_tar，而 compile_tar.zsh 自 2026-10-07 起
+# 預設不再安裝；少了它，這一輪會靜默地量到上一次安裝的舊版。
+# --install: the measurement below runs /opt/homebrew/bin/swift_tar, and compile_tar.zsh
+# stopped installing by default on 2026-10-07; without it this round would silently
+# measure whatever was installed last.
+./swift_tar/compile_tar.zsh --install >> round_status.txt 2>&1
 swift_tar_compile_rc=$?
 SWIFT_TAR_BIN="/opt/homebrew/bin/swift_tar"
 if [[ $swift_tar_compile_rc -ne 0 ]] || [[ ! -x "$SWIFT_TAR_BIN" ]]; then
