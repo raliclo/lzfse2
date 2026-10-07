@@ -19,9 +19,9 @@
 # switch to `write(contentsOf:)` the error has to surface as rc=1 -- swallowing it with `try?`
 # would let truncated output exit 0, which is worse than the crash.
 #
-# 這支檢查必須仍可能失敗：拿修正前的執行檔跑，stdout 關閉的解壓案例應得 rc=134 並判 FAIL。
+# 這支檢查必須仍可能失敗：修正前的執行檔在 stdout 關閉的解壓案例得 rc=134（macOS）或 132（Windows、Linux），判 FAIL。
 # This check must still be able to fail: against the pre-fix binary the closed-stdout decode
-# cases return rc=134 and are reported FAIL.
+# cases return rc=134 on macOS or 132 on Windows and Linux, and are reported FAIL.
 #
 # 判定 / Verdicts:
 #   err    退出碼在 1..127（非零且不是訊號）/ exit status in 1..127 (non-zero, not a signal)
@@ -51,11 +51,33 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# 檔案大小用 wc -c，不用 `stat -f %z`：後者是 BSD 語法，GNU stat（MSYS、Linux）的 -f 是查詢
+# 檔案系統，於是在 Windows／WSL 上大小取錯。算術展開去掉 macOS wc 補的前導空白。2026-10-07 之前
+# 本檔因此只能在 macOS 執行。
+# Size via wc -c, not `stat -f %z`: that is BSD syntax, and GNU stat (MSYS, Linux) reads -f
+# as "filesystem status". The arithmetic expansion drops the padding macOS wc adds. Until
+# 2026-10-07 this file therefore ran on macOS only.
+fsize() { local n; n=$(wc -c < "$1"); print -r -- $(( n )) }
+
 # 約 16 MiB 的輸入，跨過多個 4 MiB 分塊，好走到平行與逐批寫出的路徑。
 # About 16 MiB of input, spanning several 4 MiB chunks so the parallel and batched paths run.
 SRC=${0:A:h:h}/lzfse-cli.swift
 : > "$T/in"
-while (( $(stat -f %z "$T/in") < 16 * 1024 * 1024 )); do cat "$SRC" >> "$T/in"; done
+while (( $(fsize "$T/in") < 16 * 1024 * 1024 )); do cat "$SRC" >> "$T/in"; done
+
+# Apple 編碼器需要 Compression framework，只有 macOS 有；其他平台的 lzfse 會以「此平台沒有
+# Compression framework」拒絕。以實際試編判斷而非看 uname——問的是這個執行檔能不能，不是
+# 這是哪個作業系統。沒有時 apple 的各項以 SKIP 列出，其餘照跑。
+# The Apple encoder needs the Compression framework, which only macOS has; elsewhere lzfse
+# refuses. Probe by trying it rather than by uname -- the question is what this binary can
+# do. Without it the apple cases are listed as SKIP and the rest still run.
+algos=(other3 bvx3) pipe_algos=(other3)
+print -r -- probe > "$T/probe"
+if "$BIN" -encode -algo apple -i "$T/probe" -o "$T/probe.lz" 2>/dev/null; then
+    algos+=(apple) pipe_algos+=(apple)
+else
+    print -- "SKIP  apple（此執行檔沒有 Apple 編碼器 / this binary has no Apple encoder）"
+fi
 
 typeset -i pass=0 fail=0
 check() {   # check <判定 verdict> <名稱 name> <rc> [輸出檔 output]
@@ -69,14 +91,14 @@ check() {   # check <判定 verdict> <名稱 name> <rc> [輸出檔 output]
     else fail+=1; print -- "FAIL  $name  rc=$rc（預期 / expected $want）"; fi
 }
 
-for algo in other3 bvx3 apple; do
+for algo in $algos; do
     "$BIN" -encode -algo $algo -i "$T/in" -o "$T/in.$algo" 2>/dev/null
     rc=$?
     (( rc == 0 )) || { print -u2 -- "建立測試輸入失敗 / cannot build fixture: $algo rc=$rc"; exit 2 }
 done
 
 # 正控制：一般往返必須成功且逐位元組相同。/ Positive control: a normal round trip.
-for algo in other3 bvx3 apple; do
+for algo in $algos; do
     "$BIN" -decode -algo $algo -i "$T/in.$algo" -o "$T/out.$algo" 2>/dev/null
     check ok "roundtrip $algo" $? "$T/out.$algo"
 done
@@ -86,7 +108,7 @@ done
 check err "stderr closed, missing input" $?
 
 # stdout 關閉。/ Closed stdout.
-for algo in other3 bvx3 apple; do
+for algo in $algos; do
     "$BIN" -encode -algo $algo -i "$T/in" -so >&- 2>/dev/null
     check err "stdout closed, encode $algo" $?
     "$BIN" -decode -algo $algo -i "$T/in.$algo" -so >&- 2>/dev/null
@@ -96,12 +118,14 @@ done
 # stdin input takes decodeStreamToHandle; an Apple stream decoded as other3 takes .fallback.
 "$BIN" -decode -algo other3 -si -so < "$T/in.other3" >&- 2>/dev/null
 check err "stdout closed, decode other3 (stdin)" $?
-"$BIN" -decode -algo other3 -i "$T/in.apple" -so >&- 2>/dev/null
-check err "stdout closed, decode apple stream via fallback" $?
+if (( ${algos[(Ie)apple]} )); then
+    "$BIN" -decode -algo other3 -i "$T/in.apple" -so >&- 2>/dev/null
+    check err "stdout closed, decode apple stream via fallback" $?
+fi
 
 # 管線在讀了一個位元組後關閉：輸出被截斷，不得回 0。
 # The pipe closes after one byte: the output is truncated and must not exit 0.
-for algo in other3 apple; do
+for algo in $pipe_algos; do
     "$BIN" -decode -algo $algo -i "$T/in.$algo" -so 2>/dev/null | head -c 1 > /dev/null
     check nz "broken pipe, decode $algo" ${pipestatus[1]}
 done
@@ -114,7 +138,7 @@ if command -v hdiutil > /dev/null 2>&1; then
     RAMDEV=$(diskutil image attach --noMount ram://2048)
     RAMDEV=${RAMDEV%%[[:space:]]*}
     if [[ -n $RAMDEV ]] && diskutil eraseVolume HFS+ lzfse_wfail "$RAMDEV" > /dev/null; then
-        for algo in other3 apple; do
+        for algo in $pipe_algos; do
             "$BIN" -decode -algo $algo -i "$T/in.$algo" -o /Volumes/lzfse_wfail/out 2>/dev/null
             check err "disk full, decode $algo" $?
             rm -f /Volumes/lzfse_wfail/out

@@ -49,18 +49,26 @@ BIN=${BIN:A}
 T=$(mktemp -d "${TMPDIR:-/tmp}/lzfse_xgroup.XXXXXX") || exit 2
 trap 'rm -rf -- "$T"' EXIT
 
+# 檔案大小用 wc -c，不用 `stat -f %z`：後者是 BSD 語法，GNU stat（MSYS、Linux）的 -f 是查詢
+# 檔案系統，於是在 Windows／WSL 上大小取錯，前提檢查必定失敗。算術展開去掉 macOS wc 補的前導
+# 空白。2026-10-07 之前本檔因此只能在 macOS 執行。
+# Size via wc -c, not `stat -f %z`: that is BSD syntax, and GNU stat (MSYS, Linux) reads -f
+# as "filesystem status", so the precondition always failed there. The arithmetic expansion
+# drops the padding macOS wc adds. Until 2026-10-07 this file ran on macOS only.
+fsize() { local n; n=$(wc -c < "$1"); print -r -- $(( n )) }
+
 # 3,000,000 位元組的重複文字：本工具會編成兩個以上的區塊，後面的區塊參照第一個。
 # 3,000,000 bytes of repetitive text: encodes to two or more blocks, the later ones
 # referencing the first.
 SRC=${0:A:h:h}/lzfse-cli.swift
 : > "$T/big"
-while (( $(stat -f %z "$T/big") < 8 * 1024 * 1024 )); do cat "$SRC" >> "$T/big"; done
+while (( $(fsize "$T/big") < 8 * 1024 * 1024 )); do cat "$SRC" >> "$T/big"; done
 head -c 3000000 "$T/big" > "$T/x"
 "$BIN" -encode -algo other3 -i "$T/x" -o "$T/x.lz" 2>/dev/null || { print -u2 -- "編碼失敗 / encode failed"; exit 2 }
 
 magic=$(head -c 4 "$T/x.lz")
 s=$(od -A n -t u4 -j 4 -N 4 "$T/x.lz" | tr -d ' ')
-total=$(stat -f %z "$T/x")
+total=$(fsize "$T/x")
 if [[ $magic != bvx2 ]] || (( s <= 0 || s >= total )); then
     print -u2 -- "前提不成立：需要第一個區塊為 bvx2 且不是唯一區塊（magic=$magic s=$s）"
     print -u2 -- "precondition failed: need a first bvx2 block that is not the only one"
@@ -77,7 +85,7 @@ cat "$T/u" "$T/x" > "$T/expect"
 
 # 截斷版：拿掉最後 64 位元組（含結尾標記），是真正損毀的串流。
 # Truncated copy: drop the last 64 bytes, end marker included -- a genuinely corrupt stream.
-head -c $(( $(stat -f %z "$T/cross.lz") - 64 )) "$T/cross.lz" > "$T/trunc.lz"
+head -c $(( $(fsize "$T/cross.lz") - 64 )) "$T/cross.lz" > "$T/trunc.lz"
 
 typeset -i pass=0 fail=0
 check() {   # check <名稱 name> <條件成立 0/1 condition> <說明 detail>
@@ -88,21 +96,21 @@ check() {   # check <名稱 name> <條件成立 0/1 condition> <說明 detail>
 for n in 1 2 40; do
     "$BIN" -decode -algo other3 -n $n -si -so < "$T/cross.lz" > "$T/out" 2>/dev/null
     rc=$?; cmp -s "$T/expect" "$T/out"; same=$(( $? == 0 ))
-    check "valid stream, stdin, n=$n" $(( rc == 0 && same )) "rc=$rc 大小/size=$(stat -f %z "$T/out")/$(stat -f %z "$T/expect")"
+    check "valid stream, stdin, n=$n" $(( rc == 0 && same )) "rc=$rc 大小/size=$(fsize "$T/out")/$(fsize "$T/expect")"
     "$BIN" -decode -algo other3 -n $n -i "$T/cross.lz" -o "$T/out" 2>/dev/null
     rc=$?; cmp -s "$T/expect" "$T/out"; same=$(( $? == 0 ))
-    check "valid stream, file,  n=$n" $(( rc == 0 && same )) "rc=$rc 大小/size=$(stat -f %z "$T/out")/$(stat -f %z "$T/expect")"
+    check "valid stream, file,  n=$n" $(( rc == 0 && same )) "rc=$rc 大小/size=$(fsize "$T/out")/$(fsize "$T/expect")"
 done
 
 # 損毀的串流：必須非零結束（且不是訊號），輸出不得超過正確長度。
 # Corrupt stream: must exit non-zero (not a signal) and never write more than the true length.
 for n in 1 40; do
     "$BIN" -decode -algo other3 -n $n -si -so < "$T/trunc.lz" > "$T/out" 2>/dev/null
-    rc=$?; sz=$(stat -f %z "$T/out")
-    check "truncated, stdin, n=$n" $(( rc >= 1 && rc <= 127 && sz <= $(stat -f %z "$T/expect") )) "rc=$rc size=$sz"
+    rc=$?; sz=$(fsize "$T/out")
+    check "truncated, stdin, n=$n" $(( rc >= 1 && rc <= 127 && sz <= $(fsize "$T/expect") )) "rc=$rc size=$sz"
     "$BIN" -decode -algo other3 -n $n -i "$T/trunc.lz" -o "$T/out" 2>/dev/null
-    rc=$?; sz=$(stat -f %z "$T/out")
-    check "truncated, file,  n=$n" $(( rc >= 1 && rc <= 127 && sz <= $(stat -f %z "$T/expect") )) "rc=$rc size=$sz"
+    rc=$?; sz=$(fsize "$T/out")
+    check "truncated, file,  n=$n" $(( rc >= 1 && rc <= 127 && sz <= $(fsize "$T/expect") )) "rc=$rc size=$sz"
 done
 
 print -- "通過 / passed: $pass  失敗 / failed: $fail"
