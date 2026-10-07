@@ -3110,6 +3110,24 @@ public enum LZFSEv1 {
         return decodeStream(input, parallel: true, chunkRaw: chunkRaw)
     }
 
+    /// 寫出解碼結果；失敗時印出原因並回傳 false，由呼叫端以既有的失敗路徑結束。
+    /// 不用舊的 `write(_: Data)`：它寫入失敗（stdout 已關閉、管線斷開、磁碟滿）時拋出 Swift 攔不住
+    /// 的 Objective-C 例外，行程以 SIGABRT（rc=134）結束。也不能 `try?` 了事——那會讓截斷的輸出
+    /// 以 rc=0 結束。簽章維持不 throw，因為 lzfse-ui 與 swift_tar 也呼叫這兩個解碼函式。
+    /// Write decoded output; on failure report why and return false so the caller takes its
+    /// existing failure path. The legacy `write(_: Data)` raises an uncatchable Objective-C
+    /// exception (rc=134), and `try?` would let truncated output exit 0. Signatures stay
+    /// non-throwing because lzfse-ui and swift_tar call these decoders too.
+    static func writeDecoded(_ output: FileHandle, _ data: Data) -> Bool {
+        do {
+            try output.write(contentsOf: data)
+            return true
+        } catch {
+            eprint("Error: Cannot write output: \(error) / 錯誤：無法寫入輸出。")
+            return false
+        }
+    }
+
     static func decodeStreamToHandle(_ src: [UInt8], parallel: Bool, chunkRaw: Int,
                                      inflight: Int, output: FileHandle) -> Bool {
         guard let blocks = scanBlocks(src) else { return false }
@@ -3132,8 +3150,7 @@ public enum LZFSEv1 {
 
         if groups.count <= 1 {
             guard let d = decodeStream(Data(src), parallel: false, chunkRaw: chunkRaw) else { return false }
-            output.write(d)
-            return true
+            return writeDecoded(output, d)
         }
 
         let groupRaw = groups.map { g in g.reduce(0) { $0 + $1.rawBytes } }
@@ -3168,12 +3185,12 @@ public enum LZFSEv1 {
             if failed {
                 buf.deallocate()
                 guard let d = decodeStream(Data(src), parallel: false, chunkRaw: chunkRaw) else { return false }
-                output.write(d)
-                return true
+                return writeDecoded(output, d)
             }
 
-            output.write(Data(bytesNoCopy: buf, count: batchTotal, deallocator: .none))
+            let wrote = writeDecoded(output, Data(bytesNoCopy: buf, count: batchTotal, deallocator: .none))
             buf.deallocate()
+            guard wrote else { return false }
             gi = hi
         }
         return true
@@ -3325,7 +3342,9 @@ public enum LZFSEv1 {
             }
             for o in outs {
                 guard let o = o else { return wroteAny ? .error : .fallback }
-                if !o.isEmpty { output.write(Data(o)) }
+                // 寫入失敗一律回 .error，不回 .fallback：後援會重解整檔並再寫一次。
+                // A write failure is always .error, never .fallback, which would decode and write again.
+                if !o.isEmpty { guard writeDecoded(output, Data(o)) else { return .error } }
             }
             wroteAny = true
         }
@@ -3858,8 +3877,17 @@ func runLZFSEv1Tests() {
 import Foundation
 
 /// 把訊息寫到 stderr（避免污染 -so 的資料輸出）
+///
+/// 用可拋錯的 `write(contentsOf:)`，不用舊的 `write(_: Data)`：舊 API 寫入失敗時拋出 Swift
+/// 攔不住的 Objective-C 例外，stderr 已關閉（`2>&-`）時整個行程以 SIGABRT（rc=134）結束，
+/// 原本的錯誤碼也一併遺失。stderr 寫不進去時已無處可回報，故忽略寫入錯誤，讓呼叫端照常以
+/// 自己的退出碼結束。
+/// Write to stderr with the throwing `write(contentsOf:)`. The legacy `write(_: Data)` raises
+/// an Objective-C exception Swift cannot catch, so a closed stderr (`2>&-`) aborted the process
+/// with rc=134 and lost the real exit status. With stderr gone there is nowhere left to report
+/// the failure, so it is ignored and the caller exits with its own status.
 func eprint(_ message: String) {
-    FileHandle.standardError.write(Data((message + "\n").utf8))
+    try? FileHandle.standardError.write(contentsOf: Data((message + "\n").utf8))
 }
 
 func printUsage() {
@@ -3993,7 +4021,9 @@ func runParallelEncode(input: FileHandle, output: FileHandle,
     if state.failure != nil {
         throw LZFSEError.encodeFailed
     }
-    output.write(Data([0x62, 0x76, 0x78, 0x24]))
+    // 結尾標記同樣用可拋錯的寫法；失敗時由呼叫端回報並以非零結束（舊 API 會 SIGABRT）。
+    // The end marker uses the throwing write too; the legacy API would SIGABRT on failure.
+    try output.write(contentsOf: Data([0x62, 0x76, 0x78, 0x24]))
 }
 
 // =================================================================
@@ -4142,9 +4172,11 @@ case .apple:
     #if canImport(Compression)
     let operation: FilterOperation = isEncoding ? .compress : .decompress
     do {
+        // 回呼可拋錯：寫入失敗會經 filter.write／finalize 傳到下方 catch，以 rc=1 結束。
+        // The callback may throw; a write failure reaches the catch below via filter.write/finalize.
         let filter = try OutputFilter(operation, using: .lzfse) { (data: Data?) in
             if let data = data {
-                outputHandle.write(data)
+                try outputHandle.write(contentsOf: data)
             }
         }
         let chunkSize = 64 * 1024 // 64KB

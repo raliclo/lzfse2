@@ -1,0 +1,119 @@
+#!/bin/zsh
+# =====================================================================
+# test_write_failure.zsh -- 輸出寫不進去時，lzfse 必須以非零結束，且不能是訊號。
+# test_write_failure.zsh -- when output cannot be written, lzfse must exit non-zero, and not
+#                           by a signal.
+#
+# 用法 / Usage:
+#   helper/test_write_failure.zsh [lzfse 執行檔，預設 ./lzfse / binary, default ./lzfse]
+#
+# 為何需要它 / Why this exists:
+#
+# 舊的 `FileHandle.write(_: Data)` 寫入失敗時拋出 Swift 攔不住的 Objective-C 例外，行程以
+# SIGABRT（rc=134）結束，原本的錯誤訊息也一併遺失。stderr 被關閉（`2>&-`）、stdout 被關閉
+# （`>&-`）或磁碟寫滿時都會發生。改用 `write(contentsOf:)` 之後，錯誤必須往上傳成 rc=1——
+# 不能 `try?` 吞掉，否則截斷的輸出會以 rc=0 結束，比當掉更難發現。
+# The legacy `FileHandle.write(_: Data)` raises an Objective-C exception Swift cannot catch,
+# so a closed stderr, a closed stdout or a full disk aborted the process with rc=134. After the
+# switch to `write(contentsOf:)` the error has to surface as rc=1 -- swallowing it with `try?`
+# would let truncated output exit 0, which is worse than the crash.
+#
+# 這支檢查必須仍可能失敗：拿修正前的執行檔跑，stdout 關閉的解壓案例應得 rc=134 並判 FAIL。
+# This check must still be able to fail: against the pre-fix binary the closed-stdout decode
+# cases return rc=134 and are reported FAIL.
+#
+# 判定 / Verdicts:
+#   err    退出碼在 1..127（非零且不是訊號）/ exit status in 1..127 (non-zero, not a signal)
+#   nz     退出碼非零，訊號亦可（SIGPIPE 是管線斷開的標準結果）/ non-zero; a signal is fine
+#   ok     退出碼 0 且輸出與原檔逐位元組相同 / exit 0 and output byte-identical to the input
+# =====================================================================
+
+BIN=${1:-./lzfse}
+BIN=${BIN:A}
+[[ -x $BIN ]] || { print -u2 -- "找不到執行檔 / binary not found: $BIN"; exit 2 }
+
+T=$(mktemp -d "${TMPDIR:-/tmp}/lzfse_wfail.XXXXXX") || exit 2
+RAMDEV=""
+cleanup() {
+    [[ -n $RAMDEV ]] && hdiutil detach "$RAMDEV" -quiet
+    rm -rf -- "$T"
+}
+trap cleanup EXIT
+
+# 約 16 MiB 的輸入，跨過多個 4 MiB 分塊，好走到平行與逐批寫出的路徑。
+# About 16 MiB of input, spanning several 4 MiB chunks so the parallel and batched paths run.
+SRC=${0:A:h:h}/lzfse-cli.swift
+: > "$T/in"
+while (( $(stat -f %z "$T/in") < 16 * 1024 * 1024 )); do cat "$SRC" >> "$T/in"; done
+
+typeset -i pass=0 fail=0
+check() {   # check <判定 verdict> <名稱 name> <rc> [輸出檔 output]
+    local want=$1 name=$2 rc=$3 out=$4 ok=0
+    case $want in
+        err) (( rc >= 1 && rc <= 127 )) && ok=1 ;;
+        nz)  (( rc != 0 )) && ok=1 ;;
+        ok)  (( rc == 0 )) && cmp -s "$T/in" "$out" && ok=1 ;;
+    esac
+    if (( ok )); then pass+=1; print -- "PASS  $name  rc=$rc"
+    else fail+=1; print -- "FAIL  $name  rc=$rc（預期 / expected $want）"; fi
+}
+
+for algo in other3 bvx3 apple; do
+    "$BIN" -encode -algo $algo -i "$T/in" -o "$T/in.$algo" 2>/dev/null
+    rc=$?
+    (( rc == 0 )) || { print -u2 -- "建立測試輸入失敗 / cannot build fixture: $algo rc=$rc"; exit 2 }
+done
+
+# 正控制：一般往返必須成功且逐位元組相同。/ Positive control: a normal round trip.
+for algo in other3 bvx3 apple; do
+    "$BIN" -decode -algo $algo -i "$T/in.$algo" -o "$T/out.$algo" 2>/dev/null
+    check ok "roundtrip $algo" $? "$T/out.$algo"
+done
+
+# stderr 關閉，且走一條會呼叫 eprint 的錯誤路徑。/ Closed stderr on an error path that prints.
+"$BIN" -decode -i "$T/missing" -o /dev/null 2>&-
+check err "stderr closed, missing input" $?
+
+# stdout 關閉。/ Closed stdout.
+for algo in other3 bvx3 apple; do
+    "$BIN" -encode -algo $algo -i "$T/in" -so >&- 2>/dev/null
+    check err "stdout closed, encode $algo" $?
+    "$BIN" -decode -algo $algo -i "$T/in.$algo" -so >&- 2>/dev/null
+    check err "stdout closed, decode $algo (file)" $?
+done
+# stdin 輸入走 decodeStreamToHandle；Apple 產生的單流經 other3 解碼會走 .fallback 後援。
+# stdin input takes decodeStreamToHandle; an Apple stream decoded as other3 takes .fallback.
+"$BIN" -decode -algo other3 -si -so < "$T/in.other3" >&- 2>/dev/null
+check err "stdout closed, decode other3 (stdin)" $?
+"$BIN" -decode -algo other3 -i "$T/in.apple" -so >&- 2>/dev/null
+check err "stdout closed, decode apple stream via fallback" $?
+
+# 管線在讀了一個位元組後關閉：輸出被截斷，不得回 0。
+# The pipe closes after one byte: the output is truncated and must not exit 0.
+for algo in other3 apple; do
+    "$BIN" -decode -algo $algo -i "$T/in.$algo" -so 2>/dev/null | head -c 1 > /dev/null
+    check nz "broken pipe, decode $algo" ${pipestatus[1]}
+done
+
+# 磁碟寫滿：1 MiB 的 RAM disk 裝不下 16 MiB 的輸出。只在 macOS 上有 hdiutil。
+# Disk full: a 1 MiB RAM disk cannot hold 16 MiB of output. hdiutil exists only on macOS.
+# `hdiutil attach -nomount` 已棄用，改用 `diskutil image attach --noMount`。
+# `hdiutil attach -nomount` is deprecated; use `diskutil image attach --noMount`.
+if command -v hdiutil > /dev/null 2>&1; then
+    RAMDEV=$(diskutil image attach --noMount ram://2048)
+    RAMDEV=${RAMDEV%%[[:space:]]*}
+    if [[ -n $RAMDEV ]] && diskutil eraseVolume HFS+ lzfse_wfail "$RAMDEV" > /dev/null; then
+        for algo in other3 apple; do
+            "$BIN" -decode -algo $algo -i "$T/in.$algo" -o /Volumes/lzfse_wfail/out 2>/dev/null
+            check err "disk full, decode $algo" $?
+            rm -f /Volumes/lzfse_wfail/out
+        done
+    else
+        print -- "SKIP  disk full（無法建立 RAM disk / cannot create a RAM disk）"
+    fi
+else
+    print -- "SKIP  disk full（沒有 hdiutil / no hdiutil）"
+fi
+
+print -- "通過 / passed: $pass  失敗 / failed: $fail"
+(( fail == 0 ))
