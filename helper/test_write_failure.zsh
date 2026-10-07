@@ -6,6 +6,7 @@
 #
 # 用法 / Usage:
 #   helper/test_write_failure.zsh [lzfse 執行檔，預設 ./lzfse / binary, default ./lzfse]
+#   helper/test_write_failure.zsh --help   印出本說明後結束，不建立任何東西 / print this, create nothing
 #
 # 為何需要它 / Why this exists:
 #
@@ -27,6 +28,16 @@
 #   nz     退出碼非零，訊號亦可（SIGPIPE 是管線斷開的標準結果）/ non-zero; a signal is fine
 #   ok     退出碼 0 且輸出與原檔逐位元組相同 / exit 0 and output byte-identical to the input
 # =====================================================================
+
+# --help 在 mktemp 與 RAM disk 之前回答。原本沒有這個分支，`--help` 被當成執行檔路徑而以
+# 「找不到執行檔」結束——沒有開始工作，但也沒有回答。
+# --help answers before the mktemp and the RAM disk. It used to be taken as the binary path
+# and end with "binary not found": no work started, but no answer either.
+script_path="${0:A}"
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '2,30p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
 
 BIN=${1:-./lzfse}
 BIN=${BIN:A}

@@ -7,6 +7,7 @@
 #
 # 用法 / Usage:
 #   helper/test_cross_group_decode.zsh [lzfse 執行檔，預設 ./lzfse / binary, default ./lzfse]
+#   helper/test_cross_group_decode.zsh --help   印出本說明後結束，不建立任何東西 / print this, create nothing
 #
 # 平行解碼依累計原始大小在 chunkRaw（4 MiB）的倍數處切組，各組獨立解。外來串流的區塊邊界若
 # 恰好落在那個倍數上，而下一組有 match 往回參照前一組，平行解就會失敗、循序解則成功。我們自
@@ -30,6 +31,16 @@
 # 這支檢查必須仍可能失敗：拿修正前的執行檔跑，n=1 的案例應判 FAIL。
 # Against the pre-fix binary the n=1 cases must report FAIL.
 # =====================================================================
+
+# --help 在 mktemp 之前回答。原本沒有這個分支，`--help` 被當成執行檔路徑而以「找不到執行檔」
+# 結束——沒有開始工作，但也沒有回答。
+# --help answers before the mktemp. It used to be taken as the binary path and end with
+# "binary not found": no work started, but no answer either.
+script_path="${0:A}"
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    sed -n '2,33p' "$script_path" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
 
 BIN=${1:-./lzfse}
 BIN=${BIN:A}
