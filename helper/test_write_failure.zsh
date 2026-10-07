@@ -38,6 +38,11 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     sed -n '2,30p' "$script_path" | sed 's/^# \{0,1\}//'
     exit 0
 fi
+# 其他以 - 開頭的參數是打錯的選項，不是執行檔路徑。/ Any other leading - is a mistyped option.
+if [[ "${1:-}" == -* ]]; then
+    print -u2 -- "未知的選項 / unknown option: $1（見 --help / see --help）"
+    exit 2
+fi
 
 BIN=${1:-./lzfse}
 BIN=${BIN:A}
