@@ -607,3 +607,61 @@ fake hash passed. Crying wolf is visible and gets fixed; a check that never fail
 exactly like no check and adds a tick. Whenever a guard is added, put a value on each side of
 it and prove both branches -- verifying only that the right things are skipped leaves the
 whole point of the check unexercised.
+
+---
+
+## 11. 沒去看就回報「沒有安裝」，而跑測試本身就會安裝 — **已發生 3 次（2026-10-13，同一個工作階段）**
+
+**症狀**：連續三份回報的結尾都寫著「新的 macOS 執行檔沒有安裝到 `/opt/homebrew/bin`」。使用者
+最後說「那就裝」，這時才第一次去看——**兩邊的 sha256 早就相同了**。
+
+**實際狀況**：`swift_tar/test/test_no_lzfse.zsh` 會以 `./compile_tar.zsh --install` 重建完整版
+（註解寫明是刻意保留的行為）。所以每跑一次整輪測試，`/opt/homebrew/bin/swift_tar` 就被換成
+**當下工作區原始碼**建出的執行檔。那個工作階段在 macOS 上至少跑了兩次整輪測試，
+兩次的原始碼當時都還沒 commit；能確認時間的是 12:01 那一次（安裝檔的 mtime）。
+
+> 這一條第一版寫的是「跑了四次、其中一次換成還沒修好的中間版」。**那兩句沒有查證過**：
+> 中間版當時只跑了 `test_blind_findings.zsh`，它不會安裝。也就是在記錄「沒去看就回報」的
+> 條目裡又做了一次同樣的事，同日改正。
+> The first draft of this entry said "four times, once with an unfinished intermediate
+> build". Neither was checked: the intermediate build only ran `test_blind_findings.zsh`,
+> which does not install. The entry about reporting without looking did it again, and was
+> corrected the same day.
+
+**沒有任何一步失敗**。我自己下的建置指令確實沒有帶 `--install`，所以「我沒有安裝」這句話就
+我做的動作而言是真的。錯的是把「我沒有下安裝指令」寫成「它沒有被安裝」：前者是我的動作，
+後者是機器的狀態，而狀態只有去看才知道。
+
+```
+shasum -a 256 /opt/homebrew/bin/swift_tar release/swift_tar   ← 一行就能回答，三次都沒跑
+```
+
+**這與第 9 條同形**：第 9 條是拿過期的快照回報遠端狀態，這一條是拿「我記得自己做過什麼」
+回報機器狀態。兩者都是沒有失敗可言，查證的對象錯了。差別在這一條連查證都沒做——寫的是推論，
+卻用了陳述事實的語氣。
+
+**為什麼重複了三次**：第一次寫下之後，後面兩次是從上一份回報延續下來的。一句沒有查證過的話
+一旦進了回報，就會被當成已知事實往下抄。
+
+**比回報錯誤更值得記的是它底下那件事**：在這棵樹**跑測試就等於安裝**。這個工作階段裡，
+這台機器上其他工具實際執行的 `swift_tar` 被換成過未 commit 的原始碼建出的版本，而我直到被
+要求安裝才發現。
+
+**現在怎麼防**：
+
+- **回報「某個東西的狀態」之前，用一條指令去看它**，並且讓那條指令與那句話出現在同一次動作
+  裡。「我沒有做 X」與「X 沒有發生」是兩句話，只有前一句不必查。
+- **上一份回報裡的句子不算證據。** 延續到下一份回報之前，確認它當初是量到的還是推論的。
+- 在 `swift_tar` 跑整輪測試之前，知道它會改 `/opt/homebrew/bin/swift_tar`；需要保留目前安裝
+  的那支時，先記下它的 sha256，或不要跑 `test_no_lzfse.zsh`。
+
+Three reports in a row ended with "the new macOS binary is not installed". It was: the first
+time anyone looked, the two checksums already matched. `test_no_lzfse.zsh` rebuilds with
+`--install` on purpose, so every full test run replaces `/opt/homebrew/bin/swift_tar` with a
+build of whatever the working tree holds -- at least twice in that session, both times from
+source that was not yet committed. Nothing failed. "I ran no install
+command" was true; it was written as "it is not installed", which is a statement about the
+machine and can only be known by looking. One `shasum` would have answered it. The claim
+then repeated because a sentence in one report was carried into the next as if it had been
+measured. Before reporting the state of something, look at it in the same action; and know
+that in this tree, running the tests installs.
