@@ -36,7 +36,7 @@ at GitHub Release assets rather than at paths inside the repo:
 
 ```
 https://github.com/raliclo/lzfse2/releases/download/v<version>/lzfse-cli.zip
-https://github.com/raliclo/swift_tar/releases/download/v<version>/swift_tar_win.zip
+https://github.com/raliclo/swift_tar/releases/download/v<version>/swift_tar-<version>-windows-x86_64.tar.zst
 ```
 
 曾有一段時間 URL 指向 `raw.githubusercontent.com/.../release/*.zip`，但該路徑下的
@@ -49,18 +49,29 @@ Release assets provide a download without putting binaries into version control.
 
 ## 發佈流程 / Release procedure
 
-各套件由其所屬 repo 的 `scoop_release.bat` 發佈：
+各套件由其所屬 repo 的腳本發佈：
 
-Each package is published by the `scoop_release.bat` in its own repo:
+Each package is published by a script in its own repo:
 
 | 套件 / Package | 腳本 / Script |
 |---|---|
 | `lzfse` | `helper_windows/scoop/scoop_release.bat` |
-| `swift_tar` | `swift_tar/scoop_release.bat` |
+| `swift_tar` | `swift_tar/publish.zsh` |
 
-腳本依序執行：
+`swift_tar` 自 v0.1.0 起改用 `publish.zsh`：四平台 `.tar.zst` 收齊後打 tag、建立 release、
+自公開網址下載回來比對，再改寫 `swift_tar.json` 的 url／hash／extract_dir（見 swift_tar 的
+README「發布正式版」）。原本的 `swift_tar/scoop_release.bat` 已移除。以下步驟只描述 `lzfse`
+的 `scoop_release.bat`。
 
-Each script performs, in order:
+Since v0.1.0 `swift_tar` uses `publish.zsh`: with the four `.tar.zst` archives collected it
+tags, creates the release, re-downloads each asset from its public URL to compare, then
+rewrites `swift_tar.json`'s url/hash/extract_dir (see "Making a release" in swift_tar's
+README). The old `swift_tar/scoop_release.bat` is gone. The steps below describe `lzfse`'s
+`scoop_release.bat` only.
+
+`lzfse` 的腳本依序執行：
+
+The `lzfse` script performs, in order:
 
 1. 重建 zip / rebuild the zip
 2. 讀取對應 manifest 的 `version` 欄位，導出 tag `v<version>` / read the matching
