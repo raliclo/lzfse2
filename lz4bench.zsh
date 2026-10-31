@@ -382,7 +382,8 @@ function benchStatDetect() {
 }
 
 # 選定 manifest 用的 sha256 工具，存進 _BENCH_SHA_CMD。優先 `gsha256sum`，其次 `sha256sum`，
-# 兩者都沒有才交給 benchSha256 的後備（shasum／openssl）。
+# 兩者都沒有才交給 benchSha256 的 OpenSSL 後備，不使用 Perl 工具。
+# If neither is available, benchSha256 falls back to OpenSSL without requiring Perl.
 #
 # 為什麼先找 gsha256sum：本機 `sha256sum` 解析到 /usr/local/bin——舊的 Intel Homebrew 裝的
 # **x86_64** coreutils，在 Apple Silicon 上每次都要經 Rosetta 轉譯才能啟動。實測每次啟動
@@ -410,14 +411,11 @@ function benchSha256() {
     if command -v sha256sum > /dev/null 2>&1; then
         digest="$(sha256sum "$1")"
         echo "${digest%% *}"
-    elif command -v shasum > /dev/null 2>&1; then
-        digest="$(shasum -a 256 "$1")"
-        echo "${digest%% *}"
     elif command -v openssl > /dev/null 2>&1; then
         digest="$(openssl dgst -sha256 "$1")"
         echo "${digest##* }"
     else
-        echo "[Error] sha256sum, shasum, or openssl is required for manifest hashing." >&2
+        echo "[Error] sha256sum or openssl is required for manifest hashing." >&2
         return 1
     fi
 }
