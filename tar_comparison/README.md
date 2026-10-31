@@ -61,3 +61,7 @@ different path as `$1`. `SWIFT_TAR_BIN` overrides the swift_tar binary
 > Single-run, ad-hoc measurement (not the official benchmark pipeline). Numbers
 > vary run-to-run; re-run both passes to refresh. / 單次量測、非官方 pipeline，
 > 數值會有 run-to-run 浮動，重跑兩個 pass 即可更新。
+
+## See also / 另見
+
+- [tar_comparison.md](tar_comparison.md) — GNU tar 1.35 vs bsdtar 3.5.3 vs swift_tar 0.1.4: every flag and measured behaviour / 旗標與實測行為比較
