@@ -51,7 +51,8 @@ scoop install raliclo/lzfse  # Windows（先 scoop bucket add raliclo https://gi
 zsh release.zsh                  # 本機 os/arch：建置、strip、驗證、打包到 release/dist/<os>-<arch>/
 zsh release.zsh --musl           # Linux：靜態 musl 版，輸出到 release/dist/linux-<arch>-musl/
 zsh publish.zsh --local          # 同上，並說明 --github 會做什麼；不上傳
-zsh publish.zsh --github 0.2.0   # VERSION 須為 0.2.0；推送 tag v0.2.0，由 CI 建置八個平台並建立 release，
+zsh publish.zsh --github 0.2.0   # VERSION 須為 0.2.0；推送 tag v0.2.0，由 CI 建置八個平台，檢查 artifact 後以你
+                                 # （你的 gh 登入）的身分建立 release，
                                  # 下載驗證每個資產，再改寫 bucket/lzfse.json
 ```
 

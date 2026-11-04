@@ -51,8 +51,9 @@ scoop install raliclo/lzfse  # Windows (after scoop bucket add raliclo https://g
 zsh release.zsh                  # this os/arch: build, strip, verify, package into release/dist/<os>-<arch>/
 zsh release.zsh --musl           # Linux: the static musl build, release/dist/linux-<arch>-musl/
 zsh publish.zsh --local          # the same, and say what --github would do; no upload
-zsh publish.zsh --github 0.2.0   # VERSION must say 0.2.0; push tag v0.2.0, CI builds eight platforms and creates
-                                 # the release, every asset is downloaded and verified, bucket/lzfse.json rewritten
+zsh publish.zsh --github 0.2.0   # VERSION must say 0.2.0; push tag v0.2.0, CI builds eight platforms, the artifacts
+                                 # are checked and the release is created as you (your gh login), then every
+                                 # asset is verified from its public URL and bucket/lzfse.json rewritten
 ```
 
 A release's `lzfse -version` reports `lzfse <version> (<git describe> / <commit>) <os>-<arch>`; a plain

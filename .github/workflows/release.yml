@@ -2,12 +2,15 @@
 #
 # Build: a push that touches the CLI or the release scripts builds, strips, verifies and packages all eight targets
 # with release.zsh (which runs the stripped copy and round-trips data through it).
-# Release: a pushed tag v<X.Y.Z> (publish.zsh --github) also creates the GitHub release with every .tar.zst and
-# .sha256; publish.zsh then downloads and verifies them and rewrites bucket/lzfse.json.
+# Release: this workflow does NOT create the release. A pushed tag v<X.Y.Z> (publish.zsh --github) builds the same
+# way; publish.zsh then downloads these artifacts, checks them and creates the release with the maintainer's own gh
+# login, so GitHub shows the maintainer, not github-actions, as the one who released it (the user's decision,
+# 2026-11-04). Hence no contents: write here.
 # 建置：凡觸及 CLI 或發布腳本的 push，都以 release.zsh 建置、strip、驗證並打包全部八個目標（它會執行 strip 後的副本
 # 並以它完成資料往返）。
-# 發布：推送 tag v<X.Y.Z>（publish.zsh --github）時另外建立 GitHub release，附上每一份 .tar.zst 與 .sha256；之後
-# publish.zsh 下載並驗證它們，再改寫 bucket/lzfse.json。
+# 發布：本 workflow **不**建立 release。推送 tag v<X.Y.Z>（publish.zsh --github）時同樣建置；之後 publish.zsh 下載這些
+# artifact、檢查，再以維護者自己的 gh 登入建立 release，GitHub 才會顯示是維護者發布的，而不是 github-actions
+# （使用者 2026-11-04 的決定）。因此這裡不需要 contents: write。
 #
 # Targets: {linux (glibc), linux (musl), macos, windows} x {x86_64,arm64}. No x86-32: macOS has no 32-bit x86 and
 # Swift ships no i686 toolchain for Windows or Linux.
@@ -142,35 +145,3 @@ jobs:
             release/dist/${{ matrix.platform }}/*.tar.zst
             release/dist/${{ matrix.platform }}/*.tar.zst.sha256
           if-no-files-found: error
-
-  release:
-    name: release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-
-      # Every archive must carry the tag's version in its name: a build from the wrong commit is named by VERSION
-      # there, not by the tag.
-      # 每份封存的名字都必須帶 tag 的版本：從錯的 commit 建出的封存是以那裡的 VERSION 命名，而不是 tag。
-      - name: Check and create release / 檢查並建立 release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          cd dist
-          version=${TAG#v}
-          for plat in linux-x86_64-glibc linux-aarch64-glibc linux-x86_64-musl linux-aarch64-musl macos-x86_64 macos-arm64 windows-x86_64 windows-arm64; do
-            f=lzfse-$version-$plat.tar.zst
-            [ -f "$f" ] && [ -f "$f.sha256" ] || { echo "missing $f / 缺少 $f"; ls -l; exit 1; }
-            sha256sum -c "$f.sha256"
-          done
-          gh release create "$TAG" -R "$GITHUB_REPOSITORY" --verify-tag --title "lzfse $version" \
-            --notes "lzfse $version: one stripped executable per platform (Linux glibc with the Swift runtime linked in, Linux static musl, macOS, Windows with the Swift runtime DLLs; x86_64 and arm64), each .tar.zst with a .sha256. Install with \`zsh install.zsh $version\`, or \`scoop install raliclo/lzfse\` on Windows." \
-            ./*.tar.zst ./*.tar.zst.sha256
