@@ -6,13 +6,14 @@
 #   zsh publish.zsh --github 0.2.0   formal: VERSION must say 0.2.0; ask, push tag v0.2.0, let CI
 #                                    (.github/workflows/release.yml) build all six targets, wait for it, download and
 #                                    verify its artifacts, create the release AS YOU (your gh login) with
-#                                    release-notes/v0.2.0.md, verify every asset again from its public URL, then rewrite
-#                                    bucket/lzfse.json, commit, push. Re-running it on a released tag only re-verifies
-#                                    and refreshes the notes and the manifest.
+#                                    release-notes/v0.2.0.md plus two paragraphs generated from the CI job logs, verify
+#                                    every asset again from its public URL, then rewrite bucket/lzfse.json, commit, push.
+#                                    Re-running it on a released tag only re-verifies and refreshes the notes and the
+#                                    manifest.
 #                                    正式：VERSION 必須是 0.2.0；詢問後推送 tag v0.2.0，由 CI（.github/workflows/release.yml）
 #                                    建置全部六個目標，等它完成，下載並驗證它的 artifact，以**你**（你的 gh 登入）的身分
-#                                    帶 release-notes/v0.2.0.md 建立 release，再從公開網址重新驗證每個資產，最後改寫
-#                                    bucket/lzfse.json、提交並推送。對已發布的 tag 重跑時只會重新驗證並更新 notes 與 manifest。
+#                                    帶 release-notes/v0.2.0.md 與兩段由 CI job 日誌產生的段落建立 release，再從公開網址
+#                                    重新驗證每個資產，最後改寫 bucket/lzfse.json、提交並推送。對已發布的 tag 重跑時只會重新驗證並更新 notes 與 manifest。
 #   --yes   (--github) do not ask / 不詢問
 # Targets: {linux (musl), macos, windows} x {x86_64,arm64}; Linux ships musl only, and its arm64 is named aarch64 (uname -m).
 # 目標：{linux (musl), macos, windows} x {x86_64,arm64}；Linux 只出 musl 版，其 arm64 命名為 aarch64（uname -m）。
@@ -104,9 +105,11 @@ TAG=v$VERSION
 # ---------------------------------------------------------------------
 [[ $(<VERSION) == $VERSION ]] || die "VERSION says $(<VERSION), not $VERSION; commit the new VERSION first" \
                                      "VERSION 是 $(<VERSION)，不是 $VERSION；請先提交新的 VERSION"
-# The release notes are written by a person before publishing, in the shape of csv2's: what ships, what was
-# checked per platform, what changed, then the same in Traditional Chinese. Steps 3 and 5 put them on the release.
-# release notes 由人在發布前寫好，形式同 csv2：出貨內容、各平台檢查、變更，再附繁體中文。第 3、5 步把它放上 release。
+# The release notes are written by a person before publishing, in the shape of csv2's: a one-line intro, `---`,
+# "What changed since v<previous>", then the same in Traditional Chinese. build_notes appends the per-platform
+# paragraphs from the CI logs; steps 3 and 5 put the result on the release.
+# release notes 由人在發布前寫好，形式同 csv2：一行開頭、`---`、「What changed since v<前一版>」，再附繁體中文。
+# build_notes 接上由 CI 日誌產生的各平台段落；第 3、5 步把合併後的內容放上 release。
 NOTES=release-notes/$TAG.md
 [[ -s $NOTES ]] || die "$NOTES is missing; write the release notes first (see release-notes/)" \
                        "缺少 $NOTES；請先寫好 release notes（見 release-notes/）"
@@ -183,6 +186,55 @@ fi
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/lzfse-publish.XXXXXX")
 trap 'rm -rf -- "${tmp:?}"' EXIT
 
+# On a re-run for a released tag the run is found the same way, without waiting: its logs feed the notes below.
+# 對已發布的 tag 重跑時以同樣方式找出那次執行，不等待：下面的 notes 取自它的日誌。
+if (( released )); then
+  run_id=$(gh run list -R "$REPO" --workflow "$WORKFLOW" --branch "$TAG" --commit "$TAG_SHA" --limit 1 --json databaseId -q '.[0].databaseId // empty')
+  [[ -n $run_id ]] || die "no $WORKFLOW run for $TAG at ${TAG_SHA[1,8]} / 找不到 $TAG（${TAG_SHA[1,8]}）的 $WORKFLOW 執行"
+fi
+
+# The release notes as published, in csv2's shape: the human-written $NOTES, then two paragraphs (English, then
+# Traditional Chinese) generated from the tag's CI run -- the build id, the run, and per platform the stripped size
+# and the checks release.zsh passed, read from each job's own log (REST, as everywhere here) rather than written by
+# hand. A job that did not succeed, or whose log lacks a line, stops the release.
+# 實際發布的 release notes，形式同 csv2：先是人寫的 $NOTES，再接兩段（英文、繁體中文）由該 tag 的 CI 執行產生——
+# build id、那次執行，以及各平台 strip 後的大小與 release.zsh 通過的檢查，取自每個 job 自己的日誌（與這裡其他地方
+# 一樣用 REST），而不是手寫。任何 job 沒有成功、或日誌缺少某一行，都會讓發布停下。
+build_notes() {
+  local plat id log size dlls
+  local -a sizes=() win=()
+  for plat in $PLATFORMS; do
+    id=$(gh api "repos/$REPO/actions/runs/$run_id/jobs?per_page=100" \
+           -q ".jobs[] | select(.name == \"$plat\" and .conclusion == \"success\") | .id")
+    [[ $id == <-> ]] || die "run $run_id has no successful job $plat / run $run_id 沒有成功的 $plat job"
+    # --allow-escape-sequences: the logs carry the runner's colour codes, which gh otherwise refuses to print.
+    # --allow-escape-sequences：日誌帶著 runner 的色碼，少了它 gh 會拒絕輸出。
+    log=$(gh api --allow-escape-sequences "repos/$REPO/actions/jobs/$id/logs" | tr -d '\r')
+    size=$(print -r -- "$log" | LC_ALL=C grep -a -o -E 'stripped / [^0-9]*[0-9]+ -> [0-9]+ bytes' | LC_ALL=C sed -E 's/.* -> ([0-9]+) bytes/\1/' || true)
+    [[ $size == <-> ]] || die "the $plat log has no \"stripped\" line / $plat 的日誌沒有 stripped 那一行"
+    print -r -- "$log" | LC_ALL=C grep -a -q -F -- "verified the stripped copy: -version, other3 and bvx3 round trips" \
+      || die "the $plat log has no \"verified the stripped copy\" line / $plat 的日誌沒有 verified the stripped copy 那一行"
+    print -r -- "$log" | LC_ALL=C grep -a -q -F -- "lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) $plat" \
+      || die "the $plat log does not report lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) $plat / $plat 的日誌沒有回報該版本行"
+    if [[ $plat == windows-* ]]; then
+      dlls=$(print -r -- "$log" | LC_ALL=C grep -a -o -E 'bundled Swift runtime DLLs [^0-9]*[0-9]+' | LC_ALL=C sed -E 's/.*[^0-9]([0-9]+)$/\1/' || true)
+      [[ $dlls == <-> ]] || die "the $plat log has no \"bundled Swift runtime DLLs\" line / $plat 的日誌沒有 DLL 那一行"
+      win+=("$plat $dlls")
+    fi
+    sizes+=("$plat $size")
+  done
+  {
+    print -r -- "$(<$NOTES)"
+    print -r -- ""
+    print -r -- "---"
+    print -r -- ""
+    print -r -- "Built at \`$TAG / ${TAG_SHA[1,8]}\` by [release.yml run $run_id](https://github.com/$REPO/actions/runs/$run_id), each platform on a runner of its own. Stripped executable, in bytes: ${(j:, :)sizes}. On every platform release.zsh ran the stripped copy from its staged directory and required \`-version\` to report \`lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) <platform>\`, an \`other3\` and a \`bvx3\` encode/decode round trip to reproduce the input, and the packed archive to extract to the same executable. On Windows it ran with only the system directories on \`PATH\`, so every DLL came from the archive (Swift runtime DLLs bundled: ${(j:, :)win}). The built-in \`lzfse -test\` suite does not run in CI."
+    print -r -- ""
+    print -r -- "於 \`$TAG / ${TAG_SHA[1,8]}\` 由 [release.yml run $run_id](https://github.com/$REPO/actions/runs/$run_id) 建置，每個平台各在自己的 runner 上。strip 後的執行檔大小（bytes）：${(j:、:)sizes}。每個平台上 release.zsh 都從暫存目錄執行 strip 後的副本，並要求 \`-version\` 回報 \`lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) <平台>\`、\`other3\` 與 \`bvx3\` 的壓縮／解壓縮往返與輸入相同、打包後解開的執行檔與檢查過的相同。Windows 上以只含系統目錄的 \`PATH\` 執行，所以每個 DLL 都來自封存本身（附帶的 Swift runtime DLL：${(j:、:)win}）。內建的 \`lzfse -test\` 測試套件不在 CI 中執行。"
+  } > "$tmp/notes.md"
+}
+build_notes
+
 # ---------------------------------------------------------------------
 # --github 3. Create the release AS YOU. CI only builds (its artifacts, one per platform); the release is created
 #    here with your gh login, so GitHub shows you as the one who released it, not github-actions. Every artifact is
@@ -199,7 +251,7 @@ if (( ! released )); then
     check_archive "$tmp/ci/lzfse-$plat" "$plat"
     assets+=("$tmp/ci/lzfse-$plat/lzfse-$VERSION-$plat.tar.zst" "$tmp/ci/lzfse-$plat/lzfse-$VERSION-$plat.tar.zst.sha256")
   done
-  gh release create "$TAG" -R "$REPO" --verify-tag --title "lzfse $VERSION" --notes-file "$NOTES" "${assets[@]}" >/dev/null \
+  gh release create "$TAG" -R "$REPO" --verify-tag --title "lzfse $VERSION" --notes-file "$tmp/notes.md" "${assets[@]}" >/dev/null \
     || die "gh release create failed / gh release create 失敗"
   say "  created / 已建立：https://github.com/$REPO/releases/tag/$TAG ($(gh api "repos/$REPO/releases/tags/$TAG" --jq .author.login))"
 fi
@@ -228,10 +280,10 @@ done
 #    -F body=@file 送出檔案內容。
 # ---------------------------------------------------------------------
 release_id=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id)
-gh api -X PATCH "repos/$REPO/releases/$release_id" -F body=@"$NOTES" >/dev/null
-[[ $(gh api "repos/$REPO/releases/$release_id" --jq .body) == $(<$NOTES) ]] \
-  || die "the release body does not read back as $NOTES" "release 本文讀回後與 $NOTES 不同"
-say "    release notes: $NOTES / 已放上 release notes"
+gh api -X PATCH "repos/$REPO/releases/$release_id" -F body=@"$tmp/notes.md" >/dev/null
+[[ $(gh api "repos/$REPO/releases/$release_id" --jq .body) == $(<$tmp/notes.md) ]] \
+  || die "the release body does not read back as $NOTES plus the CI paragraphs" "release 本文讀回後與 $NOTES 加上 CI 段落不同"
+say "    release notes: $NOTES + CI paragraphs from run $run_id / 已放上 release notes（含 run $run_id 產生的段落）"
 
 # ---------------------------------------------------------------------
 # --github 6. The scoop manifest, GENERATED whole from the values above rather than edited in place, then read back.
