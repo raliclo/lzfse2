@@ -76,7 +76,11 @@ TAG=v$VERSION
 [[ -z "$(git status --porcelain --untracked-files=no)" ]] || die "the working tree is not clean; a tag would name a state nobody can fetch" \
                                                                  "工作樹不乾淨；tag 會指向一個沒有人抓得到的狀態"
 command -v gh >/dev/null 2>&1 || die "gh is not on PATH / PATH 上沒有 gh"
-gh auth status >/dev/null 2>&1 || die "gh is not logged in; run gh auth login / gh 尚未登入；請執行 gh auth login"
+# REST calls only (gh api), here and below: they work wherever gh can reach GitHub, while gh auth status and
+# gh release view (GraphQL) fail behind a proxy that holds the token, as in a Claude Code cloud session.
+# 這裡與下方只用 REST（gh api）：只要 gh 連得到 GitHub 就能用；gh auth status 與 gh release view（GraphQL）在代管
+# token 的 proxy 後面會失敗，例如 Claude Code 雲端 session。
+gh api "repos/$REPO" >/dev/null || die "gh cannot reach $REPO; run gh auth login / gh 連不到 $REPO；請執行 gh auth login"
 git fetch -q --tags origin
 [[ -z "$(git rev-list @{upstream}..HEAD)" ]] || die "HEAD is ahead of origin; git push first" "HEAD 領先 origin；請先 git push"
 
@@ -92,7 +96,9 @@ if [[ -n $TAG_SHA && $TAG_SHA != $HEAD_SHA ]]; then
                          "$TAG 已存在於 ${TAG_SHA[1,8]}，且 HEAD 之後有其他變更：${extra//$'\n'/ }"
 fi
 released=0
-gh release view "$TAG" -R "$REPO" >/dev/null 2>&1 && released=1
+# A 404 here means "not released yet", the expected answer on a first run, so its message is not shown.
+# 這裡的 404 代表「尚未發布」，是第一次執行時預期的答案，所以不顯示它的訊息。
+gh api "repos/$REPO/releases/tags/$TAG" >/dev/null 2>&1 && released=1
 
 say "lzfse $VERSION as $TAG in $REPO / 將 lzfse $VERSION 以 $TAG 發布到 $REPO"
 say "  HEAD : ${HEAD_SHA[1,8]}"
