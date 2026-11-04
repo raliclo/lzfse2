@@ -4,15 +4,14 @@
 #   zsh install.zsh                     the latest release into ~/.local/bin / 最新 release 裝到 ~/.local/bin
 #   zsh install.zsh 0.2.0               release v0.2.0 / 指定 v0.2.0
 #   zsh install.zsh --prefix /usr/local into /usr/local/bin / 裝到 /usr/local/bin
-#   zsh install.zsh --musl              Linux: the fully static musl build / Linux：完全靜態的 musl 版
-# Picks lzfse-<version>-<plat>.tar.zst for linux-{x86_64,aarch64}-glibc, linux-{x86_64,aarch64}-musl, macos-{x86_64,arm64}
-# or windows-{x86_64,arm64}, checks it against its .sha256, and copies lzfse (and, on Windows, the Swift runtime DLLs)
-# into <prefix>/bin. On Linux the glibc build (Swift runtime linked in) is the default; a system whose libc is musl
-# (Alpine), or --musl, gets the static musl build, which runs anywhere. No Swift is needed. The executables are stripped.
-# 依 linux-{x86_64,aarch64}-glibc、linux-{x86_64,aarch64}-musl、macos-{x86_64,arm64} 或 windows-{x86_64,arm64} 挑選
-# lzfse-<版本>-<平台>.tar.zst，以其 .sha256 驗證，再把 lzfse（Windows 上連同 Swift runtime DLL）複製到 <prefix>/bin。Linux
-# 預設為 glibc 版（已連入 Swift runtime）；libc 是 musl 的系統（Alpine）或指定 --musl 時改裝靜態 musl 版，它在任何 Linux
-# 都能跑。都不需要 Swift。執行檔皆已 strip。
+#   zsh install.zsh --musl              accepted and ignored: Linux is always the static musl build
+#                                       接受但不作用：Linux 一律是靜態 musl 版
+# Picks lzfse-<version>-<plat>.tar.zst for linux-{x86_64,aarch64}-musl (fully static; Linux ships musl only, as
+# swift_tar), macos-{x86_64,arm64} or windows-{x86_64,arm64}, checks it against its .sha256, and copies lzfse (and, on
+# Windows, the Swift runtime DLLs) into <prefix>/bin. No Swift is needed. The executables are stripped.
+# 依 linux-{x86_64,aarch64}-musl（完全靜態；Linux 只出 musl 版，與 swift_tar 相同）、macos-{x86_64,arm64} 或
+# windows-{x86_64,arm64} 挑選 lzfse-<版本>-<平台>.tar.zst，以其 .sha256 驗證，再把 lzfse（Windows 上連同 Swift runtime
+# DLL）複製到 <prefix>/bin。不需要 Swift。執行檔皆已 strip。
 # Needs curl, zstd and tar on PATH; the repository is public, so no login is needed.
 # 需要 PATH 上有 curl、zstd 與 tar；本 repository 是 public，不需要登入。
 
@@ -37,6 +36,8 @@ sha256_of() {
 VERSION= prefix=$HOME/.local musl=0
 while (( $# )); do
   case $1 in
+    # Kept so earlier calls still work; Linux is musl either way.
+    # 保留，讓先前的呼叫照常可用；Linux 無論如何都是 musl。
     --musl) musl=1 ;;
     --prefix) (( $# >= 2 )) || die "--prefix needs a directory / --prefix 需要目錄"; prefix=$2; shift ;;
     [0-9]*) [[ $1 =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]] || die "the version must be X.Y.Z (got: $1) / 版本必須是 X.Y.Z（收到：$1）"
@@ -65,8 +66,8 @@ case $(uname -s) in
   *) die "unsupported OS: $(uname -s) / 不支援的作業系統：$(uname -s)" ;;
 esac
 case $os-$arch in
-  linux-x86_64|linux-amd64)   plat=linux-x86_64-glibc ;;
-  linux-aarch64|linux-arm64)  plat=linux-aarch64-glibc ;;
+  linux-x86_64|linux-amd64)   plat=linux-x86_64-musl ;;
+  linux-aarch64|linux-arm64)  plat=linux-aarch64-musl ;;
   macos-x86_64)               plat=macos-x86_64 ;;
   macos-arm64)                plat=macos-arm64 ;;
   windows-X64|windows-x86_64) plat=windows-x86_64 ;;
@@ -74,15 +75,7 @@ case $os-$arch in
   *) die "no release for $os-$arch (x86-32 is not built; Swift has no toolchain for it)" \
          "沒有 $os-$arch 的 release（不建 x86-32；Swift 沒有它的工具鏈）" ;;
 esac
-# musl when asked, or when the system's libc is musl: the glibc build cannot start there. musl's loader is named
-# ld-musl-<arch>.so.1, which is how it is recognised.
-# 指定時、或系統的 libc 是 musl 時用 musl：glibc 版在那裡無法啟動。以 musl 載入器的名稱 ld-musl-<arch>.so.1 辨認。
-if [[ $os == linux ]]; then
-  musl_loaders=( /lib/ld-musl-*.so.1(N) )
-  (( musl || ${#musl_loaders} )) && plat=${plat%-glibc}-musl
-else
-  (( ! musl )) || die "--musl is for Linux only / --musl 只適用於 Linux"
-fi
+[[ $os == linux ]] || (( ! musl )) || die "--musl is for Linux only / --musl 只適用於 Linux"
 
 # The latest release: GitHub redirects /releases/latest to /releases/tag/v<X.Y.Z>.
 # 最新 release：GitHub 會把 /releases/latest 轉址到 /releases/tag/v<X.Y.Z>。

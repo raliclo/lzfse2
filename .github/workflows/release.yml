@@ -1,21 +1,23 @@
 # Release builds for lzfse, modelled on multissh's ci.yml. / lzfse 的正式版建置，以 multissh 的 ci.yml 為範本。
 #
-# Build: a push that touches the CLI or the release scripts builds, strips, verifies and packages all eight targets
+# Build: a push that touches the CLI or the release scripts builds, strips, verifies and packages all six targets
 # with release.zsh (which runs the stripped copy and round-trips data through it).
 # Release: this workflow does NOT create the release. A pushed tag v<X.Y.Z> (publish.zsh --github) builds the same
 # way; publish.zsh then downloads these artifacts, checks them and creates the release with the maintainer's own gh
 # login, so GitHub shows the maintainer, not github-actions, as the one who released it (the user's decision,
 # 2026-11-04). Hence no contents: write here.
-# 建置：凡觸及 CLI 或發布腳本的 push，都以 release.zsh 建置、strip、驗證並打包全部八個目標（它會執行 strip 後的副本
+# 建置：凡觸及 CLI 或發布腳本的 push，都以 release.zsh 建置、strip、驗證並打包全部六個目標（它會執行 strip 後的副本
 # 並以它完成資料往返）。
 # 發布：本 workflow **不**建立 release。推送 tag v<X.Y.Z>（publish.zsh --github）時同樣建置；之後 publish.zsh 下載這些
 # artifact、檢查，再以維護者自己的 gh 登入建立 release，GitHub 才會顯示是維護者發布的，而不是 github-actions
 # （使用者 2026-11-04 的決定）。因此這裡不需要 contents: write。
 #
-# Targets: {linux (glibc), linux (musl), macos, windows} x {x86_64,arm64}. No x86-32: macOS has no 32-bit x86 and
-# Swift ships no i686 toolchain for Windows or Linux.
-# 目標：{linux (glibc), linux (musl), macos, windows} x {x86_64,arm64}。沒有 x86-32：macOS 沒有 32 位元 x86，Swift 也
-# 沒有提供 Windows 或 Linux 的 i686 工具鏈。
+# Targets: {linux (musl), macos, windows} x {x86_64,arm64}. Linux ships musl only, as swift_tar: a glibc build needs a
+# glibc as new as the runner's (GLIBC_2.38 on Ubuntu 24.04). No x86-32: macOS has no 32-bit x86 and Swift ships no
+# i686 toolchain for Windows or Linux.
+# 目標：{linux (musl), macos, windows} x {x86_64,arm64}。Linux 只出 musl 版，與 swift_tar 相同：glibc 建置需要不比
+# runner 舊的 glibc（Ubuntu 24.04 上是 GLIBC_2.38）。沒有 x86-32：macOS 沒有 32 位元 x86，Swift 也沒有提供 Windows
+# 或 Linux 的 i686 工具鏈。
 name: Release
 
 on:
@@ -42,8 +44,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: linux-x86_64-glibc,  runner: ubuntu-24.04,     container: "swift:6.4.2-noble" }
-          - { platform: linux-aarch64-glibc, runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble" }
           - { platform: linux-x86_64-musl,   runner: ubuntu-24.04,     container: "swift:6.4.2-noble", musl: "--musl" }
           - { platform: linux-aarch64-musl,  runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble", musl: "--musl" }
           - { platform: macos-x86_64,   runner: macos-15-intel }
@@ -51,9 +51,9 @@ jobs:
           - { platform: windows-x86_64, runner: windows-2025,     swift_arch: amd64 }
           - { platform: windows-arm64,  runner: windows-11-arm,   swift_arch: arm64 }
     steps:
-      # Linux: glibc by default; the musl jobs (release.zsh --musl, as swift_tar's --musl) need the Swift Static
+      # Linux: the musl jobs (release.zsh --musl, as swift_tar's --musl) need the Swift Static
       # Linux SDK, which must match swiftc exactly; the checksum is swift.org's (the same one multissh's ci.yml pins).
-      # Linux：預設 glibc；musl 的 job（release.zsh --musl，同 swift_tar 的 --musl）需要 Swift Static Linux SDK，它必須
+      # Linux：musl 的 job（release.zsh --musl，同 swift_tar 的 --musl）需要 Swift Static Linux SDK，它必須
       # 與 swiftc 完全相符；checksum 取自 swift.org（與 multissh 的 ci.yml 釘選的相同）。
       - name: Tools (Linux) / 工具（Linux）
         if: runner.os == 'Linux'

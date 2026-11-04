@@ -1,20 +1,20 @@
 #!/usr/bin/env zsh
 # release.zsh [--musl] | --help -- build, strip, verify and package THIS machine's lzfse release as one .tar.zst.
 # release.zsh [--musl] | --help —— 為**本機**的 os/arch 建置、strip、驗證並打包 lzfse 正式版成一份 .tar.zst。
-#   zsh release.zsh          release/dist/<plat>/lzfse-<X.Y.Z>-<plat>.tar.zst (+ .sha256)
-#   zsh release.zsh --musl   Linux only: the static musl build, plat linux-<arch>-musl / 僅 Linux：靜態 musl 建置
-# Platforms: linux-{x86_64,aarch64}-glibc (glibc, the Swift runtime linked in with -static-stdlib: no Swift needed, a glibc
-# as new as the build machine's is), linux-{x86_64,aarch64}-musl (fully static, runs on any Linux; needs the Swift
-# Static Linux SDK), macos-{x86_64,arm64}, windows-{x86_64,arm64} (MSYS2 zsh; the Swift runtime DLLs ride along).
-# glibc is the default and musl is behind --musl, as in swift_tar (3c515ff). The version is VERSION; the build id is
-# `git describe` of a clean tree, so on tag v<X.Y.Z> it reads `v<X.Y.Z> / <commit8>`. Every shipped executable is
-# stripped (only the staged copy; release/lzfse keeps its symbols). Uploading is publish.zsh's and CI's job.
-# 平台：linux-{x86_64,aarch64}-glibc（glibc，以 -static-stdlib 連入 Swift runtime：不需要 Swift，需要不舊於建置機的 glibc）、
-# linux-{x86_64,aarch64}-musl（完全靜態，任何 Linux 都能跑；需要 Swift Static Linux SDK）、macos-{x86_64,arm64}、
-# windows-{x86_64,arm64}（MSYS2 zsh；Swift runtime DLL 一併帶上）。glibc 為預設、musl 需加 --musl，與 swift_tar
-# （3c515ff）相同。版本取自 VERSION；build id 是乾淨工作樹的 `git describe`，所以在 tag v<X.Y.Z> 上它是
+#   zsh release.zsh          macOS, Windows: release/dist/<plat>/lzfse-<X.Y.Z>-<plat>.tar.zst (+ .sha256)
+#   zsh release.zsh --musl   Linux: the static musl build, plat linux-<arch>-musl / Linux：靜態 musl 建置
+# Platforms: linux-{x86_64,aarch64}-musl (fully static, runs on any Linux; needs the Swift Static Linux SDK),
+# macos-{x86_64,arm64}, windows-{x86_64,arm64} (MSYS2 zsh; the Swift runtime DLLs ride along). Linux ships musl only,
+# as swift_tar (7e8acf8): a glibc build needs a glibc at least as new as its build machine's (GLIBC_2.38 and
+# GLIBCXX_3.4.32 for the Ubuntu 24.04 CI image), so on Linux this script refuses to run without --musl. The version is
+# VERSION; the build id is `git describe` of a clean tree, so on tag v<X.Y.Z> it reads `v<X.Y.Z> / <commit8>`. Every
+# shipped executable is stripped (only the staged copy; release/lzfse keeps its symbols). Uploading is publish.zsh's job.
+# 平台：linux-{x86_64,aarch64}-musl（完全靜態，任何 Linux 都能跑；需要 Swift Static Linux SDK）、macos-{x86_64,arm64}、
+# windows-{x86_64,arm64}（MSYS2 zsh；Swift runtime DLL 一併帶上）。Linux 只出 musl 版，與 swift_tar（7e8acf8）相同：
+# glibc 建置需要不比建置機器舊的 glibc（Ubuntu 24.04 的 CI 映像建出的是 GLIBC_2.38 與 GLIBCXX_3.4.32），所以在 Linux
+# 上沒有 --musl 時本腳本拒絕執行。版本取自 VERSION；build id 是乾淨工作樹的 `git describe`，所以在 tag v<X.Y.Z> 上它是
 # `v<X.Y.Z> / <commit 前 8 碼>`。每個出貨的執行檔都 strip（只處理暫存區副本；release/lzfse 保留符號）。
-# 上傳是 publish.zsh 與 CI 的事。
+# 上傳是 publish.zsh 的事。
 # Env: SWIFT_STATIC_SDK (Linux: the swift-linux-musl directory), SWIFT_RUNTIME_DIR (Windows: …/Runtimes/<v>/usr/bin).
 # 環境變數：SWIFT_STATIC_SDK（Linux：swift-linux-musl 目錄）、SWIFT_RUNTIME_DIR（Windows：…/Runtimes/<v>/usr/bin）。
 
@@ -71,6 +71,8 @@ case $(uname -s) in
   *) die "unsupported OS: $(uname -s) / 不支援的作業系統：$(uname -s)" ;;
 esac
 (( ! musl )) || [[ $os == linux ]] || die "--musl is for Linux only / --musl 只適用於 Linux"
+(( musl )) || [[ $os != linux ]] || die "Linux ships musl only (a glibc build needs a glibc as new as this machine's); use --musl" \
+                                        "Linux 只出 musl 版（glibc 建置需要不比本機舊的 glibc）；請加 --musl"
 for tool in swiftc zstd tar git; do command -v $tool >/dev/null 2>&1 || die "$tool is not on PATH / PATH 上沒有 $tool"; done
 
 # ---------------------------------------------------------------------
@@ -114,11 +116,7 @@ runCLI()
 EOF
 
 typeset -a target=()
-if [[ $os == linux ]] && (( ! musl )); then
-  # glibc: the Swift runtime and Foundation are linked in, so the user needs no Swift, only a glibc.
-  # glibc：Swift runtime 與 Foundation 連入執行檔，使用者不需要 Swift，只需要 glibc。
-  target=(-static-stdlib)
-elif (( musl )); then
+if (( musl )); then
   # --musl: a fully static executable, as swift_tar's --musl: no Swift runtime and no glibc needed. The SDK must
   # match swiftc exactly, so its name comes from swiftc's own version.
   # --musl：完全靜態的執行檔，與 swift_tar 的 --musl 相同：不需要 Swift runtime，也不挑 glibc。SDK 必須與 swiftc 完全
@@ -161,9 +159,9 @@ swiftc -O -wmo -swift-version 6 -D LZFSE_RELEASE "${target[@]}" "$B/lzfse-cli.sw
 # 的輸出行以 CR 結尾。
 line=$("release/lzfse$exe" -version | tr -d '\r')
 plat=${line##* }
-# <os>-<arch>, and on Linux <os>-<arch>-<libc> as in swift_tar; <arch> itself holds no dash.
-# <os>-<arch>，Linux 則為 <os>-<arch>-<libc>，與 swift_tar 相同；<arch> 本身不含連字號。
-want_libc=; [[ $os == linux ]] && want_libc=-glibc; (( musl )) && want_libc=-musl
+# <os>-<arch>, and on Linux <os>-<arch>-musl as in swift_tar; <arch> itself holds no dash.
+# <os>-<arch>，Linux 則為 <os>-<arch>-musl，與 swift_tar 相同；<arch> 本身不含連字號。
+want_libc=; (( musl )) && want_libc=-musl
 plat_arch=${${plat#$os-}%$want_libc}
 [[ $line == "lzfse $VERSION ($build_id) $plat" && $plat == $os-$plat_arch$want_libc && -n $plat_arch && $plat_arch != *-* \
    && $plat != *unknown* ]] \
@@ -172,13 +170,6 @@ plat_arch=${${plat#$os-}%$want_libc}
 if (( musl )); then
   ! readelf -lW "release/lzfse" | grep -q 'program interpreter' && ! readelf -dW "release/lzfse" | grep -q NEEDED \
     || die "release/lzfse is not a static executable / release/lzfse 不是靜態執行檔"
-elif [[ $os == linux ]]; then
-  # glibc: the shared libraries it needs must all be the system's, none of Swift's.
-  # glibc：它需要的共享函式庫必須全是系統的，沒有 Swift 的。
-  ! readelf -dW "release/lzfse" | grep NEEDED | grep -q -i -E 'swift|foundation|dispatch|icu' \
-    || die "release/lzfse links a Swift runtime library dynamically: $(readelf -dW release/lzfse | grep NEEDED)" \
-           "release/lzfse 動態連結了 Swift runtime 函式庫"
-  readelf -dW "release/lzfse" | grep NEEDED | sed 's/^ */  needs \/ 需要：/'
 fi
 
 # ---------------------------------------------------------------------

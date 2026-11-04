@@ -58,24 +58,24 @@ Each package is published by a script in its own repo:
 | `lzfse` | `publish.zsh`（自 0.2.0 起 / since 0.2.0） |
 | `swift_tar` | `swift_tar/publish.zsh` |
 
-`swift_tar` 自 v0.1.0 起改用 `publish.zsh`：四平台 `.tar.zst` 收齊後打 tag、建立 release、
+`swift_tar` 自 v0.1.0 起改用 `publish.zsh`：各平台 `.tar.zst` 收齊後打 tag、建立 release、
 自公開網址下載回來比對，再改寫 `swift_tar.json` 的 url／hash／extract_dir（見 swift_tar 的
 README「發布正式版」）。原本的 `swift_tar/scoop_release.bat` 已移除。以下步驟只描述 `lzfse`
 的 `scoop_release.bat`。
 
-Since v0.1.0 `swift_tar` uses `publish.zsh`: with the four `.tar.zst` archives collected it
+Since v0.1.0 `swift_tar` uses `publish.zsh`: with every platform's `.tar.zst` archive collected it
 tags, creates the release, re-downloads each asset from its public URL to compare, then
 rewrites `swift_tar.json`'s url/hash/extract_dir (see "Making a release" in swift_tar's
 README). The old `swift_tar/scoop_release.bat` is gone. The steps below describe `lzfse`'s
 `scoop_release.bat` only.
 
 `lzfse` 自 0.2.0 起同樣改用根目錄的 `publish.zsh --github <X.Y.Z>`：推送 tag 後由
-`.github/workflows/release.yml` 建置八個平台（linux glibc／linux musl／macos／windows × x86_64／arm64，執行檔皆 strip），
+`.github/workflows/release.yml` 建置六個平台（linux musl／macos／windows × x86_64／arm64，執行檔皆 strip；Linux 只出 musl 版），
 由 `publish.zsh` 檢查 CI 的 artifact 後以維護者自己的 gh 登入建立 release（不是 github-actions），再自公開網址下載驗證並**整份產生** `lzfse.json`（`64bit` 與 `arm64` 兩個架構）。
 下方 `scoop_release.bat` 的流程寫的是 0.1.0 的 zip，已被取代；再執行它會把 `lzfse.json` 改回 zip 格式。
 
 Since 0.2.0 `lzfse` likewise uses the root `publish.zsh --github <X.Y.Z>`: after the tag push,
-`.github/workflows/release.yml` builds eight platforms (linux glibc/linux musl/macos/windows x x86_64/arm64, every
+`.github/workflows/release.yml` builds six platforms (linux musl/macos/windows x x86_64/arm64, Linux musl only, every
 executable stripped); `publish.zsh` checks the artifacts and creates the release with the maintainer's own gh login (not
 github-actions), then re-downloads each asset from its public URL and
 **generates** `lzfse.json` whole (both `64bit` and `arm64`). The `scoop_release.bat` procedure

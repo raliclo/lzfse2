@@ -35,29 +35,31 @@ Or execute the auxiliary script:
 ### Installing a release
 
 Each release ships one stripped `lzfse-<version>-<os>-<arch>.tar.zst` plus `.sha256` for
-linux-{x86_64,aarch64}-glibc (glibc, Swift runtime linked in), linux-{x86_64,aarch64}-musl (fully static), macos-{x86_64,arm64}
-and windows-{x86_64,arm64}:
+linux-{x86_64,aarch64}-musl (fully static, runs on any Linux), macos-{x86_64,arm64} and windows-{x86_64,arm64}.
+Linux ships musl only, as swift_tar does: a glibc build needs a glibc at least as new as its build machine's
+(GLIBC_2.38 for the Ubuntu 24.04 CI image), which rules out Ubuntu 22.04, Debian 12 and RHEL 9.
 
 ```sh
 zsh install.zsh              # the latest release into ~/.local/bin
 zsh install.zsh 0.2.0 --prefix /usr/local
-zsh install.zsh --musl       # Linux: the static musl build (chosen automatically on a musl system such as Alpine)
 scoop install raliclo/lzfse  # Windows (after scoop bucket add raliclo https://github.com/raliclo/lzfse2)
 ```
 
 ### Making a release
 
 ```sh
-zsh release.zsh                  # this os/arch: build, strip, verify, package into release/dist/<os>-<arch>/
-zsh release.zsh --musl           # Linux: the static musl build, release/dist/linux-<arch>-musl/
+zsh release.zsh                  # macOS, Windows: build, strip, verify, package into release/dist/<os>-<arch>/
+zsh release.zsh --musl           # Linux (required there): the static musl build, release/dist/linux-<arch>-musl/
 zsh publish.zsh --local          # the same, and say what --github would do; no upload
-zsh publish.zsh --github 0.2.0   # VERSION must say 0.2.0; push tag v0.2.0, CI builds eight platforms, the artifacts
-                                 # are checked and the release is created as you (your gh login), then every
-                                 # asset is verified from its public URL and bucket/lzfse.json rewritten
+zsh publish.zsh --github 0.2.0   # VERSION must say 0.2.0 and release-notes/v0.2.0.md must exist; push a signed tag
+                                 # v0.2.0, CI builds six platforms, the artifacts are checked and the release is
+                                 # created as you (your gh login), then every asset is verified from its public URL
+                                 # and bucket/lzfse.json rewritten
 ```
 
-A release's `lzfse -version` reports `lzfse <version> (<git describe> / <commit>) <os>-<arch>`; a plain
-`swiftc lzfse-cli.swift` build reports `lzfse dev (unreleased) <os>-<arch>`.
+A release's `lzfse -version` reports `lzfse <version> (<git describe> / <commit>) <os>-<arch>`, with `-musl` after the
+arch on Linux (`linux-x86_64-musl`); a plain `swiftc lzfse-cli.swift` build reports `lzfse dev (unreleased) <os>-<arch>`,
+on Linux ending in `-glibc` or `-musl`.
 
 ## macOS Graphical Interface (LZFSE_UI)
 

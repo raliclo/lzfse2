@@ -34,30 +34,30 @@ swiftc -O lzfse-cli.swift -o lzfse
 
 ### 安裝正式版
 
-每個 release 為 linux-{x86_64,aarch64}-glibc（glibc，已連入 Swift runtime）、linux-{x86_64,aarch64}-musl（完全靜態）、
-macos-{x86_64,arm64}、windows-{x86_64,arm64}
-各提供一份已 strip 的 `lzfse-<版本>-<os>-<arch>.tar.zst` 與 `.sha256`：
+每個 release 為 linux-{x86_64,aarch64}-musl（完全靜態，任何 Linux 都能跑）、macos-{x86_64,arm64}、windows-{x86_64,arm64}
+各提供一份已 strip 的 `lzfse-<版本>-<os>-<arch>.tar.zst` 與 `.sha256`。Linux 只出 musl 版，與 swift_tar 相同：glibc
+建置需要不比建置機器舊的 glibc（Ubuntu 24.04 的 CI 映像建出的是 GLIBC_2.38），Ubuntu 22.04、Debian 12、RHEL 9 都無法執行。
 
 ```sh
 zsh install.zsh              # 最新版裝到 ~/.local/bin
 zsh install.zsh 0.2.0 --prefix /usr/local
-zsh install.zsh --musl       # Linux：靜態 musl 版（在 Alpine 等 musl 系統上會自動選用）
 scoop install raliclo/lzfse  # Windows（先 scoop bucket add raliclo https://github.com/raliclo/lzfse2）
 ```
 
 ### 發布正式版
 
 ```sh
-zsh release.zsh                  # 本機 os/arch：建置、strip、驗證、打包到 release/dist/<os>-<arch>/
-zsh release.zsh --musl           # Linux：靜態 musl 版，輸出到 release/dist/linux-<arch>-musl/
+zsh release.zsh                  # macOS、Windows：建置、strip、驗證、打包到 release/dist/<os>-<arch>/
+zsh release.zsh --musl           # Linux（在 Linux 上必須加）：靜態 musl 版，輸出到 release/dist/linux-<arch>-musl/
 zsh publish.zsh --local          # 同上，並說明 --github 會做什麼；不上傳
-zsh publish.zsh --github 0.2.0   # VERSION 須為 0.2.0；推送 tag v0.2.0，由 CI 建置八個平台，檢查 artifact 後以你
-                                 # （你的 gh 登入）的身分建立 release，
-                                 # 下載驗證每個資產，再改寫 bucket/lzfse.json
+zsh publish.zsh --github 0.2.0   # VERSION 須為 0.2.0，且須有 release-notes/v0.2.0.md；推送簽章的 tag v0.2.0，由 CI
+                                 # 建置六個平台，檢查 artifact 後以你（你的 gh 登入）的身分建立 release，
+                                 # 再從公開網址驗證每個資產，最後改寫 bucket/lzfse.json
 ```
 
-正式版的 `lzfse -version` 回報 `lzfse <版本> (<git describe> / <commit>) <os>-<arch>`；一般
-`swiftc lzfse-cli.swift` 建置回報 `lzfse dev (unreleased) <os>-<arch>`。
+正式版的 `lzfse -version` 回報 `lzfse <版本> (<git describe> / <commit>) <os>-<arch>`，Linux 會在 arch 後加上 `-musl`
+（`linux-x86_64-musl`）；一般 `swiftc lzfse-cli.swift` 建置回報 `lzfse dev (unreleased) <os>-<arch>`，在 Linux 上以
+`-glibc` 或 `-musl` 結尾。
 
 ## macOS 圖形介面（LZFSE_UI）
 
