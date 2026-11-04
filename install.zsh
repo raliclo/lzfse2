@@ -5,11 +5,11 @@
 #   zsh install.zsh 0.2.0               release v0.2.0 / 指定 v0.2.0
 #   zsh install.zsh --prefix /usr/local into /usr/local/bin / 裝到 /usr/local/bin
 #   zsh install.zsh --musl              Linux: the fully static musl build / Linux：完全靜態的 musl 版
-# Picks lzfse-<version>-<plat>.tar.zst for linux-{x86_64,aarch64}, linux-musl-{x86_64,aarch64}, macos-{x86_64,arm64}
+# Picks lzfse-<version>-<plat>.tar.zst for linux-glibc-{x86_64,aarch64}, linux-musl-{x86_64,aarch64}, macos-{x86_64,arm64}
 # or windows-{x86_64,arm64}, checks it against its .sha256, and copies lzfse (and, on Windows, the Swift runtime DLLs)
 # into <prefix>/bin. On Linux the glibc build (Swift runtime linked in) is the default; a system whose libc is musl
 # (Alpine), or --musl, gets the static musl build, which runs anywhere. No Swift is needed. The executables are stripped.
-# 依 linux-{x86_64,aarch64}、linux-musl-{x86_64,aarch64}、macos-{x86_64,arm64} 或 windows-{x86_64,arm64} 挑選
+# 依 linux-glibc-{x86_64,aarch64}、linux-musl-{x86_64,aarch64}、macos-{x86_64,arm64} 或 windows-{x86_64,arm64} 挑選
 # lzfse-<版本>-<平台>.tar.zst，以其 .sha256 驗證，再把 lzfse（Windows 上連同 Swift runtime DLL）複製到 <prefix>/bin。Linux
 # 預設為 glibc 版（已連入 Swift runtime）；libc 是 musl 的系統（Alpine）或指定 --musl 時改裝靜態 musl 版，它在任何 Linux
 # 都能跑。都不需要 Swift。執行檔皆已 strip。
@@ -65,8 +65,8 @@ case $(uname -s) in
   *) die "unsupported OS: $(uname -s) / 不支援的作業系統：$(uname -s)" ;;
 esac
 case $os-$arch in
-  linux-x86_64|linux-amd64)   plat=linux-x86_64 ;;
-  linux-aarch64|linux-arm64)  plat=linux-aarch64 ;;
+  linux-x86_64|linux-amd64)   plat=linux-glibc-x86_64 ;;
+  linux-aarch64|linux-arm64)  plat=linux-glibc-aarch64 ;;
   macos-x86_64)               plat=macos-x86_64 ;;
   macos-arm64)                plat=macos-arm64 ;;
   windows-X64|windows-x86_64) plat=windows-x86_64 ;;
@@ -79,7 +79,7 @@ esac
 # 指定時、或系統的 libc 是 musl 時用 musl：glibc 版在那裡無法啟動。以 musl 載入器的名稱 ld-musl-<arch>.so.1 辨認。
 if [[ $os == linux ]]; then
   musl_loaders=( /lib/ld-musl-*.so.1(N) )
-  (( musl || ${#musl_loaders} )) && plat=linux-musl-${plat#linux-}
+  (( musl || ${#musl_loaders} )) && plat=linux-musl-${plat#linux-glibc-}
 else
   (( ! musl )) || die "--musl is for Linux only / --musl 只適用於 Linux"
 fi

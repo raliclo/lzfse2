@@ -13,8 +13,8 @@
 #                                    release-notes/v0.2.0.md 放上 release，再改寫 bucket/lzfse.json、提交並推送。對已發布的
 #                                    tag 重跑時只會重新驗證並更新 notes 與 manifest。
 #   --yes   (--github) do not ask / 不詢問
-# Targets: {linux (glibc), linux-musl, macos, windows} x {x86_64,arm64}; Linux arm64 is named aarch64 (uname -m).
-# 目標：{linux（glibc）, linux-musl, macos, windows} x {x86_64,arm64}；Linux arm64 命名為 aarch64（uname -m）。
+# Targets: {linux-glibc, linux-musl, macos, windows} x {x86_64,arm64}; Linux arm64 is named aarch64 (uname -m).
+# 目標：{linux-glibc, linux-musl, macos, windows} x {x86_64,arm64}；Linux arm64 命名為 aarch64（uname -m）。
 # Install: zsh install.zsh [<X.Y.Z>], or scoop install raliclo/lzfse. / 安裝：zsh install.zsh [<版本>]，或 scoop。
 
 # -h / --help: print the comment block above and exit; skipped when sourced.
@@ -32,7 +32,7 @@ cd -- "$HERE"
 
 REPO=raliclo/lzfse2
 WORKFLOW=release.yml
-PLATFORMS=(linux-x86_64 linux-aarch64 linux-musl-x86_64 linux-musl-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64)
+PLATFORMS=(linux-glibc-x86_64 linux-glibc-aarch64 linux-musl-x86_64 linux-musl-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64)
 
 say() { print -r -- "$1" }
 die() { print -u2 -r -- "$1"; [[ -n ${2:-} ]] && print -u2 -r -- "$2"; exit 1 }
@@ -128,7 +128,9 @@ fi
 # ---------------------------------------------------------------------
 if (( ! released )); then
   if [[ -z $TAG_SHA ]]; then
-    git tag -a "$TAG" -m "lzfse $VERSION"
+    # -s: signed with git's configured key (gpg.format, user.signingkey), so GitHub shows the tag as Verified.
+    # -s：以 git 設定的金鑰（gpg.format、user.signingkey）簽章，GitHub 才會把這個 tag 標成 Verified。
+    git tag -s "$TAG" -m "lzfse $VERSION"
     TAG_SHA=$HEAD_SHA
   fi
   git push -q origin "$TAG"
@@ -173,7 +175,9 @@ for plat in $PLATFORMS; do
   # `grep -a`: without it a binary yields one "Binary file matches" line. `|| true`: a count of zero exits 1 and is
   # answered by the die below.
   # `grep -a`：少了它，二進位檔只會得到一行「Binary file matches」。`|| true`：計數為零時以 1 結束，由下方的 die 回答。
-  hits=$(LC_ALL=C grep -a -c -F -- "($TAG / ${TAG_SHA[1,8]})" "$tmp/$plat/$stem/lzfse$exe" || true)
+  # No parentheses: the binary holds the build id literal alone; lzfseVersionLine adds "(…)" at run time.
+  # 不含括號：執行檔裡只有 build id 字面值本身；外圍的「(…)」是 lzfseVersionLine 在執行時才加上的。
+  hits=$(LC_ALL=C grep -a -c -F -- "$TAG / ${TAG_SHA[1,8]}" "$tmp/$plat/$stem/lzfse$exe" || true)
   [[ $hits != 0 ]] || die "$base does not carry [$want_id]; built from another commit?" "$base 裡沒有 [$want_id]；是從別的 commit 建的嗎？"
   say "    $base  $HASH[$plat]"
 done

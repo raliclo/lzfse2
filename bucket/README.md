@@ -70,12 +70,12 @@ README). The old `swift_tar/scoop_release.bat` is gone. The steps below describe
 `scoop_release.bat` only.
 
 `lzfse` 自 0.2.0 起同樣改用根目錄的 `publish.zsh --github <X.Y.Z>`：推送 tag 後由
-`.github/workflows/release.yml` 建置八個平台（linux（glibc）／linux-musl／macos／windows × x86_64／arm64，執行檔皆 strip），
+`.github/workflows/release.yml` 建置八個平台（linux-glibc／linux-musl／macos／windows × x86_64／arm64，執行檔皆 strip），
 建立 release，再自公開網址下載驗證並**整份產生** `lzfse.json`（`64bit` 與 `arm64` 兩個架構）。
 下方 `scoop_release.bat` 的流程寫的是 0.1.0 的 zip，已被取代；再執行它會把 `lzfse.json` 改回 zip 格式。
 
 Since 0.2.0 `lzfse` likewise uses the root `publish.zsh --github <X.Y.Z>`: after the tag push,
-`.github/workflows/release.yml` builds eight platforms (linux (glibc)/linux-musl/macos/windows x x86_64/arm64, every
+`.github/workflows/release.yml` builds eight platforms (linux-glibc/linux-musl/macos/windows x x86_64/arm64, every
 executable stripped), creates the release, then re-downloads each asset from its public URL and
 **generates** `lzfse.json` whole (both `64bit` and `arm64`). The `scoop_release.bat` procedure
 below describes the 0.1.0 zip and is superseded; running it again would turn `lzfse.json` back

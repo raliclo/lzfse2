@@ -34,7 +34,7 @@ swiftc -O lzfse-cli.swift -o lzfse
 
 ### 安裝正式版
 
-每個 release 為 linux-{x86_64,aarch64}（glibc，已連入 Swift runtime）、linux-musl-{x86_64,aarch64}（完全靜態）、
+每個 release 為 linux-glibc-{x86_64,aarch64}（glibc，已連入 Swift runtime）、linux-musl-{x86_64,aarch64}（完全靜態）、
 macos-{x86_64,arm64}、windows-{x86_64,arm64}
 各提供一份已 strip 的 `lzfse-<版本>-<os>-<arch>.tar.zst` 與 `.sha256`：
 

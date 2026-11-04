@@ -3976,7 +3976,7 @@ let lzfsePlatformOS = "windows"
 #elseif os(Linux) && canImport(Musl)
 let lzfsePlatformOS = "linux-musl"   // the static musl build (release.zsh --musl) / 靜態 musl 建置
 #elseif os(Linux)
-let lzfsePlatformOS = "linux"
+let lzfsePlatformOS = "linux-glibc"  // the default glibc build, named like linux-musl / 預設的 glibc 建置，命名方式與 linux-musl 相同
 #else
 let lzfsePlatformOS = "unknown"
 #endif

@@ -35,7 +35,7 @@ Or execute the auxiliary script:
 ### Installing a release
 
 Each release ships one stripped `lzfse-<version>-<os>-<arch>.tar.zst` plus `.sha256` for
-linux-{x86_64,aarch64} (glibc, Swift runtime linked in), linux-musl-{x86_64,aarch64} (fully static), macos-{x86_64,arm64}
+linux-glibc-{x86_64,aarch64} (glibc, Swift runtime linked in), linux-musl-{x86_64,aarch64} (fully static), macos-{x86_64,arm64}
 and windows-{x86_64,arm64}:
 
 ```sh

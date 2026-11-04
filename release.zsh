@@ -3,13 +3,13 @@
 # release.zsh [--musl] | --help —— 為**本機**的 os/arch 建置、strip、驗證並打包 lzfse 正式版成一份 .tar.zst。
 #   zsh release.zsh          release/dist/<plat>/lzfse-<X.Y.Z>-<plat>.tar.zst (+ .sha256)
 #   zsh release.zsh --musl   Linux only: the static musl build, plat linux-musl-<arch> / 僅 Linux：靜態 musl 建置
-# Platforms: linux-{x86_64,aarch64} (glibc, the Swift runtime linked in with -static-stdlib: no Swift needed, a glibc
+# Platforms: linux-glibc-{x86_64,aarch64} (glibc, the Swift runtime linked in with -static-stdlib: no Swift needed, a glibc
 # as new as the build machine's is), linux-musl-{x86_64,aarch64} (fully static, runs on any Linux; needs the Swift
 # Static Linux SDK), macos-{x86_64,arm64}, windows-{x86_64,arm64} (MSYS2 zsh; the Swift runtime DLLs ride along).
 # glibc is the default and musl is behind --musl, as in swift_tar (3c515ff). The version is VERSION; the build id is
 # `git describe` of a clean tree, so on tag v<X.Y.Z> it reads `v<X.Y.Z> / <commit8>`. Every shipped executable is
 # stripped (only the staged copy; release/lzfse keeps its symbols). Uploading is publish.zsh's and CI's job.
-# 平台：linux-{x86_64,aarch64}（glibc，以 -static-stdlib 連入 Swift runtime：不需要 Swift，需要不舊於建置機的 glibc）、
+# 平台：linux-glibc-{x86_64,aarch64}（glibc，以 -static-stdlib 連入 Swift runtime：不需要 Swift，需要不舊於建置機的 glibc）、
 # linux-musl-{x86_64,aarch64}（完全靜態，任何 Linux 都能跑；需要 Swift Static Linux SDK）、macos-{x86_64,arm64}、
 # windows-{x86_64,arm64}（MSYS2 zsh；Swift runtime DLL 一併帶上）。glibc 為預設、musl 需加 --musl，與 swift_tar
 # （3c515ff）相同。版本取自 VERSION；build id 是乾淨工作樹的 `git describe`，所以在 tag v<X.Y.Z> 上它是
@@ -161,7 +161,7 @@ swiftc -O -wmo -swift-version 6 -D LZFSE_RELEASE "${target[@]}" "$B/lzfse-cli.sw
 # 的輸出行以 CR 結尾。
 line=$("release/lzfse$exe" -version | tr -d '\r')
 plat=${line##* }
-want_os=$os; (( musl )) && want_os=linux-musl
+want_os=$os; [[ $os == linux ]] && want_os=linux-glibc; (( musl )) && want_os=linux-musl
 [[ $line == "lzfse $VERSION ($build_id) $plat" && ${plat%-*} == $want_os && $plat != *unknown* ]] \
   || die "release/lzfse$exe reports [$line], expected [lzfse $VERSION ($build_id) $want_os-<arch>]" \
          "release/lzfse$exe 回報 [$line]，預期 [lzfse $VERSION ($build_id) $want_os-<arch>]"

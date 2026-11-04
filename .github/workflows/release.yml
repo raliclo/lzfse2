@@ -9,9 +9,9 @@
 # 發布：推送 tag v<X.Y.Z>（publish.zsh --github）時另外建立 GitHub release，附上每一份 .tar.zst 與 .sha256；之後
 # publish.zsh 下載並驗證它們，再改寫 bucket/lzfse.json。
 #
-# Targets: {linux (glibc), linux-musl, macos, windows} x {x86_64,arm64}. No x86-32: macOS has no 32-bit x86 and
+# Targets: {linux-glibc, linux-musl, macos, windows} x {x86_64,arm64}. No x86-32: macOS has no 32-bit x86 and
 # Swift ships no i686 toolchain for Windows or Linux.
-# 目標：{linux（glibc）, linux-musl, macos, windows} x {x86_64,arm64}。沒有 x86-32：macOS 沒有 32 位元 x86，Swift 也
+# 目標：{linux-glibc, linux-musl, macos, windows} x {x86_64,arm64}。沒有 x86-32：macOS 沒有 32 位元 x86，Swift 也
 # 沒有提供 Windows 或 Linux 的 i686 工具鏈。
 name: Release
 
@@ -39,10 +39,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: linux-x86_64,       runner: ubuntu-24.04,     container: "swift:6.4.2-noble" }
-          - { platform: linux-aarch64,      runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble" }
-          - { platform: linux-musl-x86_64,  runner: ubuntu-24.04,     container: "swift:6.4.2-noble", musl: "--musl" }
-          - { platform: linux-musl-aarch64, runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble", musl: "--musl" }
+          - { platform: linux-glibc-x86_64,  runner: ubuntu-24.04,     container: "swift:6.4.2-noble" }
+          - { platform: linux-glibc-aarch64, runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble" }
+          - { platform: linux-musl-x86_64,   runner: ubuntu-24.04,     container: "swift:6.4.2-noble", musl: "--musl" }
+          - { platform: linux-musl-aarch64,  runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble", musl: "--musl" }
           - { platform: macos-x86_64,   runner: macos-15-intel }
           - { platform: macos-arm64,    runner: macos-15 }
           - { platform: windows-x86_64, runner: windows-2025,     swift_arch: amd64 }
@@ -166,7 +166,7 @@ jobs:
         run: |
           cd dist
           version=${TAG#v}
-          for plat in linux-x86_64 linux-aarch64 linux-musl-x86_64 linux-musl-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64; do
+          for plat in linux-glibc-x86_64 linux-glibc-aarch64 linux-musl-x86_64 linux-musl-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64; do
             f=lzfse-$version-$plat.tar.zst
             [ -f "$f" ] && [ -f "$f.sha256" ] || { echo "missing $f / 缺少 $f"; ls -l; exit 1; }
             sha256sum -c "$f.sha256"
