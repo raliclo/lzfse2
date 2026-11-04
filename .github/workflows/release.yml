@@ -1,18 +1,18 @@
 # Release builds for lzfse, modelled on multissh's ci.yml. / lzfse 的正式版建置，以 multissh 的 ci.yml 為範本。
 #
-# Build: a push that touches the CLI or the release scripts builds, strips, verifies and packages all six targets
+# Build: a push that touches the CLI or the release scripts builds, strips, verifies and packages all eight targets
 # with release.zsh (which runs the stripped copy and round-trips data through it).
 # Release: a pushed tag v<X.Y.Z> (publish.zsh --github) also creates the GitHub release with every .tar.zst and
 # .sha256; publish.zsh then downloads and verifies them and rewrites bucket/lzfse.json.
-# 建置：凡觸及 CLI 或發布腳本的 push，都以 release.zsh 建置、strip、驗證並打包全部六個目標（它會執行 strip 後的副本
+# 建置：凡觸及 CLI 或發布腳本的 push，都以 release.zsh 建置、strip、驗證並打包全部八個目標（它會執行 strip 後的副本
 # 並以它完成資料往返）。
 # 發布：推送 tag v<X.Y.Z>（publish.zsh --github）時另外建立 GitHub release，附上每一份 .tar.zst 與 .sha256；之後
 # publish.zsh 下載並驗證它們，再改寫 bucket/lzfse.json。
 #
-# Targets: {linux,macos,windows} x {x86_64,arm64}. No x86-32: macOS has no 32-bit x86 and Swift ships no i686
-# toolchain for Windows or Linux.
-# 目標：{linux,macos,windows} x {x86_64,arm64}。沒有 x86-32：macOS 沒有 32 位元 x86，Swift 也沒有提供 Windows 或 Linux
-# 的 i686 工具鏈。
+# Targets: {linux (glibc), linux-musl, macos, windows} x {x86_64,arm64}. No x86-32: macOS has no 32-bit x86 and
+# Swift ships no i686 toolchain for Windows or Linux.
+# 目標：{linux（glibc）, linux-musl, macos, windows} x {x86_64,arm64}。沒有 x86-32：macOS 沒有 32 位元 x86，Swift 也
+# 沒有提供 Windows 或 Linux 的 i686 工具鏈。
 name: Release
 
 on:
@@ -39,22 +39,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: linux-x86_64,   runner: ubuntu-24.04,     container: "swift:6.4.2-noble" }
-          - { platform: linux-aarch64,  runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble" }
+          - { platform: linux-x86_64,       runner: ubuntu-24.04,     container: "swift:6.4.2-noble" }
+          - { platform: linux-aarch64,      runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble" }
+          - { platform: linux-musl-x86_64,  runner: ubuntu-24.04,     container: "swift:6.4.2-noble", musl: "--musl" }
+          - { platform: linux-musl-aarch64, runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble", musl: "--musl" }
           - { platform: macos-x86_64,   runner: macos-15-intel }
           - { platform: macos-arm64,    runner: macos-15 }
           - { platform: windows-x86_64, runner: windows-2025,     swift_arch: amd64 }
           - { platform: windows-arm64,  runner: windows-11-arm,   swift_arch: arm64 }
     steps:
-      # Linux builds are static musl, as in swift_tar and multissh: the Swift Static Linux SDK must match swiftc
-      # exactly; the checksum is swift.org's (the same one multissh's ci.yml pins).
-      # Linux 建置是靜態 musl，與 swift_tar、multissh 相同：Swift Static Linux SDK 必須與 swiftc 完全相符；checksum
-      # 取自 swift.org（與 multissh 的 ci.yml 釘選的相同）。
+      # Linux: glibc by default; the musl jobs (release.zsh --musl, as swift_tar's --musl) need the Swift Static
+      # Linux SDK, which must match swiftc exactly; the checksum is swift.org's (the same one multissh's ci.yml pins).
+      # Linux：預設 glibc；musl 的 job（release.zsh --musl，同 swift_tar 的 --musl）需要 Swift Static Linux SDK，它必須
+      # 與 swiftc 完全相符；checksum 取自 swift.org（與 multissh 的 ci.yml 釘選的相同）。
       - name: Tools (Linux) / 工具（Linux）
         if: runner.os == 'Linux'
         run: |
           apt-get update -q
           apt-get install -y -q --no-install-recommends git zsh binutils zstd
+
+      - name: Swift Static Linux SDK (musl) / Swift Static Linux SDK（musl）
+        if: matrix.musl
+        run: |
           swift sdk install \
             "https://download.swift.org/swift-${SWIFT_VERSION}-release/static-sdk/swift-${SWIFT_VERSION}-RELEASE/swift-${SWIFT_VERSION}-RELEASE_static-linux-0.1.0.artifactbundle.tar.gz" \
             --checksum 3786b179936d9cc9e266dd506bd1654176358d7b25288e243359f4d17cc4dc5a
@@ -106,7 +112,7 @@ jobs:
         shell: bash
         run: |
           git config --global --add safe.directory "$PWD"
-          zsh release.zsh
+          zsh release.zsh ${{ matrix.musl }}
 
       # llvm-strip and llvm-objdump live in C:\Program Files\LLVM\bin on the runner image. MSYS2's $HOME is not the
       # Windows profile, so the Swift runtime directory is named rather than searched for (multissh run 5).
@@ -160,11 +166,11 @@ jobs:
         run: |
           cd dist
           version=${TAG#v}
-          for plat in linux-x86_64 linux-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64; do
+          for plat in linux-x86_64 linux-aarch64 linux-musl-x86_64 linux-musl-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64; do
             f=lzfse-$version-$plat.tar.zst
             [ -f "$f" ] && [ -f "$f.sha256" ] || { echo "missing $f / 缺少 $f"; ls -l; exit 1; }
             sha256sum -c "$f.sha256"
           done
           gh release create "$TAG" -R "$GITHUB_REPOSITORY" --verify-tag --title "lzfse $version" \
-            --notes "lzfse $version: one stripped executable per platform (Linux static musl, macOS, Windows with the Swift runtime DLLs; x86_64 and arm64), each .tar.zst with a .sha256. Install with \`zsh install.zsh $version\`, or \`scoop install raliclo/lzfse\` on Windows." \
+            --notes "lzfse $version: one stripped executable per platform (Linux glibc with the Swift runtime linked in, Linux static musl, macOS, Windows with the Swift runtime DLLs; x86_64 and arm64), each .tar.zst with a .sha256. Install with \`zsh install.zsh $version\`, or \`scoop install raliclo/lzfse\` on Windows." \
             ./*.tar.zst ./*.tar.zst.sha256

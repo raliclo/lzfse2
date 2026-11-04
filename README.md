@@ -35,11 +35,13 @@ Or execute the auxiliary script:
 ### Installing a release
 
 Each release ships one stripped `lzfse-<version>-<os>-<arch>.tar.zst` plus `.sha256` for
-linux-{x86_64,aarch64} (static musl), macos-{x86_64,arm64} and windows-{x86_64,arm64}:
+linux-{x86_64,aarch64} (glibc, Swift runtime linked in), linux-musl-{x86_64,aarch64} (fully static), macos-{x86_64,arm64}
+and windows-{x86_64,arm64}:
 
 ```sh
 zsh install.zsh              # the latest release into ~/.local/bin
 zsh install.zsh 0.2.0 --prefix /usr/local
+zsh install.zsh --musl       # Linux: the static musl build (chosen automatically on a musl system such as Alpine)
 scoop install raliclo/lzfse  # Windows (after scoop bucket add raliclo https://github.com/raliclo/lzfse2)
 ```
 
@@ -47,8 +49,9 @@ scoop install raliclo/lzfse  # Windows (after scoop bucket add raliclo https://g
 
 ```sh
 zsh release.zsh                  # this os/arch: build, strip, verify, package into release/dist/<os>-<arch>/
+zsh release.zsh --musl           # Linux: the static musl build, release/dist/linux-musl-<arch>/
 zsh publish.zsh --local          # the same, and say what --github would do; no upload
-zsh publish.zsh --github 0.2.0   # VERSION must say 0.2.0; push tag v0.2.0, CI builds six platforms and creates
+zsh publish.zsh --github 0.2.0   # VERSION must say 0.2.0; push tag v0.2.0, CI builds eight platforms and creates
                                  # the release, every asset is downloaded and verified, bucket/lzfse.json rewritten
 ```
 

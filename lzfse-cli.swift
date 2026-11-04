@@ -3973,6 +3973,8 @@ func printUsage() {
 let lzfsePlatformOS = "macos"
 #elseif os(Windows)
 let lzfsePlatformOS = "windows"
+#elseif os(Linux) && canImport(Musl)
+let lzfsePlatformOS = "linux-musl"   // the static musl build (release.zsh --musl) / 靜態 musl 建置
 #elseif os(Linux)
 let lzfsePlatformOS = "linux"
 #else

@@ -4,14 +4,14 @@
 #   zsh publish.zsh --local          build, strip, verify and package THIS machine's os/arch (release.zsh); no upload
 #                                    建置、strip、驗證並打包**本機**的 os/arch（release.zsh）；不上傳
 #   zsh publish.zsh --github 0.2.0   formal: VERSION must say 0.2.0; ask, push tag v0.2.0, let CI
-#                                    (.github/workflows/release.yml) build all six targets and create the release, wait
+#                                    (.github/workflows/release.yml) build all eight targets and create the release, wait
 #                                    for it, download and verify every asset, then rewrite bucket/lzfse.json, commit, push
 #                                    正式：VERSION 必須是 0.2.0；詢問後推送 tag v0.2.0，由 CI（.github/workflows/release.yml）
-#                                    建置全部六個目標並建立 release，等它完成，下載並驗證每個資產，再改寫
+#                                    建置全部八個目標並建立 release，等它完成，下載並驗證每個資產，再改寫
 #                                    bucket/lzfse.json、提交並推送
 #   --yes   (--github) do not ask / 不詢問
-# Targets: {linux,macos,windows} x {x86_64,arm64}; Linux arm64 is named linux-aarch64 (uname -m).
-# 目標：{linux,macos,windows} x {x86_64,arm64}；Linux arm64 命名為 linux-aarch64（uname -m）。
+# Targets: {linux (glibc), linux-musl, macos, windows} x {x86_64,arm64}; Linux arm64 is named aarch64 (uname -m).
+# 目標：{linux（glibc）, linux-musl, macos, windows} x {x86_64,arm64}；Linux arm64 命名為 aarch64（uname -m）。
 # Install: zsh install.zsh [<X.Y.Z>], or scoop install raliclo/lzfse. / 安裝：zsh install.zsh [<版本>]，或 scoop。
 
 # -h / --help: print the comment block above and exit; skipped when sourced.
@@ -29,7 +29,7 @@ cd -- "$HERE"
 
 REPO=raliclo/lzfse2
 WORKFLOW=release.yml
-PLATFORMS=(linux-x86_64 linux-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64)
+PLATFORMS=(linux-x86_64 linux-aarch64 linux-musl-x86_64 linux-musl-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64)
 
 say() { print -r -- "$1" }
 die() { print -u2 -r -- "$1"; [[ -n ${2:-} ]] && print -u2 -r -- "$2"; exit 1 }
