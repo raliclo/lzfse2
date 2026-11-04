@@ -202,14 +202,17 @@ fi
 # 一樣用 REST），而不是手寫。任何 job 沒有成功、或日誌缺少某一行，都會讓發布停下。
 build_notes() {
   local plat id log size dlls
-  local -a sizes=() win=()
+  local -a sizes=() win=() esc=()
+  # --allow-escape-sequences: the logs carry the runner's colour codes, which a newer gh refuses to print without
+  # it; gh 2.89 has no such flag and prints them as they are, so it is passed only where gh knows it.
+  # --allow-escape-sequences：日誌帶著 runner 的色碼，較新的 gh 少了它會拒絕輸出；gh 2.89 沒有這個旗標、照原樣輸出，
+  # 所以只在 gh 認得它時才加上。
+  gh api --help | grep -q -- --allow-escape-sequences && esc=(--allow-escape-sequences)
   for plat in $PLATFORMS; do
     id=$(gh api "repos/$REPO/actions/runs/$run_id/jobs?per_page=100" \
            -q ".jobs[] | select(.name == \"$plat\" and .conclusion == \"success\") | .id")
     [[ $id == <-> ]] || die "run $run_id has no successful job $plat / run $run_id 沒有成功的 $plat job"
-    # --allow-escape-sequences: the logs carry the runner's colour codes, which gh otherwise refuses to print.
-    # --allow-escape-sequences：日誌帶著 runner 的色碼，少了它 gh 會拒絕輸出。
-    log=$(gh api --allow-escape-sequences "repos/$REPO/actions/jobs/$id/logs" | tr -d '\r')
+    log=$(gh api "${esc[@]}" "repos/$REPO/actions/jobs/$id/logs" | tr -d '\r')
     size=$(print -r -- "$log" | LC_ALL=C grep -a -o -E 'stripped / [^0-9]*[0-9]+ -> [0-9]+ bytes' | LC_ALL=C sed -E 's/.* -> ([0-9]+) bytes/\1/' || true)
     [[ $size == <-> ]] || die "the $plat log has no \"stripped\" line / $plat 的日誌沒有 stripped 那一行"
     print -r -- "$log" | LC_ALL=C grep -a -q -F -- "verified the stripped copy: -version, other3 and bvx3 round trips" \
