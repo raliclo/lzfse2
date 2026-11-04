@@ -207,7 +207,11 @@ build_notes() {
   # it; gh 2.89 has no such flag and prints them as they are, so it is passed only where gh knows it.
   # --allow-escape-sequences：日誌帶著 runner 的色碼，較新的 gh 少了它會拒絕輸出；gh 2.89 沒有這個旗標、照原樣輸出，
   # 所以只在 gh 認得它時才加上。
-  gh api --help | grep -q -- --allow-escape-sequences && esc=(--allow-escape-sequences)
+  # The help is read whole, not piped into grep -q: grep -q stops at the first match, gh then dies of SIGPIPE (141),
+  # and under pipe_fail that makes the pipeline fail exactly when the flag is there (gh 2.102 on M4).
+  # 說明文字整份讀進來，不接 grep -q：grep -q 一找到就結束，gh 接著死於 SIGPIPE（141），在 pipe_fail 之下，正好在
+  # 旗標存在時讓整條管線失敗（M4 上的 gh 2.102）。
+  [[ $(gh api --help) == *--allow-escape-sequences* ]] && esc=(--allow-escape-sequences)
   for plat in $PLATFORMS; do
     id=$(gh api "repos/$REPO/actions/runs/$run_id/jobs?per_page=100" \
            -q ".jobs[] | select(.name == \"$plat\" and .conclusion == \"success\") | .id")
