@@ -137,7 +137,10 @@ if (( ! released )); then
   say "  pushed / 已推送：$TAG"
   run_id=
   for i in {1..30}; do
-    run_id=$(gh run list -R "$REPO" --workflow "$WORKFLOW" --branch "$TAG" --limit 1 --json databaseId -q '.[0].databaseId // empty')
+    # --commit as well as --branch: a tag deleted and pushed again keeps its name, and the run for the old commit
+    # would be taken for this one.
+    # 除了 --branch 也要 --commit：刪除後重推的 tag 名稱不變，否則會把舊 commit 的那次執行當成這一次。
+    run_id=$(gh run list -R "$REPO" --workflow "$WORKFLOW" --branch "$TAG" --commit "$TAG_SHA" --limit 1 --json databaseId -q '.[0].databaseId // empty')
     [[ -n $run_id ]] && break
     sleep 5
   done
