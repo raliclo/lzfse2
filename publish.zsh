@@ -5,10 +5,13 @@
 #                                    建置、strip、驗證並打包**本機**的 os/arch（release.zsh）；不上傳
 #   zsh publish.zsh --github 0.2.0   formal: VERSION must say 0.2.0; ask, push tag v0.2.0, let CI
 #                                    (.github/workflows/release.yml) build all eight targets and create the release, wait
-#                                    for it, download and verify every asset, then rewrite bucket/lzfse.json, commit, push
+#                                    for it, download and verify every asset, put release-notes/v0.2.0.md on the release,
+#                                    then rewrite bucket/lzfse.json, commit, push. Re-running it on a released tag only
+#                                    re-verifies and refreshes the notes and the manifest.
 #                                    正式：VERSION 必須是 0.2.0；詢問後推送 tag v0.2.0，由 CI（.github/workflows/release.yml）
-#                                    建置全部八個目標並建立 release，等它完成，下載並驗證每個資產，再改寫
-#                                    bucket/lzfse.json、提交並推送
+#                                    建置全部八個目標並建立 release，等它完成，下載並驗證每個資產，把
+#                                    release-notes/v0.2.0.md 放上 release，再改寫 bucket/lzfse.json、提交並推送。對已發布的
+#                                    tag 重跑時只會重新驗證並更新 notes 與 manifest。
 #   --yes   (--github) do not ask / 不詢問
 # Targets: {linux (glibc), linux-musl, macos, windows} x {x86_64,arm64}; Linux arm64 is named aarch64 (uname -m).
 # 目標：{linux（glibc）, linux-musl, macos, windows} x {x86_64,arm64}；Linux arm64 命名為 aarch64（uname -m）。
@@ -73,6 +76,12 @@ TAG=v$VERSION
 # ---------------------------------------------------------------------
 [[ $(<VERSION) == $VERSION ]] || die "VERSION says $(<VERSION), not $VERSION; commit the new VERSION first" \
                                      "VERSION 是 $(<VERSION)，不是 $VERSION；請先提交新的 VERSION"
+# The release notes are written by a person before publishing, in the shape of csv2's: what ships, what was
+# checked per platform, what changed, then the same in Traditional Chinese. Step 4 puts them on the release.
+# release notes 由人在發布前寫好，形式同 csv2：出貨內容、各平台檢查、變更，再附繁體中文。第 4 步把它放上 release。
+NOTES=release-notes/$TAG.md
+[[ -s $NOTES ]] || die "$NOTES is missing; write the release notes first (see release-notes/)" \
+                       "缺少 $NOTES；請先寫好 release notes（見 release-notes/）"
 [[ -z "$(git status --porcelain --untracked-files=no)" ]] || die "the working tree is not clean; a tag would name a state nobody can fetch" \
                                                                  "工作樹不乾淨；tag 會指向一個沒有人抓得到的狀態"
 command -v gh >/dev/null 2>&1 || die "gh is not on PATH / PATH 上沒有 gh"
@@ -86,14 +95,14 @@ git fetch -q --tags origin
 
 HEAD_SHA=$(git rev-parse HEAD) TAG_SHA=
 git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && TAG_SHA=$(git rev-parse "$TAG^{commit}")
-# HEAD may be past an existing tag only by the bucket commit a previous run left.
-# HEAD 只可以因為上一次執行留下的 bucket commit 而越過既有的 tag。
+# HEAD may be past an existing tag only by commits that change nothing the archives are built from -- the files
+# release.yml's path filter names: the bucket commit a previous run left, release notes, this script.
+# HEAD 只可以因為「不影響封存建置內容」的 commit 而越過既有的 tag——也就是 release.yml 路徑過濾所列的檔案以外的變更：
+# 上一次執行留下的 bucket commit、release notes、本腳本。
 if [[ -n $TAG_SHA && $TAG_SHA != $HEAD_SHA ]]; then
-  # `|| true`: grep -v exits 1 when every changed path is under bucket/, which is the allowed case.
-  # `|| true`：所有變更都在 bucket/ 底下時 grep -v 以 1 結束，那正是允許的情況。
-  extra=$(git diff --name-only "$TAG_SHA" HEAD | grep -v '^bucket/' || true)
-  [[ -z $extra ]] || die "$TAG exists at ${TAG_SHA[1,8]} and HEAD has other changes past it: ${extra//$'\n'/ }" \
-                         "$TAG 已存在於 ${TAG_SHA[1,8]}，且 HEAD 之後有其他變更：${extra//$'\n'/ }"
+  extra=$(git diff --name-only "$TAG_SHA" HEAD -- lzfse-cli.swift release.zsh VERSION .github/workflows/release.yml)
+  [[ -z $extra ]] || die "$TAG exists at ${TAG_SHA[1,8]} and HEAD changes what it was built from: ${extra//$'\n'/ }" \
+                         "$TAG 已存在於 ${TAG_SHA[1,8]}，且 HEAD 改動了建置來源：${extra//$'\n'/ }"
 fi
 released=0
 # A 404 here means "not released yet", the expected answer on a first run, so its message is not shown.
@@ -170,8 +179,20 @@ for plat in $PLATFORMS; do
 done
 
 # ---------------------------------------------------------------------
-# --github 4. The scoop manifest, GENERATED whole from the values above rather than edited in place, then read back.
-# --github 4. scoop manifest，整份由上面的值**產生**而不是就地修改，然後讀回確認。
+# --github 4. The release notes, only after every archive checked out, then read back: CI created the release with
+#    a one-line placeholder. REST, as everywhere here; -F body=@file sends the file's contents.
+# --github 4. release notes，在每份封存都驗證通過之後才放上去，再讀回比對：CI 建立 release 時只放了一行預留文字。
+#    與這裡其他地方一樣用 REST；-F body=@file 送出檔案內容。
+# ---------------------------------------------------------------------
+release_id=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id)
+gh api -X PATCH "repos/$REPO/releases/$release_id" -F body=@"$NOTES" >/dev/null
+[[ $(gh api "repos/$REPO/releases/$release_id" --jq .body) == $(<$NOTES) ]] \
+  || die "the release body does not read back as $NOTES" "release 本文讀回後與 $NOTES 不同"
+say "    release notes: $NOTES / 已放上 release notes"
+
+# ---------------------------------------------------------------------
+# --github 5. The scoop manifest, GENERATED whole from the values above rather than edited in place, then read back.
+# --github 5. scoop manifest，整份由上面的值**產生**而不是就地修改，然後讀回確認。
 # ---------------------------------------------------------------------
 cat > bucket/lzfse.json <<EOF
 {
