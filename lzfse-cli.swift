@@ -3920,7 +3920,7 @@ func eprint(_ message: String) {
 
 func printUsage() {
     print("""
-    Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal|-optimal3] [-si|-i input] [-so|-o output] [-test] [-h]
+    Usage: lzfse -encode|-decode [-algo apple|other3|bvx3] [-lazy2|-optimal|-optimal3] [-si|-i input] [-so|-o output] [-test] [-h] [-version]
 
     Commands:
       -encode       : Compress the input / 壓縮輸入內容
@@ -3954,6 +3954,7 @@ func printUsage() {
                       Apple 可解
       -test         : Run built-in round-trip & compatibility tests / 執行內建測試
       -h            : Show this help / 顯示說明
+      -version      : Print version, build id and platform / 印出版本、build id 與平台
 
     Notes / 注意:
       - "other3" streams are standard LZFSE; freely interoperable with "apple".
@@ -3964,6 +3965,39 @@ func printUsage() {
         other3/bvx3 解碼接受全部區塊型別，含 Apple 編碼器的輸出。
     """)
 }
+
+// The platform comes from what this binary was compiled for, so an archive named
+// from the version line cannot claim a platform the binary is not.
+// 平台取自這個執行檔被編譯成的目標，讓以版本行命名的封存不可能宣稱一個執行檔不是的平台。
+#if os(macOS)
+let lzfsePlatformOS = "macos"
+#elseif os(Windows)
+let lzfsePlatformOS = "windows"
+#elseif os(Linux)
+let lzfsePlatformOS = "linux"
+#else
+let lzfsePlatformOS = "unknown"
+#endif
+#if arch(x86_64)
+let lzfsePlatformArch = "x86_64"
+#elseif arch(arm64) && os(Linux)
+let lzfsePlatformArch = "aarch64"   // Linux names it by uname -m / Linux 以 uname -m 命名
+#elseif arch(arm64)
+let lzfsePlatformArch = "arm64"
+#else
+let lzfsePlatformArch = "unknown"
+#endif
+
+// release.zsh compiles with -D LZFSE_RELEASE and a generated main.swift that
+// defines lzfseReleaseVersion / lzfseReleaseBuildID; a plain `swiftc lzfse-cli.swift`
+// build says "dev".
+// release.zsh 以 -D LZFSE_RELEASE 並搭配產生的 main.swift（定義 lzfseReleaseVersion／
+// lzfseReleaseBuildID）編譯；一般的 `swiftc lzfse-cli.swift` 建置回報 "dev"。
+#if LZFSE_RELEASE
+let lzfseVersionLine = "lzfse \(lzfseReleaseVersion) (\(lzfseReleaseBuildID)) \(lzfsePlatformOS)-\(lzfsePlatformArch)"
+#else
+let lzfseVersionLine = "lzfse dev (unreleased) \(lzfsePlatformOS)-\(lzfsePlatformArch)"
+#endif
 
 enum Algo: String { case apple, other3, bvx3 }
 
@@ -4066,6 +4100,11 @@ let args = CommandLine.arguments
 
 if args.contains("-h") || args.count < 2 {
     printUsage()
+    exit(0)
+}
+
+if args.contains("-version") || args.contains("--version") {
+    print(lzfseVersionLine)
     exit(0)
 }
 

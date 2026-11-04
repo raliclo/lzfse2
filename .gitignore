@@ -63,3 +63,6 @@ helper_windows/bench_logs/rss_tmp*
 # lz4bench's extraction manifests: 242 MB, regenerated each round and meaningful
 # only within it. A failing diff is what matters, and that lands in the logs.
 lz4bench_log/tree_manifest/
+
+# release.zsh output (build, staging, archives) / release.zsh 的產物（建置、暫存、封存）
+/release/

@@ -1,0 +1,166 @@
+# Release builds for lzfse, modelled on multissh's ci.yml. / lzfse 的正式版建置，以 multissh 的 ci.yml 為範本。
+#
+# Build: a push that touches the CLI or the release scripts builds, strips, verifies and packages all six targets
+# with release.zsh (which runs the stripped copy and round-trips data through it).
+# Release: a pushed tag v<X.Y.Z> (publish.zsh --github) also creates the GitHub release with every .tar.zst and
+# .sha256; publish.zsh then downloads and verifies them and rewrites bucket/lzfse.json.
+# 建置：凡觸及 CLI 或發布腳本的 push，都以 release.zsh 建置、strip、驗證並打包全部六個目標（它會執行 strip 後的副本
+# 並以它完成資料往返）。
+# 發布：推送 tag v<X.Y.Z>（publish.zsh --github）時另外建立 GitHub release，附上每一份 .tar.zst 與 .sha256；之後
+# publish.zsh 下載並驗證它們，再改寫 bucket/lzfse.json。
+#
+# Targets: {linux,macos,windows} x {x86_64,arm64}. No x86-32: macOS has no 32-bit x86 and Swift ships no i686
+# toolchain for Windows or Linux.
+# 目標：{linux,macos,windows} x {x86_64,arm64}。沒有 x86-32：macOS 沒有 32 位元 x86，Swift 也沒有提供 Windows 或 Linux
+# 的 i686 工具鏈。
+name: Release
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*.*.*"]
+    # Path filters are not applied to tag pushes, so a tag always builds.
+    # 路徑過濾不套用在 tag 推送上，所以 tag 一定會建置。
+    paths: ["lzfse-cli.swift", "release.zsh", "VERSION", ".github/workflows/release.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SWIFT_VERSION: "6.4.2"
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux-x86_64,   runner: ubuntu-24.04,     container: "swift:6.4.2-noble" }
+          - { platform: linux-aarch64,  runner: ubuntu-24.04-arm, container: "swift:6.4.2-noble" }
+          - { platform: macos-x86_64,   runner: macos-15-intel }
+          - { platform: macos-arm64,    runner: macos-15 }
+          - { platform: windows-x86_64, runner: windows-2025,     swift_arch: amd64 }
+          - { platform: windows-arm64,  runner: windows-11-arm,   swift_arch: arm64 }
+    steps:
+      # Linux builds are static musl, as in swift_tar and multissh: the Swift Static Linux SDK must match swiftc
+      # exactly; the checksum is swift.org's (the same one multissh's ci.yml pins).
+      # Linux 建置是靜態 musl，與 swift_tar、multissh 相同：Swift Static Linux SDK 必須與 swiftc 完全相符；checksum
+      # 取自 swift.org（與 multissh 的 ci.yml 釘選的相同）。
+      - name: Tools (Linux) / 工具（Linux）
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends git zsh binutils zstd
+          swift sdk install \
+            "https://download.swift.org/swift-${SWIFT_VERSION}-release/static-sdk/swift-${SWIFT_VERSION}-RELEASE/swift-${SWIFT_VERSION}-RELEASE_static-linux-0.1.0.artifactbundle.tar.gz" \
+            --checksum 3786b179936d9cc9e266dd506bd1654176358d7b25288e243359f4d17cc4dc5a
+
+      - name: Tools (macOS) / 工具（macOS）
+        if: runner.os == 'macOS'
+        run: |
+          command -v zstd >/dev/null || brew install zstd
+          swiftc --version
+
+      # build_arch defaults to amd64: on windows-11-arm that installs the x64 toolchain, which crashes (multissh run 3).
+      # build_arch 預設 amd64：在 windows-11-arm 上會裝成 x64 工具鏈而崩潰（multissh 第 3 次執行）。
+      - name: Swift (Windows) / Swift（Windows）
+        if: runner.os == 'Windows'
+        uses: compnerd/gha-setup-swift@main
+        with:
+          build_arch: ${{ matrix.swift_arch }}
+          branch: swift-${{ env.SWIFT_VERSION }}-release
+          tag: ${{ env.SWIFT_VERSION }}-RELEASE
+
+      - name: zsh (Windows) / zsh（Windows）
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MSYS
+          path-type: inherit
+          install: zsh zstd tar diffutils
+
+      # LF on Windows too: a CRLF checkout breaks every zsh script.
+      # Windows 上也用 LF：CRLF 的 checkout 會讓每個 zsh 腳本壞掉。
+      - name: LF line endings / LF 換行
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --global core.autocrlf false
+
+      # Full history and tags: the build id is `git describe`. No submodules: lzfse-cli.swift stands alone.
+      # 完整歷史與 tag：build id 是 `git describe`。不取子模組：lzfse-cli.swift 自成一體。
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Build and package / 建置與打包
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$PWD"
+          zsh release.zsh
+
+      # llvm-strip and llvm-objdump live in C:\Program Files\LLVM\bin on the runner image. MSYS2's $HOME is not the
+      # Windows profile, so the Swift runtime directory is named rather than searched for (multissh run 5).
+      # llvm-strip 與 llvm-objdump 在 runner 映像的 C:\Program Files\LLVM\bin。MSYS2 的 $HOME 不是 Windows 使用者目錄，
+      # 所以直接指定 Swift runtime 目錄而不搜尋（multissh 第 5 次執行）。
+      - name: Build and package (Windows) / 建置與打包（Windows）
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          export PATH="$PATH:/c/Program Files/LLVM/bin"
+          export SWIFT_RUNTIME_DIR="$(cygpath -u "$LOCALAPPDATA")/Programs/Swift/Runtimes/$SWIFT_VERSION/usr/bin"
+          zsh release.zsh
+
+      # The platform the binary reports must be the one this job builds; a mismatch would upload one platform under
+      # another's name.
+      # 執行檔回報的平台必須就是這個 job 要建的平台；不一致會把一個平台以另一個的名字上傳。
+      - name: Check platform / 檢查平台
+        shell: bash
+        run: |
+          ls release/dist/${{ matrix.platform }}/lzfse-*-${{ matrix.platform }}.tar.zst
+          ls release/dist/${{ matrix.platform }}/lzfse-*-${{ matrix.platform }}.tar.zst.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lzfse-${{ matrix.platform }}
+          path: |
+            release/dist/${{ matrix.platform }}/*.tar.zst
+            release/dist/${{ matrix.platform }}/*.tar.zst.sha256
+          if-no-files-found: error
+
+  release:
+    name: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      # Every archive must carry the tag's version in its name: a build from the wrong commit is named by VERSION
+      # there, not by the tag.
+      # 每份封存的名字都必須帶 tag 的版本：從錯的 commit 建出的封存是以那裡的 VERSION 命名，而不是 tag。
+      - name: Check and create release / 檢查並建立 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cd dist
+          version=${TAG#v}
+          for plat in linux-x86_64 linux-aarch64 macos-x86_64 macos-arm64 windows-x86_64 windows-arm64; do
+            f=lzfse-$version-$plat.tar.zst
+            [ -f "$f" ] && [ -f "$f.sha256" ] || { echo "missing $f / 缺少 $f"; ls -l; exit 1; }
+            sha256sum -c "$f.sha256"
+          done
+          gh release create "$TAG" -R "$GITHUB_REPOSITORY" --verify-tag --title "lzfse $version" \
+            --notes "lzfse $version: one stripped executable per platform (Linux static musl, macOS, Windows with the Swift runtime DLLs; x86_64 and arm64), each .tar.zst with a .sha256. Install with \`zsh install.zsh $version\`, or \`scoop install raliclo/lzfse\` on Windows." \
+            ./*.tar.zst ./*.tar.zst.sha256

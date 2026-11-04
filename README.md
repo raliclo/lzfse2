@@ -32,6 +32,29 @@ Or execute the auxiliary script:
 
 `compile.zsh` will also copy the binary file to `/opt/homebrew/bin`, so this step may require write permissions on the local machine.
 
+### Installing a release
+
+Each release ships one stripped `lzfse-<version>-<os>-<arch>.tar.zst` plus `.sha256` for
+linux-{x86_64,aarch64} (static musl), macos-{x86_64,arm64} and windows-{x86_64,arm64}:
+
+```sh
+zsh install.zsh              # the latest release into ~/.local/bin
+zsh install.zsh 0.2.0 --prefix /usr/local
+scoop install raliclo/lzfse  # Windows (after scoop bucket add raliclo https://github.com/raliclo/lzfse2)
+```
+
+### Making a release
+
+```sh
+zsh release.zsh                  # this os/arch: build, strip, verify, package into release/dist/<os>-<arch>/
+zsh publish.zsh --local          # the same, and say what --github would do; no upload
+zsh publish.zsh --github 0.2.0   # VERSION must say 0.2.0; push tag v0.2.0, CI builds six platforms and creates
+                                 # the release, every asset is downloaded and verified, bucket/lzfse.json rewritten
+```
+
+A release's `lzfse -version` reports `lzfse <version> (<git describe> / <commit>) <os>-<arch>`; a plain
+`swiftc lzfse-cli.swift` build reports `lzfse dev (unreleased) <os>-<arch>`.
+
 ## macOS Graphical Interface (LZFSE_UI)
 
 The macOS version of the UI uses SwiftUI, located at `lzfse-ui/lzfse-ui.swift`, and shares the same `lzfse-cli.swift` codec with the CLI.

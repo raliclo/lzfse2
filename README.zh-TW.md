@@ -32,6 +32,29 @@ swiftc -O lzfse-cli.swift -o lzfse
 
 `compile.zsh` 也會將二進位檔複製到 `/opt/homebrew/bin`，因此該步驟可能需要本機寫入權限。
 
+### 安裝正式版
+
+每個 release 為 linux-{x86_64,aarch64}（靜態 musl）、macos-{x86_64,arm64}、windows-{x86_64,arm64}
+各提供一份已 strip 的 `lzfse-<版本>-<os>-<arch>.tar.zst` 與 `.sha256`：
+
+```sh
+zsh install.zsh              # 最新版裝到 ~/.local/bin
+zsh install.zsh 0.2.0 --prefix /usr/local
+scoop install raliclo/lzfse  # Windows（先 scoop bucket add raliclo https://github.com/raliclo/lzfse2）
+```
+
+### 發布正式版
+
+```sh
+zsh release.zsh                  # 本機 os/arch：建置、strip、驗證、打包到 release/dist/<os>-<arch>/
+zsh publish.zsh --local          # 同上，並說明 --github 會做什麼；不上傳
+zsh publish.zsh --github 0.2.0   # VERSION 須為 0.2.0；推送 tag v0.2.0，由 CI 建置六個平台並建立 release，
+                                 # 下載驗證每個資產，再改寫 bucket/lzfse.json
+```
+
+正式版的 `lzfse -version` 回報 `lzfse <版本> (<git describe> / <commit>) <os>-<arch>`；一般
+`swiftc lzfse-cli.swift` 建置回報 `lzfse dev (unreleased) <os>-<arch>`。
+
 ## macOS 圖形介面（LZFSE_UI）
 
 macOS 版 UI 使用 SwiftUI，位於 `lzfse-ui/lzfse-ui.swift`，與 CLI 共用同一份 `lzfse-cli.swift` codec。
