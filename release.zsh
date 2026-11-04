@@ -111,22 +111,24 @@ if [[ $os == linux ]]; then
   # 每份 Linux 正式版都是靜態 musl 執行檔，與 swift_tar、multissh 相同：不需要 Swift runtime，也不挑 glibc。SDK 必須
   # 與 swiftc 完全相符，所以名稱取自 swiftc 自己的版本。
   arch=$(uname -m); [[ $arch == arm64 ]] && arch=aarch64
+  # The sysroot is found by its own name, musl-*.sdk/<arch>, anywhere inside the bundle: the directories
+  # between the bundle and the sysroot differ between SDK releases (the 6.4.2 bundle did not match the fixed
+  # path swift_tar uses, CI run 41818067746). Newer SwiftPM keeps SDKs under ~/.config/swiftpm.
+  # sysroot 以它自己的名稱 musl-*.sdk/<arch> 在 bundle 內任意深度尋找：bundle 與 sysroot 之間的目錄層次隨 SDK 版本
+  # 不同（6.4.2 的 bundle 不符合 swift_tar 用的固定路徑，CI 執行 41818067746）。較新的 SwiftPM 把 SDK 放在 ~/.config/swiftpm。
+  typeset -a sysroots=()
   if [[ -n ${SWIFT_STATIC_SDK:-} ]]; then
-    sdk=$SWIFT_STATIC_SDK
+    sysroots=( $SWIFT_STATIC_SDK/**/musl-*.sdk/$arch(N/) )
   else
     swift_ver=$(swiftc --version 2>&1 | sed -n 's/.*(swift-\([0-9][0-9.]*\)-RELEASE).*/\1/p' | head -1)
     [[ -n $swift_ver ]] || die "cannot read a release version from swiftc --version / 讀不出 swiftc 的版本"
     [[ $swift_ver == *.*.* ]] || swift_ver=$swift_ver.0
-    typeset -a sdks=()
-    for d in $HOME/.swiftpm/swift-sdks $HOME/Library/org.swift.swiftpm/swift-sdks; do
-      sdks+=( $d/swift-$swift_ver-RELEASE_static-linux-*.artifactbundle/swift-$swift_ver-RELEASE_static-linux-*/swift-linux-musl(N/) )
+    for d in $HOME/.swiftpm/swift-sdks $HOME/.config/swiftpm/swift-sdks $HOME/Library/org.swift.swiftpm/swift-sdks; do
+      sysroots+=( $d/swift-$swift_ver-RELEASE_static-linux-*.artifactbundle/**/musl-*.sdk/$arch(N/) )
     done
-    (( ${#sdks} )) || die "no Static Linux SDK for Swift $swift_ver; install it (swift sdk install) or set SWIFT_STATIC_SDK" \
-                          "沒有 Swift $swift_ver 的 Static Linux SDK；請安裝（swift sdk install）或設定 SWIFT_STATIC_SDK"
-    sdk=${sdks[1]}
   fi
-  sysroots=( $sdk/musl-*.sdk/$arch(N/) )
-  (( ${#sysroots} == 1 )) || die "no musl-*.sdk/$arch under $sdk / $sdk 下沒有 musl-*.sdk/$arch"
+  (( ${#sysroots} == 1 )) || die "need exactly one Static Linux SDK sysroot musl-*.sdk/$arch for swiftc ${swift_ver:-}, found ${#sysroots}: ${sysroots[*]}; install it (swift sdk install) or set SWIFT_STATIC_SDK" \
+                                 "需要恰好一個 musl-*.sdk/$arch（swiftc ${swift_ver:-}），找到 ${#sysroots} 個：${sysroots[*]}；請安裝（swift sdk install）或設定 SWIFT_STATIC_SDK"
   sysroot=${sysroots[1]}
   target=(-target $arch-swift-linux-musl -sdk "$sysroot" -resource-dir "$sysroot/usr/lib/swift_static"
           -static-executable -static-stdlib
