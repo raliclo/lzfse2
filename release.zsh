@@ -111,11 +111,10 @@ if [[ $os == linux ]]; then
   # 每份 Linux 正式版都是靜態 musl 執行檔，與 swift_tar、multissh 相同：不需要 Swift runtime，也不挑 glibc。SDK 必須
   # 與 swiftc 完全相符，所以名稱取自 swiftc 自己的版本。
   arch=$(uname -m); [[ $arch == arm64 ]] && arch=aarch64
-  # The sysroot is found by its own name, musl-*.sdk/<arch>, anywhere inside the bundle: the directories
-  # between the bundle and the sysroot differ between SDK releases (the 6.4.2 bundle did not match the fixed
-  # path swift_tar uses, CI run 41818067746). Newer SwiftPM keeps SDKs under ~/.config/swiftpm.
-  # sysroot 以它自己的名稱 musl-*.sdk/<arch> 在 bundle 內任意深度尋找：bundle 與 sysroot 之間的目錄層次隨 SDK 版本
-  # 不同（6.4.2 的 bundle 不符合 swift_tar 用的固定路徑，CI 執行 41818067746）。較新的 SwiftPM 把 SDK 放在 ~/.config/swiftpm。
+  # With SWIFT_STATIC_SDK the sysroot is found by its own name, musl-*.sdk/<arch>, at any depth below it, since
+  # the directories between a bundle and its sysroot differ between SDK releases.
+  # 設定 SWIFT_STATIC_SDK 時，sysroot 以它自己的名稱 musl-*.sdk/<arch> 在其下任意深度尋找，因為 bundle 與 sysroot
+  # 之間的目錄層次隨 SDK 版本不同。
   typeset -a sysroots=()
   if [[ -n ${SWIFT_STATIC_SDK:-} ]]; then
     sysroots=( $SWIFT_STATIC_SDK/**/musl-*.sdk/$arch(N/) )
@@ -123,9 +122,15 @@ if [[ $os == linux ]]; then
     swift_ver=$(swiftc --version 2>&1 | sed -n 's/.*(swift-\([0-9][0-9.]*\)-RELEASE).*/\1/p' | head -1)
     [[ -n $swift_ver ]] || die "cannot read a release version from swiftc --version / 讀不出 swiftc 的版本"
     [[ $swift_ver == *.*.* ]] || swift_ver=$swift_ver.0
-    for d in $HOME/.swiftpm/swift-sdks $HOME/.config/swiftpm/swift-sdks $HOME/Library/org.swift.swiftpm/swift-sdks; do
-      sysroots+=( $d/swift-$swift_ver-RELEASE_static-linux-*.artifactbundle/**/musl-*.sdk/$arch(N/) )
-    done
+    # Ask SwiftPM where it installed the SDK rather than guess a directory: in the CI container it was not under
+    # $HOME at all (CI run 41818672332), as SwiftPM takes the home directory from the user account, not $HOME.
+    # 直接問 SwiftPM 把 SDK 裝在哪，而不是猜目錄：在 CI 容器裡它根本不在 $HOME 底下（CI 執行 41818672332），因為
+    # SwiftPM 的家目錄取自使用者帳號，而不是 $HOME。
+    sdk_id=$(swift sdk list | grep -x "swift-$swift_ver-RELEASE_static-linux-[0-9.]*" | head -1)
+    [[ -n $sdk_id ]] || die "no Static Linux SDK for Swift $swift_ver in swift sdk list; install it (swift sdk install) or set SWIFT_STATIC_SDK" \
+                            "swift sdk list 裡沒有 Swift $swift_ver 的 Static Linux SDK；請安裝（swift sdk install）或設定 SWIFT_STATIC_SDK"
+    root=$(swift sdk configure --show-configuration "$sdk_id" "$arch-swift-linux-musl" | sed -n 's/^sdkRootPath: //p')
+    [[ -d $root ]] && sysroots=( $root )
   fi
   (( ${#sysroots} == 1 )) || die "need exactly one Static Linux SDK sysroot musl-*.sdk/$arch for swiftc ${swift_ver:-}, found ${#sysroots}: ${sysroots[*]}; install it (swift sdk install) or set SWIFT_STATIC_SDK" \
                                  "需要恰好一個 musl-*.sdk/$arch（swiftc ${swift_ver:-}），找到 ${#sysroots} 個：${sysroots[*]}；請安裝（swift sdk install）或設定 SWIFT_STATIC_SDK"

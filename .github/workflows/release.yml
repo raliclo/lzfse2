@@ -58,10 +58,10 @@ jobs:
           swift sdk install \
             "https://download.swift.org/swift-${SWIFT_VERSION}-release/static-sdk/swift-${SWIFT_VERSION}-RELEASE/swift-${SWIFT_VERSION}-RELEASE_static-linux-0.1.0.artifactbundle.tar.gz" \
             --checksum 3786b179936d9cc9e266dd506bd1654176358d7b25288e243359f4d17cc4dc5a
-          # Where it landed, for the log: release.zsh searches the SwiftPM SDK directories under $HOME.
-          # 印出安裝位置供日誌查閱：release.zsh 在 $HOME 下的 SwiftPM SDK 目錄搜尋。
+          # Where it landed, for the log; release.zsh asks swift sdk configure for the same path.
+          # 印出安裝位置供日誌查閱；release.zsh 向 swift sdk configure 詢問同一個路徑。
           swift sdk list
-          find "$HOME" -type d -name 'musl-*.sdk'
+          swift sdk configure --show-configuration "swift-${SWIFT_VERSION}-RELEASE_static-linux-0.1.0" "$(uname -m)-swift-linux-musl"
 
       - name: Tools (macOS) / 工具（macOS）
         if: runner.os == 'macOS'
