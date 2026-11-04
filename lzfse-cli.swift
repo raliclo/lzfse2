@@ -3973,12 +3973,19 @@ func printUsage() {
 let lzfsePlatformOS = "macos"
 #elseif os(Windows)
 let lzfsePlatformOS = "windows"
-#elseif os(Linux) && canImport(Musl)
-let lzfsePlatformOS = "linux-musl"   // the static musl build (release.zsh --musl) / 靜態 musl 建置
 #elseif os(Linux)
-let lzfsePlatformOS = "linux-glibc"  // the default glibc build, named like linux-musl / 預設的 glibc 建置，命名方式與 linux-musl 相同
+let lzfsePlatformOS = "linux"
 #else
 let lzfsePlatformOS = "unknown"
+#endif
+// Linux names the libc last, as swift_tar does: linux-<arch>-glibc, linux-<arch>-musl.
+// Linux 把 libc 放在最後，與 swift_tar 相同：linux-<arch>-glibc、linux-<arch>-musl。
+#if os(Linux) && canImport(Musl)
+let lzfsePlatformLibc = "-musl"    // the static musl build (release.zsh --musl) / 靜態 musl 建置
+#elseif os(Linux)
+let lzfsePlatformLibc = "-glibc"   // the default glibc build / 預設的 glibc 建置
+#else
+let lzfsePlatformLibc = ""
 #endif
 #if arch(x86_64)
 let lzfsePlatformArch = "x86_64"
@@ -3996,9 +4003,9 @@ let lzfsePlatformArch = "unknown"
 // release.zsh 以 -D LZFSE_RELEASE 並搭配產生的 main.swift（定義 lzfseReleaseVersion／
 // lzfseReleaseBuildID）編譯；一般的 `swiftc lzfse-cli.swift` 建置回報 "dev"。
 #if LZFSE_RELEASE
-let lzfseVersionLine = "lzfse \(lzfseReleaseVersion) (\(lzfseReleaseBuildID)) \(lzfsePlatformOS)-\(lzfsePlatformArch)"
+let lzfseVersionLine = "lzfse \(lzfseReleaseVersion) (\(lzfseReleaseBuildID)) \(lzfsePlatformOS)-\(lzfsePlatformArch)\(lzfsePlatformLibc)"
 #else
-let lzfseVersionLine = "lzfse dev (unreleased) \(lzfsePlatformOS)-\(lzfsePlatformArch)"
+let lzfseVersionLine = "lzfse dev (unreleased) \(lzfsePlatformOS)-\(lzfsePlatformArch)\(lzfsePlatformLibc)"
 #endif
 
 enum Algo: String { case apple, other3, bvx3 }
