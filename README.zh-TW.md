@@ -107,7 +107,7 @@ cd lzfse-ui
 - 按下 Compress / Decompress 後，Status 會立即顯示進行中狀態。
 - Windows exe/taskbar/File Explorer icon 使用與 macOS 相同的 `AppIcon.png` 來源。
 
-**自包含 CLI 包**（`lzfse.exe` + Swift runtime DLL，免裝 Swift 即可執行）：
+**自包含 CLI 包**（`lzfse.exe` 已靜態連結 Swift runtime，另附它匯入的三個 VC++ runtime DLL；免裝 Swift 或 VC++ 可轉散發套件即可執行）：
 
 ```sh
 cd helper_windows

@@ -4,13 +4,15 @@
 #   zsh release.zsh          macOS, Windows: release/dist/<plat>/lzfse-<X.Y.Z>-<plat>.tar.zst (+ .sha256)
 #   zsh release.zsh --musl   Linux: the static musl build, plat linux-<arch>-musl / Linux：靜態 musl 建置
 # Platforms: linux-{x86_64,aarch64}-musl (fully static, runs on any Linux; needs the Swift Static Linux SDK),
-# macos-{x86_64,arm64}, windows-{x86_64,arm64} (MSYS2 zsh; the Swift runtime DLLs ride along). Linux ships musl only,
+# macos-{x86_64,arm64}, windows-{x86_64,arm64} (MSYS2 zsh; Swift runtime linked in, only the VC++ runtime DLLs ride
+# along; until 2026-11-06 the Swift runtime DLLs rode along instead). Linux ships musl only,
 # as swift_tar (7e8acf8): a glibc build needs a glibc at least as new as its build machine's (GLIBC_2.38 and
 # GLIBCXX_3.4.32 for the Ubuntu 24.04 CI image), so on Linux this script refuses to run without --musl. The version is
 # VERSION; the build id is `git describe` of a clean tree, so on tag v<X.Y.Z> it reads `v<X.Y.Z> / <commit8>`. Every
 # shipped executable is stripped (only the staged copy; release/lzfse keeps its symbols). Uploading is publish.zsh's job.
 # 平台：linux-{x86_64,aarch64}-musl（完全靜態，任何 Linux 都能跑；需要 Swift Static Linux SDK）、macos-{x86_64,arm64}、
-# windows-{x86_64,arm64}（MSYS2 zsh；Swift runtime DLL 一併帶上）。Linux 只出 musl 版，與 swift_tar（7e8acf8）相同：
+# windows-{x86_64,arm64}（MSYS2 zsh；Swift runtime 直接連結進來，只附 VC++ runtime DLL；2026-11-06 以前附的是 Swift runtime
+# DLL）。Linux 只出 musl 版，與 swift_tar（7e8acf8）相同：
 # glibc 建置需要不比建置機器舊的 glibc（Ubuntu 24.04 的 CI 映像建出的是 GLIBC_2.38 與 GLIBCXX_3.4.32），所以在 Linux
 # 上沒有 --musl 時本腳本拒絕執行。版本取自 VERSION；build id 是乾淨工作樹的 `git describe`，所以在 tag v<X.Y.Z> 上它是
 # `v<X.Y.Z> / <commit 前 8 碼>`。每個出貨的執行檔都 strip（只處理暫存區副本；release/lzfse 保留符號）。
@@ -149,6 +151,21 @@ if (( musl )); then
   target=(-target $arch-swift-linux-musl -sdk "$sysroot" -resource-dir "$sysroot/usr/lib/swift_static"
           -static-executable -static-stdlib
           -Xclang-linker -resource-dir -Xclang-linker "$sysroot/usr/lib/swift/clang")
+elif [[ $os == windows ]]; then
+  # Windows: the Swift runtime is linked in (-static-stdlib), so lzfse.exe runs with no Swift DLL beside it; only
+  # the VC++ runtime DLLs still ship (see the bundling below). The link prints three LNK4217 warnings
+  # (_NSConcreteStackBlock, _Block_copy, _Block_release imported by runCLI): the one DispatchQueue.async in
+  # runParallelEncode becomes a block literal, and swiftc declares the Blocks runtime dllimport even under
+  # -static-stdlib. Measured 2026-11-06 with Swift 6.4.2: `.async` alone gives all three, concurrentPerform, sync
+  # and Thread give none, and -Xcc -DBlocksRuntime_STATIC changes nothing, since the references come from swiftc,
+  # not from Block.h. The linker resolves them to the static definitions; they are left visible, not silenced.
+  # Windows：Swift runtime 直接連結進來（-static-stdlib），lzfse.exe 旁邊不需要任何 Swift DLL；只剩 VC++ runtime DLL
+  # 仍需附上（見下方收錄）。連結時印出三個 LNK4217（_NSConcreteStackBlock、_Block_copy、_Block_release 由 runCLI
+  # 匯入）：runParallelEncode 裡唯一的 DispatchQueue.async 變成 block literal，而 swiftc 即使在 -static-stdlib 下也把
+  # Blocks runtime 宣告為 dllimport。2026-11-06 以 Swift 6.4.2 實測：只有 `.async` 會產生這三個，concurrentPerform、
+  # sync、Thread 都不會；-Xcc -DBlocksRuntime_STATIC 毫無作用，因為這些參照來自 swiftc 而非 Block.h。連結器會把
+  # 它們解析到靜態定義；保留可見，不壓掉。
+  target=(-static-stdlib)
 fi
 print -r -- "building lzfse $VERSION ($build_id) / 建置中"
 swiftc -O -wmo -swift-version 6 -D LZFSE_RELEASE "${target[@]}" "$B/lzfse-cli.swift" "$B/main.swift" -o "release/lzfse$exe"
@@ -189,9 +206,9 @@ cp -- "release/lzfse$exe" "$stage/"
 cp -- LICENSE README.md README.zh-TW.md "$stage/"
 
 # Strip the staged copy. macOS: strip invalidates the linker's ad-hoc signature and an arm64 binary without a
-# valid one is killed on launch, so it is signed again. The Swift runtime DLLs are not ours and ship as they come.
+# valid one is killed on launch, so it is signed again. The runtime DLLs are not ours and ship as they come.
 # strip 暫存區的副本。macOS：strip 會讓連結器的 ad-hoc 簽章失效，沒有有效簽章的 arm64 執行檔一啟動就被終止，
-# 所以重新簽章。Swift runtime DLL 不是我們的，照原樣出貨。
+# 所以重新簽章。runtime DLL 不是我們的，照原樣出貨。
 staged=$stage/lzfse$exe
 case $os in
   macos)   strip "$staged" && codesign -s - -f "$staged" ;;
@@ -202,11 +219,11 @@ esac
 print -r -- "stripped / 已 strip：$(wc -c < "release/lzfse$exe" | tr -d ' ') -> $(wc -c < "$staged" | tr -d ' ') bytes"
 
 if [[ $os == windows ]]; then
-  # The Swift runtime DLLs, resolved transitively from the PE imports: lzfse.exe imports Foundation.dll, which in
-  # turn pulls in FoundationEssentials, _FoundationICU, dispatch and more that a one-level scan never sees. Only
-  # what the runtime directory provides ships; everything else is a Windows system DLL.
-  # Swift runtime DLL，順著 PE import 遞移解析：lzfse.exe 匯入 Foundation.dll，它又拉進 FoundationEssentials、
-  # _FoundationICU、dispatch 等單層掃描看不到的 DLL。只帶 runtime 目錄裡有的；其餘都是 Windows 系統 DLL。
+  # The runtime DLLs, resolved transitively from the PE imports: MSVCP140.dll imports VCRUNTIME140_1.dll, which a
+  # one-level scan never sees. (Before -static-stdlib this walk also collected Foundation.dll and what it pulls in.)
+  # Only what the Swift runtime directory provides ships; everything else is a Windows system DLL.
+  # runtime DLL，順著 PE import 遞移解析：MSVCP140.dll 匯入 VCRUNTIME140_1.dll，單層掃描看不到它。（改用 -static-stdlib
+  # 以前，這段走訪也會收集 Foundation.dll 及其拉進來的 DLL。）只帶 Swift runtime 目錄裡有的；其餘都是 Windows 系統 DLL。
   rt=${SWIFT_RUNTIME_DIR:-}
   if [[ -z $rt ]]; then
     swift_root=${$(command -v swiftc):h}; swift_root=${swift_root%/Toolchains/*}
@@ -229,9 +246,29 @@ if [[ $os == windows ]]; then
       queue+=("$rt/$dep")
     done
   done
-  [[ -n ${seen[swiftCore.dll]:-} ]] || die "the PE imports of lzfse.exe never reach swiftCore.dll in $rt" \
-                                           "lzfse.exe 的 PE import 一路下來都沒有用到 $rt 裡的 swiftCore.dll"
-  print -r -- "bundled Swift runtime DLLs / 已收錄 Swift runtime DLL：${#seen}"
+  # CORRECTED 2026-11-06: this required swiftCore.dll to be reached, which held while the Swift runtime shipped as
+  # DLLs. Built with -static-stdlib it must NOT be reached: an import of any Swift runtime DLL means the static link
+  # did not happen, and the archive would fail on a machine without Swift. What the walk still finds is the VC++
+  # runtime (VCRUNTIME140, MSVCP140 and what they import), which a Windows without the redistributable lacks.
+  # 更正 2026-11-06：這裡原本要求走到 swiftCore.dll，那在 Swift runtime 以 DLL 出貨時成立。以 -static-stdlib 建置後
+  # 則**不得**走到它：只要匯入任何 Swift runtime DLL，就代表靜態連結沒有發生，封存在沒有 Swift 的機器上會失敗。走訪
+  # 仍會找到的是 VC++ runtime（VCRUNTIME140、MSVCP140 及其匯入），沒裝可轉散發套件的 Windows 沒有它們。
+  # Import tables spell names their own way (VCRUNTIME140.dll), so compare lower-cased; case patterns need no
+  # extended_glob, which this script does not set.
+  # import 表的拼法各自不同（VCRUNTIME140.dll），所以轉小寫比對；case 樣式不需要本腳本沒有開啟的 extended_glob。
+  typeset -a swift_dlls=()
+  vc=0
+  for dep in ${(k)seen}; do
+    case ${dep:l} in
+      swift*.dll|foundation*.dll|_foundation*.dll|dispatch.dll|blocksruntime.dll) swift_dlls+=($dep) ;;
+      vcruntime140.dll) vc=1 ;;
+    esac
+  done
+  (( ${#swift_dlls} == 0 )) || die "lzfse.exe still imports Swift runtime DLLs (${swift_dlls[*]}); -static-stdlib did not take" \
+                                   "lzfse.exe 仍匯入 Swift runtime DLL（${swift_dlls[*]}）；-static-stdlib 沒有生效"
+  (( vc )) || die "the PE imports of lzfse.exe never reach vcruntime140.dll in $rt" \
+                  "lzfse.exe 的 PE import 一路下來都沒有用到 $rt 裡的 vcruntime140.dll"
+  print -r -- "bundled VC++ runtime DLLs / 已收錄 VC++ runtime DLL：${(ok)seen}"
 fi
 
 # ---------------------------------------------------------------------

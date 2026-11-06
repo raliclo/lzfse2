@@ -109,7 +109,7 @@ The current focus of Windows UI/build:
 - After pressing Compress / Decompress, the Status will immediately display the status of the process in progress.
 - Windows exe/taskbar/File Explorer icon uses the same `AppIcon.png` source as macOS.
 
-**Includes CLI package** ( `lzfse.exe` + Swift runtime DLL, runs without installing Swift):
+**Includes CLI package** ( `lzfse.exe` with the Swift runtime linked in statically, plus the three VC++ runtime DLLs it imports; runs without installing Swift or the VC++ redistributable):
 
 ```sh
 cd helper_windows
