@@ -19,6 +19,8 @@
 # 上傳是 publish.zsh 的事。
 # Env: SWIFT_STATIC_SDK (Linux: the swift-linux-musl directory), SWIFT_RUNTIME_DIR (Windows: …/Runtimes/<v>/usr/bin).
 # 環境變數：SWIFT_STATIC_SDK（Linux：swift-linux-musl 目錄）、SWIFT_RUNTIME_DIR（Windows：…/Runtimes/<v>/usr/bin）。
+# Windows picks the newest installed Swift via helper_windows/swift_windows_env.zsh; SWIFT_RUNTIME_DIR still overrides
+# the runtime. / Windows 經 helper_windows/swift_windows_env.zsh 選用最新安裝的 Swift；SWIFT_RUNTIME_DIR 仍可覆寫 runtime。
 
 # -h / --help: print the comment block above and exit, before anything is built.
 # -h／--help：在建置任何東西之前，印出上方的註解區塊後結束。
@@ -75,6 +77,11 @@ esac
 (( ! musl )) || [[ $os == linux ]] || die "--musl is for Linux only / --musl 只適用於 Linux"
 (( musl )) || [[ $os != linux ]] || die "Linux ships musl only (a glibc build needs a glibc as new as this machine's); use --musl" \
                                         "Linux 只出 musl 版（glibc 建置需要不比本機舊的 glibc）；請加 --musl"
+# Windows: build with the newest installed Swift, not whatever the inherited PATH/SDKROOT names (an upgrade deletes
+# the old version, and shells opened before it keep pointing there). On a runner with one Swift this changes nothing.
+# Windows：用最新安裝的 Swift 建置，而不是繼承來的 PATH／SDKROOT 剛好指的那一版（升級會刪掉舊版，而在那之前開的
+# shell 仍指向它）。只裝一版 Swift 的 runner 上，這不改變任何事。
+[[ $os != windows ]] || source "${0:A:h}/helper_windows/swift_windows_env.zsh"
 for tool in swiftc zstd tar git; do command -v $tool >/dev/null 2>&1 || die "$tool is not on PATH / PATH 上沒有 $tool"; done
 
 # ---------------------------------------------------------------------
@@ -224,11 +231,12 @@ if [[ $os == windows ]]; then
   # Only what the Swift runtime directory provides ships; everything else is a Windows system DLL.
   # runtime DLL，順著 PE import 遞移解析：MSVCP140.dll 匯入 VCRUNTIME140_1.dll，單層掃描看不到它。（改用 -static-stdlib
   # 以前，這段走訪也會收集 Foundation.dll 及其拉進來的 DLL。）只帶 Swift runtime 目錄裡有的；其餘都是 Windows 系統 DLL。
-  rt=${SWIFT_RUNTIME_DIR:-}
-  if [[ -z $rt ]]; then
-    swift_root=${$(command -v swiftc):h}; swift_root=${swift_root%/Toolchains/*}
-    rt=( $swift_root/Runtimes/*/usr/bin(N/On) ); rt=${rt[1]:-}
-  fi
+  # CORRECTED 2026-11-06: the fallback was `$swift_root/Runtimes/*/usr/bin(N/On)`, a reverse NAME sort, so 6.10.0
+  # would lose to 6.4.2 and the runtime could differ from the swiftc that compiled. It is now the runtime
+  # swift_windows_env.zsh paired with that swiftc.
+  # 更正 2026-11-06：後備原本是 `$swift_root/Runtimes/*/usr/bin(N/On)`，依名稱反向排序，6.10.0 會輸給 6.4.2，
+  # runtime 可能與編譯用的 swiftc 不同版。現在改用 swift_windows_env.zsh 為該 swiftc 配好的 runtime。
+  rt=${SWIFT_RUNTIME_DIR:-${swift_windows_runtime_bin:-}}
   [[ -n $rt && -f $rt/swiftCore.dll ]] || die "no Swift runtime (swiftCore.dll); set SWIFT_RUNTIME_DIR" "找不到 Swift runtime（swiftCore.dll）；請設定 SWIFT_RUNTIME_DIR"
   # `|| true`: neither tool present is answered by the die on the next line, with a message that names them.
   # `|| true`：兩個工具都不在時，由下一行的 die 以點名它們的訊息回答。

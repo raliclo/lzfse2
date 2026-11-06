@@ -21,6 +21,8 @@
 # 需求 / Requirements:
 #   - Git for Windows（提供 Git Bash、cygpath、grep）/ provides Git Bash, cygpath, grep
 #   - Swift for Windows 工具鏈（swiftc）+ Visual Studio Build Tools（C++）+ Windows SDK
+#     自動選用最新安裝的版本（swift_windows_env.zsh），不信任繼承來的 PATH／SDKROOT。
+#     The newest installed version is picked (swift_windows_env.zsh); the inherited PATH/SDKROOT is not trusted.
 #   - C:\Windows\System32\tar.exe（Windows 內建的 bsdtar，用於打包 zip）
 #     C:\Windows\System32\tar.exe (the bsdtar shipped with Windows), for zip packaging
 
@@ -29,7 +31,7 @@ set -e
 script_path="${0:A}"
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-    sed -n '3,25p' "$script_path" | sed 's/^# \{0,1\}//'
+    sed -n '3,27p' "$script_path" | sed 's/^# \{0,1\}//'
     exit 0
 fi
 
@@ -52,17 +54,22 @@ LOG="${BUILD_DIR}/build.log"
 
 echo "Building ${APP_NAME}.exe (CLI)..."
 
-# 1. 自動偵測 Swift runtime DLL 目錄（…/Programs/Swift/Runtimes/<ver>/usr/bin）
-#    由 swiftc 路徑推導（不依賴 cygpath / LOCALAPPDATA）。
-#    Auto-detect the Swift runtime DLL directory, derived from the swiftc path
-#    (no cygpath / LOCALAPPDATA dependency).
-SWIFT_BIN="$(dirname "$(command -v swiftc)")"      # …/Toolchains/<v>/usr/bin
-SWIFT_ROOT="${SWIFT_BIN%/Toolchains/*}"            # …/Programs/Swift
-RT_BIN="$(dirname "$(find "$SWIFT_ROOT/Runtimes" -name swiftCore.dll 2>/dev/null | head -1)")"
-if [ -z "$RT_BIN" ] || [ ! -d "$RT_BIN" ]; then
-    echo "ERROR: 找不到 Swift runtime（swiftCore.dll）/ Swift runtime not found under $SWIFT_ROOT/Runtimes" >&2
+# 1. 選用最新安裝的 Swift：swift_windows_env.zsh 設定 PATH／SDKROOT，並給出相配的 runtime 目錄。
+#    Use the newest installed Swift: swift_windows_env.zsh sets PATH/SDKROOT and names the matching runtime.
+#    更正 2026-11-06：原本由 `command -v swiftc` 推導根目錄，再取 `find Runtimes -name swiftCore.dll | head -1`。
+#    swiftc 來自繼承的 PATH（升級後可能指向已刪除的版本），而 find 的順序不是版本序，裝了兩版時可能收錄
+#    比編譯用的 swiftc 舊的 runtime。
+#    CORRECTED 2026-11-06: this derived the root from `command -v swiftc`, then took
+#    `find Runtimes -name swiftCore.dll | head -1`. swiftc came from the inherited PATH (which can name a version
+#    an upgrade deleted), and find's order is not version order, so with two installed it could bundle an older
+#    runtime than the swiftc that compiled.
+source "${SCRIPT_DIR}/swift_windows_env.zsh"
+RT_BIN="${swift_windows_runtime_bin:-}"
+if [ -z "$RT_BIN" ] || [ ! -f "$RT_BIN/swiftCore.dll" ]; then
+    echo "ERROR: 找不到相配的 Swift 工具鏈與 runtime / no matching Swift toolchain and runtime under %LOCALAPPDATA%/Programs/Swift" >&2
     exit 1
 fi
+echo "Swift ${swift_windows_version}: $(command -v swiftc)"
 echo "Swift runtime: $RT_BIN"
 
 # 2. 重建 .build 資料夾 / Re-create the .build folder
