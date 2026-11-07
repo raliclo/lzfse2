@@ -153,6 +153,22 @@ git gc --prune=now --aggressive >> windows_round_status.txt 2>&1
 :: compile
 echo RUNNING compile %TIME:~0,8% >> windows_round_status.txt
 
+:: Use the newest installed Swift, not whatever this window inherited: an upgrade deletes the
+:: old version, and a window opened before it still names it (2026-11-07: swiftc not found,
+:: SDKROOT still 6.4.1). The choice is made in zsh; see swift_windows_env.zsh --help. The
+:: runtime goes first on PATH for this whole round, since lzfse.exe below loads its DLLs.
+set "LZFSE_SWIFT_VERSION="
+for /f "usebackq delims=" %%L in (`zsh "%~dp0swift_windows_env.zsh" --cmd`) do set "%%L"
+if not defined LZFSE_SWIFT_VERSION (
+    echo COMPILE_FAILED %TIME:~0,8% >> windows_round_status.txt
+    echo [FAIL] no Swift toolchain with a matching runtime, or zsh not on PATH >> windows_round_status.txt
+    echo [FAIL] no Swift toolchain with a matching runtime, or zsh not on PATH
+    pause
+    exit /b 1
+)
+set "PATH=%LZFSE_SWIFT_RT%;%LZFSE_SWIFT_TC%;%PATH%"
+echo [INFO] Swift %LZFSE_SWIFT_VERSION%: %LZFSE_SWIFT_TC% >> windows_round_status.txt
+
 set "_build_exe=lzfse-build-%RANDOM%.exe"
 swiftc -O ../lzfse-cli.swift -o "%_build_exe%" >> windows_round_status.txt 2>&1
 

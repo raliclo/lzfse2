@@ -5,6 +5,16 @@
 # Usage / 用法:
 #   source "$root/helper_windows/swift_windows_env.zsh"   (release.zsh, helper_windows/build-cli-win.zsh)
 #   zsh helper_windows/swift_windows_env.zsh --help
+#   zsh helper_windows/swift_windows_env.zsh --cmd     (compile.bat, run_round.bat)
+#
+# --cmd prints KEY=VALUE lines for a .bat to `set`: LZFSE_SWIFT_VERSION, LZFSE_SWIFT_TC and
+# LZFSE_SWIFT_RT (Windows paths) and SDKROOT; nothing and exit 1 when no matching pair is installed.
+# The .bat prepends the two directories itself. Printing the whole PATH back was measured to be
+# unsafe (2026-11-07): zsh puts its own usr\bin first, and in cmd that shadows find.exe and sort.exe.
+# --cmd 輸出 KEY=VALUE 行供 .bat 以 `set` 讀入：LZFSE_SWIFT_VERSION、LZFSE_SWIFT_TC、LZFSE_SWIFT_RT
+# （Windows 路徑）與 SDKROOT；找不到相配組合時不輸出並以 1 結束。兩個目錄由 .bat 自己放到 PATH 前面。
+# 把整條 PATH 印回去經實測不安全（2026-11-07）：zsh 會把它自己的 usr\bin 放在最前面，在 cmd 裡會蓋掉
+# find.exe 與 sort.exe。
 #
 # Picks the newest toolchain under %LOCALAPPDATA%\Programs\Swift\Toolchains that
 # has a runtime of the same version, drops every other Swift Toolchains/Runtimes
@@ -30,7 +40,7 @@
 # helper/swift_windows_env.zsh（1b56e5a、80fd1c8），swift-cross-ui 同日也做了同樣的移植。
 
 if [[ $ZSH_EVAL_CONTEXT == toplevel && ( ${1:-} == -h || ${1:-} == --help ) ]]; then
-  sed -n '2,30p' "${0:A}" | sed 's/^# \{0,1\}//'
+  sed -n '2,40p' "${0:A}" | sed 's/^# \{0,1\}//'
   exit 0
 fi
 
@@ -65,4 +75,17 @@ if [[ $(uname -s) == *NT* ]]; then
     fi
   fi
   unset swift_windows_candidate swift_windows_candidate_version swift_windows_toolchains
+fi
+
+if [[ $ZSH_EVAL_CONTEXT == toplevel && ${1:-} == --cmd ]]; then
+  if [[ -z ${swift_windows_version:-} ]]; then
+    printf 'swift_windows_env.zsh: no Swift toolchain with a matching runtime under %s\n' \
+      "${swift_windows_base:-%LOCALAPPDATA%/Programs/Swift}" >&2
+    exit 1
+  fi
+  printf 'LZFSE_SWIFT_VERSION=%s\n' "$swift_windows_version"
+  printf 'LZFSE_SWIFT_TC=%s\n' "$(cygpath -w "$swift_windows_toolchain_bin")"
+  printf 'LZFSE_SWIFT_RT=%s\n' "$(cygpath -w "$swift_windows_runtime_bin")"
+  [[ ! -d $swift_windows_sdk ]] || printf 'SDKROOT=%s\n' "$SDKROOT"
+  exit 0
 fi
