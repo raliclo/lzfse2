@@ -1,7 +1,9 @@
 # Release builds for lzfse, modelled on multissh's ci.yml. / lzfse 的正式版建置，以 multissh 的 ci.yml 為範本。
 #
 # Build: a push that touches the CLI or the release scripts builds, strips, verifies and packages all six targets
-# with release.zsh (which runs the stripped copy and round-trips data through it).
+# with release.zsh (which runs the stripped copy and round-trips data through it). Verify: each archive is then
+# checked again by verify_archive.zsh on a fresh runner with no Swift (the `verify` job, added 2026-11-11).
+# 驗證：每份封存接著在沒有 Swift 的新 runner 上由 verify_archive.zsh 再檢查一次（`verify` job，2026-11-11 加入）。
 # Release: this workflow does NOT create the release. A pushed tag v<X.Y.Z> (publish.zsh --github) builds the same
 # way; publish.zsh then downloads these artifacts, checks them and creates the release with the maintainer's own gh
 # login, so GitHub shows the maintainer, not github-actions, as the one who released it (the user's decision,
@@ -26,7 +28,10 @@ on:
     tags: ["v*.*.*"]
     # Path filters are not applied to tag pushes, so a tag always builds.
     # 路徑過濾不套用在 tag 推送上，所以 tag 一定會建置。
-    paths: ["lzfse-cli.swift", "release.zsh", "VERSION", ".github/workflows/release.yml"]
+    # release.zsh sources helper_windows/swift_windows_env.zsh and calls verify_archive.zsh, so both count.
+    # release.zsh 會 source helper_windows/swift_windows_env.zsh 並呼叫 verify_archive.zsh，所以兩者都算。
+    paths: ["lzfse-cli.swift", "release.zsh", "verify_archive.zsh", "helper_windows/swift_windows_env.zsh", "VERSION",
+            ".github/workflows/release.yml"]
   workflow_dispatch:
 
 permissions:
@@ -104,8 +109,12 @@ jobs:
         run: git config --global core.autocrlf false
 
       # Full history and tags: the build id is `git describe`. No submodules: lzfse-cli.swift stands alone.
+      # checkout@v5 and upload-artifact@v6 are the first majors on Node.js 24 (csv2 measured upload-artifact@v5 still
+      # on node20); the older ones drew GitHub's Node.js 20 deprecation warning in run 42270242469.
       # 完整歷史與 tag：build id 是 `git describe`。不取子模組：lzfse-cli.swift 自成一體。
-      - uses: actions/checkout@v4
+      # checkout@v5 與 upload-artifact@v6 是第一個以 Node.js 24 執行的主版本（csv2 實測 upload-artifact@v5 仍是
+      # node20）；舊版在第 42270242469 次執行引來 GitHub 的 Node.js 20 棄用警告。
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           submodules: false
@@ -138,10 +147,77 @@ jobs:
           ls release/dist/${{ matrix.platform }}/lzfse-*-${{ matrix.platform }}.tar.zst
           ls release/dist/${{ matrix.platform }}/lzfse-*-${{ matrix.platform }}.tar.zst.sha256
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: lzfse-${{ matrix.platform }}
           path: |
             release/dist/${{ matrix.platform }}/*.tar.zst
             release/dist/${{ matrix.platform }}/*.tar.zst.sha256
           if-no-files-found: error
+
+  # Each archive again, on a fresh runner that never had Swift installed: what a user's machine is. release.zsh
+  # already ran verify_archive.zsh where the archive was built, with Swift present; here nothing of the build is
+  # left to lean on. Linux runs on the bare runner, not the swift container, so a musl binary that still needed a
+  # shared library would fail here. GitHub's Windows images do ship the VC++ redistributable, so this does not
+  # stand for a Windows without it (verify_archive.zsh's header says what does).
+  # 每份封存再驗一次，在一台從沒裝過 Swift 的新 runner 上：那才是使用者的機器。release.zsh 已在建出封存、裝著 Swift
+  # 的地方跑過 verify_archive.zsh；這裡沒有任何建置留下的東西可以倚靠。Linux 跑在原生 runner 上而非 swift 容器，
+  # 所以若 musl 執行檔仍需要某個共享函式庫，會在這裡失敗。GitHub 的 Windows 映像有裝 VC++ 可轉散發套件，所以這裡
+  # 不能代表沒裝它的 Windows（verify_archive.zsh 的開頭說明了是什麼在支撐那個情況）。
+  verify:
+    name: verify ${{ matrix.platform }}
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux-x86_64-musl,  runner: ubuntu-24.04 }
+          - { platform: linux-aarch64-musl, runner: ubuntu-24.04-arm }
+          - { platform: macos-x86_64,       runner: macos-15-intel }
+          - { platform: macos-arm64,        runner: macos-15 }
+          - { platform: windows-x86_64,     runner: windows-2025 }
+          - { platform: windows-arm64,      runner: windows-11-arm }
+    steps:
+      - name: Tools (Linux) / 工具（Linux）
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y -q zsh zstd >/dev/null
+
+      - name: Tools (macOS) / 工具（macOS）
+        if: runner.os == 'macOS'
+        run: command -v zstd >/dev/null || brew install zstd
+
+      - name: zsh (Windows) / zsh（Windows）
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MSYS
+          path-type: inherit
+          install: zsh zstd tar diffutils
+
+      - name: LF line endings / LF 換行
+        if: runner.os == 'Windows'
+        shell: bash
+        run: git config --global core.autocrlf false
+
+      # Only the script; the archive under test comes from the build job, not from this checkout.
+      # 只取腳本；受測的封存來自 build job，不是這份 checkout。
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: verify_archive.zsh
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: lzfse-${{ matrix.platform }}
+          path: dist
+
+      - name: Verify / 驗證
+        if: runner.os != 'Windows'
+        shell: bash
+        run: zsh verify_archive.zsh dist/lzfse-*-${{ matrix.platform }}.tar.zst ${{ matrix.platform }}
+
+      - name: Verify (Windows) / 驗證（Windows）
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: zsh verify_archive.zsh dist/lzfse-*-${{ matrix.platform }}.tar.zst ${{ matrix.platform }}

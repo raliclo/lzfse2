@@ -21,6 +21,8 @@
 # 環境變數：SWIFT_STATIC_SDK（Linux：swift-linux-musl 目錄）、SWIFT_RUNTIME_DIR（Windows：…/Runtimes/<v>/usr/bin）。
 # Windows picks the newest installed Swift via helper_windows/swift_windows_env.zsh; SWIFT_RUNTIME_DIR still overrides
 # the runtime. / Windows 經 helper_windows/swift_windows_env.zsh 選用最新安裝的 Swift；SWIFT_RUNTIME_DIR 仍可覆寫 runtime。
+# The finished archive is checked by verify_archive.zsh, which runs the extracted copy; a refusal removes the archive.
+# 完成的封存交給 verify_archive.zsh 檢查，它執行解開後的副本；被拒絕時封存會被刪除。
 
 # -h / --help: print the comment block above and exit, before anything is built.
 # -h／--help：在建置任何東西之前，印出上方的註解區塊後結束。
@@ -319,6 +321,13 @@ top=( $check/*(N) )
 cmp -s "$check/$stem/lzfse$exe" "$staged" || die "the extracted binary differs from the verified one" "解開後的執行檔與驗證過的不同"
 rm -rf -- "$stage"
 print -r -- "$(sha256_of "$archive")  $stem.tar.zst" > "$archive.sha256"
+
+# Run the EXTRACTED copy as a user would get it, as csv2's release.zsh does: the checks above ran the staged copy,
+# and cmp only showed the extracted exe matches it, not that the archive holds the DLLs it needs. The CI job
+# `verify` runs the same script again on a runner without Swift.
+# 以使用者會拿到的樣子執行**解開後**的副本，與 csv2 的 release.zsh 相同：上面的檢查跑的是暫存區的副本，cmp 只證明
+# 解開後的 exe 與它相同，沒有證明封存裡有它需要的 DLL。CI 的 `verify` job 會在沒有 Swift 的 runner 上再跑一次同一支腳本。
+zsh "${0:A:h}/verify_archive.zsh" "$archive" "$plat" || die "verify_archive.zsh refused $archive" "verify_archive.zsh 拒絕了 $archive"
 
 print -r -- "$archive"
 cat -- "$archive.sha256"
