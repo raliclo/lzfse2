@@ -88,10 +88,14 @@ jobs:
       - name: Swift (Windows) / Swift（Windows）
         if: runner.os == 'Windows'
         uses: compnerd/gha-setup-swift@main
+        # swift-version and swift-build replace branch and tag, which the action deprecated (warning in run
+        # 42946390857); giving an old and a new one together is an error there.
+        # swift-version 與 swift-build 取代已被 action 棄用的 branch 與 tag（第 42946390857 次執行的警告）；新舊同時
+        # 給在那邊會被當成錯誤。
         with:
           build_arch: ${{ matrix.swift_arch }}
-          branch: swift-${{ env.SWIFT_VERSION }}-release
-          tag: ${{ env.SWIFT_VERSION }}-RELEASE
+          swift-version: swift-${{ env.SWIFT_VERSION }}-release
+          swift-build: ${{ env.SWIFT_VERSION }}-RELEASE
 
       - name: zsh (Windows) / zsh（Windows）
         if: runner.os == 'Windows'
