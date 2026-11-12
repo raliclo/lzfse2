@@ -17,7 +17,7 @@
 #   --yes   (--github) do not ask / 不詢問
 # Targets: {linux (musl), macos, windows} x {x86_64,arm64}; Linux ships musl only, and its arm64 is named aarch64 (uname -m).
 # 目標：{linux (musl), macos, windows} x {x86_64,arm64}；Linux 只出 musl 版，其 arm64 命名為 aarch64（uname -m）。
-# Install: zsh install.zsh [<X.Y.Z>], or scoop install raliclo/lzfse. / 安裝：zsh install.zsh [<版本>]，或 scoop。
+# Install: zsh install.zsh [<X.Y.Z>], or scoop install lzfse2/lzfse. / 安裝：zsh install.zsh [<版本>]，或 scoop。
 
 # -h / --help: print the comment block above and exit; skipped when sourced.
 # -h／--help：印出上方的註解區塊後結束；被 source 時略過。
@@ -336,4 +336,4 @@ else
 fi
 say ""
 say "published / 已發布：https://github.com/$REPO/releases/tag/$TAG"
-say "install / 安裝：zsh install.zsh $VERSION   (Windows: scoop install raliclo/lzfse)"
+say "install / 安裝：zsh install.zsh $VERSION   (Windows: scoop install lzfse2/lzfse)"

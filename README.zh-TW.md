@@ -41,7 +41,7 @@ swiftc -O lzfse-cli.swift -o lzfse
 ```sh
 zsh install.zsh              # 最新版裝到 ~/.local/bin
 zsh install.zsh 0.2.0 --prefix /usr/local
-scoop install raliclo/lzfse  # Windows（先 scoop bucket add raliclo https://github.com/raliclo/lzfse2）
+scoop install lzfse2/lzfse  # Windows（先 scoop bucket add lzfse2 https://github.com/raliclo/lzfse2）
 ```
 
 ### 發布正式版

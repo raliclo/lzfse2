@@ -5,9 +5,9 @@
 This directory is a standard scoop bucket and can be added directly:
 
 ```sh
-scoop bucket add raliclo https://github.com/raliclo/lzfse2
-scoop install raliclo/lzfse
-scoop install raliclo/swift_tar
+scoop bucket add lzfse2 https://github.com/raliclo/lzfse2
+scoop install lzfse2/lzfse
+scoop install lzfse2/swift_tar
 ```
 
 ## Manifest

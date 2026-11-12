@@ -42,7 +42,7 @@ Linux ships musl only, as swift_tar does: a glibc build needs a glibc at least a
 ```sh
 zsh install.zsh              # the latest release into ~/.local/bin
 zsh install.zsh 0.2.0 --prefix /usr/local
-scoop install raliclo/lzfse  # Windows (after scoop bucket add raliclo https://github.com/raliclo/lzfse2)
+scoop install lzfse2/lzfse  # Windows (after scoop bucket add lzfse2 https://github.com/raliclo/lzfse2)
 ```
 
 ### Making a release
