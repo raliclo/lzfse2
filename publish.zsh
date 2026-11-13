@@ -201,8 +201,8 @@ fi
 # build id、那次執行，以及各平台 strip 後的大小與 release.zsh 通過的檢查，取自每個 job 自己的日誌（與這裡其他地方
 # 一樣用 REST），而不是手寫。任何 job 沒有成功、或日誌缺少某一行，都會讓發布停下。
 build_notes() {
-  local plat id log size dlls
-  local -a sizes=() win=() esc=()
+  local plat id log size dlls tests
+  local -a sizes=() win=() selftests=() esc=()
   # --allow-escape-sequences: the logs carry the runner's colour codes, which a newer gh refuses to print without
   # it; gh 2.89 has no such flag and prints them as they are, so it is passed only where gh knows it.
   # --allow-escape-sequences：日誌帶著 runner 的色碼，較新的 gh 少了它會拒絕輸出；gh 2.89 沒有這個旗標、照原樣輸出，
@@ -223,21 +223,36 @@ build_notes() {
       || die "the $plat log has no \"verified the stripped copy\" line / $plat 的日誌沒有 verified the stripped copy 那一行"
     print -r -- "$log" | LC_ALL=C grep -a -q -F -- "lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) $plat" \
       || die "the $plat log does not report lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) $plat / $plat 的日誌沒有回報該版本行"
+    # Since 0.2.1 the Swift runtime is linked in and only the VC++ runtime DLLs ship; release.zsh names them.
+    # 自 0.2.1 起 Swift runtime 直接連結進去，只附 VC++ runtime DLL；release.zsh 會列出它們的名稱。
     if [[ $plat == windows-* ]]; then
-      dlls=$(print -r -- "$log" | LC_ALL=C grep -a -o -E 'bundled Swift runtime DLLs [^0-9]*[0-9]+' | LC_ALL=C sed -E 's/.*[^0-9]([0-9]+)$/\1/' || true)
-      [[ $dlls == <-> ]] || die "the $plat log has no \"bundled Swift runtime DLLs\" line / $plat 的日誌沒有 DLL 那一行"
-      win+=("$plat $dlls")
+      dlls=${(M)${(f)log}:#*bundled VC++ runtime DLLs / *}
+      dlls=${dlls##*：}
+      [[ $dlls == *.dll* ]] || die "the $plat log has no \"bundled VC++ runtime DLLs\" line / $plat 的日誌沒有 VC++ DLL 那一行"
+      win+=("$plat: $dlls")
     fi
     sizes+=("$plat $size")
+    # The `verify` job: the same archive on a fresh runner without Swift (verify_archive.zsh).
+    # `verify` job：同一份封存在沒有 Swift 的新 runner 上再驗一次（verify_archive.zsh）。
+    id=$(gh api "repos/$REPO/actions/runs/$run_id/jobs?per_page=100" \
+           -q ".jobs[] | select(.name == \"verify $plat\" and .conclusion == \"success\") | .id")
+    [[ $id == <-> ]] || die "run $run_id has no successful job \"verify $plat\" / run $run_id 沒有成功的 verify $plat job"
+    log=$(gh api "${esc[@]}" "repos/$REPO/actions/jobs/$id/logs" | tr -d '\r')
+    [[ $log == *"verified / 已驗證：lzfse-$VERSION-$plat.tar.zst"* ]] \
+      || die "the verify $plat log has no \"verified\" line / verify $plat 的日誌沒有 verified 那一行"
+    tests=${(M)${(f)log}:#*ok: lzfse -test, * cases, none failed*}
+    tests=${${tests##*ok: lzfse -test, }%% cases*}
+    [[ $tests == <-> ]] || die "the verify $plat log has no \"lzfse -test\" line / verify $plat 的日誌沒有 lzfse -test 那一行"
+    selftests+=("$plat $tests")
   done
   {
     print -r -- "$(<$NOTES)"
     print -r -- ""
     print -r -- "---"
     print -r -- ""
-    print -r -- "Built at \`$TAG / ${TAG_SHA[1,8]}\` by [release.yml run $run_id](https://github.com/$REPO/actions/runs/$run_id), each platform on a runner of its own. Stripped executable, in bytes: ${(j:, :)sizes}. On every platform release.zsh ran the stripped copy from its staged directory and required \`-version\` to report \`lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) <platform>\`, an \`other3\` and a \`bvx3\` encode/decode round trip to reproduce the input, and the packed archive to extract to the same executable. On Windows it ran with only the system directories on \`PATH\`, so every DLL came from the archive (Swift runtime DLLs bundled: ${(j:, :)win}). The built-in \`lzfse -test\` suite does not run in CI."
+    print -r -- "Built at \`$TAG / ${TAG_SHA[1,8]}\` by [release.yml run $run_id](https://github.com/$REPO/actions/runs/$run_id), each platform on a runner of its own. Stripped executable, in bytes: ${(j:, :)sizes}. On every platform release.zsh ran the stripped copy from its staged directory and required \`-version\` to report \`lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) <platform>\`, an \`other3\` and a \`bvx3\` encode/decode round trip to reproduce the input, and the packed archive to extract to the same executable. On Windows it ran with only the system directories on \`PATH\`, so every DLL came from the archive (the Swift runtime is linked in; VC++ runtime DLLs bundled, ${(j:; :)win}). Each archive was then unpacked on a fresh runner with no Swift installed, where verify_archive.zsh checked its \`.sha256\`, the platform it reports, the built-in \`lzfse -test\` suite with no case failing (cases passed: ${(j:, :)selftests}) and the \`other3\` and \`bvx3\` round trips."
     print -r -- ""
-    print -r -- "於 \`$TAG / ${TAG_SHA[1,8]}\` 由 [release.yml run $run_id](https://github.com/$REPO/actions/runs/$run_id) 建置，每個平台各在自己的 runner 上。strip 後的執行檔大小（bytes）：${(j:、:)sizes}。每個平台上 release.zsh 都從暫存目錄執行 strip 後的副本，並要求 \`-version\` 回報 \`lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) <平台>\`、\`other3\` 與 \`bvx3\` 的壓縮／解壓縮往返與輸入相同、打包後解開的執行檔與檢查過的相同。Windows 上以只含系統目錄的 \`PATH\` 執行，所以每個 DLL 都來自封存本身（附帶的 Swift runtime DLL：${(j:、:)win}）。內建的 \`lzfse -test\` 測試套件不在 CI 中執行。"
+    print -r -- "於 \`$TAG / ${TAG_SHA[1,8]}\` 由 [release.yml run $run_id](https://github.com/$REPO/actions/runs/$run_id) 建置，每個平台各在自己的 runner 上。strip 後的執行檔大小（bytes）：${(j:、:)sizes}。每個平台上 release.zsh 都從暫存目錄執行 strip 後的副本，並要求 \`-version\` 回報 \`lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) <平台>\`、\`other3\` 與 \`bvx3\` 的壓縮／解壓縮往返與輸入相同、打包後解開的執行檔與檢查過的相同。Windows 上以只含系統目錄的 \`PATH\` 執行，所以每個 DLL 都來自封存本身（Swift runtime 已連結進執行檔；附帶的 VC++ runtime DLL：${(j:；:)win}）。之後每份封存再於沒有安裝 Swift 的新 runner 上解開，由 verify_archive.zsh 檢查 \`.sha256\`、回報的平台、內建的 \`lzfse -test\` 測試套件沒有任何案例失敗（通過的案例數：${(j:、:)selftests}），以及 \`other3\` 與 \`bvx3\` 的往返。"
   } > "$tmp/notes.md"
 }
 build_notes
