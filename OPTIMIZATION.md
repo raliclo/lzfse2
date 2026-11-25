@@ -368,9 +368,9 @@ run each. Fixed in 待辦 5 below.
    約 4.3 分，27 次約省 5.8 小時——**這是估計，要等下一輪的牆鐘時間確認**。比對在計時視窗之外，
    **不影響任何 MB/s**，但下一輪的全輪時間會與 R51 不可直接比較。
 
-   **另一個需要使用者決定的事**：`/usr/local` 仍有一整套舊 Intel Homebrew（51 個套件、384 個
-   執行檔）。PATH 中凡是只存在於 `/usr/local/bin` 的工具都會經 Rosetta 執行，本項只繞開了
-   其中的 `sha256sum`。
+   **另一個需要使用者決定的事**（✅ **已清理，2026-09-27／2026-11-25 確認**）：`/usr/local/Homebrew`、
+   `/usr/local/Cellar`、`/usr/local/Caskroom` 已移除，`/usr/local/{etc,include,lib,opt}` 皆為空，
+   `/usr/local/bin` 僅餘 `code`、`container*` 與 `mdatp_traceviewer`，已無舊 Intel Homebrew 殘留。
 
    Done. `lz4bench.zsh` now detects the stat flavour once and fetches all four fields in one
    `stat`, and picks the sha256 tool once, preferring the arm64 `gsha256sum` (same GNU

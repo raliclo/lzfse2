@@ -175,15 +175,29 @@ fi
 # Scan. --allow removes lines first; everything else counts.
 scan() {
     if (( ${#ALLOW} )); then
-        local f="$LOG.f"; cp "$LOG" "$f"
-        local p
-        for p in $ALLOW; do grep -vE -- "$p" "$f" > "$f.n" 2>/dev/null && mv "$f.n" "$f"; done
-        grep -nE -- "$FAILPAT" "$f"; local r=$?; rm -f "$f" "$f.n"; return $r
+        local f="$LOG.f" p r=0
+        cp "$LOG" "$f" || return 2
+        for p in $ALLOW; do
+            r=0
+            grep -vE -- "$p" "$f" > "$f.n" || r=$?
+            # Status 1 means an empty result, not an error. / 狀態 1 表示結果為空，並非錯誤。
+            if (( r > 1 )) || ! mv "$f.n" "$f"; then
+                rm -f "$f" "$f.n"
+                return 2
+            fi
+        done
+        grep -nE -- "$FAILPAT" "$f"; r=$?; rm -f "$f" "$f.n"; return $r
     fi
     grep -nE -- "$FAILPAT" "$LOG"
 }
 
 HITS=$(scan)
+scan_status=$?
+if (( scan_status > 1 )); then
+    print -ru2 -- "run_checked: could not scan the command output / 無法掃描指令輸出"
+    (( RC != 0 )) && exit $RC
+    exit 1
+fi
 NHITS=$( [[ -n "$HITS" ]] && print -- "$HITS" | wc -l | tr -d ' ' || print 0 )
 
 if (( RC != 0 || NHITS > 0 )); then

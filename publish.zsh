@@ -131,7 +131,8 @@ git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && TAG_SHA=$(git rev-parse
 # HEAD 只可以因為「不影響封存建置內容」的 commit 而越過既有的 tag——也就是 release.yml 路徑過濾所列的檔案以外的變更：
 # 上一次執行留下的 bucket commit、release notes、本腳本。
 if [[ -n $TAG_SHA && $TAG_SHA != $HEAD_SHA ]]; then
-  extra=$(git diff --name-only "$TAG_SHA" HEAD -- lzfse-cli.swift release.zsh VERSION .github/workflows/release.yml)
+  extra=$(git diff --name-only "$TAG_SHA" HEAD -- lzfse-cli.swift release.zsh verify_archive.zsh \
+    helper_windows/swift_windows_env.zsh VERSION .github/workflows/release.yml)
   [[ -z $extra ]] || die "$TAG exists at ${TAG_SHA[1,8]} and HEAD changes what it was built from: ${extra//$'\n'/ }" \
                          "$TAG 已存在於 ${TAG_SHA[1,8]}，且 HEAD 改動了建置來源：${extra//$'\n'/ }"
 fi
@@ -219,9 +220,9 @@ build_notes() {
     log=$(gh api "${esc[@]}" "repos/$REPO/actions/jobs/$id/logs" | tr -d '\r')
     size=$(print -r -- "$log" | LC_ALL=C grep -a -o -E 'stripped / [^0-9]*[0-9]+ -> [0-9]+ bytes' | LC_ALL=C sed -E 's/.* -> ([0-9]+) bytes/\1/' || true)
     [[ $size == <-> ]] || die "the $plat log has no \"stripped\" line / $plat 的日誌沒有 stripped 那一行"
-    print -r -- "$log" | LC_ALL=C grep -a -q -F -- "verified the stripped copy: -version, other3 and bvx3 round trips" \
+    [[ $log == *"verified the stripped copy: -version, other3 and bvx3 round trips"* ]] \
       || die "the $plat log has no \"verified the stripped copy\" line / $plat 的日誌沒有 verified the stripped copy 那一行"
-    print -r -- "$log" | LC_ALL=C grep -a -q -F -- "lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) $plat" \
+    [[ $log == *"lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) $plat"* ]] \
       || die "the $plat log does not report lzfse $VERSION ($TAG / ${TAG_SHA[1,8]}) $plat / $plat 的日誌沒有回報該版本行"
     # Since 0.2.1 the Swift runtime is linked in and only the VC++ runtime DLLs ship; release.zsh names them.
     # 自 0.2.1 起 Swift runtime 直接連結進去，只附 VC++ runtime DLL；release.zsh 會列出它們的名稱。
