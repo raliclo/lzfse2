@@ -315,7 +315,9 @@ PACKED=$archive
 ( cd -- "$out" && COPYFILE_DISABLE=1 tar "${tar_opts[@]}" -cf - "$stem" | zstd -19 -q -o "$stem.tar.zst" )
 check=$B/extract
 mkdir -p -- "$check"
-zstd -dqc -- "$archive" | tar -xf - -C "$check"
+zstd -dqc -- "$archive" > "$check/.verify.tar"
+tar -xf "$check/.verify.tar" -C "$check"
+rm -f -- "$check/.verify.tar"
 top=( $check/*(N) )
 (( ${#top} == 1 )) && [[ ${top[1]:t} == $stem ]] || die "the archive does not hold exactly one directory $stem" "封存裡不是恰好一個 $stem 目錄"
 cmp -s "$check/$stem/lzfse$exe" "$staged" || die "the extracted binary differs from the verified one" "解開後的執行檔與驗證過的不同"

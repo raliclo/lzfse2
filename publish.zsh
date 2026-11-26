@@ -57,7 +57,9 @@ check_archive() {
   h=$(sha256_of "$dir/$base")
   [[ $h == $(cut -d' ' -f1 < "$dir/$base.sha256") ]] || die "$base: .sha256 disagrees with $h" "$base：.sha256 與 $h 不符"
   rm -rf -- "$dir/x-$plat"; mkdir -p -- "$dir/x-$plat"
-  zstd -dqc -- "$dir/$base" | tar -xf - -C "$dir/x-$plat"
+  zstd -dqc -- "$dir/$base" > "$dir/x-$plat/.verify.tar"
+  tar -xf "$dir/x-$plat/.verify.tar" -C "$dir/x-$plat"
+  rm -f -- "$dir/x-$plat/.verify.tar"
   [[ -f $dir/x-$plat/$stem/lzfse$exe ]] || die "$base has no $stem/lzfse$exe / $base 裡沒有 $stem/lzfse$exe"
   # `grep -a`: without it a binary yields one "Binary file matches" line. `|| true`: a count of zero exits 1 and is
   # answered by the die below. No parentheses: the binary holds the build id literal alone; lzfseVersionLine adds

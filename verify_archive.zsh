@@ -60,7 +60,10 @@ printf 'ok: sha256 %s\n' "$got_sum"
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
-zstd -dqc -- "$archive" | tar -xf - -C "$work"
+# Finish decompression before tar can stop at its EOF blocks. / 先完成解壓，避免 tar 讀到結尾便關閉管線。
+zstd -dqc -- "$archive" > "$work/.verify.tar"
+tar -xf "$work/.verify.tar" -C "$work"
+rm -f -- "$work/.verify.tar"
 top=( $work/*(N) )
 (( ${#top} == 1 )) && [[ -d ${top[1]} ]] || die "the archive does not hold exactly one directory / 封存裡不是恰好一個目錄"
 dir=${top[1]}
